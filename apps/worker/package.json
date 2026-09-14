@@ -1,0 +1,21 @@
+{
+  "name": "@albumflow/worker",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/worker.ts",
+    "start": "tsx src/worker.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@albumflow/api": "workspace:*",
+    "bullmq": "^5.34.0",
+    "tsx": "^4.19.2"
+  },
+  "devDependencies": {
+    "@albumflow/config": "workspace:*",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

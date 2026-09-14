@@ -1,0 +1,1 @@
+ALTER TYPE "public"."photo_status" ADD VALUE 'ANALYSED' BEFORE 'FAILED';

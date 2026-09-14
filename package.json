@@ -1,0 +1,24 @@
+{
+  "name": "albumflow",
+  "private": true,
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @albumflow/api db:generate",
+    "db:migrate": "pnpm --filter @albumflow/api db:migrate",
+    "db:seed": "pnpm --filter @albumflow/api db:seed",
+    "demo": "turbo run demo"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0"
+  }
+}

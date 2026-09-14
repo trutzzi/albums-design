@@ -1,0 +1,4 @@
+{
+  "extends": "@albumflow/config/tsconfig.base.json",
+  "include": ["src"]
+}
