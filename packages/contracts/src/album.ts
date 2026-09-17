@@ -122,6 +122,12 @@ export const albumEditSchema = z.discriminatedUnion("type", [
     slotIdB: z.string(),
   }),
   z.object({
+    type: z.literal("REORDER_PLACEMENT"),
+    spreadIndex: z.number().int().min(0),
+    fromSlotId: z.string(),
+    toSlotId: z.string(),
+  }),
+  z.object({
     type: z.literal("SET_FRAME"),
     spreadIndex: z.number().int().min(0),
     slotId: z.string(),
@@ -129,6 +135,11 @@ export const albumEditSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("RESET_FRAMES"), spreadIndex: z.number().int().min(0) }),
   z.object({ type: z.literal("REMOVE_SPREAD"), index: z.number().int().min(0) }),
+  z.object({
+    type: z.literal("RESTORE_SPREADS"),
+    /** A full spreads array from an earlier successful edit — how undo/redo work. */
+    spreads: z.array(spreadSchema).min(1),
+  }),
   z.object({ type: z.literal("SUBMIT_FOR_REVIEW") }),
   z.object({ type: z.literal("REOPEN") }),
 ]);

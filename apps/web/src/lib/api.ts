@@ -150,6 +150,10 @@ export function editAlbum(albumId: string, command: AlbumEditInput): Promise<Alb
   return request(`/albums/${albumId}`, { method: "PATCH", body: JSON.stringify(command) });
 }
 
+export function deleteAlbum(albumId: string): Promise<void> {
+  return request(`/albums/${albumId}`, { method: "DELETE" });
+}
+
 // --- Review ----------------------------------------------------------------
 
 export interface ReviewSessionSummary {
@@ -291,6 +295,10 @@ export function listExports(albumId: string): Promise<ExportJobDTO[]> {
 
 export function getExportDownload(exportJobId: string): Promise<{ url: string }> {
   return request(`/exports/${exportJobId}/download`);
+}
+
+export function deleteExport(exportJobId: string): Promise<void> {
+  return request(`/exports/${exportJobId}`, { method: "DELETE" });
 }
 
 // --- Studio & billing ------------------------------------------------------

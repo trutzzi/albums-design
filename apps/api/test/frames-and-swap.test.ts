@@ -70,6 +70,79 @@ describe("swapping two photos on a spread", () => {
   });
 });
 
+function albumWithThree(): Album {
+  return Album.create({
+    projectId: UniqueEntityId.create(),
+    title: "Three bands",
+    spreads: [
+      {
+        templateId: "stack-three",
+        placements: [
+          { slotId: "b1", photoId: "photo-a", crop: FULL, treatment: "COLOR" },
+          { slotId: "b2", photoId: "photo-b", crop: FULL, treatment: "COLOR" },
+          {
+            slotId: "b3",
+            photoId: "photo-c",
+            crop: { x: 0.1, y: 0.1, width: 0.5, height: 0.5 },
+            treatment: "BLACK_WHITE",
+          },
+        ],
+      },
+    ],
+  });
+}
+
+describe("reordering a placement by dragging it onto another slot", () => {
+  it("shifts the photos in between instead of trading places 1:1", () => {
+    const album = albumWithThree();
+    album.reorderPlacement(0, "b1", "b3");
+    const [b1, b2, b3] = album.spreads[0]!.placements;
+    // photo-a lands exactly where photo-c was; b and c both shift back one slot —
+    // a straight swap would instead have left photo-b in the middle untouched.
+    assert.equal(b1?.photoId, "photo-b");
+    assert.equal(b2?.photoId, "photo-c");
+    assert.equal(b3?.photoId, "photo-a");
+  });
+
+  it("shifts the other way when dragging a later photo earlier", () => {
+    const album = albumWithThree();
+    album.reorderPlacement(0, "b3", "b1");
+    const [b1, b2, b3] = album.spreads[0]!.placements;
+    assert.equal(b1?.photoId, "photo-c");
+    assert.equal(b2?.photoId, "photo-a");
+    assert.equal(b3?.photoId, "photo-b");
+  });
+
+  it("carries the moved photo's framing and treatment with it", () => {
+    const album = albumWithThree();
+    album.reorderPlacement(0, "b1", "b3");
+    const [, , b3] = album.spreads[0]!.placements;
+    assert.equal(b3?.treatment, "COLOR");
+    assert.deepEqual(b3?.crop, FULL);
+  });
+
+  it("leaves the slot rectangles alone — the photos move, not the layout", () => {
+    const album = albumWithThree();
+    album.setFrame(0, "b1", { x: 0.02, y: 0.02, width: 0.3, height: 0.3 });
+    album.reorderPlacement(0, "b1", "b3");
+    // The hand-drawn frame stays attached to slot b1's position, not to the photo.
+    assert.deepEqual(album.spreads[0]?.placements[0]?.frame, {
+      x: 0.02,
+      y: 0.02,
+      width: 0.3,
+      height: 0.3,
+    });
+  });
+
+  it("is a no-op onto itself and rejects a slot that is not there", () => {
+    const album = albumWithThree();
+    album.reorderPlacement(0, "b1", "b1");
+    assert.equal(album.spreads[0]?.placements[0]?.photoId, "photo-a");
+    assert.throws(() => album.reorderPlacement(0, "b1", "nope"), SlotNotFoundError);
+    assert.throws(() => album.reorderPlacement(0, "nope", "b1"), SlotNotFoundError);
+  });
+});
+
 describe("resizing a slot", () => {
   it("records the new rectangle", () => {
     const album = albumWithPair();

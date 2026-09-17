@@ -132,6 +132,9 @@ export class InMemoryObjectStorage
   async putObject(params: { key: string; body: Buffer; contentType: string }): Promise<void> {
     this.objects.set(params.key, new Uint8Array(params.body));
   }
+  async delete(key: string): Promise<void> {
+    this.objects.delete(key);
+  }
   /** Simulates the browser completing its PUT to the presigned URL. */
   upload(key: string, bytes: Uint8Array): void {
     this.objects.set(key, bytes);
@@ -186,6 +189,9 @@ export class InMemoryAlbumRepository implements AlbumRepository {
   async countCreatedSince(_studioId: UniqueEntityId, since: Date) {
     return [...this.items.values()].filter((album) => album.createdAt >= since).length;
   }
+  async delete(id: UniqueEntityId) {
+    this.items.delete(id.toString());
+  }
 }
 
 export class InMemoryReviewSessionRepository implements ReviewSessionRepository {
@@ -204,6 +210,9 @@ export class InMemoryReviewSessionRepository implements ReviewSessionRepository 
       (session) => session.albumId.toString() === albumId.toString(),
     );
   }
+  async delete(id: UniqueEntityId) {
+    this.items.delete(id.toString());
+  }
 }
 
 export class InMemoryExportJobRepository implements ExportJobRepository {
@@ -218,6 +227,9 @@ export class InMemoryExportJobRepository implements ExportJobRepository {
     return [...this.items.values()].filter(
       (job) => job.albumId.toString() === albumId.toString(),
     );
+  }
+  async delete(id: UniqueEntityId) {
+    this.items.delete(id.toString());
   }
 }
 

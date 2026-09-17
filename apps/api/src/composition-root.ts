@@ -39,6 +39,7 @@ import {
 import { GenerateAlbumUseCase } from "./modules/album-composition/application/use-cases/generate-album/generate-album.use-case";
 import { SuggestLayoutsUseCase } from "./modules/album-composition/application/use-cases/suggest-layouts/suggest-layouts.use-case";
 import { EditAlbumUseCase } from "./modules/album-composition/application/use-cases/edit-album/edit-album.use-case";
+import { DeleteAlbumUseCase } from "./modules/album-composition/application/use-cases/delete-album/delete-album.use-case";
 
 import { DrizzleReviewSessionRepository } from "./modules/review-collaboration/infrastructure/persistence/drizzle-review-session-repository";
 import {
@@ -58,6 +59,7 @@ import {
 import { PdfAlbumRenderer } from "./modules/export-print/infrastructure/rendering/pdf-album-renderer";
 import { S3ExportStorage } from "./modules/export-print/infrastructure/storage/s3-export-storage";
 import { RequestExportUseCase } from "./modules/export-print/application/use-cases/request-export.use-case";
+import { DeleteExportUseCase } from "./modules/export-print/application/use-cases/delete-export.use-case";
 import { RunExportUseCase } from "./modules/export-print/application/use-cases/run-export.use-case";
 
 export interface CompositionRoot {
@@ -75,12 +77,14 @@ export interface CompositionRoot {
   suggestLayouts: SuggestLayoutsUseCase;
   generateAlbum: GenerateAlbumUseCase;
   editAlbum: EditAlbumUseCase;
+  deleteAlbum: DeleteAlbumUseCase;
   reviewSessions: DrizzleReviewSessionRepository;
   openReviewSession: OpenReviewSessionUseCase;
   reviewPortal: ReviewPortalUseCase;
   albumFeedback: AlbumFeedbackUseCase;
   exportJobs: DrizzleExportJobRepository;
   requestExport: RequestExportUseCase;
+  deleteExport: DeleteExportUseCase;
   runExport: RunExportUseCase;
   exportStorage: S3ExportStorage;
   shutdown: () => Promise<void>;
@@ -194,12 +198,15 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const exportAlbumGateway = new AlbumCompositionExportGateway(albums);
   const exportStorage = new S3ExportStorage(s3, env.S3_BUCKET, presignS3);
   const requestExport = new RequestExportUseCase(exportJobs, exportAlbumGateway, jobQueue);
+  const deleteExport = new DeleteExportUseCase(exportJobs, exportStorage);
   const runExport = new RunExportUseCase(
     exportJobs,
     exportAlbumGateway,
     new PdfAlbumRenderer(new StoredPhotoResolver(photos, byteSource)),
     exportStorage,
   );
+
+  const deleteAlbum = new DeleteAlbumUseCase(albums, exportJobs, exportStorage, reviewSessions);
 
   return {
     env,
@@ -216,12 +223,14 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     suggestLayouts,
     generateAlbum,
     editAlbum,
+    deleteAlbum,
     reviewSessions,
     openReviewSession,
     reviewPortal,
     albumFeedback,
     exportJobs,
     requestExport,
+    deleteExport,
     runExport,
     exportStorage,
     shutdown: async () => {

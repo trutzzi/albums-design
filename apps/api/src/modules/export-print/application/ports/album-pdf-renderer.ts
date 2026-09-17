@@ -52,4 +52,6 @@ export interface PhotoResolver {
 export interface ExportStorage {
   put(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
   presignGet(key: string, expiresInSeconds: number): Promise<string>;
+  /** Idempotent: deleting a key that's already gone must not throw. */
+  delete(key: string): Promise<void>;
 }

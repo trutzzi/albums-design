@@ -9,6 +9,7 @@ import { LAYOUT_TEMPLATES } from "../../domain/layout-template";
 import type { GenerateAlbumUseCase } from "../../application/use-cases/generate-album/generate-album.use-case";
 import type { EditAlbumUseCase } from "../../application/use-cases/edit-album/edit-album.use-case";
 import type { SuggestLayoutsUseCase } from "../../application/use-cases/suggest-layouts/suggest-layouts.use-case";
+import type { DeleteAlbumUseCase } from "../../application/use-cases/delete-album/delete-album.use-case";
 
 const projectParams = z.object({ projectId: z.string().uuid() });
 const albumParams = z.object({ albumId: z.string().uuid() });
@@ -17,6 +18,7 @@ export interface AlbumCompositionDependencies {
   suggestLayouts: SuggestLayoutsUseCase;
   generateAlbum: GenerateAlbumUseCase;
   editAlbum: EditAlbumUseCase;
+  deleteAlbum: DeleteAlbumUseCase;
   albums: AlbumRepository;
 }
 
@@ -68,6 +70,13 @@ export function registerAlbumCompositionRoutes(
     const result = await deps.editAlbum.execute(albumId, command);
     if (result.isFailure) return sendError(reply, result.getError());
     return toDto(result.getValue());
+  });
+
+  app.delete("/albums/:albumId", async (request, reply) => {
+    const { albumId } = albumParams.parse(request.params);
+    const result = await deps.deleteAlbum.execute({ albumId });
+    if (result.isFailure) return sendError(reply, result.getError());
+    return reply.code(204).send();
   });
 }
 

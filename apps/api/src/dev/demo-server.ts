@@ -32,6 +32,7 @@ import { HeuristicVisionClassifier } from "../modules/photo-intelligence/infrast
 import { GenerateAlbumUseCase } from "../modules/album-composition/application/use-cases/generate-album/generate-album.use-case";
 import { SuggestLayoutsUseCase } from "../modules/album-composition/application/use-cases/suggest-layouts/suggest-layouts.use-case";
 import { EditAlbumUseCase } from "../modules/album-composition/application/use-cases/edit-album/edit-album.use-case";
+import { DeleteAlbumUseCase } from "../modules/album-composition/application/use-cases/delete-album/delete-album.use-case";
 import {
   MediaIngestionProjectDirectory,
   PhotoIntelligenceDirectory,
@@ -45,6 +46,7 @@ import {
 } from "../modules/review-collaboration/infrastructure/gateways/album-gateway";
 import { StoragePhotoPreviewResolver } from "../modules/review-collaboration/infrastructure/gateways/photo-preview-resolver";
 import { RequestExportUseCase } from "../modules/export-print/application/use-cases/request-export.use-case";
+import { DeleteExportUseCase } from "../modules/export-print/application/use-cases/delete-export.use-case";
 import { RunExportUseCase } from "../modules/export-print/application/use-cases/run-export.use-case";
 import {
   AlbumCompositionExportGateway,
@@ -250,6 +252,7 @@ async function main() {
       quota,
     ),
     editAlbum: new EditAlbumUseCase(albums),
+    deleteAlbum: new DeleteAlbumUseCase(albums, exportJobs, storage, reviewSessions),
     albums,
   });
   registerReviewRoutes(app, {
@@ -264,6 +267,7 @@ async function main() {
   });
   registerExportRoutes(app, {
     requestExport: new RequestExportUseCase(exportJobs, exportGateway, queue),
+    deleteExport: new DeleteExportUseCase(exportJobs, storage),
     jobs: exportJobs,
     storage,
   });

@@ -7,6 +7,7 @@ import type { ExportJobRepository } from "../../domain/export-job-repository";
 import { PRINT_PROFILES } from "../../domain/print-profile";
 import type { ExportStorage } from "../../application/ports/album-pdf-renderer";
 import type { RequestExportUseCase } from "../../application/use-cases/request-export.use-case";
+import type { DeleteExportUseCase } from "../../application/use-cases/delete-export.use-case";
 
 const albumParams = z.object({ albumId: z.string().uuid() });
 const jobParams = z.object({ exportJobId: z.string().uuid() });
@@ -16,6 +17,7 @@ const DOWNLOAD_TTL_SECONDS = 15 * 60;
 
 export interface ExportDependencies {
   requestExport: RequestExportUseCase;
+  deleteExport: DeleteExportUseCase;
   jobs: ExportJobRepository;
   storage: ExportStorage;
 }
@@ -49,6 +51,13 @@ export function registerExportRoutes(app: FastifyInstance, deps: ExportDependenc
     }
     const url = await deps.storage.presignGet(job.storageKey, DOWNLOAD_TTL_SECONDS);
     return { url, expiresInSeconds: DOWNLOAD_TTL_SECONDS };
+  });
+
+  app.delete("/exports/:exportJobId", async (request, reply) => {
+    const { exportJobId } = jobParams.parse(request.params);
+    const result = await deps.deleteExport.execute({ exportJobId });
+    if (result.isFailure) return sendError(reply, result.getError());
+    return reply.code(204).send();
   });
 }
 

@@ -86,6 +86,8 @@ export function ReviewPage() {
                   spread.placements.find((placement) => placement.photoId === photoId)?.previewUrl
                 }
                 aspectRatio={aspectRatio}
+                pageWidthMm={album.format.pageWidthMm}
+                pageHeightMm={album.format.pageHeightMm}
               />
 
               <div className="comments">

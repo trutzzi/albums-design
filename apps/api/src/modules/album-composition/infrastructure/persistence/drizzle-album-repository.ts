@@ -71,6 +71,10 @@ export class DrizzleAlbumRepository implements AlbumRepository {
       );
     return rows.length;
   }
+
+  async delete(id: UniqueEntityId): Promise<void> {
+    await this.db.delete(albums).where(eq(albums.id, id.toString()));
+  }
 }
 
 function toDomain(row: typeof albums.$inferSelect): Album {

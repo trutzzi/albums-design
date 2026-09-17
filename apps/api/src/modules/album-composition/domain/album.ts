@@ -219,6 +219,44 @@ export class Album extends AggregateRoot<AlbumProps> {
     this.touch();
   }
 
+  /**
+   * Moves the photo at `fromSlotId` to sit exactly where `toSlotId` is in the
+   * spread's reading order — every placement between the two shifts over by
+   * one to fill the gap, rather than the two simply trading places. Framing
+   * and treatment travel with the photo, same as swapPlacements. Slot
+   * rectangles never move: only which photo occupies which slot changes.
+   */
+  reorderPlacement(spreadIndex: number, fromSlotId: string, toSlotId: string): void {
+    this.assertEditable();
+    if (fromSlotId === toSlotId) return;
+    const spread = this.spreadAt(spreadIndex);
+    const fromIndex = spread.placements.findIndex((candidate) => candidate.slotId === fromSlotId);
+    const toIndex = spread.placements.findIndex((candidate) => candidate.slotId === toSlotId);
+    if (fromIndex === -1) throw new SlotNotFoundError(fromSlotId, spread.templateId);
+    if (toIndex === -1) throw new SlotNotFoundError(toSlotId, spread.templateId);
+
+    const cargo = spread.placements.map((placement) => ({
+      photoId: placement.photoId,
+      crop: placement.crop,
+      treatment: placement.treatment,
+    }));
+    const moved = cargo[fromIndex]!;
+    if (fromIndex < toIndex) {
+      for (let index = fromIndex; index < toIndex; index++) cargo[index] = cargo[index + 1]!;
+    } else {
+      for (let index = fromIndex; index > toIndex; index--) cargo[index] = cargo[index - 1]!;
+    }
+    cargo[toIndex] = moved;
+
+    spread.placements.forEach((placement, index) => {
+      const item = cargo[index]!;
+      placement.photoId = item.photoId;
+      placement.crop = item.crop;
+      placement.treatment = item.treatment;
+    });
+    this.touch();
+  }
+
   setFrame(spreadIndex: number, slotId: string, frame: SlotFrame): void {
     this.assertEditable();
     const spread = this.spreadAt(spreadIndex);
@@ -295,6 +333,20 @@ export class Album extends AggregateRoot<AlbumProps> {
       throw new Error("An album must keep at least one spread.");
     }
     this.props.spreads.splice(index, 1);
+    this.touch();
+  }
+
+  /**
+   * Replaces every spread wholesale — how undo/redo jump the album back to an
+   * earlier or later snapshot. Bypasses the narrower, single-purpose edits
+   * above because a history restore is inherently a bulk operation: the
+   * client is handing back a full spreads array it already received from a
+   * previous successful edit, not describing a targeted change.
+   */
+  restoreSpreads(spreads: Spread[]): void {
+    this.assertEditable();
+    if (spreads.length === 0) throw new Error("An album must keep at least one spread.");
+    this.props.spreads = spreads;
     this.touch();
   }
 

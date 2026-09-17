@@ -37,6 +37,7 @@ async function main() {
     suggestLayouts: root.suggestLayouts,
     generateAlbum: root.generateAlbum,
     editAlbum: root.editAlbum,
+    deleteAlbum: root.deleteAlbum,
     albums: root.albums,
   });
   registerReviewRoutes(app, {
@@ -47,6 +48,7 @@ async function main() {
   });
   registerExportRoutes(app, {
     requestExport: root.requestExport,
+    deleteExport: root.deleteExport,
     jobs: root.exportJobs,
     storage: root.exportStorage,
   });

@@ -5,6 +5,7 @@ import {
   ValidationError,
   type ApplicationError,
 } from "../../../../../shared-kernel/errors";
+import type { SpreadDTO } from "@albumflow/contracts";
 import {
   Album,
   AlbumLockedError,
@@ -21,8 +22,10 @@ export type AlbumEditCommand =
   | { type: "SWAP_PHOTO"; spreadIndex: number; slotId: string; photoId: string }
   | { type: "SET_CROP"; spreadIndex: number; slotId: string; crop: Crop }
   | { type: "SWAP_PLACEMENTS"; spreadIndex: number; slotIdA: string; slotIdB: string }
+  | { type: "REORDER_PLACEMENT"; spreadIndex: number; fromSlotId: string; toSlotId: string }
   | { type: "SET_FRAME"; spreadIndex: number; slotId: string; frame: SlotFrame }
   | { type: "RESET_FRAMES"; spreadIndex: number }
+  | { type: "RESTORE_SPREADS"; spreads: SpreadDTO[] }
   | { type: "SET_TREATMENT"; spreadIndex: number; slotId: string; treatment: PhotoTreatment }
   | { type: "SET_SPREAD_TREATMENT"; spreadIndex: number; treatment: PhotoTreatment }
   | { type: "CHANGE_TEMPLATE"; spreadIndex: number; templateId: string; photoIds?: string[] | undefined }
@@ -75,6 +78,9 @@ function apply(album: Album, command: AlbumEditCommand): void {
     case "SWAP_PLACEMENTS":
       album.swapPlacements(command.spreadIndex, command.slotIdA, command.slotIdB);
       return;
+    case "REORDER_PLACEMENT":
+      album.reorderPlacement(command.spreadIndex, command.fromSlotId, command.toSlotId);
+      return;
     case "SET_FRAME":
       album.setFrame(command.spreadIndex, command.slotId, command.frame);
       return;
@@ -98,6 +104,23 @@ function apply(album: Album, command: AlbumEditCommand): void {
     }
     case "REMOVE_SPREAD":
       album.removeSpread(command.index);
+      return;
+    case "RESTORE_SPREADS":
+      // `exactOptionalPropertyTypes` treats zod's optional-with-undefined `frame`
+      // as distinct from the domain's plain optional `frame?` — rebuild each
+      // placement so the key is only ever present or absent, never `undefined`.
+      album.restoreSpreads(
+        command.spreads.map((spread) => ({
+          templateId: spread.templateId,
+          placements: spread.placements.map((placement) => ({
+            slotId: placement.slotId,
+            photoId: placement.photoId,
+            crop: placement.crop,
+            treatment: placement.treatment,
+            ...(placement.frame ? { frame: placement.frame } : {}),
+          })),
+        })),
+      );
       return;
     case "SUBMIT_FOR_REVIEW":
       album.submitForReview();

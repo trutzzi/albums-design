@@ -51,6 +51,10 @@ export class LocalBlobStore
     this.blobs.set(key, { bytes, contentType });
   }
 
+  async delete(key: string): Promise<void> {
+    this.blobs.delete(key);
+  }
+
   async getObject(key: string): Promise<Buffer> {
     return Buffer.from(await this.read(key));
   }

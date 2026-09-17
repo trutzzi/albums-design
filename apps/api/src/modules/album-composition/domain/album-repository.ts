@@ -6,4 +6,5 @@ export interface AlbumRepository {
   findById(id: UniqueEntityId): Promise<Album | undefined>;
   findByProjectId(projectId: UniqueEntityId): Promise<Album[]>;
   countCreatedSince(studioId: UniqueEntityId, since: Date): Promise<number>;
+  delete(id: UniqueEntityId): Promise<void>;
 }

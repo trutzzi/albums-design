@@ -44,6 +44,27 @@ describe("Album", () => {
     album.approve();
     assert.throws(() => album.rename("New title"), AlbumLockedError);
     assert.throws(() => album.removeSpread(0), AlbumLockedError);
+    assert.throws(() => album.restoreSpreads(album.spreads.slice()), AlbumLockedError);
+  });
+
+  it("restores a full spreads array wholesale — what undo/redo rely on", () => {
+    const album = makeAlbum();
+    const snapshot = album.spreads.map((spread) => ({
+      templateId: spread.templateId,
+      placements: spread.placements.map((placement) => ({ ...placement })),
+    }));
+    album.removeSpread(1);
+    assert.equal(album.spreadCount, 1);
+
+    album.restoreSpreads(snapshot);
+    assert.equal(album.spreadCount, 2);
+    assert.equal(album.spreads[1]?.templateId, "single-centred");
+    assert.equal(album.spreads[1]?.placements[0]?.photoId, "photo-c");
+  });
+
+  it("refuses to restore down to zero spreads", () => {
+    const album = makeAlbum();
+    assert.throws(() => album.restoreSpreads([]), /at least one spread/);
   });
 
   it("allows edits again after reopening", () => {

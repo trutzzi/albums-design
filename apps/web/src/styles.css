@@ -108,6 +108,21 @@ h2 {
   flex-wrap: wrap;
   margin-bottom: 22px;
 }
+.page.editor .page__header {
+  /* The editor page is the long-scrolling one — a real album runs to twenty-odd
+     spreads. Pinning the ruler toggle and the review action here means neither
+     needs a scroll back to the top to reach. Only this page opts in: the
+     shorter pages (shoots, projects) don't need it and shouldn't pay for a
+     sticky repaint on every scroll frame. */
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding-top: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
 .page__header-actions {
   display: flex;
   gap: 10px;
@@ -400,6 +415,12 @@ a:focus-visible,
   padding: 14px;
   box-shadow: var(--shadow);
 }
+.spread-block--adding {
+  /* Which spread a tray click will land on must be obvious at a glance —
+     armed-and-forgotten is exactly how a photo ends up on the wrong spread. */
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
 .spread-block__head {
   display: flex;
   justify-content: space-between;
@@ -438,6 +459,86 @@ a:focus-visible,
   width: 1px;
   background: rgba(20, 24, 28, 0.08);
   z-index: 2;
+}
+.ruler-overlay {
+  /* No z-index set deliberately: it renders as an early sibling, before the
+     slots, in plain DOM order — the same mechanism that keeps it strictly
+     beneath every photo without needing to fight the gutter's stacking. */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.ruler-line {
+  stroke: rgba(20, 24, 28, 0.08);
+  stroke-width: 1;
+}
+.ruler-line--major {
+  stroke: rgba(20, 24, 28, 0.18);
+}
+.ruler-label {
+  /* In SVG user-space units, not CSS pixels: the viewBox maps 1 unit to 1cm,
+     so this is roughly a legible numeral's height at typical screen sizes
+     without dominating a 1cm grid square. */
+  font-size: 1px;
+  fill: var(--ink-faint);
+}
+.ruler-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  user-select: none;
+}
+/* Hidden but not display:none — a real, focusable, keyboard-operable
+   checkbox still drives all of this; only its own native box is invisible,
+   replaced visually by the track+thumb that follow it. */
+.ruler-toggle__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.ruler-toggle__track {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  transition: background-color 0.15s ease;
+}
+.ruler-toggle__thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(20, 24, 28, 0.35);
+  transition: transform 0.15s ease;
+}
+.ruler-toggle__input:checked + .ruler-toggle__track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.ruler-toggle__input:checked + .ruler-toggle__track .ruler-toggle__thumb {
+  transform: translateX(15px);
+}
+.ruler-toggle__input:focus-visible + .ruler-toggle__track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .slot {
   position: absolute;
@@ -622,22 +723,39 @@ a:focus-visible,
 .slot--editable:active {
   cursor: grabbing;
 }
+/* Positioned to match the selected slot's own rect exactly, but rendered as a
+   sibling of `.slot` rather than nested inside it — `.slot` clips overflow
+   (needed to crop the photo itself), which was silently clipping the last
+   control in the row on any slot too short for the whole toolbar. Sitting
+   outside that box means the controls can never be clipped, no matter how
+   small the slot is. `pointer-events: none` keeps this wrapper from stealing
+   clicks/drags meant for the slot underneath; `.slot-tools` re-enables them. */
+.slot-tools-anchor {
+  position: absolute;
+  pointer-events: none;
+}
 .slot-tools {
   position: absolute;
   left: 6px;
   right: 6px;
   bottom: 6px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: 4px 6px;
   padding: 5px 7px;
   border-radius: 7px;
   background: rgba(20, 24, 28, 0.78);
   backdrop-filter: blur(6px);
   cursor: default;
+  pointer-events: auto;
 }
 .slot-tools__zoom {
-  flex: 1;
+  /* Its own full-width row: guarantees the buttons that follow always have
+     the whole row's width to arrange themselves in, rather than competing
+     with the slider for space on one shared line. */
+  flex: 1 1 100%;
   min-width: 40px;
   padding: 0;
   border: none;
@@ -664,6 +782,17 @@ a:focus-visible,
   background: var(--accent);
   border-color: var(--accent);
 }
+.slot-tools__button--danger {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.slot-tools__button--danger:hover:not(:disabled) {
+  background: #c0392b;
+  border-color: #c0392b;
+}
+.slot-tools__button--danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* ---- tray multi-select ---- */
 .tray__item {
@@ -689,6 +818,26 @@ a:focus-visible,
   font-size: 0.66rem;
   font-weight: 700;
   line-height: 17px;
+  text-align: center;
+}
+/* A photo already placed on some spread — dimmed so a full tray still reads at
+   a glance, with a small mark in the corner opposite the pick-order badge so
+   the two never collide when a used photo is also picked for a new spread. */
+.tray__item--used img {
+  opacity: 0.6;
+}
+.tray__used-mark {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--good);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 16px;
   text-align: center;
 }
 .picked-bar {
@@ -821,6 +970,13 @@ a:focus-visible,
 .slot--drop-target img {
   opacity: 0.55;
 }
+.spread--drop-active {
+  /* Distinct from a single slot's own drop-target outline: this highlights
+     the whole spread, since a drop anywhere on the margins grows it rather
+     than landing in one specific slot. */
+  outline: 3px dashed var(--accent);
+  outline-offset: 4px;
+}
 
 /* ---- client feedback ---- */
 .panel__badge,
@@ -914,4 +1070,38 @@ a:focus-visible,
   margin-bottom: 0;
   font-size: 0.78rem;
   line-height: 1.45;
+}
+
+/* ---- confirmation modal ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 17, 20, 0.55);
+  backdrop-filter: blur(2px);
+}
+.modal {
+  width: min(420px, 100%);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.modal h2 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+.modal p {
+  margin: 0 0 16px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }

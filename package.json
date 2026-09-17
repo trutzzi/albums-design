@@ -15,7 +15,9 @@
     "db:generate": "pnpm --filter @albumflow/api db:generate",
     "db:migrate": "pnpm --filter @albumflow/api db:migrate",
     "db:seed": "pnpm --filter @albumflow/api db:seed",
-    "demo": "turbo run demo"
+    "demo": "turbo run demo",
+    "test:local": "bash scripts/test-local.sh",
+    "test:local:full": "bash scripts/test-local.sh --full"
   },
   "devDependencies": {
     "turbo": "^2.3.0",

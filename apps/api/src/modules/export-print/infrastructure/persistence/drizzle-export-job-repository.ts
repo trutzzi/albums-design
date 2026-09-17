@@ -54,6 +54,10 @@ export class DrizzleExportJobRepository implements ExportJobRepository {
       .orderBy(desc(exportJobs.requestedAt));
     return rows.map(toDomain);
   }
+
+  async delete(id: UniqueEntityId): Promise<void> {
+    await this.db.delete(exportJobs).where(eq(exportJobs.id, id.toString()));
+  }
 }
 
 function toDomain(row: typeof exportJobs.$inferSelect): ExportJob {

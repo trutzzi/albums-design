@@ -57,6 +57,10 @@ export class DrizzleReviewSessionRepository implements ReviewSessionRepository {
       .where(eq(reviewSessions.albumId, albumId.toString()));
     return rows.map(toDomain);
   }
+
+  async delete(id: UniqueEntityId): Promise<void> {
+    await this.db.delete(reviewSessions).where(eq(reviewSessions.id, id.toString()));
+  }
 }
 
 function toDomain(row: typeof reviewSessions.$inferSelect): ReviewSession {
