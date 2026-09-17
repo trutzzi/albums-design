@@ -1,5 +1,5 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import { loadEnv } from "../src/shared-kernel/env";
+import { loadDatabaseEnv } from "../src/shared-kernel/env";
 import { createDatabase } from "../src/db/client";
 import {
   DrizzleStudioMemberRepository,
@@ -16,7 +16,7 @@ const DEMO_STUDIO_ID = "11111111-1111-4111-8111-111111111111";
 const DEMO_PROJECT_ID = "22222222-2222-4222-8222-222222222222";
 
 async function main() {
-  const env = loadEnv();
+  const env = loadDatabaseEnv();
   const { db, close } = createDatabase(env.DATABASE_URL);
 
   const studios = new DrizzleStudioRepository(db);

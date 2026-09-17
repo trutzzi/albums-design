@@ -204,3 +204,92 @@ jobs:
           echo "----- api -----";    tail -n 100 /tmp/api.log    || true
           echo "----- worker -----"; tail -n 100 /tmp/worker.log || true
           docker compose logs --tail 50
+
+  deploy-backend:
+    name: Deploy API + worker to the VPS
+    runs-on: ubuntu-latest
+    # Every gate, not just typecheck/test/build: migrations must match the
+    # schema, all three images must build, and the smoke test must have
+    # actually driven a photo through upload, analysis, review and export.
+    needs: [verify, migrations, images, smoke]
+    # Never on a PR: a fork could otherwise get a production deploy triggered
+    # against it, and a fork cannot hold this repo's secrets anyway.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    concurrency: deploy-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      # Syncs the checkout into /opt/albumflow. This never includes a real
+      # `.env` — it's gitignored, so it was never in this checkout to begin
+      # with — which is exactly why the server's own `.env` (holding the
+      # real secrets) survives every redeploy untouched.
+      - name: Sync the release to the server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "/opt/albumflow"
+          overwrite: true
+
+      # Migrate against the new code before any of it takes traffic, then
+      # bring up exactly the services this box runs. `web` is deliberately
+      # never listed — the frontend is static and lives on cPanel instead
+      # (see docs/deploy-valentintruta.md), not on this VPS at all.
+      - name: Migrate and restart
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/albumflow
+            COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+            $COMPOSE build api worker
+            $COMPOSE run --rm api pnpm --filter @albumflow/api exec tsx src/db/migrate.ts
+            $COMPOSE up -d postgres redis minio minio-init api worker caddy
+            docker image prune -f
+
+  deploy-web:
+    name: Deploy web to valentintruta.ro (cPanel, FTP)
+    runs-on: ubuntu-latest
+    needs: [verify, migrations, images, smoke]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    concurrency: deploy-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Baked in at build time: a static bundle cannot read an env var at
+      # runtime. This is the one line that has to change if the backend ever
+      # moves off Fly.io.
+      - name: Build
+        run: pnpm --filter @albumflow/web build
+        env:
+          VITE_API_URL: https://api.valentintruta.ro
+
+      # cPanel here has no SSH (confirmed: Security has no "SSH Access" icon),
+      # so FTP is the deploy path. FTP_USERNAME should be a dedicated account
+      # scoped to the subdomain's own directory in cPanel's FTP Accounts panel
+      # — never the master account — so a leaked secret cannot reach WordPress
+      # or anything else on the same hosting account.
+      - name: Upload over FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./apps/web/dist/
+          server-dir: ${{ secrets.FTP_REMOTE_DIR }}

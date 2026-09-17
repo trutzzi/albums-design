@@ -1,0 +1,57 @@
+# Deploy target for the API and worker together: `fly deploy --config infra/fly/fly.toml`
+# from the repo root, so the Docker build context is the whole workspace.
+#
+# Database, cache and object storage are deliberately NOT provisioned here —
+# they're set as `fly secrets` (DATABASE_URL, REDIS_URL, S3_*) pointing at Neon,
+# Upstash and Cloudflare R2. See docs/deploy-valentintruta.md for why: this app's
+# data has to survive independently of where the compute happens to run.
+app = "albumflow-api"
+primary_region = "ams"
+
+[build]
+  dockerfile = "infra/docker/backend.Dockerfile"
+
+# Two Machines from one image, per Fly's documented multi-process pattern —
+# https://fly.io/docs/reference/configuration/#the-processes-section
+[processes]
+  app = "pnpm --filter @albumflow/api exec tsx src/server.ts"
+  worker = "pnpm --filter @albumflow/worker exec tsx src/worker.ts"
+
+# Migrations run once per deploy, against the new image, before traffic moves —
+# never against the old code. This only needs DATABASE_URL, which is exactly
+# why apps/api/src/shared-kernel/env.ts splits a database-only schema out from
+# the full one: a migration step must not be blocked on S3 or Redis credentials
+# it will never touch.
+[deploy]
+  release_command = "pnpm --filter @albumflow/api exec tsx src/db/migrate.ts"
+  strategy = "rolling"
+
+[http_service]
+  processes = ["app"]
+  internal_port = 4000
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  force_https = true
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "15s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  processes = ["app"]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[[vm]]
+  processes = ["worker"]
+  # sharp decoding a 20MP camera frame and pdf-lib assembling a multi-hundred-
+  # spread export are the two memory-hungry moments in this app; the 512MB
+  # cPanel could offer was the whole reason the backend could not live there.
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

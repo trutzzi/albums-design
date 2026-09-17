@@ -1,0 +1,17 @@
+# Caddy is the only publicly reachable process on this box. It terminates TLS
+# (Let's Encrypt, fully automatic — no cert files to manage) and reverse-proxies
+# to services that only exist on the private docker-compose network otherwise.
+#
+# api.valentintruta.ro     -> the API (and, through it, the worker's queue)
+# storage.valentintruta.ro -> MinIO, because presigned photo URLs are opened
+#                              directly by the client's browser, not the API —
+#                              so this one has to be reachable from the internet
+#                              too, not just from inside the compose network.
+
+api.valentintruta.ro {
+	reverse_proxy api:4000
+}
+
+storage.valentintruta.ro {
+	reverse_proxy minio:9000
+}

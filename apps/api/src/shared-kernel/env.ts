@@ -17,10 +17,30 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
 });
 
+/**
+ * Tools that only talk to the database — migrations, seeding — validate just this.
+ * Demanding S3 credentials and a Redis URL before creating a table would block the
+ * ordinary deploy shape where migrations run as their own step, with access to the
+ * database and deliberately nothing else.
+ */
+const databaseEnvSchema = envSchema.pick({ DATABASE_URL: true });
+
 export type Env = z.infer<typeof envSchema>;
+export type DatabaseEnv = z.infer<typeof databaseEnvSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = envSchema.safeParse(source);
+  return parseOrThrow(envSchema, source);
+}
+
+export function loadDatabaseEnv(source: NodeJS.ProcessEnv = process.env): DatabaseEnv {
+  return parseOrThrow(databaseEnvSchema, source);
+}
+
+function parseOrThrow<Schema extends z.ZodTypeAny>(
+  schema: Schema,
+  source: NodeJS.ProcessEnv,
+): z.infer<Schema> {
+  const parsed = schema.safeParse(source);
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)

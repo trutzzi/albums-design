@@ -1,7 +1,7 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import sharp from "sharp";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import { loadEnv } from "../src/shared-kernel/env";
+import { loadDatabaseEnv } from "../src/shared-kernel/env";
 import { createDatabase } from "../src/db/client";
 import {
   DrizzleStudioMemberRepository,
@@ -35,7 +35,7 @@ function check(name: string, passed: boolean, detail = ""): void {
 }
 
 async function main() {
-  const env = loadEnv();
+  const env = loadDatabaseEnv();
   console.log(`Smoke testing ${BASE_URL}\n`);
 
   // --- a studio to act as, created straight in the database ----------------
