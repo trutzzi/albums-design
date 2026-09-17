@@ -298,12 +298,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # Baked in at build time: a static bundle cannot read an env var at
-      # runtime. This is the one line that has to change if the backend ever
-      # moves off Fly.io.
+      # runtime. VITE_API_URL is the one line that has to change if the
+      # backend ever moves off this VPS. VITE_STUDIO_ID/VITE_STUDIO_API_KEY
+      # authenticate every request the deployed app makes — without them it
+      # falls back to a demo studio ID with no key at all, and every request
+      # fails with 401. Create the real studio once with
+      # `docker compose ... run --rm api pnpm --filter @albumflow/api db:seed`
+      # on the server, then set its printed values as these two secrets.
       - name: Build
         run: pnpm --filter @albumflow/web build
         env:
           VITE_API_URL: https://api.valentintruta.ro
+          VITE_STUDIO_ID: ${{ secrets.VITE_STUDIO_ID }}
+          VITE_STUDIO_API_KEY: ${{ secrets.VITE_STUDIO_API_KEY }}
 
       # cPanel here has no SSH (confirmed: Security has no "SSH Access" icon),
       # so FTP is the deploy path. FTP_USERNAME should be a dedicated account
