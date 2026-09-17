@@ -115,22 +115,35 @@ async function main() {
     });
 
     // --- 4. the worker is consuming its queues ----------------------------
+    // Kept across polls so a timeout can report the last thing the API
+    // actually said, rather than the bare word "timed out" — the difference
+    // between "never appeared", "stuck at ANALYSIS_QUEUED" and "ANALYSED
+    // but no derivatives" points at three completely different bugs.
+    let lastSeen: { id: string; status: string; thumbnailUrl: string | null } | "missing" | undefined;
     const processed = await waitFor(async () => {
       const photos = await api<
         { id: string; status: string; previewUrl: string | null; thumbnailUrl: string | null }[]
       >(`/projects/${projectId}/photos`);
       const photo = photos.find((candidate) => candidate.id === requested.photoId);
+      lastSeen = photo
+        ? { id: photo.id, status: photo.status, thumbnailUrl: photo.thumbnailUrl }
+        : "missing";
       const ready =
         photo?.status === "ANALYSED" && photo.thumbnailUrl?.includes("/derivatives/") === true;
       return ready ? photo : undefined;
     });
 
+    const lastSeenDetail =
+      lastSeen === "missing"
+        ? "the photo never appeared in the project's list at all"
+        : `last seen: status=${lastSeen?.status}, thumbnailUrl=${lastSeen?.thumbnailUrl ?? "null"}`;
+
     check("worker analysed the photo", processed?.status === "ANALYSED",
-      processed ? `status ${processed.status}` : "timed out");
+      processed ? `status ${processed.status}` : `timed out — ${lastSeenDetail}`);
     check(
       "worker wrote display derivatives",
       processed?.thumbnailUrl?.includes("/derivatives/") === true,
-      "the tray would otherwise be served full-resolution originals",
+      processed ? "the tray would otherwise be served full-resolution originals" : lastSeenDetail,
     );
 
     // --- 5. planning produces a real album --------------------------------
