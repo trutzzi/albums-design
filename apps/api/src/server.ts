@@ -11,11 +11,13 @@ import { registerAlbumCompositionRoutes } from "./modules/album-composition/inte
 import { registerReviewRoutes } from "./modules/review-collaboration/interface/http/routes";
 import { registerExportRoutes } from "./modules/export-print/interface/http/routes";
 import { registerIdentityRoutes } from "./modules/identity/interface/http/routes";
+import { acceptEmptyJsonBody } from "./interface/empty-body";
 
 async function main() {
   const root = buildCompositionRoot();
   const app = Fastify({ logger: true });
 
+  acceptEmptyJsonBody(app);
   await app.register(cors, { origin: root.env.WEB_ORIGIN });
 
   app.get("/health", async () => ({ status: "ok" }));
@@ -40,6 +42,7 @@ async function main() {
   registerReviewRoutes(app, {
     openReviewSession: root.openReviewSession,
     reviewPortal: root.reviewPortal,
+    albumFeedback: root.albumFeedback,
     sessions: root.reviewSessions,
   });
   registerExportRoutes(app, {

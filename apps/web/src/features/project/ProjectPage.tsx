@@ -229,8 +229,13 @@ export function ProjectPage() {
             const analysis = analysisByPhoto.get(photo.id);
             return (
               <figure key={photo.id} className="photo-card">
-                {photo.previewUrl ? (
-                  <img src={photo.previewUrl} alt={photo.fileName} loading="lazy" />
+                {(photo.thumbnailUrl ?? photo.previewUrl) ? (
+                  <img
+                    src={photo.thumbnailUrl ?? photo.previewUrl ?? ""}
+                    alt={photo.fileName}
+                    loading="lazy"
+                    decoding="async"
+                  />
                 ) : (
                   <div className="photo-card__placeholder">{photo.status}</div>
                 )}

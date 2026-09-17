@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { studios } from "../../../identity/infrastructure/persistence/schema";
 
 export const projectTypeEnum = pgEnum("project_type", ["WEDDING", "BAPTISM", "EVENT"]);
@@ -34,4 +34,5 @@ export const photos = pgTable("photos", {
   checksum: varchar("checksum", { length: 128 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
+  hasDerivatives: boolean("has_derivatives").notNull().default(false),
 });

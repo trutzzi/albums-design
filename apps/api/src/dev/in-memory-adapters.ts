@@ -5,7 +5,7 @@ import type { Project } from "../modules/media-ingestion/domain/project";
 import type { ProjectRepository } from "../modules/media-ingestion/domain/project-repository";
 import type {
   ObjectHead,
-  ObjectStorage,
+  ObjectStorageWithBody,
   PresignedUpload,
 } from "../modules/media-ingestion/application/ports/object-storage";
 import type { JobQueue } from "../shared-kernel/job-queue";
@@ -58,7 +58,9 @@ export class InMemoryPhotoRepository implements PhotoRepository {
   }
 }
 
-export class InMemoryObjectStorage implements ObjectStorage, PhotoByteSource, ExportStorage {
+export class InMemoryObjectStorage
+  implements ObjectStorageWithBody, PhotoByteSource, ExportStorage
+{
   readonly objects = new Map<string, Uint8Array>();
 
   async presignPut(params: { key: string; expiresInSeconds: number }): Promise<PresignedUpload> {
@@ -78,6 +80,12 @@ export class InMemoryObjectStorage implements ObjectStorage, PhotoByteSource, Ex
   }
   async presignGet(key: string): Promise<string> {
     return `memory://${key}`;
+  }
+  async getObject(key: string): Promise<Buffer> {
+    return Buffer.from(await this.read(key));
+  }
+  async putObject(params: { key: string; body: Buffer; contentType: string }): Promise<void> {
+    this.objects.set(params.key, new Uint8Array(params.body));
   }
   /** Simulates the browser completing its PUT to the presigned URL. */
   upload(key: string, bytes: Uint8Array): void {

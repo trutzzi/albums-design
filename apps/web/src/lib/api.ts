@@ -198,6 +198,34 @@ export function listReviewSessions(albumId: string): Promise<ReviewSessionSummar
   return request(`/albums/${albumId}/review-sessions`);
 }
 
+export interface FeedbackComment {
+  id: string;
+  sessionId: string;
+  clientName: string;
+  spreadIndex: number;
+  slotId?: string | undefined;
+  body: string;
+  resolved: boolean;
+  createdAt: string;
+}
+
+export interface AlbumFeedback {
+  albumId: string;
+  comments: FeedbackComment[];
+  openCount: number;
+  resolvedCount: number;
+  sessions: ReviewSessionSummary[];
+}
+
+/** What the clients actually wrote, for the photographer who has to act on it. */
+export function getAlbumFeedback(albumId: string): Promise<AlbumFeedback> {
+  return request(`/albums/${albumId}/comments`);
+}
+
+export function resolveComment(albumId: string, commentId: string): Promise<AlbumFeedback> {
+  return request(`/albums/${albumId}/comments/${commentId}/resolve`, { method: "POST" });
+}
+
 export function getReview(token: string): Promise<ReviewView> {
   return request(`/review/${token}`);
 }

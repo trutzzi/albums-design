@@ -23,6 +23,8 @@ import { SubscriptionQuotaPolicy } from "../modules/identity/application/subscri
 import { RequestUploadUseCase } from "../modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
 import { ConfirmUploadUseCase } from "../modules/media-ingestion/application/use-cases/confirm-upload/confirm-upload.use-case";
 import { ListProjectPhotosUseCase } from "../modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
+import { GenerateDerivativesUseCase } from "../modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
+import { SharpImageResizer } from "../modules/media-ingestion/infrastructure/imaging/sharp-image-resizer";
 import { MediaIngestionPhotoLifecycle } from "../modules/photo-intelligence/infrastructure/gateways/photo-lifecycle-gateway";
 import { AnalyzePhotoUseCase } from "../modules/photo-intelligence/application/use-cases/analyze-photo/analyze-photo.use-case";
 import { SharpImageInspector } from "../modules/photo-intelligence/infrastructure/vision/sharp-image-inspector";
@@ -36,6 +38,7 @@ import {
 } from "../modules/album-composition/infrastructure/gateways/directories";
 import { OpenReviewSessionUseCase } from "../modules/review-collaboration/application/use-cases/open-review-session.use-case";
 import { ReviewPortalUseCase } from "../modules/review-collaboration/application/use-cases/review-portal.use-case";
+import { AlbumFeedbackUseCase } from "../modules/review-collaboration/application/use-cases/album-feedback.use-case";
 import {
   AlbumCompositionGateway,
   LoggingReviewNotifier,
@@ -63,6 +66,7 @@ import {
 } from "./in-memory-adapters";
 import { LocalBlobStore } from "./local-blob-store";
 import { SynchronousJobQueue } from "./synchronous-job-queue";
+import { acceptEmptyJsonBody } from "../interface/empty-body";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const BASE_URL = process.env.DEMO_BASE_URL ?? `http://localhost:${PORT}`;
@@ -119,7 +123,23 @@ async function main() {
     storage,
   );
 
+  const generateDerivatives = new GenerateDerivativesUseCase(
+    photos,
+    storage,
+    new SharpImageResizer(),
+  );
+
   // Wire the queues to run in-process.
+  queue.on(QUEUES.mediaIngestion, async (_jobName, payload) => {
+    const result = await generateDerivatives.execute({ photoId: String(payload.photoId) });
+    if (result.isSuccess) {
+      const { photoId, written } = result.getValue();
+      console.log(
+        `  display copies ${photoId.slice(0, 8)} → thumb ${Math.round(written.thumb / 1024)}KB, ` +
+          `preview ${Math.round(written.preview / 1024)}KB`,
+      );
+    }
+  });
   queue.on(QUEUES.photoIntelligence, async (_jobName, payload) => {
     const result = await analyzePhoto.execute({
       photoId: String(payload.photoId),
@@ -180,6 +200,7 @@ async function main() {
   // body limit has to clear the contract's per-file ceiling. Fastify defaults to 1MB,
   // which every real camera file exceeds.
   const app = Fastify({ logger: false, bodyLimit: MAX_UPLOAD_BYTES + 1024 * 1024 });
+  acceptEmptyJsonBody(app);
   await app.register(cors, { origin: WEB_ORIGIN });
 
   app.addContentTypeParser(UPLOADABLE_TYPES, { parseAs: "buffer" }, (_request, body, done) => {
@@ -238,6 +259,7 @@ async function main() {
       reviewGateway,
       new LoggingReviewNotifier(),
     ),
+    albumFeedback: new AlbumFeedbackUseCase(reviewSessions),
     sessions: reviewSessions,
   });
   registerExportRoutes(app, {

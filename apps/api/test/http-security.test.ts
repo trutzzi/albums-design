@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { describe, it, before } from "node:test";
 import Fastify, { type FastifyInstance } from "fastify";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
@@ -62,6 +63,8 @@ describe("HTTP security boundary", () => {
     app.get("/albums/:albumId", async () => ({ ok: true }));
     app.get("/studios/:studioId", async () => ({ ok: true }));
     app.post("/studios", async () => ({ ok: true }));
+    app.get("/albums/:albumId/comments", async () => ({ ok: true }));
+    app.post("/albums/:albumId/comments/:commentId/resolve", async () => ({ ok: true }));
     app.get("/review/:token", async () => ({ ok: true }));
     app.get("/plans", async () => ({ ok: true }));
     await app.ready();
@@ -112,6 +115,30 @@ describe("HTTP security boundary", () => {
     const owner = await app.inject({
       method: "GET",
       url: `/albums/${albumB.id}`,
+      headers: auth(keyB),
+    });
+    assert.equal(owner.statusCode, 200);
+  });
+
+  it("does not leak what a client wrote to a different studio", async () => {
+    const read = await app.inject({
+      method: "GET",
+      url: `/albums/${albumB.id}/comments`,
+      headers: auth(keyA),
+    });
+    assert.equal(read.statusCode, 404);
+
+    const resolve = await app.inject({
+      method: "POST",
+      url: `/albums/${albumB.id}/comments/${randomUUID()}/resolve`,
+      headers: auth(keyA),
+    });
+    assert.equal(resolve.statusCode, 404);
+
+    // The owning studio still gets through.
+    const owner = await app.inject({
+      method: "GET",
+      url: `/albums/${albumB.id}/comments`,
       headers: auth(keyB),
     });
     assert.equal(owner.statusCode, 200);

@@ -8,3 +8,4 @@ dist/
 apps/web/dist/
 apps/api/dist/
 apps/worker/dist/
+*.tsbuildinfo

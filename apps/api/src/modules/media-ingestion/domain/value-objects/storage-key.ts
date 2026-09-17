@@ -4,6 +4,9 @@ interface StorageKeyProps {
   key: string;
 }
 
+/** `thumb` fills the photo tray and the layout chips; `preview` fills a spread slot. */
+export type DerivativeVariant = "thumb" | "preview";
+
 export class StorageKey extends ValueObject<StorageKeyProps> {
   private constructor(props: StorageKeyProps) {
     super(props);
@@ -30,6 +33,17 @@ export class StorageKey extends ValueObject<StorageKeyProps> {
   }
 
   static fromExisting(key: string): StorageKey {
+    return new StorageKey({ key });
+  }
+
+  /**
+   * The display-sized copy that sits beside the original. Browsers must never be
+   * handed a 20-megapixel camera file to draw a 96-pixel thumbnail, so every photo
+   * gets small JPEG derivatives and the original is reserved for printing.
+   */
+  derivative(variant: DerivativeVariant): StorageKey {
+    const withoutExtension = this.props.key.replace(/\.[^./]+$/, "");
+    const key = `${withoutExtension.replace("/originals/", "/derivatives/")}-${variant}.jpg`;
     return new StorageKey({ key });
   }
 

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import type { Crop, LayoutTemplateDTO, PhotoTreatment, SlotFrame } from "@albumflow/contracts";
 import {
   MAX_ZOOM,
@@ -39,7 +39,11 @@ export interface SpreadCanvasProps {
 
 const DEFAULT_CROP: Crop = { x: 0, y: 0, width: 1, height: 1 };
 
-export function SpreadCanvas({
+/**
+ * Memoised: the editor re-renders on every crop drag frame, and re-rendering a
+ * canvas means React touches every <img> on it.
+ */
+export const SpreadCanvas = memo(function SpreadCanvas({
   template,
   placements,
   previewUrlFor,
@@ -212,6 +216,7 @@ export function SpreadCanvas({
                 src={url}
                 alt=""
                 loading="lazy"
+                decoding="async"
                 draggable={false}
                 className={treatment === "BLACK_WHITE" ? "is-monochrome" : undefined}
                 style={style}
@@ -322,7 +327,7 @@ export function SpreadCanvas({
       })}
     </div>
   );
-}
+});
 
 /** An untouched placement still carries the full-frame default; snap it to the slot shape. */
 function normalise(crop: Crop, imageAspect: number, slotAspect: number): Crop {

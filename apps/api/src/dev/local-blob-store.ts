@@ -1,6 +1,6 @@
 import type {
   ObjectHead,
-  ObjectStorage,
+  ObjectStorageWithBody,
   PresignedUpload,
 } from "../modules/media-ingestion/application/ports/object-storage";
 import type { PhotoByteSource } from "../modules/photo-intelligence/application/ports/photo-source";
@@ -16,7 +16,9 @@ interface StoredBlob {
  * over the API's own `/dev-storage` routes, so the browser can PUT an upload and
  * load a preview with no object store running.
  */
-export class LocalBlobStore implements ObjectStorage, PhotoByteSource, ExportStorage {
+export class LocalBlobStore
+  implements ObjectStorageWithBody, PhotoByteSource, ExportStorage
+{
   private readonly blobs = new Map<string, StoredBlob>();
 
   constructor(private readonly publicBaseUrl: string) {}
@@ -47,6 +49,14 @@ export class LocalBlobStore implements ObjectStorage, PhotoByteSource, ExportSto
 
   async put(key: string, bytes: Uint8Array, contentType: string): Promise<void> {
     this.blobs.set(key, { bytes, contentType });
+  }
+
+  async getObject(key: string): Promise<Buffer> {
+    return Buffer.from(await this.read(key));
+  }
+
+  async putObject(params: { key: string; body: Buffer; contentType: string }): Promise<void> {
+    await this.put(params.key, new Uint8Array(params.body), params.contentType);
   }
 
   get(key: string): StoredBlob | undefined {

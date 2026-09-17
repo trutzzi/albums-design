@@ -13,7 +13,10 @@ export interface ProjectPhotoView {
   storageKey: string;
   byteSize: number;
   createdAt: string;
+  /** Spread-sized copy — never the original, which exists for printing. */
   previewUrl: string | null;
+  /** Tray-sized copy, a few tens of kilobytes. */
+  thumbnailUrl: string | null;
 }
 
 export class ListProjectPhotosUseCase {
@@ -28,10 +31,9 @@ export class ListProjectPhotosUseCase {
   }
 
   private async toView(photo: Photo): Promise<ProjectPhotoView> {
-    const previewUrl =
-      photo.status === "PENDING_UPLOAD"
-        ? null
-        : await this.storage.presignGet(photo.storageKey.toString(), PREVIEW_TTL_SECONDS);
+    // Before the derivatives land, fall back to the original so a freshly uploaded
+    // photo is still visible; it costs one slow frame rather than an empty tray.
+    const [previewUrl, thumbnailUrl] = await this.displayUrls(photo);
 
     return {
       id: photo.id.toString(),
@@ -42,6 +44,22 @@ export class ListProjectPhotosUseCase {
       byteSize: photo.byteSize,
       createdAt: photo.createdAt.toISOString(),
       previewUrl,
+      thumbnailUrl,
     };
+  }
+
+  private async displayUrls(photo: Photo): Promise<[string | null, string | null]> {
+    if (photo.status === "PENDING_UPLOAD") return [null, null];
+    if (!photo.hasDerivatives) {
+      const original = await this.storage.presignGet(
+        photo.storageKey.toString(),
+        PREVIEW_TTL_SECONDS,
+      );
+      return [original, original];
+    }
+    return Promise.all([
+      this.storage.presignGet(photo.storageKey.derivative("preview").toString(), PREVIEW_TTL_SECONDS),
+      this.storage.presignGet(photo.storageKey.derivative("thumb").toString(), PREVIEW_TTL_SECONDS),
+    ]);
   }
 }

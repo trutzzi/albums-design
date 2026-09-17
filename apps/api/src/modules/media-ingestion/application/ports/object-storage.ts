@@ -14,3 +14,9 @@ export interface ObjectStorage {
   /** Browser-reachable read URL, so an <img> can load an original without an auth header. */
   presignGet(key: string, expiresInSeconds: number): Promise<string>;
 }
+
+/** Reading and writing whole objects, which derivative generation needs. */
+export interface ObjectStorageWithBody extends ObjectStorage {
+  getObject(key: string): Promise<Buffer>;
+  putObject(params: { key: string; body: Buffer; contentType: string }): Promise<void>;
+}

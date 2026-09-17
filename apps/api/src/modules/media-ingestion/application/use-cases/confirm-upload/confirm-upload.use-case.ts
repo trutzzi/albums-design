@@ -5,6 +5,7 @@ import type { ObjectStorage } from "../../ports/object-storage";
 import type { JobQueue } from "../../ports/job-queue";
 
 const PHOTO_INTELLIGENCE_QUEUE = "photo-intelligence";
+const MEDIA_QUEUE = "media-ingestion";
 
 export interface ConfirmUploadCommand {
   photoId: string;
@@ -41,6 +42,13 @@ export class ConfirmUploadUseCase {
     photo.markUploaded({ byteSize: head.byteSize, checksum: command.reportedChecksum });
     photo.markAnalysisQueued();
     await this.photos.save(photo);
+
+    // Display copies first: until they exist the editor has nothing to draw but
+    // the original, and handing a browser a 20-megapixel file is what makes the
+    // editor feel slow.
+    await this.jobs.enqueue(MEDIA_QUEUE, "generate-derivatives", {
+      photoId: photo.id.toString(),
+    });
 
     await this.jobs.enqueue(PHOTO_INTELLIGENCE_QUEUE, "analyze-photo", {
       photoId: photo.id.toString(),

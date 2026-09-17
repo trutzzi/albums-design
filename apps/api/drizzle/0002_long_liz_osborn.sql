@@ -1,0 +1,1 @@
+ALTER TABLE "photos" ADD COLUMN "has_derivatives" boolean DEFAULT false NOT NULL;

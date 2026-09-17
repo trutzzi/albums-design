@@ -1,0 +1,21 @@
+# Host build output must never reach an image: `sharp` ships native binaries built
+# for the host platform, and copying macOS ones into a Linux image breaks at runtime
+# in a way that only shows up when a photo is analysed.
+node_modules
+**/node_modules
+dist
+**/dist
+.turbo
+**/.turbo
+*.tsbuildinfo
+
+.git
+.github
+.env
+.env.*
+!.env.example
+
+# Nothing in these belongs in a runtime image.
+docs
+*.md
+!README.md

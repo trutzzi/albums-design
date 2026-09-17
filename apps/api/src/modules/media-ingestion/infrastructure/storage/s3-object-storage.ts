@@ -1,6 +1,10 @@
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { ObjectHead, ObjectStorage, PresignedUpload } from "../../application/ports/object-storage";
+import type {
+  ObjectHead,
+  ObjectStorageWithBody,
+  PresignedUpload,
+} from "../../application/ports/object-storage";
 
 export interface S3ObjectStorageConfig {
   bucket: string;
@@ -14,7 +18,7 @@ export interface S3ObjectStorageConfig {
   forcePathStyle: boolean;
 }
 
-export class S3ObjectStorage implements ObjectStorage {
+export class S3ObjectStorage implements ObjectStorageWithBody {
   private readonly client: S3Client;
   private readonly presignClient: S3Client;
   private readonly bucket: string;
@@ -52,6 +56,26 @@ export class S3ObjectStorage implements ObjectStorage {
     return getSignedUrl(this.presignClient, new GetObjectCommand({ Bucket: this.bucket, Key: key }), {
       expiresIn: expiresInSeconds,
     });
+  }
+
+  async getObject(key: string): Promise<Buffer> {
+    const result = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+    const body = result.Body;
+    if (!body) throw new Error(`No object stored at ${key}`);
+    return Buffer.from(await body.transformToByteArray());
+  }
+
+  async putObject(params: { key: string; body: Buffer; contentType: string }): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: params.key,
+        Body: params.body,
+        ContentType: params.contentType,
+      }),
+    );
   }
 
   async headObject(key: string): Promise<ObjectHead | undefined> {

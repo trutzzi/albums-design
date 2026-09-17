@@ -19,6 +19,8 @@ export interface PhotoProps {
   checksum: string | undefined;
   createdAt: Date;
   uploadedAt: Date | undefined;
+  /** Whether the small display copies have been written beside the original. */
+  hasDerivatives: boolean;
 }
 
 export class InvalidPhotoStateTransitionError extends Error {
@@ -61,6 +63,7 @@ export class Photo extends AggregateRoot<PhotoProps> {
         checksum: undefined,
         createdAt: new Date(),
         uploadedAt: undefined,
+        hasDerivatives: false,
       },
       photoId,
     );
@@ -94,6 +97,14 @@ export class Photo extends AggregateRoot<PhotoProps> {
       throw new InvalidPhotoStateTransitionError(this.props.status, "ANALYSED");
     }
     this.props.status = "ANALYSED";
+  }
+
+  /**
+   * Idempotent: regenerating derivatives for a photo that already has them is a
+   * legitimate repair, not a state error.
+   */
+  markDerivativesReady(): void {
+    this.props.hasDerivatives = true;
   }
 
   markFailed(): void {
@@ -134,5 +145,9 @@ export class Photo extends AggregateRoot<PhotoProps> {
 
   get uploadedAt(): Date | undefined {
     return this.props.uploadedAt;
+  }
+
+  get hasDerivatives(): boolean {
+    return this.props.hasDerivatives;
   }
 }

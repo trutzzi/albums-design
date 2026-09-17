@@ -13,6 +13,10 @@ interface RenderAlbumJob {
   exportJobId: string;
 }
 
+interface GenerateDerivativesJob {
+  photoId: string;
+}
+
 function redisConnectionFrom(url: string): ConnectionOptions {
   const parsed = new URL(url);
   return {
@@ -42,6 +46,24 @@ async function main() {
     { connection, concurrency: 4 },
   );
 
+  // Display copies are what the editor draws, so they are generated eagerly and
+  // with more parallelism than analysis: a photographer is usually looking at the
+  // tray within seconds of the upload finishing.
+  const derivativeWorker = new Worker(
+    QUEUES.mediaIngestion,
+    async (job: Job<GenerateDerivativesJob>) => {
+      if (job.name !== "generate-derivatives") return;
+      const result = await root.generateDerivatives.execute(job.data);
+      if (result.isFailure) throw new Error(result.getError().message);
+      const { photoId, written } = result.getValue();
+      console.log(
+        `[derivatives] ${photoId} — thumb ${Math.round(written.thumb / 1024)}KB, ` +
+          `preview ${Math.round(written.preview / 1024)}KB`,
+      );
+    },
+    { connection, concurrency: 4 },
+  );
+
   const exportWorker = new Worker(
     QUEUES.albumExport,
     async (job: Job<RenderAlbumJob>) => {
@@ -58,21 +80,27 @@ async function main() {
     { connection, concurrency: 1 },
   );
 
-  for (const worker of [analysisWorker, exportWorker]) {
+  for (const worker of [derivativeWorker, analysisWorker, exportWorker]) {
     worker.on("failed", (job, error) => {
       console.error(`[${worker.name}] job ${job?.id} failed:`, error.message);
     });
   }
 
   const shutdown = async () => {
-    await Promise.all([analysisWorker.close(), exportWorker.close()]);
+    await Promise.all([
+      derivativeWorker.close(),
+      analysisWorker.close(),
+      exportWorker.close(),
+    ]);
     await root.shutdown();
     process.exit(0);
   };
   process.on("SIGINT", () => void shutdown());
   process.on("SIGTERM", () => void shutdown());
 
-  console.log(`Worker listening on: ${QUEUES.photoIntelligence}, ${QUEUES.albumExport}`);
+  console.log(
+    `Worker listening on: ${QUEUES.mediaIngestion}, ${QUEUES.photoIntelligence}, ${QUEUES.albumExport}`,
+  );
 }
 
 main().catch((error) => {

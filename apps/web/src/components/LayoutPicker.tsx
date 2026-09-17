@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { LayoutTemplateDTO } from "@albumflow/contracts";
 
 interface LayoutPickerProps {
@@ -14,7 +15,7 @@ interface LayoutPickerProps {
  * A dropdown of layout names asks the photographer to imagine the arrangement.
  * Showing the actual slot geometry lets them recognise it instead.
  */
-export function LayoutPicker({
+export const LayoutPicker = memo(function LayoutPicker({
   templates,
   photoCount,
   currentTemplateId,
@@ -61,4 +62,4 @@ export function LayoutPicker({
       })}
     </div>
   );
-}
+});

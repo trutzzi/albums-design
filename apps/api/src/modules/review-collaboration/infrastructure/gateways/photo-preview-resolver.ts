@@ -14,6 +14,10 @@ export class StoragePhotoPreviewResolver implements PhotoPreviewResolver {
   async previewUrl(photoId: string): Promise<string | null> {
     const photo = await this.photos.findById(UniqueEntityId.create(photoId));
     if (!photo) return null;
-    return this.storage.presignGet(photo.storageKey.toString(), PREVIEW_TTL_SECONDS);
+    // Clients review on phones over mobile data; the original is for the printer.
+    const key = photo.hasDerivatives
+      ? photo.storageKey.derivative("preview")
+      : photo.storageKey;
+    return this.storage.presignGet(key.toString(), PREVIEW_TTL_SECONDS);
   }
 }

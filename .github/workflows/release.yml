@@ -1,0 +1,120 @@
+name: Release
+
+# Tagging is the release gesture: `git tag -a v1.0.1 -m "..." && git push --tags`.
+# Nothing publishes from a branch push, so main is never accidentally a release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to (re)publish, e.g. v1.0.1
+        required: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # Publishing to GitHub's own registry needs nothing but the built-in token —
+  # no external account, no long-lived secret to leak.
+  packages: write
+
+env:
+  PNPM_VERSION: 9.15.0
+  NODE_VERSION: 22
+  REGISTRY: ghcr.io
+
+jobs:
+  verify:
+    name: Re-verify the tagged commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  publish:
+    name: Publish ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    needs: [verify]
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [api, worker, web]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Sign in to the registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Work out the tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}
+          # v1.2.3 publishes 1.2.3, 1.2 and 1 — so a deployment can pin as
+          # tightly or as loosely as it wants.
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/${{ matrix.image }}.Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # The web bundle bakes its API URL at build time, so a release has to
+          # know where its API lives. Set the repository variable VITE_API_URL.
+          build-args: |
+            VITE_API_URL=${{ vars.VITE_API_URL }}
+          cache-from: type=gha,scope=${{ matrix.image }}-release
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-release
+
+  summary:
+    name: Release summary
+    runs-on: ubuntu-latest
+    needs: [publish]
+    steps:
+      - name: What was published
+        run: |
+          version="${{ github.event.inputs.tag || github.ref_name }}"
+          {
+            echo "## AlbumFlow $version published"
+            echo
+            echo "| Image | Pull with |"
+            echo "|---|---|"
+            for image in api worker web; do
+              echo "| $image | \`docker pull ${{ env.REGISTRY }}/${{ github.repository }}/$image:${version#v}\` |"
+            done
+            echo
+            echo "Deploy runs migrations first: \`pnpm db:migrate\` against the target database."
+          } >> "$GITHUB_STEP_SUMMARY"

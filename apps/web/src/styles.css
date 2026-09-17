@@ -389,6 +389,11 @@ a:focus-visible,
   gap: 22px;
 }
 .spread-block {
+  /* A long album is mostly off-screen. This lets the browser skip layout and paint
+     for spreads the photographer cannot see, while `contain-intrinsic-size` keeps
+     the scrollbar honest. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 520px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -815,4 +820,98 @@ a:focus-visible,
 }
 .slot--drop-target img {
   opacity: 0.55;
+}
+
+/* ---- client feedback ---- */
+.panel__badge,
+.spread-block__comments {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.feedback__summary {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+}
+.feedback__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* A busy wedding can attract dozens of notes; keep the panel a fixed height. */
+  max-height: 420px;
+  overflow-y: auto;
+}
+.feedback__item {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 7px;
+  background: var(--surface);
+}
+.feedback__item--resolved {
+  border-left-color: var(--line);
+  opacity: 0.62;
+}
+.feedback__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.feedback__where {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.feedback__where:hover {
+  text-decoration: underline;
+}
+.feedback__slot {
+  margin-left: 4px;
+  font-weight: 400;
+  opacity: 0.75;
+}
+.feedback__who {
+  font-size: 0.72rem;
+}
+.feedback__body {
+  margin: 6px 0 8px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  /* Client text is untrusted input: wrap it rather than let it stretch the panel. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.feedback__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.72rem;
+}
+.feedback__failed p {
+  margin: 0 0 6px;
+}
+.feedback__failed p:last-child {
+  margin-bottom: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
 }

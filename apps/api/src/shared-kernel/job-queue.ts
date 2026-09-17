@@ -1,4 +1,5 @@
 export const QUEUES = {
+  mediaIngestion: "media-ingestion",
   photoIntelligence: "photo-intelligence",
   albumExport: "album-export",
 } as const;

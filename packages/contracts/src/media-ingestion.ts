@@ -51,6 +51,9 @@ export const photoDtoSchema = z.object({
   storageKey: z.string(),
   byteSize: z.number().int().positive(),
   createdAt: z.string().datetime(),
+  /** Spread-sized copy of the photo. The original is reserved for printing. */
   previewUrl: z.string().nullable(),
+  /** Tray-sized copy, small enough that a hundred of them cost nothing to draw. */
+  thumbnailUrl: z.string().nullable(),
 });
 export type PhotoDTO = z.infer<typeof photoDtoSchema>;

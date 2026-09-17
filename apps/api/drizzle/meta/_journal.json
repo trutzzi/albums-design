@@ -15,6 +15,13 @@
       "when": 1789045411331,
       "tag": "0001_orange_layla_miller",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789389346842,
+      "tag": "0002_long_liz_osborn",
+      "breakpoints": true
     }
   ]
 }

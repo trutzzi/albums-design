@@ -5,6 +5,7 @@ import { ApplicationError, NotFoundError } from "../../../../shared-kernel/error
 import type { ReviewSessionRepository } from "../../domain/review-session-repository";
 import type { OpenReviewSessionUseCase } from "../../application/use-cases/open-review-session.use-case";
 import type { ReviewPortalUseCase } from "../../application/use-cases/review-portal.use-case";
+import type { AlbumFeedbackUseCase } from "../../application/use-cases/album-feedback.use-case";
 
 const albumParams = z.object({ albumId: z.string().uuid() });
 const tokenParams = z.object({ token: z.string().min(10) });
@@ -22,9 +23,15 @@ const commentSchema = z.object({
 
 const decisionSchema = z.object({ decision: z.enum(["APPROVED", "CHANGES_REQUESTED"]) });
 
+const commentParams = z.object({
+  albumId: z.string().uuid(),
+  commentId: z.string().uuid(),
+});
+
 export interface ReviewDependencies {
   openReviewSession: OpenReviewSessionUseCase;
   reviewPortal: ReviewPortalUseCase;
+  albumFeedback: AlbumFeedbackUseCase;
   sessions: ReviewSessionRepository;
 }
 
@@ -52,6 +59,22 @@ export function registerReviewRoutes(app: FastifyInstance, deps: ReviewDependenc
       expiresAt: session.expiresAt.toISOString(),
       createdAt: session.createdAt.toISOString(),
     }));
+  });
+
+  // What the client actually wrote, for the person who has to act on it. Studio
+  // authenticated and tenancy guarded, like every other /albums/:albumId route.
+  app.get("/albums/:albumId/comments", async (request, reply) => {
+    const { albumId } = albumParams.parse(request.params);
+    const result = await deps.albumFeedback.list(albumId);
+    if (result.isFailure) return sendError(reply, result.getError());
+    return result.getValue();
+  });
+
+  app.post("/albums/:albumId/comments/:commentId/resolve", async (request, reply) => {
+    const { albumId, commentId } = commentParams.parse(request.params);
+    const result = await deps.albumFeedback.resolve(albumId, commentId);
+    if (result.isFailure) return sendError(reply, result.getError());
+    return result.getValue();
   });
 
   // Public, token-scoped surface. No studio authentication applies here by design.

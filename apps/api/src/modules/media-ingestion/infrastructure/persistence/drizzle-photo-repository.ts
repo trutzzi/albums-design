@@ -23,6 +23,7 @@ export class DrizzlePhotoRepository implements PhotoRepository {
         checksum: photo.checksum,
         createdAt: photo.createdAt,
         uploadedAt: photo.uploadedAt,
+        hasDerivatives: photo.hasDerivatives,
       })
       .onConflictDoUpdate({
         target: photos.id,
@@ -31,6 +32,7 @@ export class DrizzlePhotoRepository implements PhotoRepository {
           status: photo.status,
           checksum: photo.checksum,
           uploadedAt: photo.uploadedAt,
+          hasDerivatives: photo.hasDerivatives,
         },
       });
     photo.clearDomainEvents();
@@ -59,6 +61,7 @@ export class DrizzlePhotoRepository implements PhotoRepository {
         checksum: row.checksum ?? undefined,
         createdAt: row.createdAt,
         uploadedAt: row.uploadedAt ?? undefined,
+        hasDerivatives: row.hasDerivatives,
       },
       UniqueEntityId.create(row.id),
     );

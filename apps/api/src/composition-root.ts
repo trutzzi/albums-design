@@ -18,6 +18,8 @@ import { BullMqJobQueue } from "./modules/media-ingestion/infrastructure/queue/b
 import { RequestUploadUseCase } from "./modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
 import { ConfirmUploadUseCase } from "./modules/media-ingestion/application/use-cases/confirm-upload/confirm-upload.use-case";
 import { ListProjectPhotosUseCase } from "./modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
+import { GenerateDerivativesUseCase } from "./modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
+import { SharpImageResizer } from "./modules/media-ingestion/infrastructure/imaging/sharp-image-resizer";
 import type { MediaIngestionDependencies } from "./modules/media-ingestion/interface/http/routes";
 
 import { DrizzlePhotoAnalysisRepository } from "./modules/photo-intelligence/infrastructure/persistence/drizzle-photo-analysis-repository";
@@ -46,6 +48,7 @@ import {
 import { StoragePhotoPreviewResolver } from "./modules/review-collaboration/infrastructure/gateways/photo-preview-resolver";
 import { OpenReviewSessionUseCase } from "./modules/review-collaboration/application/use-cases/open-review-session.use-case";
 import { ReviewPortalUseCase } from "./modules/review-collaboration/application/use-cases/review-portal.use-case";
+import { AlbumFeedbackUseCase } from "./modules/review-collaboration/application/use-cases/album-feedback.use-case";
 
 import { DrizzleExportJobRepository } from "./modules/export-print/infrastructure/persistence/drizzle-export-job-repository";
 import {
@@ -65,6 +68,7 @@ export interface CompositionRoot {
   photos: DrizzlePhotoRepository;
   administration: StudioAdministrationUseCase;
   mediaIngestion: MediaIngestionDependencies;
+  generateDerivatives: GenerateDerivativesUseCase;
   analyses: DrizzlePhotoAnalysisRepository;
   analyzePhoto: AnalyzePhotoUseCase;
   albums: DrizzleAlbumRepository;
@@ -74,6 +78,7 @@ export interface CompositionRoot {
   reviewSessions: DrizzleReviewSessionRepository;
   openReviewSession: OpenReviewSessionUseCase;
   reviewPortal: ReviewPortalUseCase;
+  albumFeedback: AlbumFeedbackUseCase;
   exportJobs: DrizzleExportJobRepository;
   requestExport: RequestExportUseCase;
   runExport: RunExportUseCase;
@@ -135,6 +140,12 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   });
   const jobQueue = new BullMqJobQueue(redisConnectionFrom(env.REDIS_URL));
 
+  const generateDerivatives = new GenerateDerivativesUseCase(
+    photos,
+    storage,
+    new SharpImageResizer(),
+  );
+
   const mediaIngestion: MediaIngestionDependencies = {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue),
@@ -171,6 +182,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     new StoragePhotoPreviewResolver(photos, storage),
   );
   const openReviewSession = new OpenReviewSessionUseCase(reviewSessions, reviewAlbumGateway);
+  const albumFeedback = new AlbumFeedbackUseCase(reviewSessions);
   const reviewPortal = new ReviewPortalUseCase(
     reviewSessions,
     reviewAlbumGateway,
@@ -197,6 +209,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     photos,
     administration,
     mediaIngestion,
+    generateDerivatives,
     analyses,
     analyzePhoto,
     albums,
@@ -206,6 +219,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     reviewSessions,
     openReviewSession,
     reviewPortal,
+    albumFeedback,
     exportJobs,
     requestExport,
     runExport,

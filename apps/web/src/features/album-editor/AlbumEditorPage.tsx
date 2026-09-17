@@ -17,13 +17,17 @@ import {
   listExports,
   listLayoutTemplates,
   listProjectPhotos,
+  getAlbumFeedback,
   listReviewSessions,
   openReviewSession,
+  resolveComment,
   requestExport,
   suggestSpreadLayouts,
 } from "../../lib/api";
-import { SpreadCanvas } from "../../components/SpreadCanvas";
-import { LayoutPicker } from "../../components/LayoutPicker";
+import { SpreadBlock } from "../../components/SpreadBlock";
+import { PhotoTray } from "../../components/PhotoTray";
+import { ClientFeedback, openCommentsBySpread } from "../../components/ClientFeedback";
+import type { FeedbackComment } from "../../lib/api";
 
 export function AlbumEditorPage() {
   const { albumId = "" } = useParams();
@@ -45,6 +49,14 @@ export function AlbumEditorPage() {
     queryKey: ["reviews", albumId],
     queryFn: () => listReviewSessions(albumId),
   });
+  const feedback = useQuery({
+    queryKey: ["feedback", albumId],
+    queryFn: () => getAlbumFeedback(albumId),
+    // A client may be reviewing while the photographer edits, so notes arrive
+    // without a page reload.
+    refetchInterval: 30000,
+  });
+
   const exports = useQuery({
     queryKey: ["exports", albumId],
     queryFn: () => listExports(albumId),
@@ -62,6 +74,12 @@ export function AlbumEditorPage() {
       void queryClient.invalidateQueries({ queryKey: ["albums", projectId] });
     },
   });
+
+  // Every memoised child takes callbacks from here, so they must keep the same
+  // identity across renders. The mutation object does not, so route through a ref.
+  const editRef = useRef(edit.mutate);
+  editRef.current = edit.mutate;
+  const runEdit = useCallback((command: AlbumEditInput) => editRef.current(command), []);
 
   // Dragging updates 60x a second; the server only needs the frame you settle on.
   const [draft, setDraft] = useState<AlbumDTO | null>(null);
@@ -89,11 +107,11 @@ export function AlbumEditorPage() {
       });
 
       if (pendingCrop.current) clearTimeout(pendingCrop.current);
-      const send = () => edit.mutate({ type: "SET_CROP", spreadIndex, slotId, crop });
+      const send = () => runEdit({ type: "SET_CROP", spreadIndex, slotId, crop });
       if (commit) send();
       else pendingCrop.current = setTimeout(send, 400);
     },
-    [edit],
+    [runEdit],
   );
 
   const pendingFrame = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,11 +136,11 @@ export function AlbumEditorPage() {
       });
 
       if (pendingFrame.current) clearTimeout(pendingFrame.current);
-      const send = () => edit.mutate({ type: "SET_FRAME", spreadIndex, slotId, frame });
+      const send = () => runEdit({ type: "SET_FRAME", spreadIndex, slotId, frame });
       if (commit) send();
       else pendingFrame.current = setTimeout(send, 400);
     },
-    [edit],
+    [runEdit],
   );
 
   // Declared before the mutations that close over it, so those closures can never
@@ -187,6 +205,11 @@ export function AlbumEditorPage() {
     },
   });
 
+  const resolveFeedback = useMutation({
+    mutationFn: (commentId: string) => resolveComment(albumId, commentId),
+    onSuccess: (updated) => queryClient.setQueryData(["feedback", albumId], updated),
+  });
+
   const share = useMutation({
     mutationFn: () => openReviewSession(albumId, clientName || "Client"),
     onSuccess: (session) => {
@@ -208,6 +231,107 @@ export function AlbumEditorPage() {
   const templateById = useMemo(
     () => new Map((templates.data ?? []).map((template) => [template.id, template])),
     [templates.data],
+  );
+  const templateList = useMemo(() => templates.data ?? [], [templates.data]);
+  const commentsBySpread = useMemo(
+    () => openCommentsBySpread(feedback.data?.comments ?? []),
+    [feedback.data],
+  );
+  const trayPhotos = useMemo(
+    () => (photos.data ?? []).filter((photo) => photo.thumbnailUrl ?? photo.previewUrl),
+    [photos.data],
+  );
+
+  // Every callback below is passed to a memoised child, so each one must keep its
+  // identity across renders or the memo boundary buys nothing.
+  const previewUrlFor = useCallback(
+    (photoId: string) => previewByPhoto.get(photoId),
+    [previewByPhoto],
+  );
+  const selectSlot = useCallback(
+    (spreadIndex: number, slotId: string) => setSelected({ spreadIndex, slotId }),
+    [],
+  );
+  const reorderSpread = useCallback(
+    (fromIndex: number, toIndex: number) =>
+      runEdit({ type: "REORDER_SPREAD", fromIndex, toIndex }),
+    [runEdit],
+  );
+  const resetFrames = useCallback(
+    (spreadIndex: number) => runEdit({ type: "RESET_FRAMES", spreadIndex }),
+    [runEdit],
+  );
+  const setSpreadTreatment = useCallback(
+    (spreadIndex: number, treatment: PhotoTreatment) =>
+      runEdit({ type: "SET_SPREAD_TREATMENT", spreadIndex, treatment }),
+    [runEdit],
+  );
+  const removeSpread = useCallback(
+    (index: number) => runEdit({ type: "REMOVE_SPREAD", index }),
+    [runEdit],
+  );
+  const dropPhotoInSlot = useCallback(
+    (spreadIndex: number, slotId: string, photoId: string) =>
+      runEdit({ type: "SWAP_PHOTO", spreadIndex, slotId, photoId }),
+    [runEdit],
+  );
+  const setSlotTreatment = useCallback(
+    (spreadIndex: number, slotId: string, treatment: PhotoTreatment) =>
+      runEdit({ type: "SET_TREATMENT", spreadIndex, slotId, treatment }),
+    [runEdit],
+  );
+  const swapSlots = useCallback(
+    (spreadIndex: number, slotIdA: string, slotIdB: string) =>
+      runEdit({ type: "SWAP_PLACEMENTS", spreadIndex, slotIdA, slotIdB }),
+    [runEdit],
+  );
+  const pickTemplate = useCallback(
+    (spreadIndex: number, templateId: string) =>
+      runEdit({ type: "CHANGE_TEMPLATE", spreadIndex, templateId }),
+    [runEdit],
+  );
+
+  const jumpToComment = useCallback((comment: FeedbackComment) => {
+    const target = document.getElementById(`spread-${comment.spreadIndex}`);
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Selecting the slot the client named puts the editing tools straight onto it.
+    if (comment.slotId) {
+      setSelected({ spreadIndex: comment.spreadIndex, slotId: comment.slotId });
+    }
+  }, []);
+
+  const resolveRef = useRef(resolveFeedback.mutate);
+  resolveRef.current = resolveFeedback.mutate;
+  const markCommentDone = useCallback((commentId: string) => resolveRef.current(commentId), []);
+
+  const shuffleRef = useRef(shuffle.mutate);
+  shuffleRef.current = shuffle.mutate;
+  const runShuffle = useCallback((spreadIndex: number) => shuffleRef.current(spreadIndex), []);
+
+  // Read through a ref rather than closing over `selected`, so the tray's click
+  // handler keeps one identity for the life of the page.
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+
+  const trayPhotoClick = useCallback(
+    (photoId: string) => {
+      const slot = selectedRef.current;
+      // A selected slot means "replace this"; otherwise build a set for a new spread.
+      if (slot) {
+        runEdit({
+          type: "SWAP_PHOTO",
+          spreadIndex: slot.spreadIndex,
+          slotId: slot.slotId,
+          photoId,
+        });
+        setSelected(null);
+        return;
+      }
+      setPicked((prev) =>
+        prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId],
+      );
+    },
+    [runEdit],
   );
 
   if (album.isLoading) return <p className="page muted">Loading album…</p>;
@@ -259,142 +383,39 @@ export function AlbumEditorPage() {
 
       <div className="editor__layout">
         <main className="spreads">
-          {current.spreads.map((spread, spreadIndex) => {
-            const template = templateById.get(spread.templateId);
-            return (
-              <section key={`${spread.templateId}-${spreadIndex}`} className="spread-block">
-                <div className="spread-block__head">
-                  <h2>Spread {spreadIndex + 1}</h2>
-                  <div className="spread-block__actions">
-                    <button
-                      type="button"
-                      className="button button--small"
-                      disabled={locked || spreadIndex === 0}
-                      onClick={() =>
-                        edit.mutate({
-                          type: "REORDER_SPREAD",
-                          fromIndex: spreadIndex,
-                          toIndex: spreadIndex - 1,
-                        })
-                      }
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="button button--small"
-                      disabled={locked || spreadIndex === current.spreads.length - 1}
-                      onClick={() =>
-                        edit.mutate({
-                          type: "REORDER_SPREAD",
-                          fromIndex: spreadIndex,
-                          toIndex: spreadIndex + 1,
-                        })
-                      }
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      className="button button--small"
-                      disabled={locked || !spreadHasCustomFrames(spread.placements)}
-                      title="Put every photo back where the template had it"
-                      onClick={() => edit.mutate({ type: "RESET_FRAMES", spreadIndex })}
-                    >
-                      Reset layout
-                    </button>
-                    <button
-                      type="button"
-                      className="button button--small"
-                      disabled={locked || shuffle.isPending}
-                      title="Try the next layout that fits these photos"
-                      onClick={() => shuffle.mutate(spreadIndex)}
-                    >
-                      Shuffle design
-                    </button>
-                    <button
-                      type="button"
-                      className="button button--small"
-                      disabled={locked}
-                      title="Toggle black and white for the whole spread"
-                      onClick={() =>
-                        edit.mutate({
-                          type: "SET_SPREAD_TREATMENT",
-                          spreadIndex,
-                          treatment: spreadIsMono(spread.placements)
-                            ? "COLOR"
-                            : ("BLACK_WHITE" as PhotoTreatment),
-                        })
-                      }
-                    >
-                      {spreadIsMono(spread.placements) ? "Colour" : "B&W"}
-                    </button>
-                    <button
-                      type="button"
-                      className="button button--small button--danger"
-                      disabled={locked || current.spreads.length === 1}
-                      onClick={() => edit.mutate({ type: "REMOVE_SPREAD", index: spreadIndex })}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-
-                <SpreadCanvas
-                  template={template}
-                  placements={spread.placements}
-                  previewUrlFor={(photoId) => previewByPhoto.get(photoId)}
-                  aspectRatio={aspectRatio}
-                  selectedSlotId={
-                    selected?.spreadIndex === spreadIndex ? selected.slotId : null
-                  }
-                  onSlotClick={
-                    locked ? undefined : (slotId) => setSelected({ spreadIndex, slotId })
-                  }
-                  onSlotDrop={
-                    locked
-                      ? undefined
-                      : (slotId, photoId) =>
-                          edit.mutate({ type: "SWAP_PHOTO", spreadIndex, slotId, photoId })
-                  }
-                  onCropChange={
-                    locked
-                      ? undefined
-                      : (slotId, crop, commit) =>
-                          handleCropChange(spreadIndex, slotId, crop, commit)
-                  }
-                  onTreatmentChange={
-                    locked
-                      ? undefined
-                      : (slotId, treatment) =>
-                          edit.mutate({ type: "SET_TREATMENT", spreadIndex, slotId, treatment })
-                  }
-                  onFrameChange={
-                    locked
-                      ? undefined
-                      : (slotId, frame, commit) =>
-                          handleFrameChange(spreadIndex, slotId, frame, commit)
-                  }
-                  onSwapSlots={
-                    locked
-                      ? undefined
-                      : (slotIdA, slotIdB) =>
-                          edit.mutate({ type: "SWAP_PLACEMENTS", spreadIndex, slotIdA, slotIdB })
-                  }
-                />
-
-                <LayoutPicker
-                  templates={templates.data ?? []}
-                  photoCount={spread.placements.length}
-                  currentTemplateId={spread.templateId}
-                  disabled={locked}
-                  onPick={(templateId) =>
-                    edit.mutate({ type: "CHANGE_TEMPLATE", spreadIndex, templateId })
-                  }
-                />
-              </section>
-            );
-          })}
+          {current.spreads.map((spread, spreadIndex) => (
+            <SpreadBlock
+              // Keyed by position alone. Including the template id would change the
+              // key whenever the layout changed, remounting the section and forcing
+              // the browser to re-decode every photo on it.
+              key={spreadIndex}
+              spread={spread}
+              spreadIndex={spreadIndex}
+              spreadCount={current.spreads.length}
+              template={templateById.get(spread.templateId)}
+              templates={templateList}
+              previewUrlFor={previewUrlFor}
+              aspectRatio={aspectRatio}
+              selectedSlotId={
+                selected?.spreadIndex === spreadIndex ? selected.slotId : null
+              }
+              locked={locked}
+              shuffling={shuffle.isPending}
+              openComments={commentsBySpread.get(spreadIndex) ?? 0}
+              onSelectSlot={selectSlot}
+              onReorder={reorderSpread}
+              onResetFrames={resetFrames}
+              onShuffle={runShuffle}
+              onSpreadTreatment={setSpreadTreatment}
+              onRemove={removeSpread}
+              onSlotDrop={dropPhotoInSlot}
+              onCropChange={handleCropChange}
+              onTreatmentChange={setSlotTreatment}
+              onFrameChange={handleFrameChange}
+              onSwapSlots={swapSlots}
+              onPickTemplate={pickTemplate}
+            />
+          ))}
 
           {!locked && (
             <button
@@ -452,46 +473,12 @@ export function AlbumEditorPage() {
             )}
             {shuffle.isError && <p className="error">{(shuffle.error as Error).message}</p>}
 
-            <div className="tray">
-              {(photos.data ?? [])
-                .filter((photo) => photo.previewUrl)
-                .map((photo) => {
-                  const pickIndex = picked.indexOf(photo.id);
-                  return (
-                    <button
-                      key={photo.id}
-                      type="button"
-                      className={`tray__item ${pickIndex >= 0 ? "tray__item--picked" : ""}`}
-                      draggable
-                      onDragStart={(event) =>
-                        event.dataTransfer.setData("text/photo-id", photo.id)
-                      }
-                      disabled={locked}
-                      onClick={() => {
-                        // A selected slot means "replace this"; otherwise build a set.
-                        if (selected) {
-                          edit.mutate({
-                            type: "SWAP_PHOTO",
-                            spreadIndex: selected.spreadIndex,
-                            slotId: selected.slotId,
-                            photoId: photo.id,
-                          });
-                          setSelected(null);
-                          return;
-                        }
-                        setPicked((prev) =>
-                          pickIndex >= 0
-                            ? prev.filter((id) => id !== photo.id)
-                            : [...prev, photo.id],
-                        );
-                      }}
-                    >
-                      <img src={photo.previewUrl ?? ""} alt={photo.fileName} loading="lazy" />
-                      {pickIndex >= 0 && <span className="tray__badge">{pickIndex + 1}</span>}
-                    </button>
-                  );
-                })}
-            </div>
+            <PhotoTray
+              photos={trayPhotos}
+              picked={picked}
+              locked={locked}
+              onPhotoClick={trayPhotoClick}
+            />
           </section>
 
           <section className="panel">
@@ -524,6 +511,26 @@ export function AlbumEditorPage() {
                 {session.openComments > 0 && ` · ${session.openComments} open comments`}
               </p>
             ))}
+          </section>
+
+          <section className="panel">
+            <h2>
+              Client feedback
+              {(feedback.data?.openCount ?? 0) > 0 && (
+                <span className="panel__badge">{feedback.data?.openCount}</span>
+              )}
+            </h2>
+            {resolveFeedback.isError && (
+              <p className="error">{(resolveFeedback.error as Error).message}</p>
+            )}
+            <ClientFeedback
+              feedback={feedback.data}
+              loading={feedback.isLoading}
+              error={feedback.isError ? (feedback.error as Error) : null}
+              resolvingId={resolveFeedback.isPending ? (resolveFeedback.variables ?? null) : null}
+              onJumpTo={jumpToComment}
+              onResolve={markCommentDone}
+            />
           </section>
 
           <section className="panel">
@@ -565,12 +572,4 @@ export function AlbumEditorPage() {
       </div>
     </div>
   );
-}
-
-function spreadIsMono(placements: { treatment?: PhotoTreatment }[]): boolean {
-  return placements.length > 0 && placements.every((p) => p.treatment === "BLACK_WHITE");
-}
-
-function spreadHasCustomFrames(placements: { frame?: unknown }[]): boolean {
-  return placements.some((placement) => placement.frame !== undefined);
 }
