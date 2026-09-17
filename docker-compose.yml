@@ -60,7 +60,9 @@ services:
     build:
       context: .
       dockerfile: infra/docker/api.Dockerfile
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: postgres://albumflow:albumflow@postgres:5432/albumflow
       REDIS_URL: redis://redis:6379
@@ -82,7 +84,9 @@ services:
     build:
       context: .
       dockerfile: infra/docker/worker.Dockerfile
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: postgres://albumflow:albumflow@postgres:5432/albumflow
       REDIS_URL: redis://redis:6379

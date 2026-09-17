@@ -124,6 +124,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # `.env` is gitignored, and compose validates every service in the file —
+      # including the api/worker ones this job does not start.
+      - name: Provide a .env for compose
+        run: cp .env.example .env
+
       - name: Start Postgres, Redis and MinIO
         run: docker compose up -d postgres redis minio
 
