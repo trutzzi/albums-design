@@ -1,5 +1,7 @@
 # AlbumFlow
 
+[![CI](https://github.com/trutzzi/albums-design/actions/workflows/ci.yml/badge.svg)](https://github.com/trutzzi/albums-design/actions/workflows/ci.yml)
+
 AI album-automation SaaS for wedding, baptism, and event photographers. See the [product & technical strategy doc](https://claude.ai/code/artifact/2ba90f17-7cfb-4af7-a79a-457e69237599) for vision, MVP scope, roadmap, risks, and pricing.
 
 All eight epics from the roadmap are implemented: a photographer uploads culled selects, the pipeline scores and categorises every frame, an album is laid out automatically, the photographer edits it, the client reviews and approves it in the browser, and it exports as a print-ready PDF — metered against a subscription plan.
