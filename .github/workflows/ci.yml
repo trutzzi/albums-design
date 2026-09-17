@@ -174,11 +174,24 @@ jobs:
         run: |
           pnpm --filter @albumflow/api exec tsx src/server.ts > /tmp/api.log 2>&1 &
           pnpm --filter @albumflow/worker exec tsx src/worker.ts > /tmp/worker.log 2>&1 &
+
           for attempt in $(seq 1 30); do
             curl -sf http://localhost:4000/health && break
             sleep 2
           done
           curl -sf http://localhost:4000/health || { echo "::error::API never came up"; cat /tmp/api.log; exit 1; }
+
+          # The API answering /health says nothing about the worker — it's a
+          # separate process with its own cold start (tsx transpiling a fresh
+          # dependency graph). Without this, a slow or crashed worker doesn't
+          # fail here: it fails 90 seconds later, opaquely, inside the smoke
+          # test's first upload check, with no indication of why.
+          for attempt in $(seq 1 30); do
+            grep -q "Worker listening on:" /tmp/worker.log && break
+            sleep 2
+          done
+          grep -q "Worker listening on:" /tmp/worker.log \
+            || { echo "::error::Worker never finished starting"; cat /tmp/worker.log; exit 1; }
 
       # Unit tests run on in-memory adapters. This is the only check that proves
       # Postgres migrated, Redis is reachable, the worker is consuming, and S3
