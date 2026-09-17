@@ -37,6 +37,20 @@ describe("environment configuration", () => {
     assert.equal(env.VISION_PROVIDER, "heuristic");
   });
 
+  it("treats a blank ANTHROPIC_API_KEY the same as an absent one", () => {
+    // Docker Compose's `environment:` block always declares this key for the
+    // container — as "" when the underlying value is blank in a server's
+    // .env, never truly absent. A real production crash: any operator who
+    // leaves this genuinely optional field blank could not start the API.
+    const env = loadEnv({ ...FULL, ANTHROPIC_API_KEY: "" } as NodeJS.ProcessEnv);
+    assert.equal(env.ANTHROPIC_API_KEY, undefined);
+  });
+
+  it("still accepts a real ANTHROPIC_API_KEY when one is configured", () => {
+    const env = loadEnv({ ...FULL, ANTHROPIC_API_KEY: "sk-ant-real" } as NodeJS.ProcessEnv);
+    assert.equal(env.ANTHROPIC_API_KEY, "sk-ant-real");
+  });
+
   it("reports every missing variable at once, not just the first", () => {
     // A deploy should learn its whole configuration gap in one run.
     try {

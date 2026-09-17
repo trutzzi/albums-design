@@ -14,7 +14,16 @@ const envSchema = z.object({
   S3_FORCE_PATH_STYLE: z.coerce.boolean().default(true),
   WEB_ORIGIN: z.string().min(1).default("http://localhost:5173"),
   VISION_PROVIDER: z.enum(["heuristic", "anthropic"]).default("heuristic"),
-  ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  // An empty string must mean the same as "not set" — Docker Compose's
+  // `environment:` block always declares this key for the container (as ""
+  // when the underlying value is blank, never truly absent), so `.optional()`
+  // alone isn't enough: it only excuses a missing key, not a present-but-blank
+  // one, and every operator who leaves this genuinely optional field blank
+  // would otherwise crash the API on startup.
+  ANTHROPIC_API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
 });
 
 /**
