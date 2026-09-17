@@ -209,7 +209,19 @@ jobs:
           S3_FORCE_PATH_STYLE: "true"
           WEB_ORIGIN: http://localhost:5173
           VISION_PROVIDER: heuristic
-        run: pnpm --filter @albumflow/api smoke
+        run: |
+          set +e
+          pnpm --filter @albumflow/api smoke
+          code=$?
+          set -e
+          # Printed every time, pass or fail, right here — not in a separate
+          # step someone has to go find. BullMQ logs every failed *attempt*
+          # (not just the final one), via worker.ts's own `worker.on("failed", ...)`
+          # handler, so if a job is quietly retrying 2-3 times before it
+          # eventually succeeds, the reason shows up here.
+          echo "----- worker.log (tail) -----"
+          tail -n 200 /tmp/worker.log || true
+          exit $code
 
       - name: Server logs on failure
         if: failure()
