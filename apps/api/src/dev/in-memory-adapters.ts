@@ -1,5 +1,5 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { Photo } from "../modules/media-ingestion/domain/photo";
+import { Photo } from "../modules/media-ingestion/domain/photo";
 import type { PhotoRepository } from "../modules/media-ingestion/domain/photo-repository";
 import type { Project } from "../modules/media-ingestion/domain/project";
 import type { ProjectRepository } from "../modules/media-ingestion/domain/project-repository";
@@ -43,18 +43,63 @@ export class InMemoryProjectRepository implements ProjectRepository {
   }
 }
 
+function clonePhoto(photo: Photo): Photo {
+  return Photo.reconstitute(
+    {
+      projectId: photo.projectId,
+      fileName: photo.fileName,
+      mimeType: photo.mimeType,
+      storageKey: photo.storageKey,
+      byteSize: photo.byteSize,
+      status: photo.status,
+      checksum: photo.checksum,
+      createdAt: photo.createdAt,
+      uploadedAt: photo.uploadedAt,
+      hasDerivatives: photo.hasDerivatives,
+    },
+    photo.id,
+  );
+}
+
 export class InMemoryPhotoRepository implements PhotoRepository {
   readonly items = new Map<string, Photo>();
   async save(photo: Photo) {
-    this.items.set(photo.id.toString(), photo);
+    // Stores an independent copy, not the live reference: a caller mutating
+    // its own in-hand object after calling save() must not silently keep
+    // editing what the "database" holds — the same as a real INSERT/UPDATE.
+    this.items.set(photo.id.toString(), clonePhoto(photo));
   }
   async findById(id: UniqueEntityId) {
-    return this.items.get(id.toString());
+    const stored = this.items.get(id.toString());
+    // A fresh clone per read, deliberately — real SQL hands every caller its
+    // own deserialized row, not a shared object. Without this, two
+    // "independent" findById calls here would return literally the same JS
+    // object, so a test written to reproduce a stale-read race could never
+    // actually reproduce it: mutating one copy would silently mutate both.
+    return stored ? clonePhoto(stored) : undefined;
   }
   async findByProjectId(projectId: UniqueEntityId) {
-    return [...this.items.values()].filter(
-      (photo) => photo.projectId.toString() === projectId.toString(),
-    );
+    return [...this.items.values()]
+      .filter((photo) => photo.projectId.toString() === projectId.toString())
+      .map(clonePhoto);
+  }
+  // Mirrors DrizzlePhotoRepository's narrow updates: touches only the one
+  // field named, leaving whatever else is stored untouched — so a test
+  // exercising two interleaved "workers" against this double sees the same
+  // safety real Postgres gives the production repository.
+  async updateStatus(id: UniqueEntityId, status: Photo["status"]) {
+    const stored = this.items.get(id.toString());
+    if (!stored) return;
+    const updated = clonePhoto(stored);
+    (updated as unknown as { props: { status: Photo["status"] } }).props.status = status;
+    this.items.set(id.toString(), updated);
+  }
+  async markDerivativesReady(id: UniqueEntityId) {
+    const stored = this.items.get(id.toString());
+    if (!stored) return;
+    const updated = clonePhoto(stored);
+    updated.markDerivativesReady();
+    this.items.set(id.toString(), updated);
   }
 }
 

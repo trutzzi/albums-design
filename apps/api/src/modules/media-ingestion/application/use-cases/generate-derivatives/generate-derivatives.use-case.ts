@@ -54,8 +54,12 @@ export class GenerateDerivativesUseCase {
       written[variant] = body.byteLength;
     }
 
+    // Narrow write, not save(photo): analysis is a second, concurrent job
+    // racing on this same row, and re-saving the whole snapshot here would
+    // silently revert whichever field IT changed, depending on nothing but
+    // which of the two jobs happens to commit last.
     photo.markDerivativesReady();
-    await this.photos.save(photo);
+    await this.photos.markDerivativesReady(photo.id);
 
     return Result.success({ photoId: photo.id.toString(), written });
   }

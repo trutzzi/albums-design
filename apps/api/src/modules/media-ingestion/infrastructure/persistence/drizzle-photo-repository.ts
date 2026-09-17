@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "../../../../db/client";
 import type { PhotoRepository } from "../../domain/photo-repository";
-import { Photo } from "../../domain/photo";
+import { Photo, type PhotoStatus } from "../../domain/photo";
 import { StorageKey } from "../../domain/value-objects/storage-key";
 import { photos } from "./schema";
 
@@ -36,6 +36,14 @@ export class DrizzlePhotoRepository implements PhotoRepository {
         },
       });
     photo.clearDomainEvents();
+  }
+
+  async updateStatus(id: UniqueEntityId, status: PhotoStatus): Promise<void> {
+    await this.db.update(photos).set({ status }).where(eq(photos.id, id.toString()));
+  }
+
+  async markDerivativesReady(id: UniqueEntityId): Promise<void> {
+    await this.db.update(photos).set({ hasDerivatives: true }).where(eq(photos.id, id.toString()));
   }
 
   async findById(id: UniqueEntityId): Promise<Photo | undefined> {
