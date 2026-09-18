@@ -2,11 +2,14 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { changePlan, getStudioOverview, inviteMember, removeMember } from "../../lib/api";
 import { useAuth } from "../../app/AuthContext";
+import { useLanguage } from "../../lib/i18n/LanguageContext";
+import { LANGUAGES } from "../../lib/i18n/translations";
 
 const PLAN_ORDER = ["TRIAL", "STARTER", "STUDIO", "STUDIO_PRO"] as const;
 
 export function StudioPage() {
   const { studioId } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
   const queryClient = useQueryClient();
   const [invite, setInvite] = useState({ name: "", email: "", role: "EDITOR" as const });
 
@@ -35,7 +38,7 @@ export function StudioPage() {
     onSuccess: (updated) => queryClient.setQueryData(["studio", studioId], updated),
   });
 
-  if (overview.isLoading) return <p className="page muted">Loading studio…</p>;
+  if (overview.isLoading) return <p className="page muted">{t("common.loading")}</p>;
   if (overview.isError) return <p className="page error">{(overview.error as Error).message}</p>;
   if (!overview.data) return null;
 
@@ -59,7 +62,7 @@ export function StudioPage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>This billing period</h2>
+          <h2>{t("studio.billingPeriod")}</h2>
           <p className="muted">
             {new Date(subscription.periodStart).toLocaleDateString()} –{" "}
             {new Date(subscription.periodEnd).toLocaleDateString()}
@@ -70,21 +73,23 @@ export function StudioPage() {
             <div className="usage__fill" style={{ width: `${usedRatio * 100}%` }} />
           </div>
           <p className="muted">
-            {subscription.albumsUsed} of{" "}
-            {subscription.albumsIncluded === null ? "unlimited" : subscription.albumsIncluded} albums
-            used
+            {t("studio.usage", {
+              used: subscription.albumsUsed,
+              included:
+                subscription.albumsIncluded === null
+                  ? t("studio.usage.unlimited")
+                  : subscription.albumsIncluded,
+            })}
             {subscription.albumsRemaining !== null &&
-              ` · ${subscription.albumsRemaining} remaining`}
+              t("studio.usage.remaining", { count: subscription.albumsRemaining })}
           </p>
         </div>
-        {subscription.watermarkDrafts && (
-          <p className="notice">Drafts carry a watermark on this plan until you export.</p>
-        )}
+        {subscription.watermarkDrafts && <p className="notice">{t("studio.watermarkNotice")}</p>}
       </section>
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Plan</h2>
+          <h2>{t("studio.plan.title")}</h2>
         </div>
         <div className="plan-row">
           {PLAN_ORDER.map((code) => (
@@ -104,10 +109,34 @@ export function StudioPage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Team</h2>
+          <h2>{t("language.settings.title")}</h2>
+        </div>
+        <p className="muted">{t("language.settings.description")}</p>
+        <div className="plan-row">
+          {LANGUAGES.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`button ${language === option.value ? "button--primary" : ""}`}
+              onClick={() => setLanguage(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__head">
+          <h2>{t("studio.team.title")}</h2>
           <p className="muted">
-            {subscription.seatsUsed} of{" "}
-            {subscription.seatsIncluded === null ? "unlimited" : subscription.seatsIncluded} seats
+            {t("studio.team.seats", {
+              used: subscription.seatsUsed,
+              included:
+                subscription.seatsIncluded === null
+                  ? t("studio.usage.unlimited")
+                  : subscription.seatsIncluded,
+            })}
           </p>
         </div>
 
@@ -118,7 +147,7 @@ export function StudioPage() {
                 <strong>{member.name}</strong>
                 <p className="muted">
                   {member.email} · {member.role.toLowerCase()}
-                  {!member.accepted && " · invite pending"}
+                  {!member.accepted && t("studio.team.invitePending")}
                 </p>
               </div>
               {member.role !== "OWNER" && (
@@ -127,7 +156,7 @@ export function StudioPage() {
                   className="button button--small button--danger"
                   onClick={() => dropMember.mutate(member.id)}
                 >
-                  Remove
+                  {t("studio.team.remove")}
                 </button>
               )}
             </li>
@@ -142,7 +171,7 @@ export function StudioPage() {
           }}
         >
           <div className="field">
-            <label htmlFor="invite-name">Name</label>
+            <label htmlFor="invite-name">{t("studio.invite.name")}</label>
             <input
               id="invite-name"
               value={invite.name}
@@ -151,7 +180,7 @@ export function StudioPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="invite-email">Email</label>
+            <label htmlFor="invite-email">{t("studio.invite.email")}</label>
             <input
               id="invite-email"
               type="email"
@@ -161,7 +190,7 @@ export function StudioPage() {
             />
           </div>
           <button type="submit" className="button" disabled={addMember.isPending}>
-            {addMember.isPending ? "Inviting…" : "Invite"}
+            {addMember.isPending ? t("studio.invite.submitting") : t("studio.invite.submit")}
           </button>
         </form>
         {addMember.isError && <p className="error">{(addMember.error as Error).message}</p>}

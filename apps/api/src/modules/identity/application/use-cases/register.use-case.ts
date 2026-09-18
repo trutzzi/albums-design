@@ -35,7 +35,7 @@ export class RegisterUseCase {
     name: string;
     email: string;
     password: string;
-  }): Promise<Result<{ token: string; studioId: string }, ApplicationError>> {
+  }): Promise<Result<{ token: string; studioId: string; name: string }, ApplicationError>> {
     const email = params.email.trim().toLowerCase();
     if (params.password.length < MIN_PASSWORD_LENGTH) {
       return Result.failure(
@@ -66,6 +66,6 @@ export class RegisterUseCase {
       this.jwtSecret,
       TOKEN_TTL_SECONDS,
     );
-    return Result.success({ token, studioId: studio.id.toString() });
+    return Result.success({ token, studioId: studio.id.toString(), name: member.name });
   }
 }

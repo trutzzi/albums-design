@@ -18,6 +18,7 @@ import {
   getExportDownload,
   listExports,
   listLayoutTemplates,
+  listPrintProfiles,
   listProjectAnalyses,
   listProjectPhotos,
   getAlbumFeedback,
@@ -31,11 +32,22 @@ import { SpreadBlock } from "../../components/SpreadBlock";
 import { PhotoTray } from "../../components/PhotoTray";
 import { ClientFeedback, openCommentsBySpread } from "../../components/ClientFeedback";
 import type { FeedbackComment } from "../../lib/api";
+import { useLanguage } from "../../lib/i18n/LanguageContext";
 
 type Spread = AlbumDTO["spreads"][number];
+type TraySort = "score" | "category" | "filename" | "similarity";
+
+/** "Lab standard (300 dpi, 3mm bleed)" → "Lab standard" — the parenthetical is print-shop detail, not something the toolbar chip has room for. */
+function shortenProfileName(name: string): string {
+  return name.split(" (")[0] ?? name;
+}
+
+/** Never a real print profile's id — those come from the server's PRINT_PROFILES list. */
+const CUSTOM_PROFILE_ID = "custom";
 
 export function AlbumEditorPage() {
   const { albumId = "" } = useParams();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<{ spreadIndex: number; slotId: string } | null>(null);
@@ -45,13 +57,33 @@ export function AlbumEditorPage() {
   // `selected` — engaging one clears the other, so a click is never ambiguous.
   const [addingToSpread, setAddingToSpread] = useState<number | null>(null);
   const [showRuler, setShowRuler] = useState(false);
+  const [showGuides, setShowGuides] = useState(false);
+  const [guidesModalOpen, setGuidesModalOpen] = useState(false);
+  const [printProfileId, setPrintProfileId] = useState<string | null>(null);
+  const [customBleedMm, setCustomBleedMm] = useState(3);
+  const [customSafeMarginMm, setCustomSafeMarginMm] = useState(5);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [picked, setPicked] = useState<string[]>([]);
+  const [traySort, setTraySort] = useState<TraySort>("score");
   const [clientName, setClientName] = useState("");
   const [shareLink, setShareLink] = useState<string | null>(null);
 
   const album = useQuery({ queryKey: ["album", albumId], queryFn: () => getAlbum(albumId) });
   const templates = useQuery({ queryKey: ["templates"], queryFn: listLayoutTemplates });
+  const printProfiles = useQuery({ queryKey: ["print-profiles"], queryFn: listPrintProfiles });
+  const customPrintProfile = {
+    id: CUSTOM_PROFILE_ID,
+    name: "Custom",
+    dpi: 300,
+    bleedMm: customBleedMm,
+    safeMarginMm: customSafeMarginMm,
+    drawTrimMarks: true,
+  };
+  const selectedPrintProfile =
+    printProfileId === CUSTOM_PROFILE_ID
+      ? customPrintProfile
+      : (printProfiles.data?.find((profile) => profile.id === printProfileId) ??
+        printProfiles.data?.[0]);
   const projectId = album.data?.projectId ?? "";
   const photos = useQuery({
     queryKey: ["photos", projectId],
@@ -401,14 +433,44 @@ export function AlbumEditorPage() {
     () => openCommentsBySpread(feedback.data?.comments ?? []),
     [feedback.data],
   );
-  const trayPhotos = useMemo(
-    () => (photos.data ?? []).filter((photo) => photo.thumbnailUrl ?? photo.previewUrl),
-    [photos.data],
-  );
   const analysisByPhoto = useMemo(
     () => new Map((analyses.data ?? []).map((analysis) => [analysis.photoId, analysis])),
     [analyses.data],
   );
+  // The order the system ranked each photo when scoring the shoot: best
+  // overall score first. Shown in the tray, and also what the tray is sorted
+  // by, so a photographer sees the generator's best picks first.
+  const rankByPhoto = useMemo(() => {
+    const ranked = [...(analyses.data ?? [])].sort((a, b) => b.overall - a.overall);
+    return new Map(ranked.map((analysis, index) => [analysis.photoId, index + 1]));
+  }, [analyses.data]);
+  const trayPhotos = useMemo(() => {
+    const withThumbnails = (photos.data ?? []).filter(
+      (photo) => photo.thumbnailUrl ?? photo.previewUrl,
+    );
+    // Every mode is a stable sort: whatever the chosen key doesn't decide
+    // (no analysis yet, a tie), the photo keeps its original order rather
+    // than jumping around unpredictably.
+    return [...withThumbnails].sort((a, b) => {
+      switch (traySort) {
+        case "filename":
+          return a.fileName.localeCompare(b.fileName);
+        case "category": {
+          const categoryA = analysisByPhoto.get(a.id)?.category ?? "";
+          const categoryB = analysisByPhoto.get(b.id)?.category ?? "";
+          return categoryA.localeCompare(categoryB) || a.fileName.localeCompare(b.fileName);
+        }
+        case "similarity": {
+          const groupA = analysisByPhoto.get(a.id)?.similarityGroup ?? Infinity;
+          const groupB = analysisByPhoto.get(b.id)?.similarityGroup ?? Infinity;
+          return groupA - groupB || (rankByPhoto.get(a.id) ?? Infinity) - (rankByPhoto.get(b.id) ?? Infinity);
+        }
+        case "score":
+        default:
+          return (rankByPhoto.get(a.id) ?? Infinity) - (rankByPhoto.get(b.id) ?? Infinity);
+      }
+    });
+  }, [photos.data, rankByPhoto, analysisByPhoto, traySort]);
   // Every photo id placed on any spread, so the tray can flag a photo that's
   // already in the album rather than let it be added a second time by mistake.
   const usedPhotoIds = useMemo(
@@ -561,33 +623,35 @@ export function AlbumEditorPage() {
       <header className="page__header">
         <div>
           <Link to={projectId ? `/projects/${projectId}` : "/"} className="muted back-link">
-            ← Back to shoot
+            {t("album.back")}
           </Link>
           <h1>{current.title}</h1>
           <p className="muted">
-            {current.spreadCount} spreads · {current.pageCount} pages · {current.photoCount} photos
+            {t("album.stats", {
+              spreads: current.spreadCount,
+              pages: current.pageCount,
+              photos: current.photoCount,
+            })}
           </p>
         </div>
         <div className="page__header-actions">
           <button
             type="button"
             className="button button--small"
-            title="Undo the last change"
             disabled={locked || past.length === 0 || restoreSpreads.isPending}
             onClick={undo}
           >
-            ↶ Undo
+            {t("album.undo")}
           </button>
           <button
             type="button"
             className="button button--small"
-            title="Redo the last undone change"
             disabled={locked || future.length === 0 || restoreSpreads.isPending}
             onClick={redo}
           >
-            ↷ Redo
+            {t("album.redo")}
           </button>
-          <label className="ruler-toggle" title="Show a centimetre grid behind every spread">
+          <label className="ruler-toggle">
             <input
               type="checkbox"
               className="ruler-toggle__input"
@@ -597,12 +661,9 @@ export function AlbumEditorPage() {
             <span className="ruler-toggle__track" aria-hidden="true">
               <span className="ruler-toggle__thumb" />
             </span>
-            Ruler
+            {t("album.ruler")}
           </label>
-          <label
-            className="ruler-toggle"
-            title="Snap a dragged corner to page edges, the centre, and other slots' edges"
-          >
+          <label className="ruler-toggle">
             <input
               type="checkbox"
               className="ruler-toggle__input"
@@ -612,8 +673,33 @@ export function AlbumEditorPage() {
             <span className="ruler-toggle__track" aria-hidden="true">
               <span className="ruler-toggle__thumb" />
             </span>
-            Snap
+            {t("album.snap")}
           </label>
+          <label className="ruler-toggle">
+            <input
+              type="checkbox"
+              className="ruler-toggle__input"
+              checked={showGuides}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                setShowGuides(checked);
+                if (checked) setGuidesModalOpen(true);
+              }}
+            />
+            <span className="ruler-toggle__track" aria-hidden="true">
+              <span className="ruler-toggle__thumb" />
+            </span>
+            {t("album.guides")}
+          </label>
+          {showGuides && selectedPrintProfile && (
+            <button
+              type="button"
+              className="print-profile-chip"
+              onClick={() => setGuidesModalOpen(true)}
+            >
+              {shortenProfileName(selectedPrintProfile.name)}
+            </button>
+          )}
           <span className={`chip chip--${current.status.toLowerCase()}`}>{current.status}</span>
           {locked ? (
             <button
@@ -621,7 +707,7 @@ export function AlbumEditorPage() {
               className="button"
               onClick={() => edit.mutate({ type: "REOPEN" })}
             >
-              Reopen for editing
+              {t("album.reopen")}
             </button>
           ) : (
             <button
@@ -629,16 +715,15 @@ export function AlbumEditorPage() {
               className="button"
               onClick={() => edit.mutate({ type: "SUBMIT_FOR_REVIEW" })}
             >
-              Mark ready for review
+              {t("album.markReady")}
             </button>
           )}
           <button
             type="button"
             className="button button--primary"
-            title="Delete this album and everything in it"
             onClick={() => setConfirmingDelete(true)}
           >
-            Delete album
+            {t("album.deleteAlbum")}
           </button>
         </div>
       </header>
@@ -671,6 +756,8 @@ export function AlbumEditorPage() {
               pageWidthMm={current.format.pageWidthMm}
               pageHeightMm={current.format.pageHeightMm}
               showRuler={showRuler}
+              showGuides={showGuides}
+              safeMarginMm={showGuides ? (selectedPrintProfile?.safeMarginMm ?? 0) : 0}
               snapEnabled={snapEnabled}
               selectedSlotId={
                 selected?.spreadIndex === spreadIndex ? selected.slotId : null
@@ -719,7 +806,21 @@ export function AlbumEditorPage() {
 
         <aside className="sidebar">
           <section className="panel">
-            <h2>Photo tray</h2>
+            <div className="panel__head">
+              <h2>{t("album.photoTray.title")}</h2>
+              <label className="tray-sort">
+                {t("album.photoTray.sortBy")}
+                <select
+                  value={traySort}
+                  onChange={(event) => setTraySort(event.target.value as TraySort)}
+                >
+                  <option value="score">{t("album.photoTray.sort.score")}</option>
+                  <option value="category">{t("album.photoTray.sort.category")}</option>
+                  <option value="filename">{t("album.photoTray.sort.filename")}</option>
+                  <option value="similarity">{t("album.photoTray.sort.similarity")}</option>
+                </select>
+              </label>
+            </div>
             <p className="muted">
               {addingToSpread !== null
                 ? `Click a photo to add it to spread ${addingToSpread + 1}.`
@@ -769,6 +870,8 @@ export function AlbumEditorPage() {
               locked={locked}
               onPhotoClick={trayPhotoClick}
               analysisByPhoto={analysisByPhoto}
+              rankByPhoto={rankByPhoto}
+              rankedCount={analyses.data?.length ?? 0}
               usedPhotoIds={usedPhotoIds}
             />
           </section>
@@ -901,11 +1004,8 @@ export function AlbumEditorPage() {
             aria-labelledby="delete-album-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="delete-album-title">Delete this album?</h2>
-            <p>
-              This permanently removes <strong>{current.title}</strong> — every spread, its
-              exports, and any review links already sent to the client. This cannot be undone.
-            </p>
+            <h2 id="delete-album-title">{t("album.deleteAlbum.title")}</h2>
+            <p>{t("album.deleteAlbum.body", { title: current.title })}</p>
             {removeAlbum.isError && <p className="error">{(removeAlbum.error as Error).message}</p>}
             <div className="modal__actions">
               <button
@@ -914,7 +1014,7 @@ export function AlbumEditorPage() {
                 disabled={removeAlbum.isPending}
                 onClick={() => setConfirmingDelete(false)}
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -922,7 +1022,99 @@ export function AlbumEditorPage() {
                 disabled={removeAlbum.isPending}
                 onClick={() => removeAlbum.mutate()}
               >
-                {removeAlbum.isPending ? "Deleting…" : "Delete album"}
+                {removeAlbum.isPending ? t("album.deleteAlbum.deleting") : t("album.deleteAlbum")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {guidesModalOpen && (
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={() => setGuidesModalOpen(false)}
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="guides-profile-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="guides-profile-title">Choose a print profile</h2>
+            <p>
+              The trim line and safe-area guides come from a print profile's bleed and margin —
+              pick the one this album will actually be printed with.
+            </p>
+            {printProfiles.isLoading && <p className="muted">Loading print profiles…</p>}
+            <ul className="print-profile-options">
+              {(printProfiles.data ?? []).map((profile) => (
+                <li key={profile.id}>
+                  <button
+                    type="button"
+                    className={`print-profile-option ${
+                      selectedPrintProfile?.id === profile.id ? "print-profile-option--selected" : ""
+                    }`}
+                    onClick={() => {
+                      setPrintProfileId(profile.id);
+                      setGuidesModalOpen(false);
+                    }}
+                  >
+                    <strong>{profile.name}</strong>
+                    <span className="muted">
+                      {profile.bleedMm}mm bleed · {profile.safeMarginMm}mm safe margin
+                    </span>
+                  </button>
+                </li>
+              ))}
+              <li>
+                <div
+                  className={`print-profile-option print-profile-option--custom ${
+                    printProfileId === CUSTOM_PROFILE_ID ? "print-profile-option--selected" : ""
+                  }`}
+                >
+                  <strong>Custom</strong>
+                  <div className="print-profile-custom-fields">
+                    <label>
+                      Bleed (mm)
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.5}
+                        value={customBleedMm}
+                        onChange={(event) => setCustomBleedMm(Math.max(0, Number(event.target.value)))}
+                      />
+                    </label>
+                    <label>
+                      Safe margin (mm)
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.5}
+                        value={customSafeMarginMm}
+                        onChange={(event) =>
+                          setCustomSafeMarginMm(Math.max(0, Number(event.target.value)))
+                        }
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    className="button button--small"
+                    onClick={() => {
+                      setPrintProfileId(CUSTOM_PROFILE_ID);
+                      setGuidesModalOpen(false);
+                    }}
+                  >
+                    Use custom
+                  </button>
+                </div>
+              </li>
+            </ul>
+            <div className="modal__actions">
+              <button type="button" className="button" onClick={() => setGuidesModalOpen(false)}>
+                Cancel
               </button>
             </div>
           </div>

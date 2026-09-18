@@ -9,6 +9,7 @@ import type { ProjectRepository } from "../../domain/project-repository";
 import type { RequestUploadUseCase } from "../../application/use-cases/request-upload/request-upload.use-case";
 import type { ConfirmUploadUseCase } from "../../application/use-cases/confirm-upload/confirm-upload.use-case";
 import type { ListProjectPhotosUseCase } from "../../application/use-cases/list-project-photos/list-project-photos.use-case";
+import type { DeleteProjectUseCase } from "../../application/use-cases/delete-project/delete-project.use-case";
 
 const projectParamsSchema = z.object({
   studioId: z.string().uuid(),
@@ -30,6 +31,7 @@ export interface MediaIngestionDependencies {
   requestUpload: RequestUploadUseCase;
   confirmUpload: ConfirmUploadUseCase;
   listProjectPhotos: ListProjectPhotosUseCase;
+  deleteProject: DeleteProjectUseCase;
   projects: ProjectRepository;
 }
 
@@ -113,6 +115,13 @@ export function registerMediaIngestionRoutes(app: FastifyInstance, deps: MediaIn
   app.get("/projects/:projectId/photos", async (request) => {
     const params = listPhotosParamsSchema.parse(request.params);
     return deps.listProjectPhotos.execute(params.projectId);
+  });
+
+  app.delete("/projects/:projectId", async (request, reply) => {
+    const { projectId } = projectIdParamsSchema.parse(request.params);
+    const result = await deps.deleteProject.execute({ projectId });
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return reply.code(204).send();
   });
 }
 

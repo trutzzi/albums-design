@@ -42,6 +42,7 @@ export class AnalyzePhotoUseCase {
       height: metrics.height,
       faceCount: verdict.faceCount,
       capturedAt: metrics.capturedAt,
+      histogram: metrics.histogram,
     });
 
     await this.analyses.save(analysis);

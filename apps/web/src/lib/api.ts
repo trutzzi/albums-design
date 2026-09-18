@@ -83,6 +83,10 @@ export function createProject(studioId: string, input: CreateProjectInput): Prom
   });
 }
 
+export function deleteProject(projectId: string): Promise<void> {
+  return request(`/projects/${projectId}`, { method: "DELETE" });
+}
+
 export function getProject(projectId: string): Promise<ProjectDTO> {
   return request(`/projects/${projectId}`);
 }
@@ -289,6 +293,8 @@ export interface PrintProfileDTO {
   name: string;
   dpi: number;
   bleedMm: number;
+  /** Safe area inset from the trim edge where nothing important should sit. */
+  safeMarginMm: number;
   drawTrimMarks: boolean;
 }
 

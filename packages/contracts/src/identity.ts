@@ -38,5 +38,6 @@ export type LoginInput = z.infer<typeof loginInputSchema>;
 export const authSessionSchema = z.object({
   token: z.string(),
   studioId: z.string().uuid(),
+  name: z.string(),
 });
 export type AuthSession = z.infer<typeof authSessionSchema>;

@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import type { SUPPORTED_MIME_TYPES } from "@albumflow/contracts";
 import {
   confirmUpload,
+  deleteProject,
   getProject,
   generateAlbum,
   listProjectAlbums,
@@ -13,6 +14,8 @@ import {
   requestUpload,
 } from "../../lib/api";
 import { useAuth } from "../../app/AuthContext";
+import { useLanguage } from "../../lib/i18n/LanguageContext";
+import { LanguagePrompt } from "../../components/LanguagePrompt";
 
 type SupportedMimeType = (typeof SUPPORTED_MIME_TYPES)[number];
 const ACCEPTED = new Set<string>(["image/jpeg", "image/png", "image/tiff", "image/webp"]);
@@ -27,12 +30,18 @@ interface Transfer {
 
 export function ProjectPage() {
   const { studioId } = useAuth();
+  const { t, hasChosenLanguage } = useLanguage();
   const { projectId = "" } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [isDragging, setDragging] = useState(false);
   const [targetSpreads, setTargetSpreads] = useState(10);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Asked once, the first time anyone generates an album, if the studio has
+  // never explicitly picked a language — see LanguagePrompt.
+  const [askingLanguage, setAskingLanguage] = useState(false);
 
   const project = useQuery({
     queryKey: ["project", projectId],
@@ -60,6 +69,14 @@ export function ProjectPage() {
   const generate = useMutation({
     mutationFn: () => generateAlbum(projectId, { targetSpreads }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["albums", projectId] }),
+  });
+
+  const removeProject = useMutation({
+    mutationFn: () => deleteProject(projectId),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ["project", projectId] });
+      navigate("/");
+    },
   });
 
   const analysisByPhoto = useMemo(
@@ -110,6 +127,14 @@ export function ProjectPage() {
     [uploadOne],
   );
 
+  const startGenerate = useCallback(() => {
+    if (!hasChosenLanguage) {
+      setAskingLanguage(true);
+      return;
+    }
+    generate.mutate();
+  }, [hasChosenLanguage, generate]);
+
   const analysed = analyses.data?.length ?? 0;
   const albumWorthy = (analyses.data ?? []).filter((analysis) => analysis.albumWorthy).length;
   const inFlight = transfers.filter((t) => t.state === "uploading" || t.state === "confirming");
@@ -119,13 +144,24 @@ export function ProjectPage() {
       <header className="page__header">
         <div>
           <Link to="/" className="muted back-link">
-            ← All shoots
+            {t("project.back")}
           </Link>
-          <h1>{project.data?.name ?? "Loading…"}</h1>
+          <h1>{project.data?.name ?? t("common.loading")}</h1>
           <p className="muted">
-            {photos.data?.length ?? 0} uploaded · {analysed} analysed · {albumWorthy} album-worthy
+            {t("project.stats", {
+              uploaded: photos.data?.length ?? 0,
+              analysed,
+              albumWorthy,
+            })}
           </p>
         </div>
+        <button
+          type="button"
+          className="button button--primary"
+          onClick={() => setConfirmingDelete(true)}
+        >
+          {t("project.deleteShoot")}
+        </button>
       </header>
 
       <section
@@ -142,8 +178,8 @@ export function ProjectPage() {
         }}
         onClick={() => inputRef.current?.click()}
       >
-        <p className="dropzone__title">Drop culled selects here</p>
-        <p className="muted">JPEG, PNG, TIFF or WebP — up to 75MB each</p>
+        <p className="dropzone__title">{t("project.dropzone.title")}</p>
+        <p className="muted">{t("project.dropzone.subtitle")}</p>
         <input
           id="photo-input"
           ref={inputRef}
@@ -157,7 +193,7 @@ export function ProjectPage() {
 
       {inFlight.length > 0 && (
         <p className="muted upload-status">
-          Uploading {inFlight.length} file{inFlight.length === 1 ? "" : "s"}…
+          {t("project.uploading", { count: inFlight.length, plural: inFlight.length === 1 ? "" : "s" })}
         </p>
       )}
       {transfers.some((t) => t.state === "error") && (
@@ -174,10 +210,10 @@ export function ProjectPage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Generate an album</h2>
+          <h2>{t("project.generate.title")}</h2>
           <div className="panel__actions">
             <label htmlFor="target-spreads" className="muted">
-              Target spreads
+              {t("project.generate.targetSpreads")}
             </label>
             <input
               id="target-spreads"
@@ -191,15 +227,13 @@ export function ProjectPage() {
               type="button"
               className="button button--primary"
               disabled={generate.isPending || analysed === 0}
-              onClick={() => generate.mutate()}
+              onClick={startGenerate}
             >
-              {generate.isPending ? "Generating…" : "Generate draft"}
+              {generate.isPending ? t("project.generate.submitting") : t("project.generate.submit")}
             </button>
           </div>
         </div>
-        {analysed === 0 && (
-          <p className="muted">Analysis has to finish before a draft can be built.</p>
-        )}
+        {analysed === 0 && <p className="muted">{t("project.generate.waitingOnAnalysis")}</p>}
         {generate.isError && <p className="error">{(generate.error as Error).message}</p>}
 
         {albums.data && albums.data.length > 0 && (
@@ -223,7 +257,7 @@ export function ProjectPage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Photos</h2>
+          <h2>{t("project.photos.title")}</h2>
         </div>
         <div className="photo-grid">
           {(photos.data ?? []).map((photo) => {
@@ -254,8 +288,59 @@ export function ProjectPage() {
             );
           })}
         </div>
-        {(photos.data?.length ?? 0) === 0 && <p className="muted">No photos uploaded yet.</p>}
+        {(photos.data?.length ?? 0) === 0 && <p className="muted">{t("project.photos.empty")}</p>}
       </section>
+
+      {confirmingDelete && (
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={() => !removeProject.isPending && setConfirmingDelete(false)}
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-project-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="delete-project-title">{t("project.deleteShoot.title")}</h2>
+            <p>{t("project.deleteShoot.body", { name: project.data?.name ?? "" })}</p>
+            {removeProject.isError && (
+              <p className="error">{(removeProject.error as Error).message}</p>
+            )}
+            <div className="modal__actions">
+              <button
+                type="button"
+                className="button"
+                disabled={removeProject.isPending}
+                onClick={() => setConfirmingDelete(false)}
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                className="button button--danger"
+                disabled={removeProject.isPending}
+                onClick={() => removeProject.mutate()}
+              >
+                {removeProject.isPending
+                  ? t("project.deleteShoot.deleting")
+                  : t("project.deleteShoot.confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {askingLanguage && (
+        <LanguagePrompt
+          onChoose={() => {
+            setAskingLanguage(false);
+            generate.mutate();
+          }}
+        />
+      )}
     </div>
   );
 }

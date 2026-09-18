@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, real, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgEnum, pgTable, real, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { photos, projects } from "../../../media-ingestion/infrastructure/persistence/schema";
 import { PHOTO_CATEGORIES } from "../../domain/value-objects/photo-category";
 
@@ -28,4 +28,6 @@ export const photoAnalyses = pgTable("photo_analyses", {
   capturedAt: timestamp("captured_at", { withTimezone: true }),
   analyzedAt: timestamp("analyzed_at", { withTimezone: true }).notNull(),
   engineVersion: varchar("engine_version", { length: 32 }).notNull().default("v1"),
+  // Nullable: analyses recorded before similarity grouping existed have none.
+  histogram: jsonb("histogram").$type<number[]>(),
 });

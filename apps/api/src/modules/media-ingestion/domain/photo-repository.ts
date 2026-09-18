@@ -5,6 +5,7 @@ export interface PhotoRepository {
   save(photo: Photo): Promise<void>;
   findById(id: UniqueEntityId): Promise<Photo | undefined>;
   findByProjectId(projectId: UniqueEntityId): Promise<Photo[]>;
+  delete(id: UniqueEntityId): Promise<void>;
 
   /**
    * Narrow, single-column writes — deliberately not `save()`.

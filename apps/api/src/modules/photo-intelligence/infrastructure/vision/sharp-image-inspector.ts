@@ -34,8 +34,35 @@ export class SharpImageInspector implements ImageInspector {
       saturation: meanSaturation(rgb),
       skinToneRatio: skinToneRatio(rgb),
       capturedAt: parseExifDate(metadata.exif),
+      histogram: colorHistogram(rgb),
     };
   }
+}
+
+const HISTOGRAM_BUCKETS_PER_CHANNEL = 8;
+const BUCKET_WIDTH = 256 / HISTOGRAM_BUCKETS_PER_CHANNEL;
+
+/**
+ * A coarse per-channel color histogram — 8 buckets each for R, G and B,
+ * normalised to fractions of the total pixel count so two photos of
+ * different sizes are still directly comparable. Two photos of the same
+ * setting (same walls, foliage, lighting) tend to land in similar buckets
+ * even when the subjects and framing differ.
+ */
+export function colorHistogram(rgb: Uint8Array): number[] {
+  const buckets = new Array<number>(HISTOGRAM_BUCKETS_PER_CHANNEL * 3).fill(0);
+  let pixelCount = 0;
+  for (let i = 0; i + 2 < rgb.length; i += 3) {
+    const r = rgb[i] ?? 0;
+    const g = rgb[i + 1] ?? 0;
+    const b = rgb[i + 2] ?? 0;
+    buckets[Math.min(HISTOGRAM_BUCKETS_PER_CHANNEL - 1, Math.floor(r / BUCKET_WIDTH))]! += 1;
+    buckets[HISTOGRAM_BUCKETS_PER_CHANNEL + Math.min(HISTOGRAM_BUCKETS_PER_CHANNEL - 1, Math.floor(g / BUCKET_WIDTH))]! += 1;
+    buckets[2 * HISTOGRAM_BUCKETS_PER_CHANNEL + Math.min(HISTOGRAM_BUCKETS_PER_CHANNEL - 1, Math.floor(b / BUCKET_WIDTH))]! += 1;
+    pixelCount += 1;
+  }
+  if (pixelCount === 0) return buckets;
+  return buckets.map((count) => count / pixelCount);
 }
 
 /** Variance of the Laplacian — the standard blur metric. Flat images have near-zero response. */

@@ -12,6 +12,12 @@ export interface ImageMetrics {
   /** Fraction of pixels in the skin-tone gamut 0-1 — a cheap proxy for "people are in this frame". */
   skinToneRatio: number;
   capturedAt: Date | undefined;
+  /**
+   * A coarse RGB color histogram (8 buckets per channel, 24 values, each the
+   * fraction of pixels landing in that bucket) — the fingerprint similarity
+   * grouping compares between photos to find ones shot in the same setting.
+   */
+  histogram: number[];
 }
 
 export interface ImageInspector {

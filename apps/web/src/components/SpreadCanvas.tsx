@@ -11,14 +11,17 @@ import {
 } from "../lib/crop-geometry";
 import {
   RESIZE_CORNERS,
+  collectPrintGuideTargets,
   collectSnapTargets,
   edgeDirectionFromPoint,
+  mergeSnapTargets,
   nearestNeighborInDirection,
   resizeFrame,
   resizeFrameSnapped,
   type ResizeCorner,
 } from "../lib/frame-geometry";
 import { RulerOverlay } from "./RulerOverlay";
+import { PrintGuidesOverlay } from "./PrintGuidesOverlay";
 
 export interface SpreadPlacement {
   slotId: string;
@@ -39,6 +42,10 @@ export interface SpreadCanvasProps {
   pageHeightMm: number;
   /** Renders a centimetre grid beneath the photos, for checking alignment. */
   showRuler?: boolean | undefined;
+  /** Renders the trim line and the print profile's safe area, per page. */
+  showGuides?: boolean | undefined;
+  /** Safe area inset from trim, in millimetres — from the selected print profile. */
+  safeMarginMm?: number | undefined;
   /** Snaps a dragged corner to page edges/centre and other slots' edges. Defaults to on. */
   snapEnabled?: boolean | undefined;
   selectedSlotId?: string | null | undefined;
@@ -84,6 +91,8 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   pageWidthMm,
   pageHeightMm,
   showRuler,
+  showGuides,
+  safeMarginMm = 0,
   snapEnabled = true,
   selectedSlotId,
   onSlotClick,
@@ -180,6 +189,13 @@ export const SpreadCanvas = memo(function SpreadCanvas({
     >
       <div className="spread__gutter" aria-hidden="true" />
       {showRuler && <RulerOverlay widthMm={pageWidthMm * 2} heightMm={pageHeightMm} />}
+      {showGuides && (
+        <PrintGuidesOverlay
+          pageWidthMm={pageWidthMm}
+          pageHeightMm={pageHeightMm}
+          safeMarginMm={safeMarginMm}
+        />
+      )}
       {/* Filled in during the loop below for the one selected+editable slot, then
           rendered last — as a sibling of the slots, not nested inside one — so
           `.slot`'s `overflow: hidden` (needed to clip the photo crop) can never
@@ -375,10 +391,15 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                           resize.corner,
                           dx,
                           dy,
-                          collectSnapTargets(
-                            allRects
-                              .filter((entry) => entry.slotId !== slot.id)
-                              .map((entry) => entry.rect),
+                          mergeSnapTargets(
+                            collectSnapTargets(
+                              allRects
+                                .filter((entry) => entry.slotId !== slot.id)
+                                .map((entry) => entry.rect),
+                            ),
+                            showGuides
+                              ? collectPrintGuideTargets(pageWidthMm, pageHeightMm, safeMarginMm)
+                              : { x: [], y: [] },
                           ),
                         )
                       : resizeFrame(resize.frame, resize.corner, dx, dy);

@@ -11,6 +11,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   /** The active studio: the logged-in user's own, or the build's demo studio. */
   studioId: string;
+  /** The logged-in person's own name, for a personal greeting — empty when not authenticated. */
+  name: string;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -25,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       isAuthenticated: session !== null,
       studioId: session?.studioId ?? DEMO_STUDIO_ID,
+      name: session?.name ?? "",
       login: async (email, password) => {
         const result = await loginRequest({ email, password });
         saveSession(result);

@@ -57,6 +57,10 @@ export class DrizzlePhotoRepository implements PhotoRepository {
     return rows.map((row) => this.toDomain(row));
   }
 
+  async delete(id: UniqueEntityId): Promise<void> {
+    await this.db.delete(photos).where(eq(photos.id, id.toString()));
+  }
+
   private toDomain(row: typeof photos.$inferSelect): Photo {
     return Photo.reconstitute(
       {

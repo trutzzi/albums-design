@@ -176,6 +176,8 @@ export const photoAnalysisDtoSchema = z.object({
   orientation: z.enum(["LANDSCAPE", "PORTRAIT", "SQUARE"]),
   faceCount: z.number().int(),
   albumWorthy: z.boolean(),
+  /** 1-based group of photos shot in the same setting — see photo-similarity.ts. */
+  similarityGroup: z.number().int(),
 });
 export type PhotoAnalysisDTO = z.infer<typeof photoAnalysisDtoSchema>;
 

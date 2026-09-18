@@ -1,0 +1,1 @@
+ALTER TABLE "photo_analyses" ADD COLUMN "histogram" jsonb;

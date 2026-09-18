@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext";
+import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { ApiError } from "../../lib/api";
 
 export function LoginPage() {
   const auth = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");
@@ -17,8 +19,9 @@ export function LoginPage() {
   return (
     <div className="page auth-page">
       <section className="panel auth-panel">
+        <img src="/logo-full.png" alt="AlbumFlow Studio" className="auth-panel__logo" />
         <div className="panel__head">
-          <h1>Log in</h1>
+          <h1>{t("auth.login.title")}</h1>
         </div>
         <form
           className="auth-form"
@@ -30,14 +33,14 @@ export function LoginPage() {
               await auth.login(email, password);
               navigate(redirectTo, { replace: true });
             } catch (err) {
-              setError(err instanceof ApiError ? err.message : "Something went wrong.");
+              setError(err instanceof ApiError ? err.message : t("auth.error.generic"));
             } finally {
               setPending(false);
             }
           }}
         >
           <div className="field">
-            <label htmlFor="login-email">Email</label>
+            <label htmlFor="login-email">{t("auth.login.email")}</label>
             <input
               id="login-email"
               type="email"
@@ -48,7 +51,7 @@ export function LoginPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="login-password">Password</label>
+            <label htmlFor="login-password">{t("auth.login.password")}</label>
             <input
               id="login-password"
               type="password"
@@ -60,11 +63,14 @@ export function LoginPage() {
           </div>
           {error && <p className="error">{error}</p>}
           <button type="submit" className="button button--primary" disabled={pending}>
-            {pending ? "Logging in…" : "Log in"}
+            {pending ? t("auth.login.submitting") : t("auth.login.submit")}
           </button>
         </form>
         <p className="muted">
-          New here? <Link to="/register">Create an account</Link>
+          {t("auth.login.newHere")} <Link to="/register">{t("auth.login.createAccount")}</Link>
+        </p>
+        <p className="muted">
+          <Link to="/changelog">{t("auth.login.seeChangelog")}</Link>
         </p>
       </section>
     </div>

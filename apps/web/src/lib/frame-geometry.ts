@@ -70,6 +70,39 @@ export function collectSnapTargets(rects: readonly SlotFrame[]): SnapTargets {
   return { x: [...x], y: [...y] };
 }
 
+/**
+ * The print-guides' own lines, expressed as fractions of the spread — the
+ * safe area inset from each page's own four edges (including its gutter
+ * side, where the fold eats into it same as trimming eats into the outer
+ * ones). The trim line needs no separate target: it sits exactly at the
+ * spread's own edges, already covered by `collectSnapTargets`'s {0, 1}.
+ */
+export function collectPrintGuideTargets(
+  pageWidthMm: number,
+  pageHeightMm: number,
+  safeMarginMm: number,
+): SnapTargets {
+  if (safeMarginMm <= 0 || pageWidthMm <= 0 || pageHeightMm <= 0) return { x: [], y: [] };
+  const spreadWidthMm = pageWidthMm * 2;
+  const insetX = safeMarginMm / spreadWidthMm;
+  const insetY = safeMarginMm / pageHeightMm;
+  return {
+    x: [insetX, 0.5 - insetX, 0.5 + insetX, 1 - insetX],
+    y: [insetY, 1 - insetY],
+  };
+}
+
+/** Merges any number of target sets into one, for a drag that should snap to all of them at once. */
+export function mergeSnapTargets(...targetSets: readonly SnapTargets[]): SnapTargets {
+  const x = new Set<number>();
+  const y = new Set<number>();
+  for (const targets of targetSets) {
+    for (const value of targets.x) x.add(value);
+    for (const value of targets.y) y.add(value);
+  }
+  return { x: [...x], y: [...y] };
+}
+
 function nearestTarget(value: number, targets: readonly number[], threshold: number): number {
   let best = value;
   let bestDistance = threshold;

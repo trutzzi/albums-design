@@ -20,6 +20,7 @@ import { BullMqJobQueue } from "./modules/media-ingestion/infrastructure/queue/b
 import { RequestUploadUseCase } from "./modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
 import { ConfirmUploadUseCase } from "./modules/media-ingestion/application/use-cases/confirm-upload/confirm-upload.use-case";
 import { ListProjectPhotosUseCase } from "./modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
+import { DeleteProjectUseCase } from "./modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
 import { GenerateDerivativesUseCase } from "./modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
 import { SharpImageResizer } from "./modules/media-ingestion/infrastructure/imaging/sharp-image-resizer";
 import type { MediaIngestionDependencies } from "./modules/media-ingestion/interface/http/routes";
@@ -156,13 +157,6 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     new SharpImageResizer(),
   );
 
-  const mediaIngestion: MediaIngestionDependencies = {
-    requestUpload: new RequestUploadUseCase(projects, photos, storage),
-    confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue),
-    listProjectPhotos: new ListProjectPhotosUseCase(photos, storage),
-    projects,
-  };
-
   // Photo intelligence
   const analyses = new DrizzlePhotoAnalysisRepository(db);
   const byteSource = new S3PhotoByteSource(s3, env.S3_BUCKET);
@@ -213,6 +207,24 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   );
 
   const deleteAlbum = new DeleteAlbumUseCase(albums, exportJobs, exportStorage, reviewSessions);
+  const deleteProject = new DeleteProjectUseCase(
+    projects,
+    photos,
+    storage,
+    analyses,
+    albums,
+    exportJobs,
+    exportStorage,
+    reviewSessions,
+  );
+
+  const mediaIngestion: MediaIngestionDependencies = {
+    requestUpload: new RequestUploadUseCase(projects, photos, storage),
+    confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue),
+    listProjectPhotos: new ListProjectPhotosUseCase(photos, storage),
+    deleteProject,
+    projects,
+  };
 
   return {
     env,

@@ -19,7 +19,7 @@ export class LoginUseCase {
   async execute(params: {
     email: string;
     password: string;
-  }): Promise<Result<{ token: string; studioId: string }, ApplicationError>> {
+  }): Promise<Result<{ token: string; studioId: string; name: string }, ApplicationError>> {
     const email = params.email.trim().toLowerCase();
     const member = await this.members.findByEmail(email);
     if (!member || !member.passwordHash) {
@@ -36,6 +36,6 @@ export class LoginUseCase {
       this.jwtSecret,
       TOKEN_TTL_SECONDS,
     );
-    return Result.success({ token, studioId: member.studioId.toString() });
+    return Result.success({ token, studioId: member.studioId.toString(), name: member.name });
   }
 }

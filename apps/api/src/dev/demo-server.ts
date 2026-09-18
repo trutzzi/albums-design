@@ -25,6 +25,7 @@ import { SubscriptionQuotaPolicy } from "../modules/identity/application/subscri
 import { RequestUploadUseCase } from "../modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
 import { ConfirmUploadUseCase } from "../modules/media-ingestion/application/use-cases/confirm-upload/confirm-upload.use-case";
 import { ListProjectPhotosUseCase } from "../modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
+import { DeleteProjectUseCase } from "../modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
 import { GenerateDerivativesUseCase } from "../modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
 import { SharpImageResizer } from "../modules/media-ingestion/infrastructure/imaging/sharp-image-resizer";
 import { MediaIngestionPhotoLifecycle } from "../modules/photo-intelligence/infrastructure/gateways/photo-lifecycle-gateway";
@@ -248,6 +249,16 @@ async function main() {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, queue),
     listProjectPhotos: new ListProjectPhotosUseCase(photos, storage),
+    deleteProject: new DeleteProjectUseCase(
+      projects,
+      photos,
+      storage,
+      analyses,
+      albums,
+      exportJobs,
+      storage,
+      reviewSessions,
+    ),
     projects,
   });
   registerPhotoIntelligenceRoutes(app, { analyses });

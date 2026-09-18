@@ -28,6 +28,7 @@ export class DrizzlePhotoAnalysisRepository implements PhotoAnalysisRepository {
       faceCount: analysis.faceCount,
       capturedAt: analysis.capturedAt ?? null,
       analyzedAt: analysis.analyzedAt,
+      histogram: analysis.histogram ?? null,
     };
 
     await this.db
@@ -52,6 +53,10 @@ export class DrizzlePhotoAnalysisRepository implements PhotoAnalysisRepository {
       .where(eq(photoAnalyses.projectId, projectId.toString()));
     return rows.map(toDomain);
   }
+
+  async delete(photoId: UniqueEntityId): Promise<void> {
+    await this.db.delete(photoAnalyses).where(eq(photoAnalyses.photoId, photoId.toString()));
+  }
 }
 
 function toDomain(row: typeof photoAnalyses.$inferSelect): PhotoAnalysis {
@@ -73,6 +78,7 @@ function toDomain(row: typeof photoAnalyses.$inferSelect): PhotoAnalysis {
       faceCount: row.faceCount,
       capturedAt: row.capturedAt ?? undefined,
       analyzedAt: row.analyzedAt,
+      histogram: row.histogram ?? undefined,
     },
     UniqueEntityId.create(row.id),
   );

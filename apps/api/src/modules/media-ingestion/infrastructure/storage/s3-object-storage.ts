@@ -1,4 +1,10 @@
-import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type {
   ObjectHead,
@@ -86,6 +92,11 @@ export class S3ObjectStorage implements ObjectStorageWithBody {
       if (isNotFoundError(error)) return undefined;
       throw error;
     }
+  }
+
+  async delete(key: string): Promise<void> {
+    // S3's DeleteObject is idempotent — a missing key is a 204, not an error.
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 }
 

@@ -41,6 +41,9 @@ export class InMemoryProjectRepository implements ProjectRepository {
       (project) => project.studioId.toString() === studioId.toString(),
     );
   }
+  async delete(id: UniqueEntityId) {
+    this.items.delete(id.toString());
+  }
 }
 
 function clonePhoto(photo: Photo): Photo {
@@ -100,6 +103,9 @@ export class InMemoryPhotoRepository implements PhotoRepository {
     const updated = clonePhoto(stored);
     updated.markDerivativesReady();
     this.items.set(id.toString(), updated);
+  }
+  async delete(id: UniqueEntityId) {
+    this.items.delete(id.toString());
   }
 }
 
@@ -170,6 +176,9 @@ export class InMemoryPhotoAnalysisRepository implements PhotoAnalysisRepository 
     return [...this.items.values()].filter(
       (analysis) => analysis.projectId.toString() === projectId.toString(),
     );
+  }
+  async delete(photoId: UniqueEntityId) {
+    this.items.delete(photoId.toString());
   }
 }
 

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext";
+import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { ApiError } from "../../lib/api";
 
 export function RegisterPage() {
   const auth = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -15,12 +17,11 @@ export function RegisterPage() {
   return (
     <div className="page auth-page">
       <section className="panel auth-panel">
+        <img src="/logo-full.png" alt="AlbumFlow Studio" className="auth-panel__logo" />
         <div className="panel__head">
-          <h1>Create your account</h1>
+          <h1>{t("auth.register.title")}</h1>
         </div>
-        <p className="muted">
-          Your own studio, your own subscription, your own shoots — nobody else can see them.
-        </p>
+        <p className="muted">{t("auth.register.subtitle")}</p>
         <form
           className="auth-form"
           onSubmit={async (event) => {
@@ -31,14 +32,14 @@ export function RegisterPage() {
               await auth.register(name, email, password);
               navigate("/", { replace: true });
             } catch (err) {
-              setError(err instanceof ApiError ? err.message : "Something went wrong.");
+              setError(err instanceof ApiError ? err.message : t("auth.error.generic"));
             } finally {
               setPending(false);
             }
           }}
         >
           <div className="field">
-            <label htmlFor="register-name">Your name (or studio name)</label>
+            <label htmlFor="register-name">{t("auth.register.name")}</label>
             <input
               id="register-name"
               required
@@ -47,7 +48,7 @@ export function RegisterPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="register-email">Email</label>
+            <label htmlFor="register-email">{t("auth.register.email")}</label>
             <input
               id="register-email"
               type="email"
@@ -58,7 +59,7 @@ export function RegisterPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="register-password">Password</label>
+            <label htmlFor="register-password">{t("auth.register.password")}</label>
             <input
               id="register-password"
               type="password"
@@ -68,15 +69,18 @@ export function RegisterPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
-            <span className="muted">At least 8 characters.</span>
+            <span className="muted">{t("auth.register.passwordHint")}</span>
           </div>
           {error && <p className="error">{error}</p>}
           <button type="submit" className="button button--primary" disabled={pending}>
-            {pending ? "Creating account…" : "Create account"}
+            {pending ? t("auth.register.submitting") : t("auth.register.submit")}
           </button>
         </form>
         <p className="muted">
-          Already have an account? <Link to="/login">Log in</Link>
+          {t("auth.register.haveAccount")} <Link to="/login">{t("auth.register.login")}</Link>
+        </p>
+        <p className="muted">
+          <Link to="/changelog">{t("auth.login.seeChangelog")}</Link>
         </p>
       </section>
     </div>

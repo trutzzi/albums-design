@@ -77,11 +77,25 @@ h2 {
   background: var(--surface);
 }
 .app-header__mark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
   font-size: 1.05rem;
   color: var(--ink);
   text-decoration: none;
 }
+.app-header__logo {
+  height: 26px;
+  width: auto;
+}
+.app-header__greeting {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
 .app-header__nav {
   display: flex;
   gap: 16px;
@@ -220,6 +234,13 @@ a:focus-visible,
 }
 .auth-panel {
   width: min(380px, 100%);
+}
+.auth-panel__logo {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  margin: 0 auto 18px;
 }
 .auth-form {
   margin-top: 12px;
@@ -501,6 +522,27 @@ a:focus-visible,
   font-size: 1px;
   fill: var(--ink-faint);
 }
+.print-guides-overlay {
+  /* Same reasoning as .ruler-overlay: an early sibling in plain DOM order,
+     so it paints beneath every photo without a z-index fight. */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.trim-guide-line {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+.safe-area-guide-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
 .ruler-toggle {
   display: inline-flex;
   align-items: center;
@@ -557,6 +599,95 @@ a:focus-visible,
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+.changelog-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.changelog-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--bg);
+}
+.changelog-item h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+.changelog-item p {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.changelog-item p.changelog-item__how {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+}
+.print-profile-chip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.print-profile-chip:hover {
+  border-color: var(--accent);
+}
+.print-profile-options {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.print-profile-option {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.print-profile-option:hover {
+  border-color: var(--accent);
+}
+.print-profile-option--selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.print-profile-option--custom {
+  cursor: default;
+  gap: 8px;
+}
+.print-profile-custom-fields {
+  display: flex;
+  gap: 12px;
+}
+.print-profile-custom-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.print-profile-custom-fields input {
+  width: 80px;
+  padding: 4px 6px;
+  font-size: 0.85rem;
+}
 .slot {
   position: absolute;
   overflow: hidden;
@@ -589,6 +720,19 @@ a:focus-visible,
 }
 .add-spread {
   align-self: flex-start;
+}
+
+.tray-sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.tray-sort select {
+  font-size: 0.78rem;
+  padding: 2px 4px;
 }
 
 .tray {
@@ -856,6 +1000,43 @@ a:focus-visible,
   font-weight: 700;
   line-height: 16px;
   text-align: center;
+}
+/* Score, category and rank the system computed for this photo — revealed on
+   hover rather than shown always, since a full tray of these at once would
+   be unreadable noise. */
+.tray__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: rgba(20, 20, 24, 0.82);
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  text-align: center;
+  padding: 4px;
+}
+.tray__item:hover .tray__overlay,
+.tray__item:focus-visible .tray__overlay {
+  opacity: 1;
+}
+.tray__overlay-score {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.tray__overlay-category {
+  font-size: 0.68rem;
+  text-transform: capitalize;
+  color: rgba(255, 255, 255, 0.85);
+}
+.tray__overlay-rank {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.65);
 }
 .picked-bar {
   display: flex;

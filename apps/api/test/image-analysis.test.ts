@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it, before } from "node:test";
 import sharp from "sharp";
-import { SharpImageInspector } from "../src/modules/photo-intelligence/infrastructure/vision/sharp-image-inspector";
+import {
+  SharpImageInspector,
+  colorHistogram,
+} from "../src/modules/photo-intelligence/infrastructure/vision/sharp-image-inspector";
 import { QualityScore } from "../src/modules/photo-intelligence/domain/value-objects/quality-score";
 
 const WIDTH = 400;
@@ -76,6 +79,49 @@ describe("SharpImageInspector", () => {
       assert.ok(metrics[key] >= 0 && metrics[key] <= 100, `${key} out of range: ${metrics[key]}`);
     }
     assert.ok(metrics.skinToneRatio >= 0 && metrics.skinToneRatio <= 1);
+  });
+
+  it("returns a 24-bucket histogram whose three 8-bucket channels each sum to 1", async () => {
+    const metrics = await inspector.inspect(sharpImage);
+    assert.equal(metrics.histogram.length, 24);
+    for (const channelStart of [0, 8, 16]) {
+      const channelTotal = metrics.histogram
+        .slice(channelStart, channelStart + 8)
+        .reduce((sum, v) => sum + v, 0);
+      assert.ok(
+        Math.abs(channelTotal - 1) < 0.001,
+        `expected channel at ${channelStart} to sum to 1, got ${channelTotal}`,
+      );
+    }
+  });
+});
+
+describe("colorHistogram", () => {
+  it("puts an all-red image entirely in the top red bucket and the bottom green/blue buckets", () => {
+    const rgb = new Uint8Array(3 * 100);
+    for (let i = 0; i < rgb.length; i += 3) {
+      rgb[i] = 255;
+      rgb[i + 1] = 0;
+      rgb[i + 2] = 0;
+    }
+    const histogram = colorHistogram(rgb);
+    assert.equal(histogram[7], 1, "top red bucket should hold every pixel");
+    assert.equal(histogram[8], 1, "green is 0 for every pixel, so its bottom bucket holds them all");
+    assert.equal(histogram[16], 1, "blue is 0 for every pixel, so its bottom bucket holds them all");
+  });
+
+  it("gives identical images a distance of 0 and very different images a large distance", () => {
+    const red = new Uint8Array(300).map((_, i) => (i % 3 === 0 ? 255 : 0));
+    const blue = new Uint8Array(300).map((_, i) => (i % 3 === 2 ? 255 : 0));
+    const histogramA = colorHistogram(red);
+    const histogramB = colorHistogram(red);
+    const histogramC = colorHistogram(blue);
+
+    const distanceSame = histogramA.reduce((sum, v, i) => sum + Math.abs(v - histogramB[i]!), 0);
+    const distanceDifferent = histogramA.reduce((sum, v, i) => sum + Math.abs(v - histogramC[i]!), 0);
+
+    assert.equal(distanceSame, 0);
+    assert.ok(distanceDifferent > 1, `expected a large distance, got ${distanceDifferent}`);
   });
 });
 

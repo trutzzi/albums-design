@@ -22,6 +22,8 @@ export interface SpreadBlockProps {
   pageWidthMm: number;
   pageHeightMm: number;
   showRuler: boolean;
+  showGuides: boolean;
+  safeMarginMm: number;
   snapEnabled: boolean;
   selectedSlotId: string | null;
   locked: boolean;
@@ -67,6 +69,8 @@ export const SpreadBlock = memo(function SpreadBlock({
   pageWidthMm,
   pageHeightMm,
   showRuler,
+  showGuides,
+  safeMarginMm,
   snapEnabled,
   selectedSlotId,
   locked,
@@ -236,6 +240,8 @@ export const SpreadBlock = memo(function SpreadBlock({
         pageWidthMm={pageWidthMm}
         pageHeightMm={pageHeightMm}
         showRuler={showRuler}
+        showGuides={showGuides}
+        safeMarginMm={safeMarginMm}
         snapEnabled={snapEnabled}
         selectedSlotId={selectedSlotId}
         onSlotClick={locked ? undefined : selectSlot}

@@ -19,4 +19,5 @@ export interface ObjectStorage {
 export interface ObjectStorageWithBody extends ObjectStorage {
   getObject(key: string): Promise<Buffer>;
   putObject(params: { key: string; body: Buffer; contentType: string }): Promise<void>;
+  delete(key: string): Promise<void>;
 }

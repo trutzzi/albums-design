@@ -38,6 +38,10 @@ export class DrizzleProjectRepository implements ProjectRepository {
     const [row] = await this.db.select().from(projects).where(eq(projects.id, id.toString())).limit(1);
     return row ? toDomain(row) : undefined;
   }
+
+  async delete(id: UniqueEntityId): Promise<void> {
+    await this.db.delete(projects).where(eq(projects.id, id.toString()));
+  }
 }
 
 function toDomain(row: typeof projects.$inferSelect): Project {

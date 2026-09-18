@@ -4,15 +4,17 @@ import { Link, useNavigate } from "react-router-dom";
 import type { ProjectType } from "@albumflow/contracts";
 import { createProject, listProjects } from "../../lib/api";
 import { useAuth } from "../../app/AuthContext";
+import { useLanguage } from "../../lib/i18n/LanguageContext";
 
-const TYPES: { value: ProjectType; label: string }[] = [
-  { value: "WEDDING", label: "Wedding" },
-  { value: "BAPTISM", label: "Baptism" },
-  { value: "EVENT", label: "Event" },
+const TYPES: { value: ProjectType; labelKey: string }[] = [
+  { value: "WEDDING", labelKey: "projects.new.type.wedding" },
+  { value: "BAPTISM", labelKey: "projects.new.type.baptism" },
+  { value: "EVENT", labelKey: "projects.new.type.event" },
 ];
 
 export function ProjectsPage() {
   const { studioId } = useAuth();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [form, setForm] = useState<{ name: string; type: ProjectType; eventDate: string }>({
@@ -39,18 +41,21 @@ export function ProjectsPage() {
     },
   });
 
+  const typeLabel = (type: ProjectType) =>
+    t(TYPES.find((option) => option.value === type)?.labelKey ?? type);
+
   return (
     <div className="page">
       <header className="page__header">
         <div>
-          <h1>Shoots</h1>
-          <p className="muted">Each shoot holds its own photos and albums.</p>
+          <h1>{t("projects.title")}</h1>
+          <p className="muted">{t("projects.subtitle")}</p>
         </div>
       </header>
 
       <section className="panel">
         <div className="panel__head">
-          <h2>New shoot</h2>
+          <h2>{t("projects.new.title")}</h2>
         </div>
         <form
           className="invite-form"
@@ -60,17 +65,17 @@ export function ProjectsPage() {
           }}
         >
           <div className="field">
-            <label htmlFor="project-name">Name</label>
+            <label htmlFor="project-name">{t("projects.new.name")}</label>
             <input
               id="project-name"
               value={form.name}
               required
-              placeholder="Elena & Radu"
+              placeholder={t("projects.new.namePlaceholder")}
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
             />
           </div>
           <div className="field">
-            <label htmlFor="project-type">Type</label>
+            <label htmlFor="project-type">{t("projects.new.type")}</label>
             <select
               id="project-type"
               value={form.type}
@@ -80,13 +85,13 @@ export function ProjectsPage() {
             >
               {TYPES.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.labelKey)}
                 </option>
               ))}
             </select>
           </div>
           <div className="field">
-            <label htmlFor="project-date">Event date</label>
+            <label htmlFor="project-date">{t("projects.new.eventDate")}</label>
             <input
               id="project-date"
               type="date"
@@ -95,7 +100,7 @@ export function ProjectsPage() {
             />
           </div>
           <button type="submit" className="button button--primary" disabled={create.isPending}>
-            {create.isPending ? "Creating…" : "Create shoot"}
+            {create.isPending ? t("projects.new.submitting") : t("projects.new.submit")}
           </button>
         </form>
         {create.isError && <p className="error">{(create.error as Error).message}</p>}
@@ -103,12 +108,10 @@ export function ProjectsPage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>All shoots</h2>
+          <h2>{t("projects.all.title")}</h2>
         </div>
-        {projects.isLoading && <p className="muted">Loading…</p>}
-        {projects.data?.length === 0 && (
-          <p className="muted">No shoots yet — create one above to start uploading.</p>
-        )}
+        {projects.isLoading && <p className="muted">{t("common.loading")}</p>}
+        {projects.data?.length === 0 && <p className="muted">{t("projects.all.empty")}</p>}
         <ul className="album-list">
           {(projects.data ?? []).map((project) => (
             <li key={project.id}>
@@ -117,7 +120,7 @@ export function ProjectsPage() {
                   {project.name}
                 </Link>
                 <p className="muted">
-                  {project.type.toLowerCase()}
+                  {typeLabel(project.type)}
                   {project.eventDate &&
                     ` · ${new Date(project.eventDate).toLocaleDateString()}`}
                 </p>

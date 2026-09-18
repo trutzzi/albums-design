@@ -16,6 +16,8 @@ export interface PhotoAnalysisProps {
   faceCount: number;
   capturedAt: Date | undefined;
   analyzedAt: Date;
+  /** Coarse color histogram, used only to find photos from the same setting — see photo-similarity.ts. Undefined for analyses recorded before this field existed. */
+  histogram: number[] | undefined;
 }
 
 export class PhotoAnalysis extends AggregateRoot<PhotoAnalysisProps> {
@@ -35,6 +37,7 @@ export class PhotoAnalysis extends AggregateRoot<PhotoAnalysisProps> {
       faceCount: number;
       capturedAt?: Date | undefined;
       analyzedAt?: Date;
+      histogram?: number[] | undefined;
     },
     id?: UniqueEntityId,
   ): PhotoAnalysis {
@@ -51,6 +54,7 @@ export class PhotoAnalysis extends AggregateRoot<PhotoAnalysisProps> {
         faceCount: params.faceCount,
         capturedAt: params.capturedAt,
         analyzedAt: params.analyzedAt ?? new Date(),
+        histogram: params.histogram,
       },
       id ?? UniqueEntityId.create(),
     );
@@ -106,6 +110,10 @@ export class PhotoAnalysis extends AggregateRoot<PhotoAnalysisProps> {
 
   get analyzedAt(): Date {
     return this.props.analyzedAt;
+  }
+
+  get histogram(): number[] | undefined {
+    return this.props.histogram;
   }
 
   /** Ordering key for building a chronological narrative — falls back to analysis time. */

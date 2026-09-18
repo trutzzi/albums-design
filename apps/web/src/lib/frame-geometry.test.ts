@@ -3,8 +3,10 @@ import { describe, it } from "node:test";
 import {
   MIN_FRAME_SIZE,
   SNAP_THRESHOLD,
+  collectPrintGuideTargets,
   collectSnapTargets,
   edgeDirectionFromPoint,
+  mergeSnapTargets,
   moveFrame,
   nearestNeighborInDirection,
   resizeFrame,
@@ -201,5 +203,40 @@ describe("nearestNeighborInDirection", () => {
     assert.equal(nearestNeighborInDirection(bands, "b2", "down"), "b3");
     assert.equal(nearestNeighborInDirection(bands, "b2", "left"), undefined);
     assert.equal(nearestNeighborInDirection(bands, "b2", "right"), undefined);
+  });
+});
+
+describe("collectPrintGuideTargets", () => {
+  it("places the safe-area lines the correct fraction in from each page's own edges", () => {
+    const targets = collectPrintGuideTargets(150, 200, 5);
+    near(targets.x[0]!, 5 / 300, "left page's outer safe edge");
+    near(targets.x[1]!, 0.5 - 5 / 300, "left page's gutter-side safe edge");
+    near(targets.x[2]!, 0.5 + 5 / 300, "right page's gutter-side safe edge");
+    near(targets.x[3]!, 1 - 5 / 300, "right page's outer safe edge");
+    near(targets.y[0]!, 5 / 200, "top safe edge");
+    near(targets.y[1]!, 1 - 5 / 200, "bottom safe edge");
+  });
+
+  it("offers nothing to snap to when the profile has no safe margin", () => {
+    const targets = collectPrintGuideTargets(150, 200, 0);
+    assert.deepEqual(targets, { x: [], y: [] });
+  });
+});
+
+describe("mergeSnapTargets", () => {
+  it("combines every set's values with no duplicates", () => {
+    const merged = mergeSnapTargets({ x: [0, 0.5, 1], y: [0, 1] }, { x: [0.5, 0.9], y: [0.2] });
+    assert.deepEqual([...merged.x].sort(), [0, 0.5, 0.9, 1]);
+    assert.deepEqual([...merged.y].sort(), [0, 0.2, 1]);
+  });
+
+  it("lets a resize actually snap to a merged-in guide line", () => {
+    const targets = mergeSnapTargets(
+      collectSnapTargets([]),
+      collectPrintGuideTargets(150, 200, 5),
+    );
+    // Drag the frame's left edge to just short of the safe-area line at x = 5/300.
+    const nudged = resizeFrameSnapped(FRAME, "nw", -0.2 + 5 / 300 + 0.002, 0, targets);
+    near(nudged.x, 5 / 300, "left edge snapped to the safe-area guide");
   });
 });
