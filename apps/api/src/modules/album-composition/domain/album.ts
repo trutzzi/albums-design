@@ -220,6 +220,37 @@ export class Album extends AggregateRoot<AlbumProps> {
   }
 
   /**
+   * The cross-spread counterpart to swapPlacements: exchanges the photo at
+   * `fromSlotId` on one spread with whatever occupies `toSlotId` on another,
+   * so dragging a photo across spreads never discards the one it lands on.
+   * Framing and treatment travel with each photo; slot rectangles never move.
+   */
+  movePlacementAcrossSpreads(
+    fromSpreadIndex: number,
+    fromSlotId: string,
+    toSpreadIndex: number,
+    toSlotId: string,
+  ): void {
+    this.assertEditable();
+    if (fromSpreadIndex === toSpreadIndex && fromSlotId === toSlotId) return;
+    const fromSpread = this.spreadAt(fromSpreadIndex);
+    const toSpread = this.spreadAt(toSpreadIndex);
+    const a = fromSpread.placements.find((candidate) => candidate.slotId === fromSlotId);
+    const b = toSpread.placements.find((candidate) => candidate.slotId === toSlotId);
+    if (!a) throw new SlotNotFoundError(fromSlotId, fromSpread.templateId);
+    if (!b) throw new SlotNotFoundError(toSlotId, toSpread.templateId);
+
+    const carried = { photoId: a.photoId, crop: a.crop, treatment: a.treatment };
+    a.photoId = b.photoId;
+    a.crop = b.crop;
+    a.treatment = b.treatment;
+    b.photoId = carried.photoId;
+    b.crop = carried.crop;
+    b.treatment = carried.treatment;
+    this.touch();
+  }
+
+  /**
    * Moves the photo at `fromSlotId` to sit exactly where `toSlotId` is in the
    * spread's reading order — every placement between the two shifts over by
    * one to fill the gap, rather than the two simply trading places. Framing

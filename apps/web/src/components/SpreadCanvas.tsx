@@ -22,6 +22,7 @@ import {
 } from "../lib/frame-geometry";
 import { RulerOverlay } from "./RulerOverlay";
 import { PrintGuidesOverlay } from "./PrintGuidesOverlay";
+import { useLanguage } from "../lib/i18n/LanguageContext";
 
 export interface SpreadPlacement {
   slotId: string;
@@ -32,6 +33,9 @@ export interface SpreadPlacement {
 }
 
 export interface SpreadCanvasProps {
+  /** This spread's own position in the album — stamped onto a drag so a drop
+   * elsewhere can tell whether a photo crossed spreads. */
+  spreadIndex: number;
   template: LayoutTemplateDTO | undefined;
   placements: SpreadPlacement[];
   previewUrlFor: (photoId: string) => string | null | undefined;
@@ -68,6 +72,18 @@ export interface SpreadCanvasProps {
    */
   onMoveToNeighbor?: ((fromSlotId: string, toSlotId: string) => void) | undefined;
   /**
+   * A photo dragged in from a DIFFERENT spread and dropped onto `toSlotId` —
+   * swaps it with whatever already sits there, so nothing is lost either side.
+   */
+  onMovePlacementAcrossSpreads?:
+    | ((fromSpreadIndex: number, fromSlotId: string, toSlotId: string) => void)
+    | undefined;
+  /**
+   * A photo dragged in from a DIFFERENT spread and dropped on the margins —
+   * not onto any slot — grows this spread by one instead of swapping.
+   */
+  onMovePhotoAsNewPhoto?: ((fromSpreadIndex: number, fromSlotId: string) => void) | undefined;
+  /**
    * A tray photo dropped somewhere that isn't a specific slot — the margins,
    * the gutter — grows the spread instead of replacing anything. Lets a photo
    * be added even once the layout is already full, with no slot free to swap.
@@ -84,6 +100,7 @@ const DEFAULT_CROP: Crop = { x: 0, y: 0, width: 1, height: 1 };
  * canvas means React touches every <img> on it.
  */
 export const SpreadCanvas = memo(function SpreadCanvas({
+  spreadIndex,
   template,
   placements,
   previewUrlFor,
@@ -102,9 +119,12 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   onFrameChange,
   onReorderPlacement,
   onMoveToNeighbor,
+  onMovePlacementAcrossSpreads,
+  onMovePhotoAsNewPhoto,
   onAddPhotoDrop,
   onRemovePhoto,
 }: SpreadCanvasProps) {
+  const { t } = useLanguage();
   // Natural aspect per photo, learned on load — the crop maths needs it.
   const [aspects, setAspects] = useState<Record<string, number>>({});
   // Highlights the whole spread (as opposed to one slot) while a tray photo is
@@ -143,15 +163,25 @@ export const SpreadCanvas = memo(function SpreadCanvas({
     });
   }, [template, placements]);
 
-  if (!template) return <div className="spread spread--missing">Unknown layout</div>;
+  if (!template) return <div className="spread spread--missing">{t("spread.unknownLayout")}</div>;
+
+  // Whether the floating slot-tools bar will render below this render pass —
+  // decided here, not inside the slot loop, so the spread container can widen
+  // its own overflow to fit a toolbar sitting just past a bottom-row slot's edge.
+  const selectedPlacement = placements.find((candidate) => candidate.slotId === selectedSlotId);
+  const toolsOpen = Boolean(
+    onCropChange && selectedPlacement && previewUrlFor(selectedPlacement.photoId),
+  );
 
   return (
     <div
       ref={spreadRef}
-      className={`spread ${spreadDropActive ? "spread--drop-active" : ""}`}
+      className={`spread ${spreadDropActive ? "spread--drop-active" : ""} ${
+        toolsOpen ? "spread--tools-open" : ""
+      }`}
       style={{ aspectRatio: String(aspectRatio) }}
       onDragOver={
-        onAddPhotoDrop || onMoveToNeighbor
+        onAddPhotoDrop || onMoveToNeighbor || onMovePhotoAsNewPhoto
           ? (event) => {
               // A slot under the pointer handles its own drop and calls
               // stopPropagation there — this only ever fires for the margins,
@@ -165,14 +195,23 @@ export const SpreadCanvas = memo(function SpreadCanvas({
         if (event.target === event.currentTarget) setSpreadDropActive(false);
       }}
       onDrop={
-        onAddPhotoDrop || onMoveToNeighbor
+        onAddPhotoDrop || onMoveToNeighbor || onMovePhotoAsNewPhoto
           ? (event) => {
               event.preventDefault();
               setSpreadDropActive(false);
               // An existing slot's photo dragged toward an edge moves it that
-              // direction; a bare photo id means the tray is growing the spread.
+              // direction within the same spread; dragged in from a
+              // different spread and dropped here on the margins, it joins
+              // this spread as a new photo instead. A bare photo id means
+              // the tray is growing the spread.
               const fromSlot = event.dataTransfer.getData("text/slot-id");
-              if (fromSlot && onMoveToNeighbor) {
+              const fromSpreadRaw = event.dataTransfer.getData("text/spread-index");
+              const fromSpreadIndex = fromSpreadRaw === "" ? spreadIndex : Number(fromSpreadRaw);
+              if (fromSlot && fromSpreadIndex !== spreadIndex) {
+                onMovePhotoAsNewPhoto?.(fromSpreadIndex, fromSlot);
+                return;
+              }
+              if (fromSlot && onMoveToNeighbor && fromSpreadIndex === spreadIndex) {
                 const bounds = event.currentTarget.getBoundingClientRect();
                 const nx = (event.clientX - bounds.left) / bounds.width;
                 const ny = (event.clientY - bounds.top) / bounds.height;
@@ -277,17 +316,23 @@ export const SpreadCanvas = memo(function SpreadCanvas({
             }}
             onClick={onSlotClick ? () => onSlotClick(slot.id) : undefined}
             draggable={
-              Boolean(onReorderPlacement || onMoveToNeighbor) &&
+              Boolean(
+                onReorderPlacement ||
+                  onMoveToNeighbor ||
+                  onMovePlacementAcrossSpreads ||
+                  onMovePhotoAsNewPhoto,
+              ) &&
               !editable &&
               Boolean(placement?.photoId)
             }
             onDragStart={(event) => {
               event.dataTransfer.setData("text/slot-id", slot.id);
+              event.dataTransfer.setData("text/spread-index", String(spreadIndex));
               event.dataTransfer.effectAllowed = "move";
             }}
             onDragEnd={() => setDropTarget(null)}
             onDragOver={
-              onSlotDrop || onReorderPlacement
+              onSlotDrop || onReorderPlacement || onMovePlacementAcrossSpreads
                 ? (event) => {
                     event.preventDefault();
                     setDropTarget(slot.id);
@@ -302,12 +347,21 @@ export const SpreadCanvas = memo(function SpreadCanvas({
               // would both replace this slot's photo and add a second one.
               event.stopPropagation();
               setDropTarget(null);
-              // A slot id means a photo already on this spread is being dragged to a
-              // new position; a photo id means the tray is replacing whatever was here.
+              // A slot id means a photo already on this spread — or another one —
+              // is being dragged to a new position; a photo id means the tray is
+              // replacing whatever was here.
               const fromSlot = event.dataTransfer.getData("text/slot-id");
-              if (fromSlot && fromSlot !== slot.id) {
-                onReorderPlacement?.(fromSlot, slot.id);
-                return;
+              if (fromSlot) {
+                const fromSpreadRaw = event.dataTransfer.getData("text/spread-index");
+                const fromSpreadIndex = fromSpreadRaw === "" ? spreadIndex : Number(fromSpreadRaw);
+                if (fromSpreadIndex !== spreadIndex) {
+                  onMovePlacementAcrossSpreads?.(fromSpreadIndex, fromSlot, slot.id);
+                  return;
+                }
+                if (fromSlot !== slot.id) {
+                  onReorderPlacement?.(fromSlot, slot.id);
+                  return;
+                }
               }
               const photoId = event.dataTransfer.getData("text/photo-id");
               if (photoId) onSlotDrop?.(slot.id, photoId);
@@ -357,7 +411,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                 }
               />
             ) : (
-              <span className="slot__empty">{slot.prefers.toLowerCase()}</span>
+              <span className="slot__empty">{t(`spread.slot.${slot.prefers.toLowerCase()}`)}</span>
             )}
 
             {editable &&
@@ -440,7 +494,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                   max={MAX_ZOOM}
                   step={0.02}
                   value={imageAspect !== undefined ? zoomOf(crop, imageAspect, slotAspect) : 1}
-                  aria-label="Zoom"
+                  aria-label={t("spread.zoom")}
                   onPointerDown={(event) => event.stopPropagation()}
                   onChange={(event) => applyZoom(Number(event.target.value), false)}
                   onPointerUp={(event) =>
@@ -450,7 +504,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                 <button
                   type="button"
                   className={`slot-tools__button ${treatment === "BLACK_WHITE" ? "is-active" : ""}`}
-                  title="Black and white"
+                  title={t("spread.bwToggle.title")}
                   onClick={() =>
                     onTreatmentChange?.(
                       slot.id,
@@ -458,18 +512,18 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                     )
                   }
                 >
-                  B&amp;W
+                  {t("spread.treatment.bw")}
                 </button>
                 <button
                   type="button"
                   className="slot-tools__button"
-                  title="Reset framing"
+                  title={t("spread.resetFraming.title")}
                   onClick={() =>
                     imageAspect !== undefined &&
                     onCropChange?.(slot.id, baseCrop(imageAspect, slotAspect), true)
                   }
                 >
-                  Reset
+                  {t("spread.resetFraming")}
                 </button>
                 {onRemovePhoto && (
                   <button
@@ -477,13 +531,13 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                     className="slot-tools__button slot-tools__button--danger"
                     title={
                       placements.length > 1
-                        ? "Remove this photo from the spread"
-                        : "A spread needs at least one photo — remove the whole spread instead"
+                        ? t("spread.removePhoto.title.canRemove")
+                        : t("spread.removePhoto.title.lastPhoto")
                     }
                     disabled={placements.length <= 1}
                     onClick={() => onRemovePhoto(slot.id)}
                   >
-                    Remove
+                    {t("spread.removePhoto")}
                   </button>
                 )}
               </div>

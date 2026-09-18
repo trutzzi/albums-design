@@ -1,10 +1,12 @@
 import { BrowserRouter, Link, Route, Routes, useLocation } from "react-router-dom";
+import { LandingPage } from "../features/marketing/LandingPage";
 import { ProjectsPage } from "../features/project/ProjectsPage";
 import { ProjectPage } from "../features/project/ProjectPage";
 import { AlbumEditorPage } from "../features/album-editor/AlbumEditorPage";
 import { ReviewPage } from "../features/review/ReviewPage";
 import { StudioPage } from "../features/studio/StudioPage";
 import { ChangelogPage } from "../features/changelog/ChangelogPage";
+import { ContactPage } from "../features/marketing/ContactPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { RegisterPage } from "../features/auth/RegisterPage";
 import { AuthProvider, useAuth } from "./AuthContext";
@@ -44,9 +46,10 @@ function Shell({ children }: { children: React.ReactNode }) {
             </p>
           )}
           <nav className="app-header__nav">
-            <Link to="/">{t("nav.shoots")}</Link>
-            <Link to="/studio">{t("nav.studio")}</Link>
+            {auth.isAuthenticated && <Link to="/">{t("nav.shoots")}</Link>}
+            {auth.isAuthenticated && <Link to="/studio">{t("nav.studio")}</Link>}
             <Link to="/changelog">{t("nav.changelog")}</Link>
+            <Link to="/contact">{t("nav.contact")}</Link>
             {auth.isAuthenticated ? (
               <button type="button" className="link-button" onClick={auth.logout}>
                 {t("nav.logout")}
@@ -65,6 +68,12 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Signed in sees their shoots; a prospective user sees the pitch instead of a login wall. */
+function HomeRoute() {
+  const auth = useAuth();
+  return auth.isAuthenticated ? <ProjectsPage /> : <LandingPage />;
+}
+
 export function App() {
   return (
     <BrowserRouter>
@@ -76,15 +85,9 @@ export function App() {
               <Route path="/register" element={<RegisterPage />} />
               {/* Public: a prospective user reads this before ever signing up. */}
               <Route path="/changelog" element={<ChangelogPage />} />
+              <Route path="/contact" element={<ContactPage />} />
               <Route path="/review/:token" element={<ReviewPage />} />
-              <Route
-                path="/"
-                element={
-                  <RequireAuth>
-                    <ProjectsPage />
-                  </RequireAuth>
-                }
-              />
+              <Route path="/" element={<HomeRoute />} />
               <Route
                 path="/projects/:projectId"
                 element={

@@ -8,6 +8,7 @@ import type {
 } from "@albumflow/contracts";
 import { SpreadCanvas } from "./SpreadCanvas";
 import { LayoutPicker } from "./LayoutPicker";
+import { useLanguage } from "../lib/i18n/LanguageContext";
 
 type Spread = AlbumDTO["spreads"][number];
 
@@ -47,6 +48,22 @@ export interface SpreadBlockProps {
   onFrameChange: (spreadIndex: number, slotId: string, frame: SlotFrame, commit: boolean) => void;
   onReorderPlacement: (spreadIndex: number, fromSlotId: string, toSlotId: string) => void;
   onMoveToNeighbor: (spreadIndex: number, fromSlotId: string, toSlotId: string) => void;
+  /** A photo dragged in from a different spread, dropped onto a slot here. */
+  onMovePlacementAcrossSpreads: (
+    fromSpreadIndex: number,
+    fromSlotId: string,
+    toSpreadIndex: number,
+    toSlotId: string,
+  ) => void;
+  /**
+   * A photo dragged in from a different spread, dropped on the margins here
+   * rather than onto a slot — grows this spread by one instead of swapping.
+   */
+  onMovePhotoAsNewPhoto: (
+    fromSpreadIndex: number,
+    fromSlotId: string,
+    toSpreadIndex: number,
+  ) => void;
   onPickTemplate: (spreadIndex: number, templateId: string) => void;
   /** A tray photo dropped on the margins/gutter, not a specific slot — grows the spread. */
   onAddPhotoDrop: (spreadIndex: number, photoId: string) => void;
@@ -91,10 +108,13 @@ export const SpreadBlock = memo(function SpreadBlock({
   onFrameChange,
   onReorderPlacement,
   onMoveToNeighbor,
+  onMovePlacementAcrossSpreads,
+  onMovePhotoAsNewPhoto,
   onPickTemplate,
   onAddPhotoDrop,
   onRemovePhoto,
 }: SpreadBlockProps) {
+  const { t } = useLanguage();
   // Each handler binds this spread's index once, so SpreadCanvas sees stable props.
   const selectSlot = useCallback(
     (slotId: string) => onSelectSlot(spreadIndex, slotId),
@@ -129,6 +149,16 @@ export const SpreadBlock = memo(function SpreadBlock({
       onMoveToNeighbor(spreadIndex, fromSlotId, toSlotId),
     [onMoveToNeighbor, spreadIndex],
   );
+  const movePlacementAcrossSpreads = useCallback(
+    (fromSpreadIndex: number, fromSlotId: string, toSlotId: string) =>
+      onMovePlacementAcrossSpreads(fromSpreadIndex, fromSlotId, spreadIndex, toSlotId),
+    [onMovePlacementAcrossSpreads, spreadIndex],
+  );
+  const movePhotoAsNewPhoto = useCallback(
+    (fromSpreadIndex: number, fromSlotId: string) =>
+      onMovePhotoAsNewPhoto(fromSpreadIndex, fromSlotId, spreadIndex),
+    [onMovePhotoAsNewPhoto, spreadIndex],
+  );
   const pickTemplate = useCallback(
     (templateId: string) => onPickTemplate(spreadIndex, templateId),
     [onPickTemplate, spreadIndex],
@@ -144,19 +174,36 @@ export const SpreadBlock = memo(function SpreadBlock({
   );
 
   const mono = spreadIsMono(spread.placements);
+  // The slot-tools bar now renders just below its slot rather than over it —
+  // but `.spread-block` carries `content-visibility: auto` for scroll
+  // performance, which unconditionally applies paint containment (it clips
+  // descendants to the box exactly like `overflow: hidden`, on top of
+  // whatever `.spread` itself does) regardless of whether the block is
+  // on-screen. That silently hid the bar the moment it fell outside the
+  // block's own padding box, so containment is switched off for the one
+  // spread currently being edited.
+  const selectedPlacement = spread.placements.find(
+    (placement) => placement.slotId === selectedSlotId,
+  );
+  const toolsOpen = !locked && Boolean(selectedPlacement && previewUrlFor(selectedPlacement.photoId));
 
   return (
     <section
-      className={`spread-block ${addingPhoto ? "spread-block--adding" : ""}`}
+      className={`spread-block ${addingPhoto ? "spread-block--adding" : ""} ${
+        toolsOpen ? "spread-block--tools-open" : ""
+      }`}
       id={`spread-${spreadIndex}`}
     >
       <div className="spread-block__head">
         <h2>
-          Spread {spreadIndex + 1}
+          {t("spread.heading", { number: spreadIndex + 1 })}
           {openComments > 0 && (
             <span
               className="spread-block__comments"
-              title={`${openComments} client note${openComments === 1 ? "" : "s"} on this spread`}
+              title={t("spread.comments", {
+                count: openComments,
+                plural: openComments === 1 ? "" : "s",
+              })}
             >
               {openComments}
             </span>
@@ -169,7 +216,7 @@ export const SpreadBlock = memo(function SpreadBlock({
             disabled={locked || spreadIndex === 0}
             onClick={() => onReorder(spreadIndex, spreadIndex - 1)}
           >
-            ↑
+            {t("spread.moveUp")}
           </button>
           <button
             type="button"
@@ -177,25 +224,25 @@ export const SpreadBlock = memo(function SpreadBlock({
             disabled={locked || spreadIndex === spreadCount - 1}
             onClick={() => onReorder(spreadIndex, spreadIndex + 1)}
           >
-            ↓
+            {t("spread.moveDown")}
           </button>
           <button
             type="button"
             className="button button--small"
             disabled={locked || !spreadHasCustomFrames(spread.placements)}
-            title="Put every photo back where the template had it"
+            title={t("spread.resetLayout.title")}
             onClick={() => onResetFrames(spreadIndex)}
           >
-            Reset layout
+            {t("spread.resetLayout")}
           </button>
           <button
             type="button"
             className="button button--small"
             disabled={locked || shuffling}
-            title="Try the next layout that fits these photos"
+            title={t("spread.shuffle.title")}
             onClick={() => onShuffle(spreadIndex)}
           >
-            Shuffle design
+            {t("spread.shuffle")}
           </button>
           <button
             type="button"
@@ -203,23 +250,23 @@ export const SpreadBlock = memo(function SpreadBlock({
             disabled={locked || (addPhotoDisabled && !addingPhoto)}
             title={
               addingPhoto
-                ? "Click a photo in the tray to add it here"
+                ? t("spread.addPhoto.title.adding")
                 : addPhotoDisabled
-                  ? "This spread already holds as many photos as any layout supports"
-                  : "Pick a photo from the tray to add to this spread"
+                  ? t("spread.addPhoto.title.disabled")
+                  : t("spread.addPhoto.title.ready")
             }
             onClick={addPhoto}
           >
-            {addingPhoto ? "Click a photo…" : "+ Add photo"}
+            {addingPhoto ? t("spread.addPhoto.clickPhoto") : t("spread.addPhoto")}
           </button>
           <button
             type="button"
             className="button button--small"
             disabled={locked}
-            title="Toggle black and white for the whole spread"
+            title={t("spread.treatment.title")}
             onClick={() => onSpreadTreatment(spreadIndex, mono ? "COLOR" : "BLACK_WHITE")}
           >
-            {mono ? "Colour" : "B&W"}
+            {mono ? t("spread.treatment.color") : t("spread.treatment.bw")}
           </button>
           <button
             type="button"
@@ -227,12 +274,13 @@ export const SpreadBlock = memo(function SpreadBlock({
             disabled={locked || spreadCount === 1}
             onClick={() => onRemove(spreadIndex)}
           >
-            Remove
+            {t("spread.remove")}
           </button>
         </div>
       </div>
 
       <SpreadCanvas
+        spreadIndex={spreadIndex}
         template={template}
         placements={spread.placements}
         previewUrlFor={previewUrlFor}
@@ -251,6 +299,8 @@ export const SpreadBlock = memo(function SpreadBlock({
         onFrameChange={locked ? undefined : frameChange}
         onReorderPlacement={locked ? undefined : reorderPlacement}
         onMoveToNeighbor={locked ? undefined : moveToNeighbor}
+        onMovePlacementAcrossSpreads={locked ? undefined : movePlacementAcrossSpreads}
+        onMovePhotoAsNewPhoto={locked ? undefined : movePhotoAsNewPhoto}
         onAddPhotoDrop={locked ? undefined : addPhotoDrop}
         onRemovePhoto={locked ? undefined : removePhoto}
       />

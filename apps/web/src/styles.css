@@ -306,6 +306,18 @@ a:focus-visible,
 }
 
 /* ---- chips ---- */
+.dimension-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
 .chip {
   display: inline-flex;
   padding: 3px 10px;
@@ -441,6 +453,33 @@ a:focus-visible,
   flex-direction: column;
   gap: 22px;
 }
+.spread-slot-group {
+  display: flex;
+  flex-direction: column;
+}
+/* A small round "+" sitting in the gap right after a spread — clicking it
+   inserts a brand-new one immediately after this point, not just at the end
+   of the album. */
+.spread-insert {
+  align-self: center;
+  margin-top: 10px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px dashed var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.spread-insert:hover {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .spread-block {
   /* A long album is mostly off-screen. This lets the browser skip layout and paint
      for spreads the photographer cannot see, while `contain-intrinsic-size` keeps
@@ -458,6 +497,14 @@ a:focus-visible,
      armed-and-forgotten is exactly how a photo ends up on the wrong spread. */
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-soft);
+}
+/* `content-visibility: auto` above always applies paint containment — it
+   clips descendants to this box exactly like `overflow: hidden`, whether or
+   not the block is actually off-screen. The slot-tools bar renders just below
+   its slot now, so on the block currently being edited that containment has
+   to come off or the bar paints nowhere at all. */
+.spread-block--tools-open {
+  content-visibility: visible;
 }
 .spread-block__head {
   display: flex;
@@ -488,6 +535,13 @@ a:focus-visible,
   aspect-ratio: 2 / 1;
   color: var(--ink-faint);
   font-size: 0.85rem;
+}
+/* The slot-tools bar now sits just below its slot rather than over it, so a
+   slot near the spread's bottom edge would otherwise have that bar clipped by
+   the spread's own overflow:hidden (needed the rest of the time so photos and
+   corners never bleed past its rounded border). */
+.spread--tools-open {
+  overflow: visible;
 }
 .spread__gutter {
   position: absolute;
@@ -895,11 +949,15 @@ a:focus-visible,
   position: absolute;
   pointer-events: none;
 }
+/* Sits just below the slot's own rectangle rather than overlaid on top of
+   it — on a small slot the dark, blurred toolbar used to cover most or all
+   of the photo it was meant to be editing. */
 .slot-tools {
   position: absolute;
   left: 6px;
   right: 6px;
-  bottom: 6px;
+  top: 100%;
+  margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -910,6 +968,7 @@ a:focus-visible,
   background: rgba(20, 24, 28, 0.78);
   backdrop-filter: blur(6px);
   cursor: default;
+  z-index: 99;
   pointer-events: auto;
 }
 .slot-tools__zoom {
@@ -1302,4 +1361,148 @@ a:focus-visible,
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* ---- landing page ---- */
+.landing-hero {
+  text-align: center;
+  padding: 56px 12px 36px;
+}
+.landing-hero__kicker {
+  display: inline-block;
+  margin-bottom: 16px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.landing-hero__title {
+  margin: 0 0 16px;
+  font-size: 2.15rem;
+  line-height: 1.22;
+  font-weight: 800;
+  color: var(--ink);
+}
+.landing-hero__subtitle {
+  max-width: 620px;
+  margin: 0 auto 28px;
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.landing-hero__actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.landing-hero__actions .button {
+  padding: 11px 24px;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+.landing-section-heading {
+  text-align: center;
+  font-size: 1.35rem;
+  margin: 52px 0 8px;
+}
+.landing-section-subheading {
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+  margin: 0 0 26px;
+}
+.landing-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+.landing-feature {
+  padding: 22px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.landing-feature__icon {
+  display: block;
+  font-size: 1.7rem;
+  margin-bottom: 12px;
+}
+.landing-feature h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+.landing-feature p {
+  margin: 0;
+  font-size: 0.87rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.landing-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+}
+.landing-step {
+  text-align: center;
+  padding: 8px 14px;
+}
+.landing-step__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.landing-step h3 {
+  margin: 0 0 6px;
+  font-size: 0.96rem;
+}
+.landing-step p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.landing-cta {
+  text-align: center;
+  padding: 44px 24px;
+  margin: 56px 0 24px;
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+}
+.landing-cta h2 {
+  font-size: 1.4rem;
+  margin: 0 0 10px;
+}
+.landing-cta p {
+  margin: 0 0 22px;
+  color: var(--ink-soft);
+}
+.landing-cta .button {
+  text-decoration: none;
+  padding: 11px 24px;
+}
+
+/* ---- contact page ---- */
+.contact-panel {
+  max-width: 480px;
+}
+.contact-panel p {
+  margin: 0 0 16px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.contact-panel .button {
+  text-decoration: none;
 }

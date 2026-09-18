@@ -1,5 +1,6 @@
 import type {
   AlbumDTO,
+  AlbumFormatDTO,
   AuthSession,
   CreateProjectInput,
   ProjectDTO,
@@ -148,7 +149,7 @@ export function suggestSpreadLayouts(
 
 export function generateAlbum(
   projectId: string,
-  input: { title?: string; targetSpreads?: number } = {},
+  input: { title?: string; targetSpreads?: number; format?: AlbumFormatDTO } = {},
 ): Promise<AlbumDTO> {
   return request(`/projects/${projectId}/albums`, {
     method: "POST",

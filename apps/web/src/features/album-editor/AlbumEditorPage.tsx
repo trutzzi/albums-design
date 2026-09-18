@@ -29,6 +29,7 @@ import {
   suggestSpreadLayouts,
 } from "../../lib/api";
 import { SpreadBlock } from "../../components/SpreadBlock";
+import { LayoutPicker } from "../../components/LayoutPicker";
 import { PhotoTray } from "../../components/PhotoTray";
 import { ClientFeedback, openCommentsBySpread } from "../../components/ClientFeedback";
 import type { FeedbackComment } from "../../lib/api";
@@ -56,6 +57,11 @@ export function AlbumEditorPage() {
   // instead of replacing a slot or building a new one. Mutually exclusive with
   // `selected` — engaging one clears the other, so a click is never ambiguous.
   const [addingToSpread, setAddingToSpread] = useState<number | null>(null);
+  // Set to the position a new spread should land at when the "+" between two
+  // spreads (or "+ Add spread" at the end) is clicked — non-null shows the
+  // layout-choice modal, since a brand-new spread has no photos yet to narrow
+  // the choice down to a single fitting size.
+  const [insertAt, setInsertAt] = useState<number | null>(null);
   const [showRuler, setShowRuler] = useState(false);
   const [showGuides, setShowGuides] = useState(false);
   const [guidesModalOpen, setGuidesModalOpen] = useState(false);
@@ -388,6 +394,72 @@ export function AlbumEditorPage() {
     },
   });
 
+  // Dragging a photo across spreads and dropping it on the margins — not onto
+  // another slot — moves it outright rather than trading it for whatever's
+  // there: the source spread shrinks by one and re-suggests its layout, the
+  // destination grows by one and does the same, exactly like
+  // removePhotoFromSpread + addPhotoToSpread run back to back.
+  const movePhotoAcrossSpreadsAsNewPhoto = useMutation({
+    mutationFn: async ({
+      fromSpreadIndex,
+      fromSlotId,
+      toSpreadIndex,
+    }: {
+      fromSpreadIndex: number;
+      fromSlotId: string;
+      toSpreadIndex: number;
+    }) => {
+      const fromSpread = current?.spreads[fromSpreadIndex];
+      const toSpread = current?.spreads[toSpreadIndex];
+      if (!fromSpread || !toSpread) throw new Error("That spread is gone.");
+      const moving = fromSpread.placements.find((placement) => placement.slotId === fromSlotId);
+      if (!moving?.photoId) throw new Error("There's no photo there to move.");
+
+      const remaining = fromSpread.placements
+        .filter((placement) => placement.slotId !== fromSlotId)
+        .map((placement) => placement.photoId)
+        .filter(Boolean);
+      if (remaining.length === 0) {
+        throw new Error("A spread needs at least one photo — remove the whole spread instead.");
+      }
+      const grown = [
+        ...toSpread.placements.map((placement) => placement.photoId).filter(Boolean),
+        moving.photoId,
+      ];
+      if (grown.length > MAX_PHOTOS_PER_SPREAD) {
+        throw new Error(`A spread holds at most ${MAX_PHOTOS_PER_SPREAD} photos.`);
+      }
+
+      const [shrunkRanked, grownRanked] = await Promise.all([
+        suggestionsFor(remaining),
+        suggestionsFor(grown),
+      ]);
+      const shrunkBest = shrunkRanked[0];
+      const grownBest = grownRanked[0];
+      if (!shrunkBest) throw new Error(`No layout holds ${remaining.length} photos.`);
+      if (!grownBest) throw new Error(`No layout holds ${grown.length} photos.`);
+
+      // Sequential, not parallel: both edits land on the same album, and the
+      // second must build on the first's persisted state, not race it.
+      await editAlbum(albumId, {
+        type: "CHANGE_TEMPLATE",
+        spreadIndex: fromSpreadIndex,
+        templateId: shrunkBest.templateId,
+        photoIds: shrunkBest.photoIds,
+      });
+      return editAlbum(albumId, {
+        type: "CHANGE_TEMPLATE",
+        spreadIndex: toSpreadIndex,
+        templateId: grownBest.templateId,
+        photoIds: grownBest.photoIds,
+      });
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["album", albumId], updated);
+      applyUpdate(updated);
+    },
+  });
+
   const resolveFeedback = useMutation({
     mutationFn: (commentId: string) => resolveComment(albumId, commentId),
     onSuccess: (updated) => queryClient.setQueryData(["feedback", albumId], updated),
@@ -531,10 +603,29 @@ export function AlbumEditorPage() {
       runEdit({ type: "SWAP_PLACEMENTS", spreadIndex, slotIdA, slotIdB }),
     [runEdit],
   );
+  const movePlacementAcrossSpreads = useCallback(
+    (fromSpreadIndex: number, fromSlotId: string, toSpreadIndex: number, toSlotId: string) =>
+      runEdit({
+        type: "MOVE_PLACEMENT_ACROSS_SPREADS",
+        fromSpreadIndex,
+        fromSlotId,
+        toSpreadIndex,
+        toSlotId,
+      }),
+    [runEdit],
+  );
   const pickTemplate = useCallback(
     (spreadIndex: number, templateId: string) =>
       runEdit({ type: "CHANGE_TEMPLATE", spreadIndex, templateId }),
     [runEdit],
+  );
+  const insertSpread = useCallback(
+    (templateId: string) => {
+      if (insertAt === null) return;
+      runEdit({ type: "ADD_SPREAD", atIndex: insertAt, templateId, photoIds: [] });
+      setInsertAt(null);
+    },
+    [insertAt, runEdit],
   );
 
   const jumpToComment = useCallback((comment: FeedbackComment) => {
@@ -575,6 +666,16 @@ export function AlbumEditorPage() {
   removePhotoRef.current = removePhotoFromSpread.mutate;
   const removePhoto = useCallback(
     (spreadIndex: number, slotId: string) => removePhotoRef.current({ spreadIndex, slotId }),
+    [],
+  );
+
+  const moveAsNewPhotoRef = useRef(movePhotoAcrossSpreadsAsNewPhoto.mutate);
+  moveAsNewPhotoRef.current = movePhotoAcrossSpreadsAsNewPhoto.mutate;
+  // A photo dragged in from another spread and dropped on the margins, not
+  // onto a slot — grows this spread instead of swapping with anything.
+  const movePhotoAsNewPhotoDrop = useCallback(
+    (fromSpreadIndex: number, fromSlotId: string, toSpreadIndex: number) =>
+      moveAsNewPhotoRef.current({ fromSpreadIndex, fromSlotId, toSpreadIndex }),
     [],
   );
 
@@ -625,6 +726,12 @@ export function AlbumEditorPage() {
           <Link to={projectId ? `/projects/${projectId}` : "/"} className="muted back-link">
             {t("album.back")}
           </Link>
+          <span className="dimension-badge">
+            {t("dimension.chip", {
+              width: current.format.pageWidthMm / 10,
+              height: current.format.pageHeightMm / 10,
+            })}
+          </span>
           <h1>{current.title}</h1>
           <p className="muted">
             {t("album.stats", {
@@ -741,65 +848,73 @@ export function AlbumEditorPage() {
       <div className="editor__layout">
         <main className="spreads">
           {current.spreads.map((spread, spreadIndex) => (
-            <SpreadBlock
-              // Keyed by position alone. Including the template id would change the
-              // key whenever the layout changed, remounting the section and forcing
-              // the browser to re-decode every photo on it.
-              key={spreadIndex}
-              spread={spread}
-              spreadIndex={spreadIndex}
-              spreadCount={current.spreads.length}
-              template={templateById.get(spread.templateId)}
-              templates={templateList}
-              previewUrlFor={previewUrlFor}
-              aspectRatio={aspectRatio}
-              pageWidthMm={current.format.pageWidthMm}
-              pageHeightMm={current.format.pageHeightMm}
-              showRuler={showRuler}
-              showGuides={showGuides}
-              safeMarginMm={showGuides ? (selectedPrintProfile?.safeMarginMm ?? 0) : 0}
-              snapEnabled={snapEnabled}
-              selectedSlotId={
-                selected?.spreadIndex === spreadIndex ? selected.slotId : null
-              }
-              locked={locked}
-              shuffling={shuffle.isPending}
-              addingPhoto={addingToSpread === spreadIndex}
-              addPhotoDisabled={spread.placements.length >= MAX_PHOTOS_PER_SPREAD}
-              openComments={commentsBySpread.get(spreadIndex) ?? 0}
-              onSelectSlot={selectSlot}
-              onReorder={reorderSpread}
-              onResetFrames={resetFrames}
-              onShuffle={runShuffle}
-              onAddPhoto={armAddToSpread}
-              onSpreadTreatment={setSpreadTreatment}
-              onRemove={removeSpread}
-              onSlotDrop={dropPhotoInSlot}
-              onCropChange={handleCropChange}
-              onTreatmentChange={setSlotTreatment}
-              onFrameChange={handleFrameChange}
-              onReorderPlacement={reorderPlacement}
-              onMoveToNeighbor={moveToNeighbor}
-              onPickTemplate={pickTemplate}
-              onAddPhotoDrop={addPhotoDrop}
-              onRemovePhoto={removePhoto}
-            />
+            <div key={spreadIndex} className="spread-slot-group">
+              <SpreadBlock
+                // Keyed by position alone. Including the template id would change the
+                // key whenever the layout changed, remounting the section and forcing
+                // the browser to re-decode every photo on it.
+                spread={spread}
+                spreadIndex={spreadIndex}
+                spreadCount={current.spreads.length}
+                template={templateById.get(spread.templateId)}
+                templates={templateList}
+                previewUrlFor={previewUrlFor}
+                aspectRatio={aspectRatio}
+                pageWidthMm={current.format.pageWidthMm}
+                pageHeightMm={current.format.pageHeightMm}
+                showRuler={showRuler}
+                showGuides={showGuides}
+                safeMarginMm={showGuides ? (selectedPrintProfile?.safeMarginMm ?? 0) : 0}
+                snapEnabled={snapEnabled}
+                selectedSlotId={
+                  selected?.spreadIndex === spreadIndex ? selected.slotId : null
+                }
+                locked={locked}
+                shuffling={shuffle.isPending}
+                addingPhoto={addingToSpread === spreadIndex}
+                addPhotoDisabled={spread.placements.length >= MAX_PHOTOS_PER_SPREAD}
+                openComments={commentsBySpread.get(spreadIndex) ?? 0}
+                onSelectSlot={selectSlot}
+                onReorder={reorderSpread}
+                onResetFrames={resetFrames}
+                onShuffle={runShuffle}
+                onAddPhoto={armAddToSpread}
+                onSpreadTreatment={setSpreadTreatment}
+                onRemove={removeSpread}
+                onSlotDrop={dropPhotoInSlot}
+                onCropChange={handleCropChange}
+                onTreatmentChange={setSlotTreatment}
+                onFrameChange={handleFrameChange}
+                onReorderPlacement={reorderPlacement}
+                onMoveToNeighbor={moveToNeighbor}
+                onMovePlacementAcrossSpreads={movePlacementAcrossSpreads}
+                onMovePhotoAsNewPhoto={movePhotoAsNewPhotoDrop}
+                onPickTemplate={pickTemplate}
+                onAddPhotoDrop={addPhotoDrop}
+                onRemovePhoto={removePhoto}
+              />
+
+              {!locked && (
+                <button
+                  type="button"
+                  className="spread-insert"
+                  title={t("spread.insert.title")}
+                  aria-label={t("spread.insert.title")}
+                  onClick={() => setInsertAt(spreadIndex + 1)}
+                >
+                  +
+                </button>
+              )}
+            </div>
           ))}
 
           {!locked && (
             <button
               type="button"
               className="button add-spread"
-              onClick={() =>
-                edit.mutate({
-                  type: "ADD_SPREAD",
-                  atIndex: current.spreads.length,
-                  templateId: "single-centred",
-                  photoIds: [],
-                })
-              }
+              onClick={() => setInsertAt(current.spreads.length)}
             >
-              + Add spread
+              {t("album.addSpread")}
             </button>
           )}
         </main>
@@ -863,6 +978,9 @@ export function AlbumEditorPage() {
             {removePhotoFromSpread.isError && (
               <p className="error">{(removePhotoFromSpread.error as Error).message}</p>
             )}
+            {movePhotoAcrossSpreadsAsNewPhoto.isError && (
+              <p className="error">{(movePhotoAcrossSpreadsAsNewPhoto.error as Error).message}</p>
+            )}
 
             <PhotoTray
               photos={trayPhotos}
@@ -877,13 +995,13 @@ export function AlbumEditorPage() {
           </section>
 
           <section className="panel">
-            <h2>Client review</h2>
+            <h2>{t("album.review.title")}</h2>
             <div className="field">
-              <label htmlFor="client-name">Client name</label>
+              <label htmlFor="client-name">{t("album.review.clientName")}</label>
               <input
                 id="client-name"
                 value={clientName}
-                placeholder="Client name"
+                placeholder={t("album.review.clientName")}
                 onChange={(event) => setClientName(event.target.value)}
               />
             </div>
@@ -893,7 +1011,7 @@ export function AlbumEditorPage() {
               disabled={share.isPending}
               onClick={() => share.mutate()}
             >
-              {share.isPending ? "Creating…" : "Create share link"}
+              {share.isPending ? t("album.review.creating") : t("album.review.createLink")}
             </button>
             {shareLink && (
               <p className="share-link">
@@ -902,15 +1020,16 @@ export function AlbumEditorPage() {
             )}
             {(reviews.data ?? []).map((session) => (
               <p key={session.id} className="muted">
-                {session.clientName} — {session.status}
-                {session.openComments > 0 && ` · ${session.openComments} open comments`}
+                {t("album.review.session", { name: session.clientName, status: session.status })}
+                {session.openComments > 0 &&
+                  t("album.review.openComments", { count: session.openComments })}
               </p>
             ))}
           </section>
 
           <section className="panel">
             <h2>
-              Client feedback
+              {t("album.feedback.title")}
               {(feedback.data?.openCount ?? 0) > 0 && (
                 <span className="panel__badge">{feedback.data?.openCount}</span>
               )}
@@ -929,14 +1048,14 @@ export function AlbumEditorPage() {
           </section>
 
           <section className="panel">
-            <h2>Export</h2>
+            <h2>{t("album.export.title")}</h2>
             <button
               type="button"
               className="button"
               disabled={startExport.isPending}
               onClick={() => startExport.mutate()}
             >
-              {startExport.isPending ? "Queueing…" : "Export print-ready PDF"}
+              {startExport.isPending ? t("album.export.queueing") : t("album.export.button")}
             </button>
             {startExport.isError && (
               <p className="error">{(startExport.error as Error).message}</p>
@@ -959,7 +1078,9 @@ export function AlbumEditorPage() {
                         window.open(url, "_blank", "noopener");
                       }}
                     >
-                      Download ({Math.round((job.byteSize ?? 0) / 1024)} KB)
+                      {t("album.export.download", {
+                        size: Math.round((job.byteSize ?? 0) / 1024),
+                      })}
                     </button>
                   ) : (
                     <span className="muted">{job.failureReason ?? `${job.printProfileId}`}</span>
@@ -969,19 +1090,19 @@ export function AlbumEditorPage() {
                     className="button button--small button--danger"
                     title={
                       inProgress
-                        ? "This export is still in progress"
-                        : "Delete this export"
+                        ? t("album.export.inProgress.title")
+                        : t("album.export.delete.title")
                     }
                     disabled={inProgress || removeExport.isPending}
                     onClick={() => {
-                      if (window.confirm("Delete this export? This cannot be undone.")) {
+                      if (window.confirm(t("album.export.delete.confirm"))) {
                         removeExport.mutate(job.id);
                       }
                     }}
                   >
                     {removeExport.isPending && removeExport.variables === job.id
-                      ? "Deleting…"
-                      : "Delete"}
+                      ? t("album.export.deleting")
+                      : t("album.export.delete")}
                   </button>
                 </li>
                 );
@@ -1023,6 +1144,32 @@ export function AlbumEditorPage() {
                 onClick={() => removeAlbum.mutate()}
               >
                 {removeAlbum.isPending ? t("album.deleteAlbum.deleting") : t("album.deleteAlbum")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {insertAt !== null && (
+        <div className="modal-overlay" role="presentation" onClick={() => setInsertAt(null)}>
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="insert-spread-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="insert-spread-title">{t("spread.insert.modal.title")}</h2>
+            <p>{t("spread.insert.modal.body")}</p>
+            <LayoutPicker
+              templates={templateList}
+              photoCount={null}
+              currentTemplateId=""
+              onPick={insertSpread}
+            />
+            <div className="modal__actions">
+              <button type="button" className="button" onClick={() => setInsertAt(null)}>
+                {t("common.cancel")}
               </button>
             </div>
           </div>

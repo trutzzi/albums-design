@@ -128,6 +128,13 @@ export const albumEditSchema = z.discriminatedUnion("type", [
     toSlotId: z.string(),
   }),
   z.object({
+    type: z.literal("MOVE_PLACEMENT_ACROSS_SPREADS"),
+    fromSpreadIndex: z.number().int().min(0),
+    fromSlotId: z.string(),
+    toSpreadIndex: z.number().int().min(0),
+    toSlotId: z.string(),
+  }),
+  z.object({
     type: z.literal("SET_FRAME"),
     spreadIndex: z.number().int().min(0),
     slotId: z.string(),

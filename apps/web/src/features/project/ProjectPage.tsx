@@ -16,6 +16,13 @@ import {
 import { useAuth } from "../../app/AuthContext";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { LanguagePrompt } from "../../components/LanguagePrompt";
+import {
+  ALBUM_DIMENSIONS,
+  DEFAULT_ALBUM_DIMENSION_ID,
+  DEFAULT_BLEED_MM,
+} from "../../lib/album-dimensions";
+
+const CUSTOM_DIMENSION_ID = "custom";
 
 type SupportedMimeType = (typeof SUPPORTED_MIME_TYPES)[number];
 const ACCEPTED = new Set<string>(["image/jpeg", "image/png", "image/tiff", "image/webp"]);
@@ -42,6 +49,10 @@ export function ProjectPage() {
   // Asked once, the first time anyone generates an album, if the studio has
   // never explicitly picked a language — see LanguagePrompt.
   const [askingLanguage, setAskingLanguage] = useState(false);
+  const [dimensionId, setDimensionId] = useState(DEFAULT_ALBUM_DIMENSION_ID);
+  const [customWidthCm, setCustomWidthCm] = useState(25);
+  const [customHeightCm, setCustomHeightCm] = useState(25);
+  const [dimensionModalOpen, setDimensionModalOpen] = useState(false);
 
   const project = useQuery({
     queryKey: ["project", projectId],
@@ -66,8 +77,21 @@ export function ProjectPage() {
     queryFn: () => listProjectAlbums(projectId),
   });
 
+  const selectedDimension =
+    dimensionId === CUSTOM_DIMENSION_ID
+      ? { widthCm: customWidthCm, heightCm: customHeightCm }
+      : (ALBUM_DIMENSIONS.find((option) => option.id === dimensionId) ?? ALBUM_DIMENSIONS[0]!);
+
   const generate = useMutation({
-    mutationFn: () => generateAlbum(projectId, { targetSpreads }),
+    mutationFn: () =>
+      generateAlbum(projectId, {
+        targetSpreads,
+        format: {
+          pageWidthMm: selectedDimension.widthCm * 10,
+          pageHeightMm: selectedDimension.heightCm * 10,
+          bleedMm: DEFAULT_BLEED_MM,
+        },
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["albums", projectId] }),
   });
 
@@ -223,6 +247,17 @@ export function ProjectPage() {
               value={targetSpreads}
               onChange={(event) => setTargetSpreads(Number(event.target.value))}
             />
+            <span className="muted">{t("project.generate.dimension")}</span>
+            <button
+              type="button"
+              className="print-profile-chip"
+              onClick={() => setDimensionModalOpen(true)}
+            >
+              {t("dimension.chip", {
+                width: selectedDimension.widthCm,
+                height: selectedDimension.heightCm,
+              })}
+            </button>
             <button
               type="button"
               className="button button--primary"
@@ -340,6 +375,96 @@ export function ProjectPage() {
             generate.mutate();
           }}
         />
+      )}
+
+      {dimensionModalOpen && (
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={() => setDimensionModalOpen(false)}
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dimension-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="dimension-modal-title">{t("dimension.modal.title")}</h2>
+            <p>{t("dimension.modal.body")}</p>
+            <ul className="print-profile-options">
+              {ALBUM_DIMENSIONS.map((option) => (
+                <li key={option.id}>
+                  <button
+                    type="button"
+                    className={`print-profile-option ${
+                      dimensionId === option.id ? "print-profile-option--selected" : ""
+                    }`}
+                    onClick={() => {
+                      setDimensionId(option.id);
+                      setDimensionModalOpen(false);
+                    }}
+                  >
+                    <strong>
+                      {t("dimension.chip", { width: option.widthCm, height: option.heightCm })}
+                    </strong>
+                    <span className="muted">{t(`dimension.shape.${option.shape}`)}</span>
+                  </button>
+                </li>
+              ))}
+              <li>
+                <div
+                  className={`print-profile-option print-profile-option--custom ${
+                    dimensionId === CUSTOM_DIMENSION_ID ? "print-profile-option--selected" : ""
+                  }`}
+                >
+                  <strong>{t("dimension.custom")}</strong>
+                  <div className="print-profile-custom-fields">
+                    <label>
+                      {t("dimension.custom.width")}
+                      <input
+                        type="number"
+                        min={1}
+                        step={0.5}
+                        value={customWidthCm}
+                        onChange={(event) => setCustomWidthCm(Math.max(1, Number(event.target.value)))}
+                      />
+                    </label>
+                    <label>
+                      {t("dimension.custom.height")}
+                      <input
+                        type="number"
+                        min={1}
+                        step={0.5}
+                        value={customHeightCm}
+                        onChange={(event) => setCustomHeightCm(Math.max(1, Number(event.target.value)))}
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    className="button button--small"
+                    onClick={() => {
+                      setDimensionId(CUSTOM_DIMENSION_ID);
+                      setDimensionModalOpen(false);
+                    }}
+                  >
+                    {t("dimension.useCustom")}
+                  </button>
+                </div>
+              </li>
+            </ul>
+            <div className="modal__actions">
+              <button
+                type="button"
+                className="button"
+                onClick={() => setDimensionModalOpen(false)}
+              >
+                {t("common.cancel")}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

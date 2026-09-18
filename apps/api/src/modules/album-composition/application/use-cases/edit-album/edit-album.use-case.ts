@@ -23,6 +23,13 @@ export type AlbumEditCommand =
   | { type: "SET_CROP"; spreadIndex: number; slotId: string; crop: Crop }
   | { type: "SWAP_PLACEMENTS"; spreadIndex: number; slotIdA: string; slotIdB: string }
   | { type: "REORDER_PLACEMENT"; spreadIndex: number; fromSlotId: string; toSlotId: string }
+  | {
+      type: "MOVE_PLACEMENT_ACROSS_SPREADS";
+      fromSpreadIndex: number;
+      fromSlotId: string;
+      toSpreadIndex: number;
+      toSlotId: string;
+    }
   | { type: "SET_FRAME"; spreadIndex: number; slotId: string; frame: SlotFrame }
   | { type: "RESET_FRAMES"; spreadIndex: number }
   | { type: "RESTORE_SPREADS"; spreads: SpreadDTO[] }
@@ -80,6 +87,14 @@ function apply(album: Album, command: AlbumEditCommand): void {
       return;
     case "REORDER_PLACEMENT":
       album.reorderPlacement(command.spreadIndex, command.fromSlotId, command.toSlotId);
+      return;
+    case "MOVE_PLACEMENT_ACROSS_SPREADS":
+      album.movePlacementAcrossSpreads(
+        command.fromSpreadIndex,
+        command.fromSlotId,
+        command.toSpreadIndex,
+        command.toSlotId,
+      );
       return;
     case "SET_FRAME":
       album.setFrame(command.spreadIndex, command.slotId, command.frame);

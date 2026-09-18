@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import { Album, MIN_FRAME_SIZE, SlotNotFoundError } from "../src/modules/album-composition/domain/album";
+import {
+  Album,
+  MIN_FRAME_SIZE,
+  SlotNotFoundError,
+  SpreadNotFoundError,
+} from "../src/modules/album-composition/domain/album";
 import { findTemplate } from "../src/modules/album-composition/domain/layout-template";
 import { AlbumCompositionExportGateway } from "../src/modules/export-print/infrastructure/gateways/album-gateway";
 import { InMemoryAlbumRepository } from "./support/in-memory";
@@ -67,6 +72,81 @@ describe("swapping two photos on a spread", () => {
     album.swapPlacements(0, "left", "left");
     assert.equal(album.spreads[0]?.placements[0]?.photoId, "photo-a");
     assert.throws(() => album.swapPlacements(0, "left", "nope"), SlotNotFoundError);
+  });
+});
+
+function albumWithTwoSpreads(): Album {
+  return Album.create({
+    projectId: UniqueEntityId.create(),
+    title: "Two spreads",
+    spreads: [
+      {
+        templateId: "portrait-pair",
+        placements: [
+          { slotId: "left", photoId: "photo-a", crop: FULL, treatment: "COLOR" },
+          {
+            slotId: "right",
+            photoId: "photo-b",
+            crop: { x: 0.1, y: 0.1, width: 0.5, height: 0.5 },
+            treatment: "BLACK_WHITE",
+          },
+        ],
+      },
+      {
+        templateId: "portrait-pair",
+        placements: [
+          { slotId: "left", photoId: "photo-c", crop: FULL, treatment: "COLOR" },
+          { slotId: "right", photoId: "photo-d", crop: FULL, treatment: "COLOR" },
+        ],
+      },
+    ],
+  });
+}
+
+describe("moving a photo across two different spreads", () => {
+  it("swaps the two photos, each carrying its own framing and treatment", () => {
+    const album = albumWithTwoSpreads();
+    album.movePlacementAcrossSpreads(0, "right", 1, "left");
+    assert.equal(album.spreads[0]?.placements[1]?.photoId, "photo-c");
+    assert.equal(album.spreads[1]?.placements[0]?.photoId, "photo-b");
+    assert.equal(album.spreads[1]?.placements[0]?.treatment, "BLACK_WHITE");
+    assert.deepEqual(album.spreads[1]?.placements[0]?.crop, {
+      x: 0.1,
+      y: 0.1,
+      width: 0.5,
+      height: 0.5,
+    });
+  });
+
+  it("leaves slot rectangles alone on both spreads", () => {
+    const album = albumWithTwoSpreads();
+    album.setFrame(0, "right", { x: 0.05, y: 0.05, width: 0.4, height: 0.4 });
+    album.movePlacementAcrossSpreads(0, "right", 1, "left");
+    assert.deepEqual(album.spreads[0]?.placements[1]?.frame, {
+      x: 0.05,
+      y: 0.05,
+      width: 0.4,
+      height: 0.4,
+    });
+    assert.equal(album.spreads[1]?.placements[0]?.frame, undefined);
+  });
+
+  it("rejects an unknown spread or slot", () => {
+    const album = albumWithTwoSpreads();
+    assert.throws(
+      () => album.movePlacementAcrossSpreads(0, "left", 5, "left"),
+      SpreadNotFoundError,
+    );
+    assert.throws(
+      () => album.movePlacementAcrossSpreads(0, "nope", 1, "left"),
+      SlotNotFoundError,
+    );
+  });
+
+  it("is a no-op when source and destination are identical", () => {
+    const album = albumWithTwoSpreads();
+    album.movePlacementAcrossSpreads(0, "left", 0, "left");
+    assert.equal(album.spreads[0]?.placements[0]?.photoId, "photo-a");
   });
 });
 

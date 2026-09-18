@@ -34,6 +34,12 @@ export const CHANGELOG_RELEASES: ChangelogRelease[] = [
       { titleKey: "changelog.item.greeting", descriptionKey: "changelog.item.greeting.desc", howToKey: "changelog.item.greeting.how" },
       { titleKey: "changelog.item.branding", descriptionKey: "changelog.item.branding.desc", howToKey: "changelog.item.branding.how" },
       { titleKey: "changelog.item.language", descriptionKey: "changelog.item.language.desc", howToKey: "changelog.item.language.how" },
+      { titleKey: "changelog.item.printSize", descriptionKey: "changelog.item.printSize.desc", howToKey: "changelog.item.printSize.how" },
+      { titleKey: "changelog.item.dragBetweenSpreads", descriptionKey: "changelog.item.dragBetweenSpreads.desc", howToKey: "changelog.item.dragBetweenSpreads.how" },
+      { titleKey: "changelog.item.insertSpread", descriptionKey: "changelog.item.insertSpread.desc", howToKey: "changelog.item.insertSpread.how" },
+      { titleKey: "changelog.item.toolbarBelow", descriptionKey: "changelog.item.toolbarBelow.desc", howToKey: "changelog.item.toolbarBelow.how" },
+      { titleKey: "changelog.item.moveAsNewPhoto", descriptionKey: "changelog.item.moveAsNewPhoto.desc", howToKey: "changelog.item.moveAsNewPhoto.how" },
+      { titleKey: "changelog.item.landingPage", descriptionKey: "changelog.item.landingPage.desc", howToKey: "changelog.item.landingPage.how" },
     ],
   },
   {

@@ -80,6 +80,7 @@ export function ReviewPage() {
               </div>
 
               <SpreadCanvas
+                spreadIndex={spreadIndex}
                 template={templateById.get(spread.templateId)}
                 placements={spread.placements}
                 previewUrlFor={(photoId) =>
