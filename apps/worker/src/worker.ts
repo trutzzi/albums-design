@@ -7,6 +7,7 @@ interface AnalyzePhotoJob {
   photoId: string;
   projectId: string;
   storageKey: string;
+  useAi?: boolean;
 }
 
 interface RenderAlbumJob {

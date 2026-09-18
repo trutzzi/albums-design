@@ -110,6 +110,7 @@ function buildWorld() {
       storage,
       new SharpImageInspector(),
       new HeuristicVisionClassifier(),
+      new HeuristicVisionClassifier(),
       new MediaIngestionPhotoLifecycle(photos),
     ),
     generateAlbum: new GenerateAlbumUseCase(

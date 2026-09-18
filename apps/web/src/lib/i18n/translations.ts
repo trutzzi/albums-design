@@ -94,6 +94,16 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "project.dropzone.subtitle": "JPEG, PNG, TIFF or WebP — up to 75MB each",
     "project.uploading": "Uploading {count} file{plural}…",
     "project.generate.title": "Generate an album",
+    "ai.status.online": "AI: online",
+    "ai.status.online.title": "The local AI photo classifier is reachable — uploads get real AI-scored categories.",
+    "ai.status.offline": "AI: offline",
+    "ai.status.offline.title": "The local AI photo classifier can't be reached right now — uploads still work, using basic (non-AI) analysis instead.",
+    "project.upload.useAi": "Use AI photo analysis",
+    "project.upload.useAi.unavailable": "The local AI server isn't reachable right now, so this is turned off.",
+    "ai.consent.title": "Local AI processing",
+    "ai.consent.body":
+      "This uses local AI processing, running on our own hardware — your photos are analysed locally and no data is sent anywhere or kept afterwards. It's much slower than the default analysis. In the future we may offer faster external AI services as a paid upgrade.",
+    "ai.consent.agree": "I agree, turn it on",
     "project.generate.targetSpreads": "Target spreads",
     "project.generate.submit": "Generate draft",
     "project.generate.submitting": "Generating…",
@@ -219,6 +229,15 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "changelog.item.landingPage.desc":
       "Visitors now see a page describing what AlbumFlow does and why, before they're asked to sign up — instead of being sent straight to a login screen.",
     "changelog.item.landingPage.how": "Just visit the site while logged out.",
+    "changelog.item.contactPage": "A place to reach us",
+    "changelog.item.contactPage.desc":
+      "A short contact page with an email address for questions, feedback, or feature requests.",
+    "changelog.item.contactPage.how": "Click \"Contact\" in the header, from anywhere in the app.",
+    "changelog.item.aiAnalysis": "AI-powered photo analysis (opt-in)",
+    "changelog.item.aiAnalysis.desc":
+      "Turn on AI analysis to categorise your photos with far more accuracy — recognising portraits, couples, groups, ceremonies, and more. It's entirely optional, clearly labelled when it's actually available, and your photos are never sent to a third party or kept afterwards.",
+    "changelog.item.aiAnalysis.how":
+      "Toggle \"Use AI photo analysis\" above the upload area and agree to the short disclaimer, then upload as usual. The \"AI: online/offline\" badge next to it always shows whether it's available right now.",
     "changelog.item.launch": "AlbumFlow launches",
     "changelog.item.launch.desc":
       "Upload a shoot, let AlbumFlow score and categorise every photo, generate a draft album automatically, fine-tune the layout, collect client feedback, and export a print-ready PDF.",
@@ -237,6 +256,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "landing.feature.scoring.title": "Smart photo scoring",
     "landing.feature.scoring.desc":
       "Every photo is scored for sharpness, exposure, and composition, so the best shots rise to the top on their own.",
+    "landing.feature.aiOptIn.title": "AI photo tagging, on your terms",
+    "landing.feature.aiOptIn.desc":
+      "Turn on AI-assisted categorisation whenever you want extra accuracy. It's always optional, clearly labelled when it's available, and your photos are never sent to a third party or kept afterwards.",
     "landing.feature.layouts.title": "Instant layouts",
     "landing.feature.layouts.desc":
       "Pick a set of photos and AlbumFlow suggests spreads that genuinely fit them — no blank templates to wrestle with.",
@@ -513,6 +535,16 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "project.dropzone.subtitle": "JPEG, PNG, TIFF sau WebP — până la 75MB fiecare",
     "project.uploading": "Se încarcă {count} fișier{plural}…",
     "project.generate.title": "Generează un album",
+    "ai.status.online": "AI: online",
+    "ai.status.online.title": "Clasificatorul AI local pentru fotografii este disponibil — fotografiile încărcate primesc categorii reale, evaluate de AI.",
+    "ai.status.offline": "AI: offline",
+    "ai.status.offline.title": "Clasificatorul AI local nu poate fi contactat momentan — încărcarea funcționează în continuare, folosind analiza de bază (fără AI).",
+    "project.upload.useAi": "Folosește analiza AI a fotografiilor",
+    "project.upload.useAi.unavailable": "Serverul AI local nu poate fi contactat momentan, așa că este dezactivat.",
+    "ai.consent.title": "Procesare AI locală",
+    "ai.consent.body":
+      "Aceasta folosește procesare AI locală, pe hardware propriu — fotografiile tale sunt analizate local și nu sunt trimise nicăieri, nici reținute după aceea. Este mult mai lentă decât analiza implicită. În viitor am putea oferi servicii AI externe, mai rapide, ca upgrade contra cost.",
+    "ai.consent.agree": "Sunt de acord, activează",
     "project.generate.targetSpreads": "Pagini duble țintă",
     "project.generate.submit": "Generează schița",
     "project.generate.submitting": "Se generează…",
@@ -639,6 +671,15 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "changelog.item.landingPage.desc":
       "Vizitatorii văd acum o pagină care descrie ce face AlbumFlow și de ce, înainte să fie rugați să se înscrie — în loc să fie trimiși direct la ecranul de autentificare.",
     "changelog.item.landingPage.how": "Vizitează site-ul cât ești deconectat.",
+    "changelog.item.contactPage": "Un loc unde să ne contactezi",
+    "changelog.item.contactPage.desc":
+      "O pagină de contact scurtă, cu o adresă de email pentru întrebări, feedback sau propuneri de funcționalități.",
+    "changelog.item.contactPage.how": "Apasă pe \"Contact\" din antet, de oriunde din aplicație.",
+    "changelog.item.aiAnalysis": "Analiză AI a fotografiilor (opțională)",
+    "changelog.item.aiAnalysis.desc":
+      "Activează analiza AI pentru a categorisi fotografiile cu mult mai multă precizie — recunoscând portrete, cupluri, grupuri, ceremonii și multe altele. Este complet opțională, marcată clar când este disponibilă, iar fotografiile tale nu sunt niciodată trimise către terți și nici reținute după aceea.",
+    "changelog.item.aiAnalysis.how":
+      "Activează comutatorul \"Folosește analiza AI a fotografiilor\" de deasupra zonei de încărcare și acceptă disclaimerul scurt, apoi încarcă fotografiile ca de obicei. Insigna \"AI: online/offline\" de lângă el arată mereu dacă este disponibilă chiar acum.",
     "changelog.item.launch": "AlbumFlow este lansat",
     "changelog.item.launch.desc":
       "Încarcă o sesiune foto, lasă AlbumFlow să evalueze și să categorisească fiecare fotografie, generează automat o schiță de album, ajustează aspectul, colectează feedback de la client și exportă un PDF gata de tipar.",
@@ -657,6 +698,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "landing.feature.scoring.title": "Evaluare inteligentă a fotografiilor",
     "landing.feature.scoring.desc":
       "Fiecare fotografie este evaluată pentru claritate, expunere și compoziție, astfel încât cele mai bune cadre ies în evidență de la sine.",
+    "landing.feature.aiOptIn.title": "Etichetare AI a fotografiilor, după cum vrei tu",
+    "landing.feature.aiOptIn.desc":
+      "Activează categorisirea asistată de AI oricând vrei o precizie mai mare. Este mereu opțională, marcată clar când este disponibilă, iar fotografiile tale nu sunt niciodată trimise către terți și nici reținute după aceea.",
     "landing.feature.layouts.title": "Aspecte instant",
     "landing.feature.layouts.desc":
       "Alege un set de fotografii, iar AlbumFlow propune pagini duble care se potrivesc cu adevărat — fără șabloane goale cu care să te lupți.",

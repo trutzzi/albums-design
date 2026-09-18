@@ -109,4 +109,8 @@ export class AnthropicVisionClassifier implements VisionClassifier {
       faceQuality: parsed.face_quality,
     };
   }
+
+  async isAvailable(): Promise<boolean> {
+    return true;
+  }
 }

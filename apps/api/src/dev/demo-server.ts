@@ -31,6 +31,7 @@ import { SharpImageResizer } from "../modules/media-ingestion/infrastructure/ima
 import { MediaIngestionPhotoLifecycle } from "../modules/photo-intelligence/infrastructure/gateways/photo-lifecycle-gateway";
 import { AnalyzePhotoUseCase } from "../modules/photo-intelligence/application/use-cases/analyze-photo/analyze-photo.use-case";
 import { SharpImageInspector } from "../modules/photo-intelligence/infrastructure/vision/sharp-image-inspector";
+import { buildVisionClassifier } from "../modules/photo-intelligence/infrastructure/vision/build-vision-classifier";
 import { HeuristicVisionClassifier } from "../modules/photo-intelligence/infrastructure/vision/heuristic-vision-classifier";
 import { GenerateAlbumUseCase } from "../modules/album-composition/application/use-cases/generate-album/generate-album.use-case";
 import { SuggestLayoutsUseCase } from "../modules/album-composition/application/use-cases/suggest-layouts/suggest-layouts.use-case";
@@ -76,6 +77,14 @@ import { acceptEmptyJsonBody } from "../interface/empty-body";
 const PORT = Number(process.env.PORT ?? 4000);
 const BASE_URL = process.env.DEMO_BASE_URL ?? `http://localhost:${PORT}`;
 const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:5173";
+// Demo mode still honours VISION_PROVIDER, so the local Ollama setup can be
+// tried against the demo app without needing the full Postgres/MinIO stack.
+const VISION_PROVIDER = (process.env.VISION_PROVIDER ?? "heuristic") as
+  | "heuristic"
+  | "anthropic"
+  | "ollama";
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5vl:7b";
 
 // Fixed so apps/web/.env can hold a static key across restarts.
 export const DEMO_API_KEY = "af_demo_key_do_not_use_in_production";
@@ -114,11 +123,18 @@ async function main() {
   const login = new LoginUseCase(members, DEMO_JWT_SECRET);
   const quota = new SubscriptionQuotaPolicy(subscriptions);
 
+  const visionClassifier = buildVisionClassifier({
+    provider: VISION_PROVIDER,
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+    ollamaBaseUrl: OLLAMA_BASE_URL,
+    ollamaModel: OLLAMA_MODEL,
+  });
   const analyzePhoto = new AnalyzePhotoUseCase(
     analyses,
     storage,
     new SharpImageInspector(),
     new HeuristicVisionClassifier(),
+    visionClassifier,
     new MediaIngestionPhotoLifecycle(photos),
   );
 
@@ -156,6 +172,7 @@ async function main() {
       photoId: String(payload.photoId),
       projectId: String(payload.projectId),
       storageKey: String(payload.storageKey),
+      useAi: Boolean(payload.useAi),
     });
     if (result.isSuccess) {
       const analysis = result.getValue();
@@ -261,7 +278,7 @@ async function main() {
     ),
     projects,
   });
-  registerPhotoIntelligenceRoutes(app, { analyses });
+  registerPhotoIntelligenceRoutes(app, { analyses, visionClassifier });
   registerAlbumCompositionRoutes(app, {
     suggestLayouts: new SuggestLayoutsUseCase(new PhotoIntelligenceDirectory(analyses)),
     generateAlbum: new GenerateAlbumUseCase(

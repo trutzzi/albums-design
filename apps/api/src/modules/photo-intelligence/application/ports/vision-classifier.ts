@@ -11,4 +11,6 @@ export interface VisionVerdict {
 
 export interface VisionClassifier {
   classify(input: { bytes: Uint8Array; metrics: ImageMetrics }): Promise<VisionVerdict>;
+  /** Cheap liveness check for a status indicator — must never throw. */
+  isAvailable(): Promise<boolean>;
 }

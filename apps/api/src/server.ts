@@ -36,7 +36,10 @@ async function main() {
     login: root.login,
   });
   registerMediaIngestionRoutes(app, root.mediaIngestion);
-  registerPhotoIntelligenceRoutes(app, { analyses: root.analyses });
+  registerPhotoIntelligenceRoutes(app, {
+    analyses: root.analyses,
+    visionClassifier: root.visionClassifier,
+  });
   registerAlbumCompositionRoutes(app, {
     suggestLayouts: root.suggestLayouts,
     generateAlbum: root.generateAlbum,

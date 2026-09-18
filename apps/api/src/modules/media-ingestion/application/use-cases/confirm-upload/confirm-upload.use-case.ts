@@ -10,6 +10,8 @@ const MEDIA_QUEUE = "media-ingestion";
 export interface ConfirmUploadCommand {
   photoId: string;
   reportedChecksum?: string | undefined;
+  /** Whether the uploader opted into AI-assisted categorisation for this photo. */
+  useAi?: boolean | undefined;
 }
 
 export interface ConfirmUploadResult {
@@ -55,6 +57,7 @@ export class ConfirmUploadUseCase {
       projectId: photo.projectId.toString(),
       storageKey: photo.storageKey.toString(),
       mimeType: photo.mimeType,
+      useAi: command.useAi ?? false,
     });
 
     return Result.success({

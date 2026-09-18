@@ -103,6 +103,7 @@ export function registerMediaIngestionRoutes(app: FastifyInstance, deps: MediaIn
     const result = await deps.confirmUpload.execute({
       photoId: params.photoId,
       reportedChecksum: body.checksum,
+      useAi: body.useAi,
     });
 
     if (result.isFailure) {

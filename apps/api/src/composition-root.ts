@@ -28,7 +28,7 @@ import type { MediaIngestionDependencies } from "./modules/media-ingestion/inter
 import { DrizzlePhotoAnalysisRepository } from "./modules/photo-intelligence/infrastructure/persistence/drizzle-photo-analysis-repository";
 import { SharpImageInspector } from "./modules/photo-intelligence/infrastructure/vision/sharp-image-inspector";
 import { HeuristicVisionClassifier } from "./modules/photo-intelligence/infrastructure/vision/heuristic-vision-classifier";
-import { AnthropicVisionClassifier } from "./modules/photo-intelligence/infrastructure/vision/anthropic-vision-classifier";
+import { buildVisionClassifier } from "./modules/photo-intelligence/infrastructure/vision/build-vision-classifier";
 import { S3PhotoByteSource } from "./modules/photo-intelligence/infrastructure/storage/s3-photo-byte-source";
 import { MediaIngestionPhotoLifecycle } from "./modules/photo-intelligence/infrastructure/gateways/photo-lifecycle-gateway";
 import { AnalyzePhotoUseCase } from "./modules/photo-intelligence/application/use-cases/analyze-photo/analyze-photo.use-case";
@@ -78,6 +78,7 @@ export interface CompositionRoot {
   generateDerivatives: GenerateDerivativesUseCase;
   analyses: DrizzlePhotoAnalysisRepository;
   analyzePhoto: AnalyzePhotoUseCase;
+  visionClassifier: VisionClassifier;
   albums: DrizzleAlbumRepository;
   suggestLayouts: SuggestLayoutsUseCase;
   generateAlbum: GenerateAlbumUseCase;
@@ -102,13 +103,6 @@ function redisConnectionFrom(url: string): ConnectionOptions {
     port: Number(parsed.port || 6379),
     password: parsed.password || undefined,
   };
-}
-
-function buildVisionClassifier(env: Env): VisionClassifier {
-  if (env.VISION_PROVIDER === "anthropic") {
-    return new AnthropicVisionClassifier({ apiKey: env.ANTHROPIC_API_KEY });
-  }
-  return new HeuristicVisionClassifier();
 }
 
 export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
@@ -160,11 +154,18 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   // Photo intelligence
   const analyses = new DrizzlePhotoAnalysisRepository(db);
   const byteSource = new S3PhotoByteSource(s3, env.S3_BUCKET);
+  const visionClassifier = buildVisionClassifier({
+    provider: env.VISION_PROVIDER,
+    anthropicApiKey: env.ANTHROPIC_API_KEY,
+    ollamaBaseUrl: env.OLLAMA_BASE_URL,
+    ollamaModel: env.OLLAMA_MODEL,
+  });
   const analyzePhoto = new AnalyzePhotoUseCase(
     analyses,
     byteSource,
     new SharpImageInspector(),
-    buildVisionClassifier(env),
+    new HeuristicVisionClassifier(),
+    visionClassifier,
     new MediaIngestionPhotoLifecycle(photos),
   );
 
@@ -239,6 +240,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     generateDerivatives,
     analyses,
     analyzePhoto,
+    visionClassifier,
     albums,
     suggestLayouts,
     generateAlbum,

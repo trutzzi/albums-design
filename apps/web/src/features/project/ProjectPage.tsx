@@ -5,6 +5,7 @@ import type { SUPPORTED_MIME_TYPES } from "@albumflow/contracts";
 import {
   confirmUpload,
   deleteProject,
+  getAiStatus,
   getProject,
   generateAlbum,
   listProjectAlbums,
@@ -53,6 +54,11 @@ export function ProjectPage() {
   const [customWidthCm, setCustomWidthCm] = useState(25);
   const [customHeightCm, setCustomHeightCm] = useState(25);
   const [dimensionModalOpen, setDimensionModalOpen] = useState(false);
+  // Off by default: AI analysis costs real time (and, once a paid provider is
+  // ever wired in, real money) that the free heuristic doesn't. Turning it on
+  // requires reading and agreeing to the disclaimer modal below first.
+  const [useAi, setUseAi] = useState(false);
+  const [aiConsentOpen, setAiConsentOpen] = useState(false);
 
   const project = useQuery({
     queryKey: ["project", projectId],
@@ -75,6 +81,16 @@ export function ProjectPage() {
   const albums = useQuery({
     queryKey: ["albums", projectId],
     queryFn: () => listProjectAlbums(projectId),
+  });
+
+  // Polled independently of everything else on this page — a downed local AI
+  // server never blocks uploads or generation (photo analysis quietly falls
+  // back to the heuristic classifier), this is purely informational.
+  const aiStatus = useQuery({
+    queryKey: ["ai-status"],
+    queryFn: getAiStatus,
+    refetchInterval: 20000,
+    retry: false,
   });
 
   const selectedDimension =
@@ -130,7 +146,7 @@ export function ProjectPage() {
         });
         await putFileToStorage(uploadUrl, file);
         updateTransfer(key, { state: "confirming" });
-        await confirmUpload(photoId);
+        await confirmUpload(photoId, { useAi });
         updateTransfer(key, { state: "done" });
         void queryClient.invalidateQueries({ queryKey: ["photos", projectId] });
       } catch (error) {
@@ -140,7 +156,7 @@ export function ProjectPage() {
         });
       }
     },
-    [projectId, queryClient, updateTransfer],
+    [projectId, queryClient, updateTransfer, useAi],
   );
 
   const handleFiles = useCallback(
@@ -187,6 +203,38 @@ export function ProjectPage() {
           {t("project.deleteShoot")}
         </button>
       </header>
+
+      <div className="ai-toggle-row">
+        <label className="ruler-toggle">
+          <input
+            type="checkbox"
+            className="ruler-toggle__input"
+            checked={useAi}
+            disabled={!aiStatus.data?.available}
+            onChange={(event) => {
+              if (event.target.checked) {
+                setAiConsentOpen(true);
+              } else {
+                setUseAi(false);
+              }
+            }}
+          />
+          <span className="ruler-toggle__track" aria-hidden="true">
+            <span className="ruler-toggle__thumb" />
+          </span>
+          {t("project.upload.useAi")}
+        </label>
+        <span
+          className={`chip ai-status-chip chip--${aiStatus.data?.available ? "active" : "queued"}`}
+          title={
+            aiStatus.data?.available
+              ? t("ai.status.online.title")
+              : t("project.upload.useAi.unavailable")
+          }
+        >
+          {aiStatus.data?.available ? t("ai.status.online") : t("ai.status.offline")}
+        </span>
+      </div>
 
       <section
         className={`dropzone ${isDragging ? "dropzone--active" : ""}`}
@@ -325,6 +373,36 @@ export function ProjectPage() {
         </div>
         {(photos.data?.length ?? 0) === 0 && <p className="muted">{t("project.photos.empty")}</p>}
       </section>
+
+      {aiConsentOpen && (
+        <div className="modal-overlay" role="presentation" onClick={() => setAiConsentOpen(false)}>
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-consent-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="ai-consent-title">{t("ai.consent.title")}</h2>
+            <p>{t("ai.consent.body")}</p>
+            <div className="modal__actions">
+              <button type="button" className="button" onClick={() => setAiConsentOpen(false)}>
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={() => {
+                  setUseAi(true);
+                  setAiConsentOpen(false);
+                }}
+              >
+                {t("ai.consent.agree")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmingDelete && (
         <div

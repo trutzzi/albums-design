@@ -30,7 +30,8 @@
     },
     "demo": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["VISION_PROVIDER", "OLLAMA_BASE_URL", "OLLAMA_MODEL", "ANTHROPIC_API_KEY"]
     }
   }
 }

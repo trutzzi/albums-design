@@ -15,7 +15,9 @@ const envSchema = z.object({
   WEB_ORIGIN: z.string().min(1).default("http://localhost:5173"),
   /** Signs and verifies the per-person login JWT. `openssl rand -hex 32`. */
   JWT_SECRET: z.string().min(32),
-  VISION_PROVIDER: z.enum(["heuristic", "anthropic"]).default("heuristic"),
+  VISION_PROVIDER: z.enum(["heuristic", "anthropic", "ollama"]).default("heuristic"),
+  OLLAMA_BASE_URL: z.string().min(1).default("http://localhost:11434"),
+  OLLAMA_MODEL: z.string().min(1).default("qwen2.5vl:7b"),
   // An empty string must mean the same as "not set" — Docker Compose's
   // `environment:` block always declares this key for the container (as ""
   // when the underlying value is blank, never truly absent), so `.optional()`

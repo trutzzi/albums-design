@@ -9,6 +9,7 @@ interface Feature {
 
 const FEATURES: Feature[] = [
   { icon: "🧠", titleKey: "landing.feature.scoring.title", descKey: "landing.feature.scoring.desc" },
+  { icon: "🔒", titleKey: "landing.feature.aiOptIn.title", descKey: "landing.feature.aiOptIn.desc" },
   { icon: "🧩", titleKey: "landing.feature.layouts.title", descKey: "landing.feature.layouts.desc" },
   { icon: "🖱️", titleKey: "landing.feature.dragdrop.title", descKey: "landing.feature.dragdrop.desc" },
   { icon: "📐", titleKey: "landing.feature.guides.title", descKey: "landing.feature.guides.desc" },

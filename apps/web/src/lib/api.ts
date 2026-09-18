@@ -363,3 +363,14 @@ export function changePlan(studioId: string, planCode: string): Promise<StudioOv
     body: JSON.stringify({ planCode }),
   });
 }
+
+// --- AI status ---------------------------------------------------------
+
+export interface AiStatus {
+  /** Whether the configured photo-analysis AI (e.g. the local Ollama server) is reachable right now. */
+  available: boolean;
+}
+
+export function getAiStatus(): Promise<AiStatus> {
+  return request("/ai/status");
+}

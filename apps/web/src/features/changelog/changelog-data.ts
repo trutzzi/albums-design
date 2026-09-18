@@ -40,6 +40,8 @@ export const CHANGELOG_RELEASES: ChangelogRelease[] = [
       { titleKey: "changelog.item.toolbarBelow", descriptionKey: "changelog.item.toolbarBelow.desc", howToKey: "changelog.item.toolbarBelow.how" },
       { titleKey: "changelog.item.moveAsNewPhoto", descriptionKey: "changelog.item.moveAsNewPhoto.desc", howToKey: "changelog.item.moveAsNewPhoto.how" },
       { titleKey: "changelog.item.landingPage", descriptionKey: "changelog.item.landingPage.desc", howToKey: "changelog.item.landingPage.how" },
+      { titleKey: "changelog.item.contactPage", descriptionKey: "changelog.item.contactPage.desc", howToKey: "changelog.item.contactPage.how" },
+      { titleKey: "changelog.item.aiAnalysis", descriptionKey: "changelog.item.aiAnalysis.desc", howToKey: "changelog.item.aiAnalysis.how" },
     ],
   },
   {

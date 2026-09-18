@@ -31,8 +31,13 @@ export type RequestUploadResponse = z.infer<typeof requestUploadResponseSchema>;
 
 export const confirmUploadSchema = z.object({
   checksum: z.string().min(32).optional(),
+  /** Opts this photo into AI-assisted categorisation instead of the free heuristic. */
+  useAi: z.boolean().default(false),
 });
-export type ConfirmUploadInput = z.infer<typeof confirmUploadSchema>;
+// `z.input`, not `z.infer` (`z.output`): `useAi` has a server-side default,
+// so callers may omit it — only the parsed result on the backend is
+// guaranteed to have it filled in.
+export type ConfirmUploadInput = z.input<typeof confirmUploadSchema>;
 
 export const photoStatusSchema = z.enum([
   "PENDING_UPLOAD",

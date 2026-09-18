@@ -29,4 +29,11 @@ export class HeuristicVisionClassifier implements VisionClassifier {
       faceQuality: faceCount > 0 ? Math.round(metrics.sharpness * 0.9) : 0,
     };
   }
+
+  // Not an AI classifier at all — reports unavailable so a deployment with no
+  // real AI provider configured shows "AI offline" honestly, rather than this
+  // trivially-always-on fallback masquerading as "AI online".
+  async isAvailable(): Promise<boolean> {
+    return false;
+  }
 }
