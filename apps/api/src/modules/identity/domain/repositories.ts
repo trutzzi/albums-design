@@ -19,4 +19,6 @@ export interface StudioMemberRepository {
   findById(id: UniqueEntityId): Promise<StudioMember | undefined>;
   listByStudioId(studioId: UniqueEntityId): Promise<StudioMember[]>;
   remove(id: UniqueEntityId): Promise<void>;
+  /** Login looks a member up by email alone, across every studio. */
+  findByEmail(email: string): Promise<StudioMember | undefined>;
 }

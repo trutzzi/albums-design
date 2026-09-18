@@ -78,12 +78,30 @@ nmap -Pn -p 5432,6379,9000 80.97.27.100   # should report all three filtered/clo
 ```bash
 scp .env.production.example root@80.97.27.100:/opt/albumflow/.env
 ssh root@80.97.27.100
-nano /opt/albumflow/.env   # fill in POSTGRES_PASSWORD, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY
+nano /opt/albumflow/.env   # fill in POSTGRES_PASSWORD, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, JWT_SECRET
 ```
 
 Generate each with `openssl rand -base64 32`. This file is never committed and
 the deploy job never touches it — a fresh checkout has no `.env` in it at all,
 so nothing ever overwrites what's already on the server.
+
+### 2b. Give the studio owner a real login (one-time, once per studio)
+
+The frontend now requires logging in — the baked-in studio API key no longer
+bypasses it. A studio created via `db:seed` (or any invite that predates
+login) has no password yet, so set one directly against the production
+database before relying on login there:
+
+```bash
+ssh root@80.97.27.100
+cd /opt/albumflow
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec api \
+  pnpm exec tsx scripts/set-password.ts --email you@example.com --password 'a real password'
+```
+
+After this, log in at `app.valentintruta.ro/login` with that email and
+password — the baked-in `VITE_STUDIO_API_KEY` build secret is no longer
+needed and can eventually be dropped from GitHub secrets.
 
 ### 3. DNS — in the *original* cPanel's Zone Editor
 

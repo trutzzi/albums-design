@@ -9,6 +9,8 @@ import {
   DrizzleSubscriptionRepository,
 } from "./modules/identity/infrastructure/persistence/drizzle-studio-repository";
 import { StudioAdministrationUseCase } from "./modules/identity/application/use-cases/studio-administration.use-case";
+import { RegisterUseCase } from "./modules/identity/application/use-cases/register.use-case";
+import { LoginUseCase } from "./modules/identity/application/use-cases/login.use-case";
 import { SubscriptionQuotaPolicy } from "./modules/identity/application/subscription-quota-policy";
 
 import { DrizzleProjectRepository } from "./modules/media-ingestion/infrastructure/persistence/drizzle-project-repository";
@@ -69,6 +71,8 @@ export interface CompositionRoot {
   projects: DrizzleProjectRepository;
   photos: DrizzlePhotoRepository;
   administration: StudioAdministrationUseCase;
+  register: RegisterUseCase;
+  login: LoginUseCase;
   mediaIngestion: MediaIngestionDependencies;
   generateDerivatives: GenerateDerivativesUseCase;
   analyses: DrizzlePhotoAnalysisRepository;
@@ -128,6 +132,8 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const subscriptions = new DrizzleSubscriptionRepository(db);
   const members = new DrizzleStudioMemberRepository(db);
   const administration = new StudioAdministrationUseCase(studios, subscriptions, members);
+  const register = new RegisterUseCase(studios, subscriptions, members, env.JWT_SECRET);
+  const login = new LoginUseCase(members, env.JWT_SECRET);
   const quotaPolicy = new SubscriptionQuotaPolicy(subscriptions);
 
   // Media ingestion
@@ -215,6 +221,8 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     projects,
     photos,
     administration,
+    register,
+    login,
     mediaIngestion,
     generateDerivatives,
     analyses,

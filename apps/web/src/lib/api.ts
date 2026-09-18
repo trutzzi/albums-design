@@ -1,16 +1,20 @@
 import type {
   AlbumDTO,
+  AuthSession,
   CreateProjectInput,
   ProjectDTO,
   AlbumEditInput,
   ConfirmUploadInput,
   LayoutSuggestionDTO,
   LayoutTemplateDTO,
+  LoginInput,
   PhotoAnalysisDTO,
   PhotoDTO,
+  RegisterInput,
   RequestUploadInput,
   RequestUploadResponse,
 } from "@albumflow/contracts";
+import { loadSession } from "./auth-storage";
 
 // `||`, not `??`: a GitHub Actions secret that was never created (or left
 // blank) still gets wired into the build as an empty string, not as
@@ -18,7 +22,6 @@ import type {
 // would silently defeat every one of these fallbacks and produce URLs like
 // `/studios//projects`, an empty studio segment, rather than the demo default.
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
-const STUDIO_API_KEY = import.meta.env.VITE_STUDIO_API_KEY ?? "";
 
 export const DEMO_STUDIO_ID =
   import.meta.env.VITE_STUDIO_ID || "11111111-1111-4111-8111-111111111111";
@@ -39,7 +42,8 @@ export class ApiError extends Error {
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body) headers.set("Content-Type", "application/json");
-  if (STUDIO_API_KEY) headers.set("Authorization", `Bearer ${STUDIO_API_KEY}`);
+  const session = loadSession();
+  if (session?.token) headers.set("Authorization", `Bearer ${session.token}`);
 
   const response = await fetch(`${API_URL}${path}`, { ...init, headers });
   if (!response.ok) {
@@ -54,6 +58,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+// --- Auth --------------------------------------------------------------
+
+export function registerAccount(input: RegisterInput): Promise<AuthSession> {
+  return request("/auth/register", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function login(input: LoginInput): Promise<AuthSession> {
+  return request("/auth/login", { method: "POST", body: JSON.stringify(input) });
 }
 
 // --- Projects --------------------------------------------------------------

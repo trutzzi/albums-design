@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import type { SUPPORTED_MIME_TYPES } from "@albumflow/contracts";
 import {
-  DEMO_STUDIO_ID,
   confirmUpload,
   getProject,
   generateAlbum,
@@ -13,6 +12,7 @@ import {
   putFileToStorage,
   requestUpload,
 } from "../../lib/api";
+import { useAuth } from "../../app/AuthContext";
 
 type SupportedMimeType = (typeof SUPPORTED_MIME_TYPES)[number];
 const ACCEPTED = new Set<string>(["image/jpeg", "image/png", "image/tiff", "image/webp"]);
@@ -26,6 +26,7 @@ interface Transfer {
 }
 
 export function ProjectPage() {
+  const { studioId } = useAuth();
   const { projectId = "" } = useParams();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,7 +82,7 @@ export function ProjectPage() {
       }
 
       try {
-        const { photoId, uploadUrl } = await requestUpload(DEMO_STUDIO_ID, projectId, {
+        const { photoId, uploadUrl } = await requestUpload(studioId, projectId, {
           fileName: file.name,
           mimeType: file.type as SupportedMimeType,
           byteSize: file.size,

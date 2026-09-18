@@ -22,7 +22,7 @@ async function main() {
 
   app.get("/health", async () => ({ status: "ok" }));
 
-  registerStudioAuth(app, root.studios);
+  registerStudioAuth(app, root.studios, root.env.JWT_SECRET);
   registerTenancyGuard(app, {
     projects: root.projects,
     photos: root.photos,
@@ -30,7 +30,11 @@ async function main() {
     exportJobs: root.exportJobs,
   });
 
-  registerIdentityRoutes(app, { administration: root.administration });
+  registerIdentityRoutes(app, {
+    administration: root.administration,
+    register: root.register,
+    login: root.login,
+  });
   registerMediaIngestionRoutes(app, root.mediaIngestion);
   registerPhotoIntelligenceRoutes(app, { analyses: root.analyses });
   registerAlbumCompositionRoutes(app, {

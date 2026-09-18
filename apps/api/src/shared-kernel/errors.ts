@@ -26,6 +26,12 @@ export class ConflictError extends ApplicationError {
   }
 }
 
+export class UnauthorizedError extends ApplicationError {
+  constructor(message: string) {
+    super(message, "UNAUTHORIZED");
+  }
+}
+
 /**
  * Fastify raises typed 4xx failures of its own — payload too large, unsupported
  * media type — and collapsing those into a 500 hides the only detail the caller

@@ -42,4 +42,7 @@ export const studioMembers = pgTable("studio_members", {
   role: studioRoleEnum("role").notNull(),
   invitedAt: timestamp("invited_at", { withTimezone: true }).notNull(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  /** scrypt hash, `salt:hash` hex-encoded. Unset for an invited member who has
+   * never logged in — invitations don't carry credentials, signing up does. */
+  passwordHash: varchar("password_hash", { length: 255 }),
 });

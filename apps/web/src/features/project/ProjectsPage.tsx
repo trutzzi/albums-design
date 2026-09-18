@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import type { ProjectType } from "@albumflow/contracts";
-import { DEMO_STUDIO_ID, createProject, listProjects } from "../../lib/api";
+import { createProject, listProjects } from "../../lib/api";
+import { useAuth } from "../../app/AuthContext";
 
 const TYPES: { value: ProjectType; label: string }[] = [
   { value: "WEDDING", label: "Wedding" },
@@ -11,6 +12,7 @@ const TYPES: { value: ProjectType; label: string }[] = [
 ];
 
 export function ProjectsPage() {
+  const { studioId } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [form, setForm] = useState<{ name: string; type: ProjectType; eventDate: string }>({
@@ -20,19 +22,19 @@ export function ProjectsPage() {
   });
 
   const projects = useQuery({
-    queryKey: ["projects", DEMO_STUDIO_ID],
-    queryFn: () => listProjects(DEMO_STUDIO_ID),
+    queryKey: ["projects", studioId],
+    queryFn: () => listProjects(studioId),
   });
 
   const create = useMutation({
     mutationFn: () =>
-      createProject(DEMO_STUDIO_ID, {
+      createProject(studioId, {
         name: form.name,
         type: form.type,
         ...(form.eventDate ? { eventDate: new Date(form.eventDate).toISOString() } : {}),
       }),
     onSuccess: (project) => {
-      void queryClient.invalidateQueries({ queryKey: ["projects", DEMO_STUDIO_ID] });
+      void queryClient.invalidateQueries({ queryKey: ["projects", studioId] });
       navigate(`/projects/${project.id}`);
     },
   });

@@ -9,6 +9,8 @@ export interface StudioMemberProps {
   role: StudioRole;
   invitedAt: Date;
   acceptedAt: Date | undefined;
+  /** Set once the member has real login credentials — an invite alone never has one. */
+  passwordHash: string | undefined;
 }
 
 const EDIT_ROLES: readonly StudioRole[] = ["OWNER", "EDITOR"];
@@ -30,9 +32,24 @@ export class StudioMember extends AggregateRoot<StudioMemberProps> {
         role: params.role,
         invitedAt: new Date(),
         acceptedAt: undefined,
+        passwordHash: undefined,
       },
       id ?? UniqueEntityId.create(),
     );
+  }
+
+  /** A self-serve signup: unlike an invited member, this one can log in immediately. */
+  static signUp(
+    params: { studioId: UniqueEntityId; email: string; name: string; passwordHash: string },
+    id?: UniqueEntityId,
+  ): StudioMember {
+    const member = StudioMember.invite(
+      { studioId: params.studioId, email: params.email, name: params.name, role: "OWNER" },
+      id,
+    );
+    member.props.passwordHash = params.passwordHash;
+    member.props.acceptedAt = new Date();
+    return member;
   }
 
   static reconstitute(props: StudioMemberProps, id: UniqueEntityId): StudioMember {
@@ -67,8 +84,17 @@ export class StudioMember extends AggregateRoot<StudioMemberProps> {
     return EDIT_ROLES.includes(this.props.role);
   }
 
+  get passwordHash(): string | undefined {
+    return this.props.passwordHash;
+  }
+
   accept(): void {
     this.props.acceptedAt = new Date();
+  }
+
+  setPassword(passwordHash: string): void {
+    this.props.passwordHash = passwordHash;
+    if (!this.props.acceptedAt) this.props.acceptedAt = new Date();
   }
 
   changeRole(role: StudioRole): void {

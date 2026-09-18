@@ -61,6 +61,7 @@ services:
       WEB_ORIGIN: https://app.valentintruta.ro
       VISION_PROVIDER: ${VISION_PROVIDER:-heuristic}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET}
     restart: unless-stopped
 
   worker:
@@ -76,6 +77,7 @@ services:
       WEB_ORIGIN: https://app.valentintruta.ro
       VISION_PROVIDER: ${VISION_PROVIDER:-heuristic}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET}
     restart: unless-stopped
 
   # The web app is not deployed here at all — it's static, and it lives on

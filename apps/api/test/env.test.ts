@@ -11,6 +11,7 @@ const FULL = {
   S3_BUCKET: "albumflow-photos",
   S3_ACCESS_KEY_ID: "key",
   S3_SECRET_ACCESS_KEY: "secret",
+  JWT_SECRET: "test-only-jwt-secret-at-least-32-characters-long",
 };
 
 describe("environment configuration", () => {

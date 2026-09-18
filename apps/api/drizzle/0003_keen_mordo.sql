@@ -1,0 +1,1 @@
+ALTER TABLE "studio_members" ADD COLUMN "password_hash" varchar(255);

@@ -1,22 +1,24 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DEMO_STUDIO_ID, changePlan, getStudioOverview, inviteMember, removeMember } from "../../lib/api";
+import { changePlan, getStudioOverview, inviteMember, removeMember } from "../../lib/api";
+import { useAuth } from "../../app/AuthContext";
 
 const PLAN_ORDER = ["TRIAL", "STARTER", "STUDIO", "STUDIO_PRO"] as const;
 
 export function StudioPage() {
+  const { studioId } = useAuth();
   const queryClient = useQueryClient();
   const [invite, setInvite] = useState({ name: "", email: "", role: "EDITOR" as const });
 
   const overview = useQuery({
-    queryKey: ["studio", DEMO_STUDIO_ID],
-    queryFn: () => getStudioOverview(DEMO_STUDIO_ID),
+    queryKey: ["studio", studioId],
+    queryFn: () => getStudioOverview(studioId),
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["studio", DEMO_STUDIO_ID] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["studio", studioId] });
 
   const addMember = useMutation({
-    mutationFn: () => inviteMember(DEMO_STUDIO_ID, invite),
+    mutationFn: () => inviteMember(studioId, invite),
     onSuccess: () => {
       setInvite({ name: "", email: "", role: "EDITOR" });
       void invalidate();
@@ -24,13 +26,13 @@ export function StudioPage() {
   });
 
   const dropMember = useMutation({
-    mutationFn: (memberId: string) => removeMember(DEMO_STUDIO_ID, memberId),
+    mutationFn: (memberId: string) => removeMember(studioId, memberId),
     onSuccess: invalidate,
   });
 
   const switchPlan = useMutation({
-    mutationFn: (planCode: string) => changePlan(DEMO_STUDIO_ID, planCode),
-    onSuccess: (updated) => queryClient.setQueryData(["studio", DEMO_STUDIO_ID], updated),
+    mutationFn: (planCode: string) => changePlan(studioId, planCode),
+    onSuccess: (updated) => queryClient.setQueryData(["studio", studioId], updated),
   });
 
   if (overview.isLoading) return <p className="page muted">Loading studio…</p>;

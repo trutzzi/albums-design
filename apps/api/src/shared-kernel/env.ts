@@ -13,6 +13,8 @@ const envSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().min(1),
   S3_FORCE_PATH_STYLE: z.coerce.boolean().default(true),
   WEB_ORIGIN: z.string().min(1).default("http://localhost:5173"),
+  /** Signs and verifies the per-person login JWT. `openssl rand -hex 32`. */
+  JWT_SECRET: z.string().min(32),
   VISION_PROVIDER: z.enum(["heuristic", "anthropic"]).default("heuristic"),
   // An empty string must mean the same as "not set" — Docker Compose's
   // `environment:` block always declares this key for the container (as ""

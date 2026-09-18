@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
+    "auth:set-password": "tsx scripts/set-password.ts",
     "backfill:derivatives": "tsx scripts/backfill-derivatives.ts",
     "smoke": "tsx scripts/smoke.ts",
     "demo": "tsx src/dev/demo-server.ts"

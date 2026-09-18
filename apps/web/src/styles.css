@@ -212,6 +212,23 @@ a:focus-visible,
   color: var(--ink-faint);
 }
 
+/* ---- auth ---- */
+.auth-page {
+  display: grid;
+  place-items: center;
+  min-height: 70vh;
+}
+.auth-panel {
+  width: min(380px, 100%);
+}
+.auth-form {
+  margin-top: 12px;
+}
+.auth-form .button {
+  width: 100%;
+  margin-top: 4px;
+}
+
 /* ---- panels ---- */
 .panel {
   background: var(--surface);

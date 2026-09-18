@@ -272,4 +272,7 @@ export class InMemoryStudioMemberRepository implements StudioMemberRepository {
   async remove(id: UniqueEntityId) {
     this.items.delete(id.toString());
   }
+  async findByEmail(email: string) {
+    return [...this.items.values()].find((member) => member.email === email);
+  }
 }

@@ -19,3 +19,24 @@ export const projectDtoSchema = z.object({
   createdAt: z.string().datetime(),
 });
 export type ProjectDTO = z.infer<typeof projectDtoSchema>;
+
+// --- Auth ---------------------------------------------------------------
+
+export const registerInputSchema = z.object({
+  name: z.string().min(1).max(255),
+  email: z.string().email(),
+  password: z.string().min(8).max(255),
+});
+export type RegisterInput = z.infer<typeof registerInputSchema>;
+
+export const loginInputSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+export type LoginInput = z.infer<typeof loginInputSchema>;
+
+export const authSessionSchema = z.object({
+  token: z.string(),
+  studioId: z.string().uuid(),
+});
+export type AuthSession = z.infer<typeof authSessionSchema>;

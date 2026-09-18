@@ -19,6 +19,8 @@ import { StudioMember } from "../modules/identity/domain/studio-member";
 import { Subscription } from "../modules/identity/domain/subscription";
 import { Project } from "../modules/media-ingestion/domain/project";
 import { StudioAdministrationUseCase } from "../modules/identity/application/use-cases/studio-administration.use-case";
+import { RegisterUseCase } from "../modules/identity/application/use-cases/register.use-case";
+import { LoginUseCase } from "../modules/identity/application/use-cases/login.use-case";
 import { SubscriptionQuotaPolicy } from "../modules/identity/application/subscription-quota-policy";
 import { RequestUploadUseCase } from "../modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
 import { ConfirmUploadUseCase } from "../modules/media-ingestion/application/use-cases/confirm-upload/confirm-upload.use-case";
@@ -78,6 +80,10 @@ const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:5173";
 export const DEMO_API_KEY = "af_demo_key_do_not_use_in_production";
 export const DEMO_STUDIO_ID = "11111111-1111-4111-8111-111111111111";
 export const DEMO_PROJECT_ID = "22222222-2222-4222-8222-222222222222";
+// Demo mode has no real secret store; this only ever signs tokens for an
+// in-memory server that's wiped on restart, so a fixed value is fine here in
+// a way it would not be for `loadEnv()`'s production `JWT_SECRET`.
+const DEMO_JWT_SECRET = "demo-only-jwt-secret-do-not-use-in-production-00000000";
 
 const UPLOADABLE_TYPES = [
   "image/jpeg",
@@ -103,6 +109,8 @@ async function main() {
   const queue = new SynchronousJobQueue();
 
   const administration = new StudioAdministrationUseCase(studios, subscriptions, members);
+  const register = new RegisterUseCase(studios, subscriptions, members, DEMO_JWT_SECRET);
+  const login = new LoginUseCase(members, DEMO_JWT_SECRET);
   const quota = new SubscriptionQuotaPolicy(subscriptions);
 
   const analyzePhoto = new AnalyzePhotoUseCase(
@@ -232,10 +240,10 @@ async function main() {
       .send(Buffer.from(blob.bytes));
   });
 
-  registerStudioAuth(app, studios, { publicPrefixes: ["/dev-storage/"] });
+  registerStudioAuth(app, studios, DEMO_JWT_SECRET, { publicPrefixes: ["/dev-storage/"] });
   registerTenancyGuard(app, { projects, photos, albums, exportJobs });
 
-  registerIdentityRoutes(app, { administration });
+  registerIdentityRoutes(app, { administration, register, login });
   registerMediaIngestionRoutes(app, {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, queue),

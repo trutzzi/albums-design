@@ -1,8 +1,11 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { z } from "zod";
+import { loginInputSchema, registerInputSchema } from "@albumflow/contracts";
 import { ApplicationError, NotFoundError } from "../../../../shared-kernel/errors";
 import { PLANS } from "../../domain/plan";
 import type { StudioAdministrationUseCase } from "../../application/use-cases/studio-administration.use-case";
+import type { RegisterUseCase } from "../../application/use-cases/register.use-case";
+import type { LoginUseCase } from "../../application/use-cases/login.use-case";
 
 const studioParams = z.object({ studioId: z.string().uuid() });
 const memberParams = studioParams.extend({ memberId: z.string().uuid() });
@@ -22,10 +25,26 @@ const planSchema = z.object({ planCode: z.enum(["TRIAL", "STARTER", "STUDIO", "S
 
 export interface IdentityDependencies {
   administration: StudioAdministrationUseCase;
+  register: RegisterUseCase;
+  login: LoginUseCase;
 }
 
 export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDependencies): void {
   app.get("/plans", async () => Object.values(PLANS).map(toPlanDto));
+
+  app.post("/auth/register", async (request, reply) => {
+    const body = registerInputSchema.parse(request.body);
+    const result = await deps.register.execute(body);
+    if (result.isFailure) return sendError(reply, result.getError());
+    return reply.code(201).send(result.getValue());
+  });
+
+  app.post("/auth/login", async (request, reply) => {
+    const body = loginInputSchema.parse(request.body);
+    const result = await deps.login.execute(body);
+    if (result.isFailure) return sendError(reply, result.getError());
+    return result.getValue();
+  });
 
   app.post("/studios", async (request, reply) => {
     const body = onboardSchema.parse(request.body);
@@ -74,6 +93,13 @@ function toPlanDto(plan: (typeof PLANS)[keyof typeof PLANS]) {
 }
 
 function sendError(reply: FastifyReply, error: ApplicationError) {
-  const status = error instanceof NotFoundError ? 404 : error.code === "CONFLICT" ? 409 : 422;
+  const status =
+    error instanceof NotFoundError
+      ? 404
+      : error.code === "CONFLICT"
+        ? 409
+        : error.code === "UNAUTHORIZED"
+          ? 401
+          : 422;
   return reply.code(status).send({ code: error.code, message: error.message });
 }

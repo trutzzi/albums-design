@@ -97,13 +97,19 @@ export class DrizzleStudioMemberRepository implements StudioMemberRepository {
       role: member.role,
       invitedAt: member.invitedAt,
       acceptedAt: member.acceptedAt ?? null,
+      passwordHash: member.passwordHash ?? null,
     };
     await this.db
       .insert(studioMembers)
       .values(row)
       .onConflictDoUpdate({
         target: studioMembers.id,
-        set: { name: row.name, role: row.role, acceptedAt: row.acceptedAt },
+        set: {
+          name: row.name,
+          role: row.role,
+          acceptedAt: row.acceptedAt,
+          passwordHash: row.passwordHash,
+        },
       });
   }
 
@@ -126,6 +132,15 @@ export class DrizzleStudioMemberRepository implements StudioMemberRepository {
 
   async remove(id: UniqueEntityId): Promise<void> {
     await this.db.delete(studioMembers).where(eq(studioMembers.id, id.toString()));
+  }
+
+  async findByEmail(email: string): Promise<StudioMember | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(studioMembers)
+      .where(eq(studioMembers.email, email))
+      .limit(1);
+    return row ? toMember(row) : undefined;
   }
 }
 
@@ -150,6 +165,7 @@ function toMember(row: typeof studioMembers.$inferSelect): StudioMember {
       role: row.role,
       invitedAt: row.invitedAt,
       acceptedAt: row.acceptedAt ?? undefined,
+      passwordHash: row.passwordHash ?? undefined,
     },
     UniqueEntityId.create(row.id),
   );
