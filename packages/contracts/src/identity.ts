@@ -30,6 +30,14 @@ export const projectDtoSchema = z.object({
 });
 export type ProjectDTO = z.infer<typeof projectDtoSchema>;
 
+/** A shoot as the list shows it: enough to recognise the card without opening it. */
+export const projectSummaryDtoSchema = projectDtoSchema.extend({
+  photoCount: z.number().int().min(0),
+  albumCount: z.number().int().min(0),
+  coverThumbnailUrl: z.string().nullable(),
+});
+export type ProjectSummaryDTO = z.infer<typeof projectSummaryDtoSchema>;
+
 // --- Auth ---------------------------------------------------------------
 
 export const registerInputSchema = z.object({

@@ -2279,3 +2279,100 @@ a:focus-visible,
 .upload-progress .modal__actions {
   justify-content: center;
 }
+
+/* ---- shoots ---- */
+.shoot-search {
+  min-width: 200px;
+}
+.shoot-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.shoot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 16px;
+}
+.shoot-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.shoot-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.shoot-card__cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 2;
+  background: var(--surface-2);
+}
+/*
+ * Taken out of flow so a tall portrait cover cannot push the box past the 3:2
+ * ratio above — otherwise one portrait photo makes its card taller than the
+ * rest of the row and the whole grid goes ragged.
+ */
+.shoot-card__cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.shoot-card__empty-cover {
+  font-size: 1.8rem;
+  opacity: 0.35;
+}
+.shoot-card__type {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(20, 24, 28, 0.72);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.shoot-card__body {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px 14px;
+}
+.shoot-card__body h3 {
+  margin: 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+.shoot-card__client {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.shoot-card__meta,
+.shoot-card__date {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.shoot-empty {
+  text-align: center;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 36px 20px;
+}
+.shoot-empty h2 {
+  margin: 0;
+}

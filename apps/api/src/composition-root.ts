@@ -19,6 +19,7 @@ import { S3ObjectStorage } from "./modules/media-ingestion/infrastructure/storag
 import { BullMqJobQueue } from "./modules/media-ingestion/infrastructure/queue/bullmq-job-queue";
 import { RequestUploadUseCase } from "./modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
 import { AbandonUploadUseCase } from "./modules/media-ingestion/application/use-cases/abandon-upload/abandon-upload.use-case";
+import { ListStudioProjectsUseCase } from "./modules/media-ingestion/application/use-cases/list-studio-projects/list-studio-projects.use-case";
 import { ConfirmUploadUseCase } from "./modules/media-ingestion/application/use-cases/confirm-upload/confirm-upload.use-case";
 import { ListProjectPhotosUseCase } from "./modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
 import { DeleteProjectUseCase } from "./modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
@@ -383,6 +384,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue, storeEverything),
     abandonUpload: new AbandonUploadUseCase(photos, storage),
+    listStudioProjects: new ListStudioProjectsUseCase(projects, photos, albums, storage, permanentStorage),
     listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
     deleteProject,
     projects,

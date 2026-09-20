@@ -117,6 +117,22 @@ export class InMemoryPhotoRepository implements PhotoRepository {
   async markStagedOriginalPurged(id: UniqueEntityId, at: Date) {
     await this.mutate(id, (photo) => photo.markStagedOriginalPurged(at));
   }
+  async countByProjectIds(projectIds: UniqueEntityId[]) {
+    const wanted = new Set(projectIds.map((id) => id.toString()));
+    const counts: Record<string, number> = {};
+    for (const photo of this.items.values()) {
+      const key = photo.projectId.toString();
+      if (!wanted.has(key) || photo.status === "PENDING_UPLOAD") continue;
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }
+  async findCoverPhoto(projectId: UniqueEntityId) {
+    const candidates = [...this.items.values()]
+      .filter((photo) => photo.projectId.toString() === projectId.toString() && photo.hasDerivatives)
+      .sort((a, b) => a.fileName.localeCompare(b.fileName));
+    return candidates[0] ? clonePhoto(candidates[0]) : undefined;
+  }
   async findAwaitingLongTermStorage(limit: number) {
     return [...this.items.values()]
       .filter(
@@ -224,6 +240,15 @@ export class InMemoryAlbumRepository implements AlbumRepository {
     return [...this.items.values()].filter(
       (album) => album.projectId.toString() === projectId.toString(),
     );
+  }
+  async countByProjectIds(projectIds: UniqueEntityId[]) {
+    const wanted = new Set(projectIds.map((id) => id.toString()));
+    const counts: Record<string, number> = {};
+    for (const album of this.items.values()) {
+      const key = album.projectId.toString();
+      if (wanted.has(key)) counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
   }
   async countCreatedSince(_studioId: UniqueEntityId, since: Date) {
     return [...this.items.values()].filter((album) => album.createdAt >= since).length;

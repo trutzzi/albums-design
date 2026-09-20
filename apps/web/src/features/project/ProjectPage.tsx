@@ -390,7 +390,10 @@ export function ProjectPage() {
         <button
           type="button"
           className="button button--primary"
-          onClick={() => setConfirmingDelete(true)}
+          onClick={() => {
+            removeProject.reset();
+            setConfirmingDelete(true);
+          }}
         >
           {t("project.deleteShoot")}
         </button>

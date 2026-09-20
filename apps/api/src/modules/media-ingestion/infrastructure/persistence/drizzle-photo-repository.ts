@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, ne } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "../../../../db/client";
 import type { PhotoRepository } from "../../domain/photo-repository";
@@ -86,6 +86,31 @@ export class DrizzlePhotoRepository implements PhotoRepository {
       .orderBy(asc(photos.createdAt))
       .limit(limit);
     return rows.map((row) => this.toDomain(row));
+  }
+
+  async countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, number>> {
+    if (projectIds.length === 0) return {};
+    const rows = await this.db
+      .select({ projectId: photos.projectId, total: count() })
+      .from(photos)
+      .where(
+        and(
+          inArray(photos.projectId, projectIds.map((id) => id.toString())),
+          ne(photos.status, "PENDING_UPLOAD"),
+        ),
+      )
+      .groupBy(photos.projectId);
+    return Object.fromEntries(rows.map((row) => [row.projectId, Number(row.total)]));
+  }
+
+  async findCoverPhoto(projectId: UniqueEntityId): Promise<Photo | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(photos)
+      .where(and(eq(photos.projectId, projectId.toString()), eq(photos.hasDerivatives, true)))
+      .orderBy(asc(photos.fileName))
+      .limit(1);
+    return row ? this.toDomain(row) : undefined;
   }
 
   async findById(id: UniqueEntityId): Promise<Photo | undefined> {

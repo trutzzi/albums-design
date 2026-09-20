@@ -8,6 +8,7 @@ import { Project } from "../../domain/project";
 import type { ProjectRepository } from "../../domain/project-repository";
 import type { RequestUploadUseCase } from "../../application/use-cases/request-upload/request-upload.use-case";
 import type { AbandonUploadUseCase } from "../../application/use-cases/abandon-upload/abandon-upload.use-case";
+import type { ListStudioProjectsUseCase } from "../../application/use-cases/list-studio-projects/list-studio-projects.use-case";
 import type { ConfirmUploadUseCase } from "../../application/use-cases/confirm-upload/confirm-upload.use-case";
 import type { ListProjectPhotosUseCase } from "../../application/use-cases/list-project-photos/list-project-photos.use-case";
 import type { DeleteProjectUseCase } from "../../application/use-cases/delete-project/delete-project.use-case";
@@ -33,6 +34,7 @@ export interface MediaIngestionDependencies {
   confirmUpload: ConfirmUploadUseCase;
   abandonUpload: AbandonUploadUseCase;
   listProjectPhotos: ListProjectPhotosUseCase;
+  listStudioProjects: ListStudioProjectsUseCase;
   deleteProject: DeleteProjectUseCase;
   projects: ProjectRepository;
 }
@@ -69,10 +71,7 @@ export function registerMediaIngestionRoutes(app: FastifyInstance, deps: MediaIn
 
   app.get("/studios/:studioId/projects", async (request) => {
     studioParamsSchema.parse(request.params);
-    const projects = await deps.projects.listByStudioId(
-      UniqueEntityId.create(authenticatedStudioId(request)),
-    );
-    return projects.map(toProjectDto);
+    return deps.listStudioProjects.execute(authenticatedStudioId(request));
   });
 
   app.get("/projects/:projectId", async (request, reply) => {

@@ -24,6 +24,9 @@ export interface DigiStorageConfig {
   requestTimeoutMs?: number;
 }
 
+/** Backoff between retries of a locked or rate-limited request. */
+const RETRY_DELAYS_MS = [250, 750, 2000];
+
 const PART_SUFFIX = ".part";
 
 /**
@@ -45,6 +48,8 @@ export class DigiStorageProvider implements StorageProvider {
   private readonly uploadTimeoutMs: number;
   private readonly requestTimeoutMs: number;
   private readonly knownDirectories = new Set<string>();
+  /** One folder creation at a time per path — see `ensureDirectory`. */
+  private readonly pendingDirectories = new Map<string, Promise<void>>();
 
   constructor(config: DigiStorageConfig) {
     this.client = createClient(config.webdavUrl, {
@@ -64,11 +69,13 @@ export class DigiStorageProvider implements StorageProvider {
     await this.ensureDirectory(directory);
 
     const put = () =>
-      this.client.putFileContents(partPath, body, {
-        overwrite: true,
-        contentLength: body.byteLength,
-        signal: AbortSignal.timeout(this.uploadTimeoutMs),
-      });
+      this.withRetry(() =>
+        this.client.putFileContents(partPath, body, {
+          overwrite: true,
+          contentLength: body.byteLength,
+          signal: AbortSignal.timeout(this.uploadTimeoutMs),
+        }),
+      );
     try {
       await put();
     } catch (error) {
@@ -79,10 +86,12 @@ export class DigiStorageProvider implements StorageProvider {
       await this.ensureDirectory(directory);
       await put();
     }
-    await this.client.moveFile(partPath, finalPath, {
-      overwrite: true,
-      signal: AbortSignal.timeout(this.requestTimeoutMs),
-    });
+    await this.withRetry(() =>
+      this.client.moveFile(partPath, finalPath, {
+        overwrite: true,
+        signal: AbortSignal.timeout(this.requestTimeoutMs),
+      }),
+    );
   }
 
   async openRead(key: string): Promise<Readable> {
@@ -178,19 +187,62 @@ export class DigiStorageProvider implements StorageProvider {
 
   private async deleteRemote(path: string): Promise<void> {
     try {
-      await this.client.deleteFile(path, { signal: AbortSignal.timeout(this.requestTimeoutMs) });
+      await this.withRetry(() =>
+        this.client.deleteFile(path, { signal: AbortSignal.timeout(this.requestTimeoutMs) }),
+      );
     } catch (error) {
       if (!isNotFound(error)) throw error;
     }
   }
 
+  /**
+   * Two uploads into a folder that does not exist yet both try to create it, and
+   * DigiStorage answers `423 Locked` to whichever loses the race — which used to fail
+   * the upload outright. Creation is therefore shared: the first caller creates, and
+   * everyone else waits on that same promise.
+   */
   private async ensureDirectory(path: string): Promise<void> {
     if (this.knownDirectories.has(path)) return;
-    await this.client.createDirectory(path, {
-      recursive: true,
-      signal: AbortSignal.timeout(this.requestTimeoutMs),
-    });
+    let pending = this.pendingDirectories.get(path);
+    if (!pending) {
+      pending = this.createDirectory(path).finally(() => this.pendingDirectories.delete(path));
+      this.pendingDirectories.set(path, pending);
+    }
+    await pending;
     this.knownDirectories.add(path);
+  }
+
+  private async createDirectory(path: string): Promise<void> {
+    try {
+      await this.withRetry(() =>
+        this.client.createDirectory(path, {
+          recursive: true,
+          signal: AbortSignal.timeout(this.requestTimeoutMs),
+        }),
+      );
+    } catch (error) {
+      // 405 is "there is already a folder here", which is the state we wanted.
+      if (!hasStatus(error, 405)) throw error;
+    }
+  }
+
+  /**
+   * DigiStorage locks a folder while it is being written to or removed, and answers
+   * `423 Locked` to anything else touching it meanwhile. That is a "try again in a
+   * moment", not a failure, and the same is true of a rate limit or a bad gateway.
+   */
+  private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < RETRY_DELAYS_MS.length + 1; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (!isTransient(error) || attempt === RETRY_DELAYS_MS.length) throw error;
+        lastError = error;
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+      }
+    }
+    throw lastError;
   }
 }
 
@@ -209,4 +261,9 @@ function hasStatus(error: unknown, status: number): boolean {
 
 function isNotFound(error: unknown): boolean {
   return hasStatus(error, 404);
+}
+
+/** Worth trying again shortly: a locked folder, a rate limit, or the server having a moment. */
+function isTransient(error: unknown): boolean {
+  return [423, 429, 500, 502, 503, 504].some((status) => hasStatus(error, status));
 }

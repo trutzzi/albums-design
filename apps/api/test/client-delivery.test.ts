@@ -28,7 +28,7 @@ import { AlbumCompositionPlacementDirectory } from "../src/modules/media-ingesti
 import { ExportPrintDeliveryDirectory } from "../src/modules/media-ingestion/infrastructure/gateways/delivery-gateway";
 import { ReviewCollaborationDownloadHolds } from "../src/modules/media-ingestion/infrastructure/gateways/download-hold-gateway";
 import { ExportJob } from "../src/modules/export-print/domain/export-job";
-import { SmtpEmailSender } from "../src/infrastructure/email/smtp-email-sender";
+import { SmtpEmailSender, parseSender } from "../src/infrastructure/email/smtp-email-sender";
 import { buildEmailSender } from "../src/infrastructure/email/build-email-sender";
 import { LoggingEmailSender } from "../src/infrastructure/email/logging-email-sender";
 import { MediaUrlSigner } from "../src/infrastructure/storage/media-url-signer";
@@ -539,6 +539,24 @@ describe("emails to the studio", () => {
   });
 });
 
+describe("the configured sender address", () => {
+  it("reads every shape MAIL_FROM is written in", () => {
+    assert.deepEqual(parseSender("AlbumFlow <app@studio.ro>"), { name: "AlbumFlow", address: "app@studio.ro" });
+    assert.deepEqual(parseSender("app@studio.ro"), { address: "app@studio.ro" });
+    assert.deepEqual(parseSender('"AlbumFlow" <app@studio.ro>'), { name: "AlbumFlow", address: "app@studio.ro" });
+    assert.deepEqual(parseSender("  AlbumFlow Studio <app@studio.ro>  "), {
+      name: "AlbumFlow Studio",
+      address: "app@studio.ro",
+    });
+  });
+
+  it("recovers an address whose angle brackets were eaten on the way to the server", () => {
+    // What production actually had. Sent as-is it becomes "AlbumFlow app"@studio.ro,
+    // which strict receivers reject with 501 and the mail bounces.
+    assert.deepEqual(parseSender("AlbumFlow app@studio.ro"), { name: "AlbumFlow", address: "app@studio.ro" });
+  });
+});
+
 describe("real SMTP delivery", () => {
   it("sends a message through an actual SMTP conversation, with login", async () => {
     const received: { from: string; to: string[]; raw: string; user?: string }[] = [];
@@ -593,6 +611,43 @@ describe("real SMTP delivery", () => {
       assert.deepEqual(received[0]?.to, ["owner@studio.ro"]);
       assert.equal(received[0]?.user, "notify@studio.ro");
       assert.match(received[0]!.raw, /Subject: =\?UTF-8\?|Subject: Elena/);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("puts a bare address in the envelope even when MAIL_FROM is malformed", async () => {
+    const received: { from: string; to: string[] }[] = [];
+    const server = new SMTPServer({
+      authOptional: true,
+      allowInsecureAuth: true,
+      disabledCommands: ["STARTTLS"],
+      onData(stream, session, callback) {
+        stream.on("data", () => {});
+        stream.on("end", () => {
+          received.push({
+            from: session.envelope.mailFrom ? session.envelope.mailFrom.address : "",
+            to: session.envelope.rcptTo.map((r) => r.address),
+          });
+          callback();
+        });
+      },
+    });
+    server.listen(0, "127.0.0.1");
+    await once(server.server, "listening");
+    try {
+      const sender = new SmtpEmailSender({
+        host: "127.0.0.1",
+        port: (server.server.address() as AddressInfo).port,
+        secure: false,
+        user: undefined,
+        password: undefined,
+        // The broken shape, exactly as production had it.
+        from: "AlbumFlow app@studio.ro",
+      });
+      await sender.send({ to: ["couple@example.com"], subject: "s", text: "t" });
+      assert.equal(received[0]?.from, "app@studio.ro", "the envelope sender is a plain address");
+      assert.deepEqual(received[0]?.to, ["couple@example.com"]);
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }

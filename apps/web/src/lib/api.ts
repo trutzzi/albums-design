@@ -4,6 +4,7 @@ import type {
   AuthSession,
   CreateProjectInput,
   ProjectDTO,
+  ProjectSummaryDTO,
   AlbumEditInput,
   ConfirmUploadInput,
   LayoutSuggestionDTO,
@@ -78,7 +79,7 @@ export function login(input: LoginInput): Promise<AuthSession> {
 
 // --- Projects --------------------------------------------------------------
 
-export function listProjects(studioId: string): Promise<ProjectDTO[]> {
+export function listProjects(studioId: string): Promise<ProjectSummaryDTO[]> {
   return request(`/studios/${studioId}/projects`);
 }
 

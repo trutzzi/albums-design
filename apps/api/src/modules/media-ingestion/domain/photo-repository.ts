@@ -33,4 +33,8 @@ export interface PhotoRepository {
    * ones whose staged original was already purged, are never returned.
    */
   findAwaitingLongTermStorage(limit: number): Promise<Photo[]>;
+  /** How many photos each shoot has, in one query — the shoots list must not load every row to count. */
+  countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, number>>;
+  /** The photo that represents a shoot in a list: the first one with display copies, by file name. */
+  findCoverPhoto(projectId: UniqueEntityId): Promise<Photo | undefined>;
 }

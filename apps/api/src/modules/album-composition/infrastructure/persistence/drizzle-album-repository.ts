@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { and, count, eq, gte, inArray } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "../../../../db/client";
 import { projects } from "../../../media-ingestion/infrastructure/persistence/schema";
@@ -48,6 +48,16 @@ export class DrizzleAlbumRepository implements AlbumRepository {
       .from(albums)
       .where(eq(albums.projectId, projectId.toString()));
     return rows.map(toDomain);
+  }
+
+  async countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, number>> {
+    if (projectIds.length === 0) return {};
+    const rows = await this.db
+      .select({ projectId: albums.projectId, total: count() })
+      .from(albums)
+      .where(inArray(albums.projectId, projectIds.map((id) => id.toString())))
+      .groupBy(albums.projectId);
+    return Object.fromEntries(rows.map((row) => [row.projectId, Number(row.total)]));
   }
 
   async countCreatedSince(studioId: UniqueEntityId, since: Date): Promise<number> {
