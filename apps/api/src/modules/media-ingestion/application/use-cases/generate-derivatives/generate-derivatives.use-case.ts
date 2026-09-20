@@ -47,24 +47,25 @@ export class GenerateDerivativesUseCase {
     if (!photo) return Result.failure(new NotFoundError("Photo", command.photoId));
 
     const original = await this.storage.getObject(photo.storageKey.toString());
-    const written = {} as Record<DerivativeVariant, number>;
-    const specs = this.permanent
-      ? { ...DERIVATIVE_SPECS, preview: { ...DERIVATIVE_SPECS.preview, longestEdge: this.previewLongEdge } }
-      : DERIVATIVE_SPECS;
+    const previewSpec = this.permanent
+      ? { ...DERIVATIVE_SPECS.preview, longestEdge: this.previewLongEdge }
+      : DERIVATIVE_SPECS.preview;
 
-    for (const [variant, spec] of Object.entries(specs) as [
-      DerivativeVariant,
-      (typeof DERIVATIVE_SPECS)[DerivativeVariant],
-    ][]) {
-      const body = await this.resizer.toJpeg({ data: original, ...spec });
+    // The expensive step is decoding a 20-megapixel original, so it happens once: the preview
+    // is cut from it, and the thumbnail from that already-small preview. (Auto-rotation is
+    // baked into the preview, and the thumbnail is far smaller than the preview, so nothing
+    // visible is lost.)
+    const preview = await this.resizer.toJpeg({ data: original, ...previewSpec });
+    const thumb = await this.resizer.toJpeg({ data: preview, ...DERIVATIVE_SPECS.thumb });
+
+    const write = async (variant: DerivativeVariant, body: Buffer) => {
       const key = photo.storageKey.derivative(variant).toString();
-      if (this.permanent) {
-        await this.permanent.upload(key, body, { contentType: "image/jpeg" });
-      } else {
-        await this.storage.putObject({ key, body, contentType: "image/jpeg" });
-      }
-      written[variant] = body.byteLength;
-    }
+      if (this.permanent) await this.permanent.upload(key, body, { contentType: "image/jpeg" });
+      else await this.storage.putObject({ key, body, contentType: "image/jpeg" });
+    };
+    // Two independent writes; on a remote long-term store each is a network round trip.
+    await Promise.all([write("preview", preview), write("thumb", thumb)]);
+    const written: Record<DerivativeVariant, number> = { preview: preview.byteLength, thumb: thumb.byteLength };
 
     // Narrow write, not save(photo): analysis is a second, concurrent job
     // racing on this same row, and re-saving the whole snapshot here would

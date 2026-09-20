@@ -15,7 +15,7 @@ import { AlbumCompositionPlacementDirectory } from "../src/modules/media-ingesti
 import { ExportPrintDeliveryDirectory } from "../src/modules/media-ingestion/infrastructure/gateways/delivery-gateway";
 import { ReviewCollaborationClientPickDirectory } from "../src/modules/media-ingestion/infrastructure/gateways/client-pick-gateway";
 import { GenerateAlbumUseCase } from "../src/modules/album-composition/application/use-cases/generate-album/generate-album.use-case";
-import { PickSession, PickClosedError, PickLimitError } from "../src/modules/review-collaboration/domain/pick-session";
+import { PickSession, PickClosedError, PickLimitError, PickStageError } from "../src/modules/review-collaboration/domain/pick-session";
 import { PickSessionAdminUseCase } from "../src/modules/review-collaboration/application/use-cases/open-pick-session.use-case";
 import { PickPortalUseCase } from "../src/modules/review-collaboration/application/use-cases/pick-portal.use-case";
 import type { PickNotifier } from "../src/modules/review-collaboration/application/ports/pick-gateway";
@@ -93,6 +93,12 @@ async function world() {
   const clientPicks = new ReviewCollaborationClientPickDirectory(pickSessions);
   const promoter = new PromoteSelectedPhotosUseCase(photos, staging, permanent, placements, undefined, clientPicks);
 
+  /** The real client flow: mark photos in step 1, then move on to step 2. */
+  async function markAndContinue(token: string, photoIds: string[]) {
+    for (const id of photoIds) await portal.setPick(token, id, true);
+    return portal.setStage(token, "FINAL");
+  }
+
   async function openLink(options: { pickLimit?: number } = {}) {
     const opened = await admin.open({ projectId: project.id.toString(), clientName: "Elena", ...options });
     return opened.getValue();
@@ -100,27 +106,34 @@ async function world() {
 
   return {
     permanent, staging, photos, projects, albums, exportJobs, pickSessions, project, addPhoto,
-    gateway, admin, portal, notified, promoter, clientPicks, placements, openLink, original,
+    gateway, admin, portal, notified, promoter, clientPicks, placements, openLink, markAndContinue, original,
   };
 }
 
 describe("PickSession", () => {
   const open = (pickLimit?: number) =>
     PickSession.open({ projectId: UniqueEntityId.create(), clientName: "Elena", ...(pickLimit ? { pickLimit } : {}) }).session;
+  /** Step 1 with room to spare, then straight on to step 2 — the usual way a session gets there. */
+  const atFinal = (ids: string[], pickLimit?: number) => {
+    const session = open(pickLimit);
+    for (const id of ids) session.setShortlisted(id, true);
+    session.goToFinal();
+    return session;
+  };
 
-  it("picks and un-picks idempotently", () => {
-    const session = open();
-    session.setPick("a", true);
-    session.setPick("a", true);
-    session.setPick("b", true);
-    session.setPick("zzz", false);
-    assert.deepEqual([...session.pickedPhotoIds], ["a", "b"]);
-    session.setPick("a", false);
-    assert.deepEqual([...session.pickedPhotoIds], ["b"]);
+  it("starts on step 1, where marking photos is idempotent and never limited", () => {
+    const session = open(2);
+    for (const id of ["a", "a", "b", "c", "d"]) session.setShortlisted(id, true);
+    session.setShortlisted("zzz", false);
+    assert.equal(session.stage, "SHORTLIST");
+    assert.deepEqual([...session.shortlistedPhotoIds], ["a", "b", "c", "d"], "the limit of 2 does not apply here");
+    assert.deepEqual([...session.pickedPhotoIds], [], "nothing is chosen until step 2");
+    session.setShortlisted("a", false);
+    assert.deepEqual([...session.shortlistedPhotoIds], ["b", "c", "d"]);
   });
 
-  it("refuses a pick beyond the limit, but still lets one be swapped", () => {
-    const session = open(2);
+  it("refuses a final pick beyond the limit, but still lets one be swapped", () => {
+    const session = atFinal(["a", "b", "c"], 2);
     session.setPick("a", true);
     session.setPick("b", true);
     assert.throws(() => session.setPick("c", true), PickLimitError);
@@ -129,25 +142,103 @@ describe("PickSession", () => {
     assert.deepEqual([...session.pickedPhotoIds], ["b", "c"]);
   });
 
-  it("will not submit an empty selection, and freezes once submitted", () => {
-    const session = open();
+  it("only lets a shortlisted photo be chosen", () => {
+    const session = atFinal(["a"], 5);
+    assert.throws(() => session.setPick("never-marked", true), PickStageError);
+  });
+
+  it("keeps each step's action to its own step", () => {
+    const shortlisting = open();
+    assert.throws(() => shortlisting.setPick("a", true), PickStageError);
+    const choosing = atFinal(["a"]);
+    assert.throws(() => choosing.setShortlisted("b", true), PickStageError);
+  });
+
+  it("will not move on with nothing marked", () => {
+    assert.throws(() => open().goToFinal(), PickStageError);
+  });
+
+  it("carries the whole shortlist over when it already fits the limit", () => {
+    const session = atFinal(["a", "b"], 5);
+    assert.deepEqual([...session.pickedPhotoIds], ["a", "b"], "no second round of tapping for a shortlist that fits");
+  });
+
+  it("leaves a shortlist that is too long to be narrowed down by hand", () => {
+    const session = atFinal(["a", "b", "c"], 2);
+    assert.deepEqual([...session.pickedPhotoIds], []);
+  });
+
+  it("lets the client step back, and un-marking there drops the photo from what was chosen", () => {
+    const session = atFinal(["a", "b"], 5);
+    assert.deepEqual([...session.pickedPhotoIds], ["a", "b"]);
+    session.backToShortlist();
+    assert.equal(session.stage, "SHORTLIST");
+    session.setShortlisted("a", false);
+    assert.deepEqual([...session.shortlistedPhotoIds], ["b"]);
+    assert.deepEqual([...session.pickedPhotoIds], ["b"], "a photo can never be chosen without being marked");
+  });
+
+  it("does not re-fill the picks when stepping back and forth after unchoosing", () => {
+    const session = atFinal(["a", "b"], 5);
+    session.setPick("a", false);
+    session.setPick("b", false);
+    session.backToShortlist();
+    session.goToFinal();
+    assert.deepEqual([...session.pickedPhotoIds], [], "the client meant to choose none of them");
+  });
+
+  it("will not submit from step 1, nor an empty selection, and freezes once submitted", () => {
+    const shortlisting = open();
+    shortlisting.setShortlisted("a", true);
+    assert.throws(() => shortlisting.submit(), PickStageError);
+
+    const session = atFinal(["a", "b"], 1);
     assert.throws(() => session.submit(), /at least one/);
     session.setPick("a", true);
     session.submit();
     assert.equal(session.status, "SUBMITTED");
     assert.ok(session.submittedAt);
     assert.throws(() => session.setPick("b", true), PickClosedError);
+    assert.throws(() => session.backToShortlist(), PickClosedError);
+  });
+
+  it("forgets photos the photographer deleted, from both lists", () => {
+    const session = atFinal(["a", "b", "c"], 9);
+    session.forgetMissing(new Set(["a"]));
+    assert.deepEqual([...session.shortlistedPhotoIds], ["a"]);
+    assert.deepEqual([...session.pickedPhotoIds], ["a"]);
   });
 
   it("lets the photographer reopen a sent selection, and never a revoked one", () => {
-    const session = open();
-    session.setPick("a", true);
+    const session = atFinal(["a"], 5);
     session.submit();
     session.reopen();
     assert.equal(session.status, "OPEN");
-    session.setPick("b", true);
+    assert.equal(session.stage, "FINAL", "they come back to the step they were on");
+    session.setPick("a", false);
     session.revoke();
     assert.throws(() => session.reopen(), PickClosedError);
+  });
+
+  it("treats a link made before two-step picking as already past step 1", () => {
+    const legacy = PickSession.reconstitute(
+      {
+        projectId: UniqueEntityId.create(),
+        tokenHash: "hash",
+        clientName: "Old",
+        status: "OPEN",
+        pickedPhotoIds: ["a", "b"],
+        pickLimit: 5,
+        expiresAt: new Date(Date.now() + 86_400_000),
+        submittedAt: undefined,
+        createdAt: new Date(),
+      },
+      UniqueEntityId.create(),
+    );
+    assert.equal(legacy.stage, "FINAL");
+    assert.deepEqual([...legacy.shortlistedPhotoIds], ["a", "b"], "what it picked is its shortlist");
+    legacy.setPick("a", false);
+    assert.deepEqual([...legacy.pickedPhotoIds], ["b"], "it keeps working exactly as it did");
   });
 
   it("stores only a hash of the token", () => {
@@ -180,11 +271,30 @@ describe("client pick portal", () => {
     }
   });
 
-  it("records picks and un-picks, respecting the limit", async () => {
+  it("marks freely in step 1, however small the photographer's limit", async () => {
     const w = await world();
     const a = await w.addPhoto("a.jpg");
     const b = await w.addPhoto("b.jpg");
     const link = await w.openLink({ pickLimit: 1 });
+
+    const first = await w.portal.setPick(link.token, a.id.toString(), true);
+    assert.deepEqual(first.getValue().shortlistedPhotoIds, [a.id.toString()]);
+    const second = await w.portal.setPick(link.token, b.id.toString(), true);
+    assert.deepEqual(second.getValue().shortlistedPhotoIds, [a.id.toString(), b.id.toString()]);
+    assert.deepEqual(second.getValue().pickedPhotoIds, [], "nothing is chosen yet");
+
+    const dropped = await w.portal.setPick(link.token, a.id.toString(), false);
+    assert.deepEqual(dropped.getValue().shortlistedPhotoIds, [b.id.toString()]);
+  });
+
+  it("applies the limit in step 2, over the marked photos only", async () => {
+    const w = await world();
+    const a = await w.addPhoto("a.jpg");
+    const b = await w.addPhoto("b.jpg");
+    const link = await w.openLink({ pickLimit: 1 });
+    const moved = await w.markAndContinue(link.token, [a.id.toString(), b.id.toString()]);
+    assert.equal(moved.getValue().stage, "FINAL");
+    assert.deepEqual(moved.getValue().pickedPhotoIds, [], "two marked, room for one — the client chooses");
 
     const first = await w.portal.setPick(link.token, a.id.toString(), true);
     assert.deepEqual(first.getValue().pickedPhotoIds, [a.id.toString()]);
@@ -195,6 +305,37 @@ describe("client pick portal", () => {
 
     const dropped = await w.portal.setPick(link.token, a.id.toString(), false);
     assert.deepEqual(dropped.getValue().pickedPhotoIds, []);
+  });
+
+  it("carries a shortlist that already fits, so there is no second round of tapping", async () => {
+    const w = await world();
+    const a = await w.addPhoto("a.jpg");
+    const link = await w.openLink({ pickLimit: 5 });
+    const moved = await w.markAndContinue(link.token, [a.id.toString()]);
+    assert.deepEqual(moved.getValue().pickedPhotoIds, [a.id.toString()]);
+  });
+
+  it("lets the client step back to change what they marked", async () => {
+    const w = await world();
+    const a = await w.addPhoto("a.jpg");
+    const b = await w.addPhoto("b.jpg");
+    const link = await w.openLink({ pickLimit: 5 });
+    await w.markAndContinue(link.token, [a.id.toString(), b.id.toString()]);
+
+    const back = await w.portal.setStage(link.token, "SHORTLIST");
+    assert.equal(back.getValue().stage, "SHORTLIST");
+    const dropped = await w.portal.setPick(link.token, b.id.toString(), false);
+    assert.deepEqual(dropped.getValue().shortlistedPhotoIds, [a.id.toString()]);
+    assert.deepEqual(dropped.getValue().pickedPhotoIds, [a.id.toString()], "unmarking removes it from the choice too");
+  });
+
+  it("will not move on with nothing marked", async () => {
+    const w = await world();
+    await w.addPhoto("a.jpg");
+    const link = await w.openLink();
+    const result = await w.portal.setStage(link.token, "FINAL");
+    assert.ok(result.isFailure);
+    assert.equal(result.getError().code, "CONFLICT");
   });
 
   it("rejects a photo that belongs to another shoot", async () => {
@@ -217,7 +358,7 @@ describe("client pick portal", () => {
 
     assert.ok((await w.portal.submit(link.token)).isFailure, "an empty selection cannot be sent");
 
-    await w.portal.setPick(link.token, a.id.toString(), true);
+    await w.markAndContinue(link.token, [a.id.toString()]);
     const sent = await w.portal.submit(link.token);
     assert.equal(sent.getValue().status, "SUBMITTED");
     assert.equal(w.notified.length, 1);
@@ -234,12 +375,12 @@ describe("client pick portal", () => {
     const a = await w.addPhoto("a.jpg");
     const b = await w.addPhoto("b.jpg");
     const link = await w.openLink();
-    await w.portal.setPick(link.token, a.id.toString(), true);
-    await w.portal.setPick(link.token, b.id.toString(), true);
+    await w.markAndContinue(link.token, [a.id.toString(), b.id.toString()]);
     await w.photos.delete(b.id);
 
     const view = (await w.portal.view(link.token)).getValue();
     assert.deepEqual(view.session.pickedPhotoIds, [a.id.toString()]);
+    assert.deepEqual(view.session.shortlistedPhotoIds, [a.id.toString()], "and it is gone from the marked list too");
 
     await w.portal.submit(link.token);
     assert.deepEqual(w.notified[0]?.photoIds, [a.id.toString()]);
@@ -262,10 +403,12 @@ describe("photographer's pick-link administration", () => {
     const w = await world();
     const a = await w.addPhoto("a.jpg");
     const first = await w.openLink({ pickLimit: 40 });
-    await w.portal.setPick(first.token, a.id.toString(), true);
+    await w.markAndContinue(first.token, [a.id.toString()]);
 
     const listed = await w.admin.list(w.project.id.toString());
     assert.equal(listed.length, 1);
+    assert.equal(listed[0]?.stage, "FINAL");
+    assert.equal(listed[0]?.shortlistedCount, 1);
     assert.equal(listed[0]?.pickedCount, 1);
     assert.equal(listed[0]?.pickLimit, 40);
     assert.deepEqual(listed[0]?.pickedPhotoIds, [a.id.toString()]);
@@ -284,7 +427,7 @@ describe("photographer's pick-link administration", () => {
     const w = await world();
     const a = await w.addPhoto("a.jpg");
     const link = await w.openLink();
-    await w.portal.setPick(link.token, a.id.toString(), true);
+    await w.markAndContinue(link.token, [a.id.toString()]);
     await w.portal.submit(link.token);
 
     const reopened = await w.admin.reopen(w.project.id.toString(), link.sessionId);
@@ -305,10 +448,10 @@ describe("picks and the two-tier storage pipeline", () => {
     const sent = await w.addPhoto("sent.jpg");
     const draft = await w.addPhoto("draft.jpg");
     const submittedLink = await w.openLink();
-    await w.portal.setPick(submittedLink.token, sent.id.toString(), true);
+    await w.markAndContinue(submittedLink.token, [sent.id.toString()]);
     await w.portal.submit(submittedLink.token);
     const draftLink = await w.openLink();
-    await w.portal.setPick(draftLink.token, draft.id.toString(), true);
+    await w.markAndContinue(draftLink.token, [draft.id.toString()]);
 
     const result = await w.promoter.executePicked({ projectId: w.project.id.toString() });
     assert.equal(result.getValue().promoted, 1);
@@ -324,6 +467,7 @@ describe("picks and the two-tier storage pipeline", () => {
     const portal = new PickPortalUseCase(w.pickSessions, w.gateway, new PromoteOnPickNotifier({ picksSubmitted: async () => {} }, jobs));
     const link = await w.openLink();
     await portal.setPick(link.token, a.id.toString(), true);
+    await portal.setStage(link.token, "FINAL");
     await portal.submit(link.token);
     assert.deepEqual(jobs.jobs.at(-1), {
       queue: QUEUES.storage,
@@ -340,6 +484,7 @@ describe("picks and the two-tier storage pipeline", () => {
     );
     const second = await w.openLink();
     await resilient.setPick(second.token, a.id.toString(), true);
+    await resilient.setStage(second.token, "FINAL");
     const submitted = await resilient.submit(second.token);
     assert.ok(submitted.isSuccess, "the client's submission must not fail because Redis blinked");
     assert.equal(logged.length, 1);
@@ -350,7 +495,7 @@ describe("picks and the two-tier storage pipeline", () => {
     const picked = await w.addPhoto("picked.jpg");
     const rest = await w.addPhoto("rest.jpg");
     const link = await w.openLink();
-    await w.portal.setPick(link.token, picked.id.toString(), true);
+    await w.markAndContinue(link.token, [picked.id.toString()]);
     await w.portal.submit(link.token);
 
     // Delivered 31 days ago through an album that does not even contain the pick.
@@ -399,7 +544,7 @@ describe("picks and the two-tier storage pipeline", () => {
     const w = await world();
     const a = await w.addPhoto("a.jpg");
     const link = await w.openLink();
-    await w.portal.setPick(link.token, a.id.toString(), true);
+    await w.markAndContinue(link.token, [a.id.toString()]);
 
     const result = await new DeleteProjectUseCase(
       w.projects,
@@ -473,13 +618,35 @@ describe("pick routes", () => {
     assert.equal(view.statusCode, 200);
     assert.equal(view.json().photos.length, 1);
 
-    const picked = await app.inject({
+    // Step 1: the same tap marks the photo as a possibility.
+    const marked = await app.inject({
       method: "PUT",
       url: `/pick/${link.token}/photos/${a.id.toString()}`,
       payload: { picked: true },
     });
-    assert.equal(picked.statusCode, 200);
-    assert.deepEqual(picked.json().pickedPhotoIds, [a.id.toString()]);
+    assert.equal(marked.statusCode, 200);
+    assert.equal(marked.json().stage, "SHORTLIST");
+    assert.deepEqual(marked.json().shortlistedPhotoIds, [a.id.toString()]);
+    assert.deepEqual(marked.json().pickedPhotoIds, []);
+
+    // Sending before step 2 is refused.
+    assert.equal((await app.inject({ method: "POST", url: `/pick/${link.token}/submit` })).statusCode, 409);
+
+    // Step 2: one marked photo, no limit — it arrives already chosen.
+    const moved = await app.inject({
+      method: "POST",
+      url: `/pick/${link.token}/stage`,
+      payload: { stage: "FINAL" },
+    });
+    assert.equal(moved.statusCode, 200);
+    assert.equal(moved.json().stage, "FINAL");
+    assert.deepEqual(moved.json().pickedPhotoIds, [a.id.toString()]);
+
+    assert.notEqual(
+      (await app.inject({ method: "POST", url: `/pick/${link.token}/stage`, payload: { stage: "NOPE" } })).statusCode,
+      200,
+      "an unknown step is refused",
+    );
 
     const submitted = await app.inject({ method: "POST", url: `/pick/${link.token}/submit` });
     assert.equal(submitted.json().status, "SUBMITTED");

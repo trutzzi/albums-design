@@ -2167,3 +2167,52 @@ a:focus-visible,
     font-size: 16px;
   }
 }
+
+/* ---- two-step photo selection ---- */
+.pick__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 10px;
+  padding: 0;
+  list-style: none;
+}
+.pick__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+.pick__step--on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.pick__step--done {
+  color: var(--ink-soft);
+}
+.pick__step-number {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.pick__step--on .pick__step-number {
+  background: var(--accent);
+  color: #fff;
+}
+.pick__bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

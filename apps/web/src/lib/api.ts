@@ -404,6 +404,11 @@ export interface PickSessionSummary {
   status: "OPEN" | "SUBMITTED" | "REVOKED";
   pickLimit: number | null;
   passwordProtected?: boolean;
+  /** Which of the two picking steps the client is on. */
+  stage: "SHORTLIST" | "FINAL";
+  /** Step 1: how many they marked as possibilities. */
+  shortlistedCount: number;
+  /** Step 2: how many they finally chose. */
   pickedCount: number;
   pickedPhotoIds: string[];
   submittedAt: string | null;
@@ -438,11 +443,16 @@ export function revokePickSession(projectId: string, sessionId: string): Promise
   return request(`/projects/${projectId}/pick-sessions/${sessionId}/revoke`, { method: "POST" });
 }
 
+export type PickStage = "SHORTLIST" | "FINAL";
+
 export interface PickState {
   id: string;
   clientName: string;
   status: "OPEN" | "SUBMITTED" | "REVOKED";
+  /** Step 1 marks possibilities, step 2 narrows them to the photographer's limit. */
+  stage: PickStage;
   pickLimit: number | null;
+  shortlistedPhotoIds: string[];
   pickedPhotoIds: string[];
   expiresAt: string;
 }
@@ -451,6 +461,8 @@ export interface PickView {
   session: PickState;
   projectName: string;
   photos: { id: string; fileName: string; previewUrl: string; thumbnailUrl: string }[];
+  /** Photos still being prepared; the gallery grows as they finish. */
+  processingCount: number;
 }
 
 export function getPickView(token: string): Promise<PickView> {
@@ -462,6 +474,11 @@ export function setPhotoPicked(token: string, photoId: string, picked: boolean):
     method: "PUT",
     body: JSON.stringify({ picked }),
   });
+}
+
+/** Move the client between step 1 (shortlist) and step 2 (final selection). */
+export function setPickStage(token: string, stage: PickStage): Promise<PickState> {
+  return request(`/pick/${token}/stage`, { method: "POST", body: JSON.stringify({ stage }) });
 }
 
 export function submitPicks(token: string): Promise<PickState> {
@@ -523,6 +540,8 @@ export interface DownloadView {
   daysLeft: number;
   /** Display copies to browse before downloading. */
   photos: { id: string; fileName: string; previewUrl: string; thumbnailUrl: string }[];
+  /** Photos still being prepared for the gallery (they are in the download regardless). */
+  processingCount: number;
 }
 
 export function getDownloadView(token: string): Promise<DownloadView> {

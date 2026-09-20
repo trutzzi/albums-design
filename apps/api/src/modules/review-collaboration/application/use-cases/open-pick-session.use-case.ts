@@ -6,6 +6,7 @@ import {
 } from "../../../../shared-kernel/errors";
 import { PickClosedError, PickSession, type PickStatus } from "../../domain/pick-session";
 import type { PickSessionRepository } from "../../domain/pick-session-repository";
+import type { PickStage } from "../../domain/pick-session";
 import type { PickGateway } from "../ports/pick-gateway";
 import type { ClientAccessService } from "../services/client-access.service";
 
@@ -23,6 +24,11 @@ export interface PickSessionSummary {
   pickLimit: number | null;
   /** Whether the client has to enter a password (links from before passwords existed do not). */
   passwordProtected: boolean;
+  /** Which of the two steps the client is on. */
+  stage: PickStage;
+  /** Step 1: how many they marked as possibilities. */
+  shortlistedCount: number;
+  /** Step 2: how many they finally chose. */
   pickedCount: number;
   pickedPhotoIds: string[];
   submittedAt: string | null;
@@ -126,6 +132,8 @@ export function toSummary(session: PickSession): PickSessionSummary {
     status: session.status,
     pickLimit: session.pickLimit ?? null,
     passwordProtected: Boolean(session.passwordHash),
+    stage: session.stage,
+    shortlistedCount: session.shortlistedPhotoIds.length,
     pickedCount: session.pickedPhotoIds.length,
     pickedPhotoIds: [...session.pickedPhotoIds],
     submittedAt: session.submittedAt?.toISOString() ?? null,

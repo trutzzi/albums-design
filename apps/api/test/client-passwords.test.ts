@@ -305,6 +305,7 @@ async function downloadApp() {
   const access = makeAccess();
   const gallery = {
     listPhotos: async () => [{ id: photo.id.toString(), fileName: "a.jpg", previewUrl: "https://x/preview.jpg", thumbnailUrl: "https://x/thumb.jpg" }],
+    countProcessing: async () => 0,
   };
   const admin = new DownloadSessionAdminUseCase(sessions, gateway, () => new Date(), access);
   const app = Fastify();
@@ -400,6 +401,7 @@ async function pickApp(options: { passwords?: boolean } = {}) {
     loadProject: async (id) => (id === PROJECT_ID ? { id, name: "Elena & Radu" } : undefined),
     listPhotos: async () => [{ id: PHOTO_A, fileName: "a.jpg", previewUrl: "https://x/p.jpg", thumbnailUrl: "https://x/t.jpg" }],
     hasPhoto: async (_project, photo) => photo === PHOTO_A,
+    countProcessing: async () => 0,
   };
   const submitted: unknown[] = [];
   const admin = new PickSessionAdminUseCase(sessions, gateway, access);
@@ -443,7 +445,9 @@ describe("photo selection links with a password", () => {
     const headers = { "x-access-grant": right.json().grant as string };
 
     assert.equal((await app.inject({ method: "GET", url: `/pick/${opened.token}`, headers })).json().photos.length, 1);
+    // Step 1: mark it. Step 2: it fits, so it arrives chosen and can be sent.
     assert.equal((await app.inject({ method: "PUT", url: `/pick/${opened.token}/photos/${PHOTO_A}`, headers, payload: { picked: true } })).statusCode, 200);
+    assert.equal((await app.inject({ method: "POST", url: `/pick/${opened.token}/stage`, headers, payload: { stage: "FINAL" } })).statusCode, 200);
     assert.equal((await app.inject({ method: "POST", url: `/pick/${opened.token}/submit`, headers })).json().status, "SUBMITTED");
     assert.equal(submitted.length, 1, "the studio is only notified for a genuine, authorised submission");
   });

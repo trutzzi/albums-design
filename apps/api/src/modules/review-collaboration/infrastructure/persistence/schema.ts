@@ -31,6 +31,7 @@ export const reviewSessions = pgTable("review_sessions", {
 });
 
 export const pickStatusEnum = pgEnum("pick_status", ["OPEN", "SUBMITTED", "REVOKED"]);
+export const pickStageEnum = pgEnum("pick_stage", ["SHORTLIST", "FINAL"]);
 
 /** A client's photo selection for one shoot — the step before an album exists. */
 export const pickSessions = pgTable("pick_sessions", {
@@ -42,6 +43,10 @@ export const pickSessions = pgTable("pick_sessions", {
   clientName: varchar("client_name", { length: 255 }).notNull(),
   status: pickStatusEnum("status").notNull(),
   pickedPhotoIds: jsonb("picked_photo_ids").$type<string[]>().notNull(),
+  /** Nullable on purpose: a row from before two-step picking has none, and the aggregate treats that as "its picks are its shortlist". */
+  shortlistedPhotoIds: jsonb("shortlisted_photo_ids").$type<string[]>(),
+  stage: pickStageEnum("stage"),
+  firstReachedFinalAt: timestamp("first_reached_final_at", { withTimezone: true }),
   pickLimit: integer("pick_limit"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   submittedAt: timestamp("submitted_at", { withTimezone: true }),

@@ -108,13 +108,28 @@ async function selectionLink(context: ClientLinkContext): Promise<void> {
     `${view.photos.length} photos`,
   );
 
+  // Step 1: mark a possibility. The photographer's limit does not apply here.
   const chosen = view.photos[0]?.id ?? "";
-  const picked = await api<{ pickedPhotoIds: string[] }>(
+  const marked = await api<{ stage: string; shortlistedPhotoIds: string[]; pickedPhotoIds: string[] }>(
     `/pick/${link.token}/photos/${chosen}`,
     { method: "PUT", body: JSON.stringify({ picked: true }) },
     gated,
   );
-  check("photo selection: a pick is saved", picked.pickedPhotoIds.includes(chosen));
+  check(
+    "photo selection: step 1 marks a photo as a possibility",
+    marked.stage === "SHORTLIST" && marked.shortlistedPhotoIds.includes(chosen) && marked.pickedPhotoIds.length === 0,
+  );
+
+  // Step 2: one marked photo and no limit, so it is carried over as the choice.
+  const moved = await api<{ stage: string; pickedPhotoIds: string[] }>(
+    `/pick/${link.token}/stage`,
+    { method: "POST", body: JSON.stringify({ stage: "FINAL" }) },
+    gated,
+  );
+  check(
+    "photo selection: step 2 carries a shortlist that already fits",
+    moved.stage === "FINAL" && moved.pickedPhotoIds.includes(chosen),
+  );
 
   const submitted = await api<{ status: string }>(`/pick/${link.token}/submit`, { method: "POST" }, gated);
   check("photo selection: the client submits", submitted.status === "SUBMITTED", submitted.status);
@@ -126,12 +141,16 @@ async function selectionLink(context: ClientLinkContext): Promise<void> {
   });
   check("photo selection: a submitted selection is frozen", locked.status === 409, `got ${locked.status}`);
 
-  const sessions = await api<{ status: string; pickedCount: number; passwordProtected: boolean }[]>(
-    `/projects/${projectId}/pick-sessions`,
-  );
+  const sessions = await api<
+    { status: string; stage: string; shortlistedCount: number; pickedCount: number; passwordProtected: boolean }[]
+  >(`/projects/${projectId}/pick-sessions`);
   check(
-    "photo selection: the studio sees it as sent, with one pick",
-    sessions[0]?.status === "SUBMITTED" && sessions[0]?.pickedCount === 1 && sessions[0]?.passwordProtected === true,
+    "photo selection: the studio sees it as sent, with both counts",
+    sessions[0]?.status === "SUBMITTED" &&
+      sessions[0]?.stage === "FINAL" &&
+      sessions[0]?.shortlistedCount === 1 &&
+      sessions[0]?.pickedCount === 1 &&
+      sessions[0]?.passwordProtected === true,
   );
 
   const shown = await api<{ token: string; password: string }>(

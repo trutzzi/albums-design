@@ -9,7 +9,9 @@ import {
   PickClosedError,
   PickExpiredError,
   PickLimitError,
+  PickStageError,
   type PickSession,
+  type PickStage,
 } from "../../domain/pick-session";
 import type { PickSessionRepository } from "../../domain/pick-session-repository";
 import { hashToken } from "../../domain/review-session";
@@ -20,7 +22,12 @@ export interface PickState {
   id: string;
   clientName: string;
   status: string;
+  /** Which of the two steps the client is on. */
+  stage: PickStage;
   pickLimit: number | null;
+  /** Step 1: everything they might want. */
+  shortlistedPhotoIds: string[];
+  /** Step 2: what they finally chose — always a subset of the shortlist. */
   pickedPhotoIds: string[];
   expiresAt: string;
 }
@@ -29,6 +36,8 @@ export interface PickView {
   session: PickState;
   projectName: string;
   photos: PickablePhoto[];
+  /** Photos still being prepared; the page keeps refreshing until this reaches zero. */
+  processingCount: number;
 }
 
 /**
@@ -67,16 +76,26 @@ export class PickPortalUseCase {
     if (!project) return Result.failure(new NotFoundError("Project", session.projectId.toString()));
 
     const photos = await this.gateway.listPhotos(project.id);
+    const processingCount = await this.gateway.countProcessing(project.id);
     // A photo deleted after being picked must not linger as a phantom pick.
     const present = new Set(photos.map((photo) => photo.id));
-    const picked = session.pickedPhotoIds.filter((id) => present.has(id));
+    const state = toState(session);
     return Result.success({
-      session: { ...toState(session), pickedPhotoIds: picked },
+      session: {
+        ...state,
+        shortlistedPhotoIds: state.shortlistedPhotoIds.filter((id) => present.has(id)),
+        pickedPhotoIds: state.pickedPhotoIds.filter((id) => present.has(id)),
+      },
       projectName: project.name,
       photos,
+      processingCount,
     });
   }
 
+  /**
+   * One tap on a photo. Which list it lands in follows the step the client is on, so the
+   * page cannot put a photo in the wrong one — the shortlist in step 1, the final picks in step 2.
+   */
   async setPick(
     token: string,
     photoId: string,
@@ -90,7 +109,24 @@ export class PickPortalUseCase {
       return Result.failure(new NotFoundError("Photo", photoId));
     }
     try {
-      session.setPick(photoId, picked);
+      if (session.stage === "SHORTLIST") session.setShortlisted(photoId, picked);
+      else session.setPick(photoId, picked);
+    } catch (error) {
+      return Result.failure(toApplicationError(error));
+    }
+    await this.sessions.save(session);
+    return Result.success(toState(session));
+  }
+
+  /** Move between the two steps. */
+  async setStage(token: string, stage: PickStage): Promise<Result<PickState, ApplicationError>> {
+    const found = await this.resolve(token);
+    if (found.isFailure) return Result.failure(found.getError());
+    const session = found.getValue();
+
+    try {
+      if (stage === "FINAL") session.goToFinal();
+      else session.backToShortlist();
     } catch (error) {
       return Result.failure(toApplicationError(error));
     }
@@ -108,7 +144,7 @@ export class PickPortalUseCase {
     const photos = await this.gateway.listPhotos(session.projectId.toString());
     const present = new Set(photos.map((photo) => photo.id));
     try {
-      for (const id of [...session.pickedPhotoIds]) if (!present.has(id)) session.setPick(id, false);
+      session.forgetMissing(present);
       session.submit();
     } catch (error) {
       return Result.failure(toApplicationError(error));
@@ -139,14 +175,21 @@ function toState(session: PickSession): PickState {
     id: session.id.toString(),
     clientName: session.clientName,
     status: session.status,
+    stage: session.stage,
     pickLimit: session.pickLimit ?? null,
+    shortlistedPhotoIds: [...session.shortlistedPhotoIds],
     pickedPhotoIds: [...session.pickedPhotoIds],
     expiresAt: session.expiresAt.toISOString(),
   };
 }
 
 function toApplicationError(error: unknown): ApplicationError {
-  if (error instanceof PickClosedError || error instanceof PickExpiredError || error instanceof PickLimitError) {
+  if (
+    error instanceof PickClosedError ||
+    error instanceof PickExpiredError ||
+    error instanceof PickLimitError ||
+    error instanceof PickStageError
+  ) {
     return new ConflictError(error.message);
   }
   if (error instanceof Error) return new ValidationError(error.message);

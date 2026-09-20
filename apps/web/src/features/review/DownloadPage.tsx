@@ -34,6 +34,7 @@ export function DownloadPage() {
     queryKey: ["download", token],
     queryFn: () => getDownloadView(token),
     retry: false,
+    refetchInterval: (query) => ((query.state.data?.processingCount ?? 0) > 0 ? 5000 : false),
   });
 
   if (view.isLoading) return <p className="page muted">{t("download.loading")}</p>;
@@ -89,6 +90,11 @@ export function DownloadPage() {
 
       <p className="notice">{t("download.available", { date: until, days: data.daysLeft })}</p>
       {data.missingCount > 0 && <p className="notice">{t("download.missing", { count: data.missingCount })}</p>}
+      {data.processingCount > 0 && (
+        <p className="notice" role="status">
+          {t("download.processing", { count: data.processingCount.toLocaleString(language === "ro" ? "ro-RO" : "en-GB") })}
+        </p>
+      )}
       {started && (
         <p className="notice notice--good" role="status">
           {t("download.started")}

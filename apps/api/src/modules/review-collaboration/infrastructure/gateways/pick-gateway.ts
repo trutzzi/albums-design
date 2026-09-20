@@ -37,6 +37,12 @@ export class MediaIngestionPickGateway implements PickGateway {
       }));
   }
 
+  async countProcessing(projectId: string) {
+    return (await this.photos.findByProjectId(UniqueEntityId.create(projectId))).filter(
+      (photo) => photo.status !== "PENDING_UPLOAD" && !photo.hasDerivatives,
+    ).length;
+  }
+
   async hasPhoto(projectId: string, photoId: string) {
     const photo = await this.photos.findById(UniqueEntityId.create(photoId));
     return photo !== undefined && photo.projectId.toString() === projectId;

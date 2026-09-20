@@ -71,6 +71,11 @@ const envSchema = z.object({
    * or an approved album uses, the rest expiring after delivery.
    */
   LONG_TERM_ORIGINALS: z.enum(["all", "selected"]).default("all"),
+  /**
+   * How many photos the worker prepares (display copies, analysis) at once. Raise it on a
+   * bigger server to clear a large upload faster; each one holds a decoded photo in memory.
+   */
+  WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(8),
   /** Days after an album's latest export completes before staged full-res originals are deleted. */
   ORIGINAL_RETENTION_DAYS: z.coerce.number().int().min(1).default(30),
   /** Longest edge, in pixels, of the previews written to long-term storage. */

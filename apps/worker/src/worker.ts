@@ -68,7 +68,7 @@ async function main() {
         `[analysis] ${analysis.photoId.toString()} scored ${analysis.score.overall} (${analysis.category}, ${analysis.orientation})`,
       );
     },
-    { connection, concurrency: 4 },
+    { connection, concurrency: root.env.WORKER_CONCURRENCY },
   );
   analysisWorker.on("active", (job) => log(`[analysis] started ${job.data.photoId}`));
 
@@ -87,7 +87,7 @@ async function main() {
           `preview ${Math.round(written.preview / 1024)}KB`,
       );
     },
-    { connection, concurrency: 4 },
+    { connection, concurrency: root.env.WORKER_CONCURRENCY },
   );
   derivativeWorker.on("active", (job) => log(`[derivatives] started ${job.data.photoId}`));
 

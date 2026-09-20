@@ -2,6 +2,7 @@ import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { PhotoRepository } from "../../../domain/photo-repository";
 import type { Photo } from "../../../domain/photo";
 import type { ObjectStorage } from "../../ports/object-storage";
+import { compareFileNames } from "../../../../../shared-kernel/natural-order";
 import type { StorageProvider } from "../../../../../shared-kernel/storage-provider";
 
 const PREVIEW_TTL_SECONDS = 60 * 60;
@@ -30,7 +31,12 @@ export class ListProjectPhotosUseCase {
 
   async execute(projectId: string): Promise<ProjectPhotoView[]> {
     const photos = await this.photos.findByProjectId(UniqueEntityId.create(projectId));
-    return Promise.all(photos.map((photo) => this.toView(photo)));
+    // The database returns rows in no particular order, and uploads finish in whatever
+    // order the network allows — so the listing is put in file-name order here.
+    const ordered = [...photos].sort((a, b) =>
+      compareFileNames({ fileName: a.fileName, id: a.id.toString() }, { fileName: b.fileName, id: b.id.toString() }),
+    );
+    return Promise.all(ordered.map((photo) => this.toView(photo)));
   }
 
   private async toView(photo: Photo): Promise<ProjectPhotoView> {

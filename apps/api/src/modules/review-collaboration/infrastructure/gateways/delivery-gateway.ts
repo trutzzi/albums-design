@@ -4,6 +4,7 @@ import type { PhotoRepository } from "../../../media-ingestion/domain/photo-repo
 import type { Photo } from "../../../media-ingestion/domain/photo";
 import type { ObjectStorageWithBody } from "../../../media-ingestion/application/ports/object-storage";
 import type { StudioMemberRepository, StudioRepository } from "../../../identity/domain/repositories";
+import { compareFileNames } from "../../../../shared-kernel/natural-order";
 import type { StorageProvider } from "../../../../shared-kernel/storage-provider";
 import type { DeliverablePhoto, DeliveryGateway, StudioContacts } from "../../application/ports/delivery-gateway";
 import type { PickNotifier } from "../../application/ports/pick-gateway";
@@ -23,7 +24,9 @@ export class MediaIngestionDeliveryGateway implements DeliveryGateway {
   }
 
   async listDeliverable(projectId: string) {
-    const photos = await this.photos.findByProjectId(UniqueEntityId.create(projectId));
+    const photos = [...(await this.photos.findByProjectId(UniqueEntityId.create(projectId)))].sort((a, b) =>
+      compareFileNames({ fileName: a.fileName, id: a.id.toString() }, { fileName: b.fileName, id: b.id.toString() }),
+    );
     const available: DeliverablePhoto[] = [];
     let missing = 0;
     for (const photo of photos) {

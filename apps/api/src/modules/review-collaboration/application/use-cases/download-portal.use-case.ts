@@ -22,6 +22,8 @@ export interface DownloadView {
   daysLeft: number;
   /** Display copies to browse before downloading — never the originals. */
   photos: PickablePhoto[];
+  /** Photos still being prepared for the gallery; the page keeps refreshing until this reaches zero. */
+  processingCount: number;
 }
 
 export interface PreparedDownload {
@@ -45,7 +47,7 @@ export class DownloadPortalUseCase {
     private readonly now: () => Date = () => new Date(),
     private readonly access?: ClientAccessService,
     /** Where the browsable display copies come from. Without it the page shows no gallery. */
-    private readonly gallery?: Pick<PickGateway, "listPhotos">,
+    private readonly gallery?: Pick<PickGateway, "listPhotos" | "countProcessing">,
   ) {}
 
   /** Every client route calls this first: a protected link answers PASSWORD_REQUIRED until unlocked. */
@@ -81,6 +83,7 @@ export class DownloadPortalUseCase {
       expiresAt: session.expiresAt.toISOString(),
       daysLeft: session.daysLeft(this.now()),
       photos: (await this.gallery?.listPhotos(project.id)) ?? [],
+      processingCount: (await this.gallery?.countProcessing(project.id)) ?? 0,
     });
   }
 

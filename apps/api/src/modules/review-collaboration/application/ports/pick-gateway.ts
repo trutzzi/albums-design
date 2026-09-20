@@ -21,6 +21,8 @@ export interface PickGateway {
   loadProject(projectId: string): Promise<PickableProject | undefined>;
   listPhotos(projectId: string): Promise<PickablePhoto[]>;
   hasPhoto(projectId: string, photoId: string): Promise<boolean>;
+  /** Uploaded photos whose display copies are still being made — they will appear in `listPhotos` shortly. */
+  countProcessing(projectId: string): Promise<number>;
 }
 
 export interface PickNotifier {

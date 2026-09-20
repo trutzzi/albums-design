@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { runWithLimit, sortFilesByName } from "../../lib/upload-queue";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { SUPPORTED_MIME_TYPES } from "@albumflow/contracts";
@@ -46,6 +47,9 @@ interface Transfer {
   state: TransferState;
   message?: string;
 }
+
+/** Uploads in flight at once. Enough to keep a fast connection busy, few enough to stay orderly. */
+const UPLOAD_PARALLELISM = 6;
 
 export function ProjectPage() {
   const { studioId } = useAuth();
@@ -255,7 +259,6 @@ export function ProjectPage() {
         updateTransfer(key, { state: "confirming" });
         await confirmUpload(photoId, { useAi });
         updateTransfer(key, { state: "done" });
-        void queryClient.invalidateQueries({ queryKey: ["photos", projectId] });
       } catch (error) {
         updateTransfer(key, {
           state: "error",
@@ -269,9 +272,16 @@ export function ProjectPage() {
   const handleFiles = useCallback(
     (fileList: FileList | null) => {
       if (!fileList) return;
-      Array.from(fileList).forEach((file) => void uploadOne(file));
+      // In file-name order, a few at a time — not all at once — so the shoot fills up in
+      // order and a thousand photos do not open a thousand connections.
+      const files = sortFilesByName(Array.from(fileList));
+      void runWithLimit(files, UPLOAD_PARALLELISM, uploadOne).then(() =>
+        // The photo list is refreshed by its own timer while photos arrive; this final refresh
+        // makes sure the last few show up without waiting for it.
+        queryClient.invalidateQueries({ queryKey: ["photos", projectId] }),
+      );
     },
-    [uploadOne],
+    [uploadOne, queryClient, projectId],
   );
 
   const startGenerate = useCallback(() => {
@@ -511,9 +521,21 @@ export function ProjectPage() {
                   <span className="album-list__title">{session.clientName}</span>
                   <p className="muted">
                     {session.pickLimit === null
-                      ? t("project.picks.count", { count: session.pickedCount })
-                      : t("project.picks.countLimit", { count: session.pickedCount, limit: session.pickLimit })}
+                      ? t("project.picks.progress", {
+                          shortlisted: session.shortlistedCount,
+                          count: session.pickedCount,
+                        })
+                      : t("project.picks.progressLimit", {
+                          shortlisted: session.shortlistedCount,
+                          count: session.pickedCount,
+                          limit: session.pickLimit,
+                        })}
                   </p>
+                  {session.status === "OPEN" && (
+                    <p className="muted">
+                      {t(session.stage === "SHORTLIST" ? "project.picks.step.shortlist" : "project.picks.step.final")}
+                    </p>
+                  )}
                 </div>
                 <div className="panel__actions">
                   <span className={`chip chip--${session.status.toLowerCase()}`}>

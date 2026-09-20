@@ -16,6 +16,7 @@ const openSchema = z.object({
 });
 const pickSchema = z.object({ picked: z.boolean() });
 const unlockSchema = z.object({ password: z.string().min(1).max(100) });
+const stageSchema = z.object({ stage: z.enum(["SHORTLIST", "FINAL"]) });
 
 export interface PickDependencies {
   pickAdmin: PickSessionAdminUseCase;
@@ -84,6 +85,17 @@ export function registerPickRoutes(app: FastifyInstance, deps: PickDependencies)
     if (allowed.isFailure) return sendClientError(reply, allowed.getError());
     const { picked } = pickSchema.parse(request.body);
     const result = await deps.pickPortal.setPick(token, photoId, picked);
+    if (result.isFailure) return sendClientError(reply, result.getError());
+    return result.getValue();
+  });
+
+  // Moving between step 1 (the shortlist) and step 2 (the final selection).
+  app.post("/pick/:token/stage", async (request, reply) => {
+    const { token } = tokenParams.parse(request.params);
+    const { stage } = stageSchema.parse(request.body);
+    const allowed = await deps.pickPortal.authorize(token, grantFrom(request));
+    if (allowed.isFailure) return sendClientError(reply, allowed.getError());
+    const result = await deps.pickPortal.setStage(token, stage);
     if (result.isFailure) return sendClientError(reply, result.getError());
     return result.getValue();
   });
