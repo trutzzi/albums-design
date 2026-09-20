@@ -175,12 +175,21 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml exec api printen
 
 **What lands on DigiStorage, and when** (so an empty folder isn't mistaken for a failure):
 
-- **Previews and thumbnails** of each photo, written by the worker right after the upload is
-  processed — but only for photos uploaded **after** this is switched on. Photos that were already
-  uploaded keep their copies in MinIO.
-- **Full-size originals** only for photos that were *selected*: when a client submits their picks,
-  or approves an album. Every other original stays in MinIO and is deleted 30 days after delivery
-  (unless a client download link is still active).
+- **Every uploaded original** (the default, `LONG_TERM_ORIGINALS=all`). The browser can only upload
+  to the server's own storage (MinIO) — WebDAV has no direct-upload links — so each photo is
+  copied to DigiStorage by the worker right after its upload is confirmed. A background sweep
+  every 5 minutes copies anything that is still missing, and it also **backfills photos uploaded
+  before this was switched on** (oldest first, a few minutes of work per run, so a large backlog
+  takes a while and needs no action). A copy that fails while DigiStorage is unreachable is retried
+  by the sweep.
+- **Previews and thumbnails** of each photo, written when the upload is processed — for photos
+  uploaded after long-term storage was switched on.
+- The 30-day cleanup of the server's own copies (MinIO) deletes an original **only once it is
+  verifiably on DigiStorage**, and copies it first if it isn't. It never deletes the only copy.
+- Set `LONG_TERM_ORIGINALS=selected` to go back to the older behaviour, where only photos a client
+  picked or an approved album uses are kept on DigiStorage. (Optional GitHub secret of the same name.)
+- Capacity: every shoot's full-size originals now count against your Digi Storage plan
+  (about 3–4 MB per photo, so a 2,000-photo wedding is roughly 7–8 GB).
 
 ### 3. DNS — in the *original* cPanel's Zone Editor
 

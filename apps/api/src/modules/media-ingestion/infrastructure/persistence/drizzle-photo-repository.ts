@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "../../../../db/client";
 import type { PhotoRepository } from "../../domain/photo-repository";
@@ -70,6 +70,22 @@ export class DrizzlePhotoRepository implements PhotoRepository {
       .update(photos)
       .set({ stagedOriginalPurgedAt: at })
       .where(eq(photos.id, id.toString()));
+  }
+
+  async findAwaitingLongTermStorage(limit: number): Promise<Photo[]> {
+    const rows = await this.db
+      .select()
+      .from(photos)
+      .where(
+        and(
+          ne(photos.status, "PENDING_UPLOAD"),
+          isNull(photos.fullResStoredAt),
+          isNull(photos.stagedOriginalPurgedAt),
+        ),
+      )
+      .orderBy(asc(photos.createdAt))
+      .limit(limit);
+    return rows.map((row) => this.toDomain(row));
   }
 
   async findById(id: UniqueEntityId): Promise<Photo | undefined> {

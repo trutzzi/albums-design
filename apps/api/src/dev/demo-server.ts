@@ -98,6 +98,7 @@ import { MediaUrlSigner } from "../infrastructure/storage/media-url-signer";
 import { DigiStorageProvider } from "../infrastructure/storage/digistorage-storage-provider";
 import { TieredPhotoByteSource } from "../infrastructure/storage/tiered-photo-byte-source";
 import { InMemoryStorageProvider } from "./in-memory-storage-provider";
+import { StoreOriginalUseCase } from "../modules/media-ingestion/application/use-cases/store-original/store-original.use-case";
 import { PromoteSelectedPhotosUseCase } from "../modules/media-ingestion/application/use-cases/promote-selected/promote-selected.use-case";
 import { AlbumCompositionPlacementDirectory } from "../modules/media-ingestion/infrastructure/gateways/album-placement-gateway";
 import { PromoteOnApprovalNotifier } from "../modules/review-collaboration/infrastructure/gateways/promote-on-approval-notifier";
@@ -184,6 +185,9 @@ async function main() {
       urlSigner: mediaUrlSigner,
     });
   }
+  // Same switch as production: with a long-term provider, every upload is copied there too.
+  const storeEverything = Boolean(permanentStorage) && (process.env.LONG_TERM_ORIGINALS ?? "all") === "all";
+  const storeOriginal = permanentStorage ? new StoreOriginalUseCase(photos, storage, permanentStorage) : undefined;
   const promoteSelected = permanentStorage
     ? new PromoteSelectedPhotosUseCase(
         photos,
@@ -254,6 +258,12 @@ async function main() {
     }
   });
   queue.on(QUEUES.storage, async (jobName, payload) => {
+    if (jobName === "store-original" && storeOriginal) {
+      const result = await storeOriginal.execute({ photoId: String(payload.photoId) });
+      if (result.isFailure) console.error(`  long-term storage: ${result.getError().message}`);
+      else if (result.getValue() === "stored") console.log(`  long-term storage: original ${String(payload.photoId).slice(0, 8)} stored`);
+      return;
+    }
     if (!promoteSelected) return;
     let result;
     if (jobName === "promote-selected") {
@@ -356,7 +366,7 @@ async function main() {
   registerIdentityRoutes(app, { administration, register, login });
   registerMediaIngestionRoutes(app, {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
-    confirmUpload: new ConfirmUploadUseCase(photos, storage, queue),
+    confirmUpload: new ConfirmUploadUseCase(photos, storage, queue, storeEverything),
     listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
     deleteProject: new DeleteProjectUseCase(
       projects,

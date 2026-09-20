@@ -6,6 +6,7 @@ import type { JobQueue } from "../../ports/job-queue";
 
 const PHOTO_INTELLIGENCE_QUEUE = "photo-intelligence";
 const MEDIA_QUEUE = "media-ingestion";
+const STORAGE_QUEUE = "storage";
 
 export interface ConfirmUploadCommand {
   photoId: string;
@@ -25,6 +26,8 @@ export class ConfirmUploadUseCase {
     private readonly photos: PhotoRepository,
     private readonly storage: ObjectStorage,
     private readonly jobs: JobQueue,
+    /** Copy every uploaded original to long-term storage right after upload (LONG_TERM_ORIGINALS=all). */
+    private readonly storeOriginalLongTerm = false,
   ) {}
 
   async execute(command: ConfirmUploadCommand): Promise<Result<ConfirmUploadResult, ApplicationError>> {
@@ -59,6 +62,16 @@ export class ConfirmUploadUseCase {
       mimeType: photo.mimeType,
       useAi: command.useAi ?? false,
     });
+
+    // The fast path of "every photo goes to long-term storage". Best effort: the upload
+    // is already safe in staging, and a periodic sweep retries anything this misses.
+    if (this.storeOriginalLongTerm) {
+      try {
+        await this.jobs.enqueue(STORAGE_QUEUE, "store-original", { photoId: photo.id.toString() });
+      } catch (error) {
+        console.error(`[storage] could not queue the long-term copy of ${photo.id.toString()}: ${String(error)}`);
+      }
+    }
 
     return Result.success({
       photoId: photo.id.toString(),

@@ -27,4 +27,10 @@ export interface PhotoRepository {
   markSelected(ids: UniqueEntityId[], at: Date): Promise<void>;
   markFullResStored(id: UniqueEntityId, at: Date): Promise<void>;
   markStagedOriginalPurged(id: UniqueEntityId, at: Date): Promise<void>;
+  /**
+   * Uploaded photos whose original is not yet confirmed on long-term storage and is still
+   * in staging (so it can be copied), oldest first. Photos whose upload never finished, and
+   * ones whose staged original was already purged, are never returned.
+   */
+  findAwaitingLongTermStorage(limit: number): Promise<Photo[]>;
 }

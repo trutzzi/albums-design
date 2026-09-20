@@ -23,6 +23,8 @@ import { ListProjectPhotosUseCase } from "./modules/media-ingestion/application/
 import { DeleteProjectUseCase } from "./modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
 import { GenerateDerivativesUseCase } from "./modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
 import { SharpImageResizer } from "./modules/media-ingestion/infrastructure/imaging/sharp-image-resizer";
+import { StoreOriginalUseCase } from "./modules/media-ingestion/application/use-cases/store-original/store-original.use-case";
+import { StorePendingOriginalsUseCase } from "./modules/media-ingestion/application/use-cases/store-original/store-pending-originals.use-case";
 import { PromoteSelectedPhotosUseCase } from "./modules/media-ingestion/application/use-cases/promote-selected/promote-selected.use-case";
 import { PurgeExpiredOriginalsUseCase } from "./modules/media-ingestion/application/use-cases/purge-expired-originals/purge-expired-originals.use-case";
 import { AlbumCompositionPlacementDirectory } from "./modules/media-ingestion/infrastructure/gateways/album-placement-gateway";
@@ -106,6 +108,10 @@ export interface CompositionRoot {
   permanentStorage: StorageProvider | undefined;
   mediaUrlSigner: MediaUrlSigner;
   promoteSelected: PromoteSelectedPhotosUseCase | undefined;
+  /** Copies one original to long-term storage. Present whenever a provider is configured. */
+  storeOriginal: StoreOriginalUseCase | undefined;
+  /** The sweep that stores every original not yet stored. Present only with LONG_TERM_ORIGINALS=all. */
+  storePending: StorePendingOriginalsUseCase | undefined;
   purgeExpiredOriginals: PurgeExpiredOriginalsUseCase | undefined;
   analyses: DrizzlePhotoAnalysisRepository;
   analyzePhoto: AnalyzePhotoUseCase;
@@ -325,6 +331,13 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const promoteSelected = permanentStorage
     ? new PromoteSelectedPhotosUseCase(photos, storage, permanentStorage, placements, undefined, clientPicks)
     : undefined;
+  // "All": every uploaded original is copied to long-term storage — right after upload,
+  // and by a periodic sweep that also backfills photos uploaded before it was switched on.
+  const storeEverything = Boolean(permanentStorage) && env.LONG_TERM_ORIGINALS === "all";
+  const storeOriginal = permanentStorage
+    ? new StoreOriginalUseCase(photos, storage, permanentStorage)
+    : undefined;
+  const storePending = storeEverything && storeOriginal ? new StorePendingOriginalsUseCase(photos, storeOriginal) : undefined;
   const purgeExpiredOriginals = promoteSelected
     ? new PurgeExpiredOriginalsUseCase(
         projects,
@@ -337,12 +350,13 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
         undefined,
         clientPicks,
         new ReviewCollaborationDownloadHolds(downloadSessions),
+        storeEverything ? storeOriginal : undefined,
       )
     : undefined;
 
   const mediaIngestion: MediaIngestionDependencies = {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
-    confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue),
+    confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue, storeEverything),
     listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
     deleteProject,
     projects,
@@ -362,6 +376,8 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     permanentStorage,
     mediaUrlSigner,
     promoteSelected,
+    storeOriginal,
+    storePending,
     purgeExpiredOriginals,
     analyses,
     analyzePhoto,

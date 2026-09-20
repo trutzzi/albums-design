@@ -263,6 +263,7 @@ jobs:
           DIGISTORAGE_USERNAME: ${{ secrets.DIGISTORAGE_USERNAME }}
           DIGISTORAGE_APP_PASSWORD: ${{ secrets.DIGISTORAGE_APP_PASSWORD }}
           DIGISTORAGE_ROOT_PATH: ${{ secrets.DIGISTORAGE_ROOT_PATH }}
+          LONG_TERM_ORIGINALS: ${{ secrets.LONG_TERM_ORIGINALS }}
           EMAIL_PROVIDER: ${{ secrets.EMAIL_PROVIDER }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -288,6 +289,7 @@ jobs:
           add DIGISTORAGE_USERNAME "${DIGISTORAGE_USERNAME:-}"
           add DIGISTORAGE_APP_PASSWORD "${DIGISTORAGE_APP_PASSWORD:-}"
           add DIGISTORAGE_ROOT_PATH "${DIGISTORAGE_ROOT_PATH:-}"
+          add LONG_TERM_ORIGINALS "${LONG_TERM_ORIGINALS:-}"
           add EMAIL_PROVIDER "${EMAIL_PROVIDER:-}"
           add SMTP_HOST "${SMTP_HOST:-}"
           add SMTP_PORT "${SMTP_PORT:-}"

@@ -26,6 +26,10 @@ interface PromotePickedJob {
   projectId: string;
 }
 
+interface StoreOriginalJob {
+  photoId: string;
+}
+
 /**
  * Every log line here is timestamped and every job logs both when it starts
  * and when it finishes — not just completion. Without both ends, "this line
@@ -111,8 +115,20 @@ async function main() {
   const storageWorker = root.promoteSelected && root.purgeExpiredOriginals
     ? new Worker(
         QUEUES.storage,
-        async (job: Job<PromoteSelectedJob | PromotePickedJob | Record<string, never>>) => {
-          if (job.name === "promote-picked") {
+        async (job: Job<PromoteSelectedJob | PromotePickedJob | StoreOriginalJob | Record<string, never>>) => {
+          if (job.name === "store-original") {
+            // The fast path: one photo's original, queued the moment its upload was confirmed.
+            const result = await root.storeOriginal!.execute({ photoId: (job.data as StoreOriginalJob).photoId });
+            if (result.isFailure) throw new Error(result.getError().message);
+            log(`[storage] original ${(job.data as StoreOriginalJob).photoId}: ${result.getValue()}`);
+          } else if (job.name === "store-pending") {
+            // The safety net and backfill: everything not yet on long-term storage, oldest first.
+            const summary = await root.storePending!.execute();
+            log(
+              `[storage] sweep: ${summary.stored} stored, ${summary.alreadyStored} already there, ${summary.failed} failed` +
+                (summary.stoppedEarly ? " (time budget reached; the next run continues)" : ""),
+            );
+          } else if (job.name === "promote-picked") {
             const result = await root.promoteSelected!.executePicked({ projectId: (job.data as PromotePickedJob).projectId });
             if (result.isFailure) throw new Error(result.getError().message);
             const { promoted, alreadyStored } = result.getValue();
@@ -129,8 +145,9 @@ async function main() {
             );
           }
         },
-        // Copies move whole originals through memory; keep them one at a time.
-        { connection, concurrency: 1 },
+        // Copies move whole originals through memory, so keep this small: two at once lets a
+        // long backfill sweep run beside the individual copies without starving them.
+        { connection, concurrency: 2 },
       )
     : undefined;
 
@@ -141,6 +158,18 @@ async function main() {
     { pattern: "0 3 * * *" },
     { name: "purge-expired", data: {} },
   );
+
+  // Every original goes to long-term storage (LONG_TERM_ORIGINALS=all): a sweep every 5
+  // minutes stores whatever is not there yet — the backfill for photos uploaded earlier and
+  // the retry for any copy that failed — and one runs right away at startup.
+  if (storageQueue && root.storePending) {
+    await storageQueue.upsertJobScheduler(
+      "store-pending-originals",
+      { pattern: "*/5 * * * *" },
+      { name: "store-pending", data: {} },
+    );
+    await storageQueue.add("store-pending", {}, { removeOnComplete: 50, removeOnFail: 50 });
+  }
 
   const workers = [derivativeWorker, analysisWorker, exportWorker, ...(storageWorker ? [storageWorker] : [])];
   for (const worker of workers) {

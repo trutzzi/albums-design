@@ -64,6 +64,13 @@ const envSchema = z.object({
   SMTP_PASSWORD: optionalString,
   /** The From address, e.g. `AlbumFlow <notifications@yourdomain.ro>`. Must be allowed by your mail server. */
   MAIL_FROM: optionalString,
+  /**
+   * Which originals go to long-term storage when a provider is configured. "all": every
+   * uploaded photo is copied there (and photos uploaded before are backfilled), so nothing
+   * is ever lost when the staging copy is cleaned up. "selected": only photos a client picked
+   * or an approved album uses, the rest expiring after delivery.
+   */
+  LONG_TERM_ORIGINALS: z.enum(["all", "selected"]).default("all"),
   /** Days after an album's latest export completes before staged full-res originals are deleted. */
   ORIGINAL_RETENTION_DAYS: z.coerce.number().int().min(1).default(30),
   /** Longest edge, in pixels, of the previews written to long-term storage. */

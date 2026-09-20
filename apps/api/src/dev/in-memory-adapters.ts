@@ -117,6 +117,16 @@ export class InMemoryPhotoRepository implements PhotoRepository {
   async markStagedOriginalPurged(id: UniqueEntityId, at: Date) {
     await this.mutate(id, (photo) => photo.markStagedOriginalPurged(at));
   }
+  async findAwaitingLongTermStorage(limit: number) {
+    return [...this.items.values()]
+      .filter(
+        (photo) =>
+          photo.status !== "PENDING_UPLOAD" && !photo.fullResStoredAt && !photo.stagedOriginalPurgedAt,
+      )
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .slice(0, limit)
+      .map(clonePhoto);
+  }
   private async mutate(id: UniqueEntityId, change: (photo: Photo) => void) {
     const stored = this.items.get(id.toString());
     if (!stored) return;

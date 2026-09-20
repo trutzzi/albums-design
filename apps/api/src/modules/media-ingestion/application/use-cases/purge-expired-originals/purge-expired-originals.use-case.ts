@@ -7,6 +7,7 @@ import type { ClientPickDirectory } from "../../ports/client-picks";
 import type { DownloadHoldDirectory } from "../../ports/download-holds";
 import type { ObjectStorageWithBody } from "../../ports/object-storage";
 import type { PromoteSelectedPhotosUseCase } from "../promote-selected/promote-selected.use-case";
+import type { StoreOriginalUseCase } from "../store-original/store-original.use-case";
 
 export interface PurgeSummary {
   projectsSwept: number;
@@ -40,6 +41,12 @@ export class PurgeExpiredOriginalsUseCase {
     private readonly now: () => Date = () => new Date(),
     private readonly picks?: ClientPickDirectory,
     private readonly downloadHolds?: DownloadHoldDirectory,
+    /**
+     * Present when every original is meant to live on long-term storage. Then the rule is
+     * stricter than for placed photos alone: NO staged original is deleted unless it is
+     * verifiably stored there, and one that is not yet is copied first.
+     */
+    private readonly storeEverything?: StoreOriginalUseCase,
   ) {}
 
   async execute(): Promise<PurgeSummary> {
@@ -72,6 +79,16 @@ export class PurgeExpiredOriginalsUseCase {
         if (!photo.hasDerivatives || (isPlaced && !photo.fullResStoredAt)) {
           summary.heldBack++;
           continue;
+        }
+
+        // Never the only copy: with everything meant to be stored long-term, an original that
+        // is not there yet is copied now, and if that fails it stays in staging.
+        if (this.storeEverything && !photo.fullResStoredAt) {
+          const stored = await this.storeEverything.execute({ photoId: photo.id.toString() });
+          if (stored.isFailure) {
+            summary.heldBack++;
+            continue;
+          }
         }
 
         await this.staging.delete(photo.storageKey.toString());
