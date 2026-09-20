@@ -18,6 +18,7 @@ import { DrizzlePhotoRepository } from "./modules/media-ingestion/infrastructure
 import { S3ObjectStorage } from "./modules/media-ingestion/infrastructure/storage/s3-object-storage";
 import { BullMqJobQueue } from "./modules/media-ingestion/infrastructure/queue/bullmq-job-queue";
 import { RequestUploadUseCase } from "./modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
+import { AbandonUploadUseCase } from "./modules/media-ingestion/application/use-cases/abandon-upload/abandon-upload.use-case";
 import { ConfirmUploadUseCase } from "./modules/media-ingestion/application/use-cases/confirm-upload/confirm-upload.use-case";
 import { ListProjectPhotosUseCase } from "./modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
 import { DeleteProjectUseCase } from "./modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
@@ -381,6 +382,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const mediaIngestion: MediaIngestionDependencies = {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue, storeEverything),
+    abandonUpload: new AbandonUploadUseCase(photos, storage),
     listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
     deleteProject,
     projects,

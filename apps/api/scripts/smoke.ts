@@ -200,6 +200,22 @@ async function main() {
     check("the PDF is downloadable and well formed",
       pdf.subarray(0, 5).toString() === "%PDF-",
       `${(pdf.byteLength / 1024 / 1024).toFixed(2)} MB`);
+    // --- 8. deleting the shoot ---------------------------------------------
+    // The one operation that has to clean up every table at once — photos, analyses,
+    // albums, exports, and all three kinds of client link — in an order the database's
+    // foreign keys accept. In-memory adapters cannot enforce those, so this is the only
+    // place the real ordering is ever proven.
+    const deleted = await fetch(`${BASE_URL}/projects/${projectId}`, {
+      method: "DELETE",
+      headers: studioHeaders,
+    });
+    check(
+      "deleting the shoot removes it and everything it owns",
+      deleted.status === 204,
+      deleted.status === 204 ? "" : `status ${deleted.status}: ${await deleted.text()}`,
+    );
+    const gone = await fetch(`${BASE_URL}/projects/${projectId}`, { headers: studioHeaders });
+    check("the shoot is really gone afterwards", gone.status === 404, `status ${gone.status}`);
   } finally {
     await close();
   }

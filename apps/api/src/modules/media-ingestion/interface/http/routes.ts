@@ -7,6 +7,7 @@ import { authenticatedStudioId } from "../../../../interface/tenancy";
 import { Project } from "../../domain/project";
 import type { ProjectRepository } from "../../domain/project-repository";
 import type { RequestUploadUseCase } from "../../application/use-cases/request-upload/request-upload.use-case";
+import type { AbandonUploadUseCase } from "../../application/use-cases/abandon-upload/abandon-upload.use-case";
 import type { ConfirmUploadUseCase } from "../../application/use-cases/confirm-upload/confirm-upload.use-case";
 import type { ListProjectPhotosUseCase } from "../../application/use-cases/list-project-photos/list-project-photos.use-case";
 import type { DeleteProjectUseCase } from "../../application/use-cases/delete-project/delete-project.use-case";
@@ -30,6 +31,7 @@ const projectIdParamsSchema = z.object({ projectId: z.string().uuid() });
 export interface MediaIngestionDependencies {
   requestUpload: RequestUploadUseCase;
   confirmUpload: ConfirmUploadUseCase;
+  abandonUpload: AbandonUploadUseCase;
   listProjectPhotos: ListProjectPhotosUseCase;
   deleteProject: DeleteProjectUseCase;
   projects: ProjectRepository;
@@ -115,6 +117,14 @@ export function registerMediaIngestionRoutes(app: FastifyInstance, deps: MediaIn
     }
 
     return reply.code(200).send(result.getValue());
+  });
+
+  // What a cancelled batch leaves behind: rows whose upload never completed.
+  app.delete("/photos/:photoId", async (request, reply) => {
+    const params = photoParamsSchema.parse(request.params);
+    const result = await deps.abandonUpload.execute({ photoId: params.photoId });
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return reply.code(204).send();
   });
 
   app.get("/projects/:projectId/photos", async (request) => {

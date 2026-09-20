@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { runWithLimit, sortFilesByName } from "../../lib/upload-queue";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -24,6 +24,7 @@ import {
   listProjectAlbums,
   listProjectAnalyses,
   listProjectPhotos,
+  abandonUpload,
   putFileToStorage,
   requestUpload,
 } from "../../lib/api";
@@ -61,6 +62,13 @@ export function ProjectPage() {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
+  /** Present only while a batch is uploading — it also blocks the rest of the page. */
+  const [upload, setUpload] = useState<{ total: number; done: number; failed: number; cancelling: boolean } | null>(
+    null,
+  );
+  const uploadAbort = useRef<AbortController | null>(null);
+  /** Photos created on the server whose upload has not been confirmed — what a cancel must clean up. */
+  const unconfirmed = useRef(new Set<string>());
   const [isDragging, setDragging] = useState(false);
   const [targetSpreads, setTargetSpreads] = useState(10);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -266,49 +274,90 @@ export function ProjectPage() {
   }, []);
 
   const uploadOne = useCallback(
-    async (file: File) => {
+    async (file: File, signal?: AbortSignal) => {
       const key = `${file.name}-${file.lastModified}-${file.size}`;
       setTransfers((prev) => [...prev, { key, fileName: file.name, state: "uploading" }]);
 
       if (!ACCEPTED.has(file.type)) {
         updateTransfer(key, { state: "error", message: "Unsupported file type" });
+        setUpload((current) => (current ? { ...current, failed: current.failed + 1 } : current));
         return;
       }
 
       try {
-        const { photoId, uploadUrl } = await requestUpload(studioId, projectId, {
+        const requested = await requestUpload(studioId, projectId, {
           fileName: file.name,
           mimeType: file.type as SupportedMimeType,
           byteSize: file.size,
         });
-        await putFileToStorage(uploadUrl, file);
+        // From here the server holds a row for this photo; until confirm-upload succeeds it is
+        // an unfinished upload, and a cancel is responsible for clearing it.
+        unconfirmed.current.add(requested.photoId);
+        await putFileToStorage(requested.uploadUrl, file, signal);
         updateTransfer(key, { state: "confirming" });
-        await confirmUpload(photoId, { useAi });
+        await confirmUpload(requested.photoId, { useAi });
+        unconfirmed.current.delete(requested.photoId);
         updateTransfer(key, { state: "done" });
+        setUpload((current) => (current ? { ...current, done: current.done + 1 } : current));
       } catch (error) {
+        const cancelled = signal?.aborted === true;
         updateTransfer(key, {
           state: "error",
-          message: error instanceof Error ? error.message : "Upload failed",
+          message: cancelled
+            ? t("project.upload.cancelledFile")
+            : error instanceof Error
+              ? error.message
+              : "Upload failed",
         });
+        if (!cancelled) setUpload((current) => (current ? { ...current, failed: current.failed + 1 } : current));
       }
     },
-    [projectId, queryClient, updateTransfer, useAi],
+    [projectId, studioId, updateTransfer, useAi, t],
   );
 
   const handleFiles = useCallback(
     (fileList: FileList | null) => {
-      if (!fileList) return;
+      if (!fileList || fileList.length === 0) return;
       // In file-name order, a few at a time — not all at once — so the shoot fills up in
       // order and a thousand photos do not open a thousand connections.
       const files = sortFilesByName(Array.from(fileList));
-      void runWithLimit(files, UPLOAD_PARALLELISM, uploadOne).then(() =>
-        // The photo list is refreshed by its own timer while photos arrive; this final refresh
-        // makes sure the last few show up without waiting for it.
-        queryClient.invalidateQueries({ queryKey: ["photos", projectId] }),
-      );
+      const controller = new AbortController();
+      uploadAbort.current = controller;
+      unconfirmed.current = new Set();
+      setUpload({ total: files.length, done: 0, failed: 0, cancelling: false });
+
+      void runWithLimit(files, UPLOAD_PARALLELISM, (file) => uploadOne(file, controller.signal), controller.signal)
+        .then(async () => {
+          // Anything still unconfirmed here was cut off by a cancel: the rows exist on the
+          // server but no photo does, so they are thrown away rather than left behind.
+          const orphans = [...unconfirmed.current];
+          unconfirmed.current = new Set();
+          if (orphans.length > 0) {
+            setUpload((current) => (current ? { ...current, cancelling: true } : current));
+            await Promise.allSettled(orphans.map((photoId) => abandonUpload(photoId)));
+          }
+        })
+        .finally(() => {
+          uploadAbort.current = null;
+          setUpload(null);
+          void queryClient.invalidateQueries({ queryKey: ["photos", projectId] });
+        });
     },
     [uploadOne, queryClient, projectId],
   );
+
+  const cancelUpload = useCallback(() => {
+    setUpload((current) => (current ? { ...current, cancelling: true } : current));
+    uploadAbort.current?.abort();
+  }, []);
+
+  // A reload mid-batch would strand half-uploaded photos, so the browser asks first.
+  useEffect(() => {
+    if (!upload) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [upload]);
 
   const startGenerate = useCallback(() => {
     if (!hasChosenLanguage) {
@@ -910,6 +959,38 @@ export function ProjectPage() {
                 }}
               >
                 {t("ai.consent.agree")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {upload && (
+        <div className="modal-overlay upload-overlay" role="presentation">
+          <div className="modal upload-progress" role="dialog" aria-modal="true" aria-labelledby="upload-title">
+            <h2 id="upload-title">
+              {upload.cancelling ? t("project.upload.cancelling") : t("project.upload.title")}
+            </h2>
+            <p className="muted">
+              {t("project.upload.progress", { done: upload.done, total: upload.total })}
+              {upload.failed > 0 && ` · ${t("project.upload.failed", { count: upload.failed })}`}
+            </p>
+            <div
+              className="upload-progress__track"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={upload.total}
+              aria-valuenow={upload.done + upload.failed}
+            >
+              <div
+                className="upload-progress__bar"
+                style={{ width: `${Math.round(((upload.done + upload.failed) / upload.total) * 100)}%` }}
+              />
+            </div>
+            <p className="muted">{t("project.upload.keepOpen")}</p>
+            <div className="modal__actions">
+              <button type="button" className="button" disabled={upload.cancelling} onClick={cancelUpload}>
+                {upload.cancelling ? t("project.upload.cancelling") : t("common.cancel")}
               </button>
             </div>
           </div>

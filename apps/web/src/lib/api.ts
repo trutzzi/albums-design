@@ -110,13 +110,22 @@ export function requestUpload(
   });
 }
 
-export async function putFileToStorage(uploadUrl: string, file: File): Promise<void> {
+export async function putFileToStorage(uploadUrl: string, file: File, signal?: AbortSignal): Promise<void> {
   const response = await fetch(uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": file.type },
     body: file,
+    ...(signal ? { signal } : {}),
   });
   if (!response.ok) throw new Error(`Upload to storage failed with ${response.status}`);
+}
+
+/**
+ * Throws away a photo whose upload never finished — the rows a cancelled batch leaves
+ * behind. The server refuses for anything already confirmed.
+ */
+export function abandonUpload(photoId: string): Promise<void> {
+  return request(`/photos/${photoId}`, { method: "DELETE" });
 }
 
 export function confirmUpload(photoId: string, input: ConfirmUploadInput = {}): Promise<PhotoDTO> {

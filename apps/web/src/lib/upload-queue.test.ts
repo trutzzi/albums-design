@@ -35,6 +35,23 @@ describe("runWithLimit", () => {
     assert.deepEqual(started, [0, 1, 2, 3, 4, 5]);
   });
 
+  it("starts nothing new once cancelled", async () => {
+    const controller = new AbortController();
+    const started: number[] = [];
+    await runWithLimit(
+      [0, 1, 2, 3, 4, 5, 6, 7],
+      2,
+      async (i) => {
+        started.push(i);
+        if (started.length === 3) controller.abort();
+        await sleep(2);
+      },
+      controller.signal,
+    );
+    assert.ok(started.length >= 3 && started.length <= 4, `started ${started.length}`);
+    assert.ok(!started.includes(7), "the tail of the list is never begun");
+  });
+
   it("copes with no items and a limit larger than the list", async () => {
     await runWithLimit([], 6, async () => { throw new Error("never"); });
     let ran = 0;

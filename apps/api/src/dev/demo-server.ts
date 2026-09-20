@@ -44,6 +44,7 @@ import { RegisterUseCase } from "../modules/identity/application/use-cases/regis
 import { LoginUseCase } from "../modules/identity/application/use-cases/login.use-case";
 import { SubscriptionQuotaPolicy } from "../modules/identity/application/subscription-quota-policy";
 import { RequestUploadUseCase } from "../modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
+import { AbandonUploadUseCase } from "../modules/media-ingestion/application/use-cases/abandon-upload/abandon-upload.use-case";
 import { ConfirmUploadUseCase } from "../modules/media-ingestion/application/use-cases/confirm-upload/confirm-upload.use-case";
 import { ListProjectPhotosUseCase } from "../modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
 import { DeleteProjectUseCase } from "../modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
@@ -370,6 +371,7 @@ async function main() {
   registerMediaIngestionRoutes(app, {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, queue, storeEverything),
+    abandonUpload: new AbandonUploadUseCase(photos, storage),
     listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
     deleteProject: new DeleteProjectUseCase(
       projects,

@@ -2250,3 +2250,32 @@ a:focus-visible,
   gap: 6px;
   white-space: nowrap;
 }
+
+/* ---- upload progress ---- */
+.upload-overlay {
+  /* Above every panel and the sticky sidebar: while photos are going up, nothing else is touchable. */
+  z-index: 60;
+}
+.upload-progress {
+  display: grid;
+  gap: 10px;
+  text-align: center;
+}
+.upload-progress h2 {
+  margin: 0;
+}
+.upload-progress__track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.upload-progress__bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+.upload-progress .modal__actions {
+  justify-content: center;
+}
