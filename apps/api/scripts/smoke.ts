@@ -13,6 +13,7 @@ import { Studio } from "../src/modules/identity/domain/studio";
 import { StudioMember } from "../src/modules/identity/domain/studio-member";
 import { Subscription } from "../src/modules/identity/domain/subscription";
 import { Project } from "../src/modules/media-ingestion/domain/project";
+import { runClientLinkChecks } from "./smoke-client-links";
 
 /**
  * Proves a running deployment actually works, rather than merely starting.
@@ -159,16 +160,18 @@ async function main() {
     );
     check("planner built an album", album.spreadCount > 0, `${album.spreadCount} spreads`);
 
-    // --- 6. the client review loop ----------------------------------------
-    const link = await api<{ token: string }>(`/albums/${album.id}/review-sessions`, {
-      method: "POST",
-      body: JSON.stringify({ clientName: "Smoke Client" }),
+    // --- 6. the client links, each behind its own generated password -------
+    // Album review, photo selection and download: locked without the password, open
+    // with it, and the studio can read the link and password back. This is also the
+    // first thing to touch the pick/download tables on a real Postgres.
+    await runClientLinkChecks({
+      baseUrl: BASE_URL,
+      api,
+      projectId: projectId.toString(),
+      albumId: album.id,
+      check,
+      waitFor,
     });
-    await api(
-      `/review/${link.token}/comments`,
-      { method: "POST", body: JSON.stringify({ spreadIndex: 0, body: "Smoke note" }) },
-      { "Content-Type": "application/json" },
-    );
     const feedback = await api<{ openCount: number; comments: { body: string }[] }>(
       `/albums/${album.id}/comments`,
     );
