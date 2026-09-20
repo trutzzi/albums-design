@@ -32,6 +32,11 @@ export class StorageKey extends ValueObject<StorageKeyProps> {
     return new StorageKey({ key });
   }
 
+  /** Everything one shoot owns, on any tier — the unit of cleanup and of storage limits. */
+  static projectPrefix(studioId: UniqueEntityId, projectId: UniqueEntityId): string {
+    return `studios/${studioId.toString()}/projects/${projectId.toString()}/`;
+  }
+
   static fromExisting(key: string): StorageKey {
     return new StorageKey({ key });
   }

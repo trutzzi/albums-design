@@ -31,7 +31,26 @@
     "demo": {
       "cache": false,
       "persistent": true,
-      "env": ["VISION_PROVIDER", "OLLAMA_BASE_URL", "OLLAMA_MODEL", "ANTHROPIC_API_KEY"]
+      "env": [
+        "VISION_PROVIDER",
+        "OLLAMA_BASE_URL",
+        "OLLAMA_MODEL",
+        "ANTHROPIC_API_KEY",
+        "STORAGE_PROVIDER",
+        "DIGISTORAGE_WEBDAV_URL",
+        "DIGISTORAGE_USERNAME",
+        "DIGISTORAGE_APP_PASSWORD",
+        "DIGISTORAGE_ROOT_PATH",
+        "EMAIL_PROVIDER",
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_SECURE",
+        "SMTP_USER",
+        "SMTP_PASSWORD",
+        "MAIL_FROM",
+        "WEB_ORIGIN",
+        "DEMO_OWNER_EMAIL"
+      ]
     }
   }
 }

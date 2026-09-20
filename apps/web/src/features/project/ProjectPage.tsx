@@ -8,6 +8,16 @@ import {
   getAiStatus,
   getProject,
   generateAlbum,
+  getDownloadAccess,
+  getPickAccess,
+  listDownloadSessions,
+  listPickSessions,
+  openDownloadSession,
+  revokeDownloadSession,
+  openPickSession,
+  reopenPickSession,
+  revokePickSession,
+  type PickSessionSummary,
   listProjectAlbums,
   listProjectAnalyses,
   listProjectPhotos,
@@ -17,6 +27,7 @@ import {
 import { useAuth } from "../../app/AuthContext";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { LanguagePrompt } from "../../components/LanguagePrompt";
+import { AccessDetailsModal } from "../../components/AccessDetailsModal";
 import {
   ALBUM_DIMENSIONS,
   DEFAULT_ALBUM_DIMENSION_ID,
@@ -59,6 +70,23 @@ export function ProjectPage() {
   // requires reading and agreeing to the disclaimer modal below first.
   const [useAi, setUseAi] = useState(false);
   const [aiConsentOpen, setAiConsentOpen] = useState(false);
+
+  // Client photo selection: the link is shown once (only its hash is stored).
+  const [pickClientName, setPickClientName] = useState("");
+  const [pickLimit, setPickLimit] = useState("");
+  const [pickLink, setPickLink] = useState<string | null>(null);
+  const [pickLinkCopied, setPickLinkCopied] = useState(false);
+  const [pickPassword, setPickPassword] = useState<string | null>(null);
+  const [pickDetailsFor, setPickDetailsFor] = useState<string | null>(null);
+
+  // Client delivery: the link is shown once (only its hash is stored).
+  const [deliveryClientName, setDeliveryClientName] = useState("");
+  const [deliveryDays, setDeliveryDays] = useState("30");
+  const [deliveryLink, setDeliveryLink] = useState<string | null>(null);
+  const [deliveryMissing, setDeliveryMissing] = useState(0);
+  const [deliveryCopied, setDeliveryCopied] = useState(false);
+  const [deliveryPassword, setDeliveryPassword] = useState<string | null>(null);
+  const [detailsFor, setDetailsFor] = useState<string | null>(null);
 
   const project = useQuery({
     queryKey: ["project", projectId],
@@ -109,6 +137,85 @@ export function ProjectPage() {
         },
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["albums", projectId] }),
+  });
+
+  const pickSessions = useQuery({
+    queryKey: ["pick-sessions", projectId],
+    queryFn: () => listPickSessions(projectId),
+    refetchInterval: 15000,
+  });
+  const refreshPicks = () => queryClient.invalidateQueries({ queryKey: ["pick-sessions", projectId] });
+
+  const createPickLink = useMutation({
+    mutationFn: () =>
+      openPickSession(projectId, {
+        clientName: pickClientName.trim() || "Client",
+        ...(Number(pickLimit) > 0 ? { pickLimit: Math.floor(Number(pickLimit)) } : {}),
+      }),
+    onSuccess: (session) => {
+      setPickLink(`${window.location.origin}/pick/${session.token}`);
+      setPickPassword(session.password ?? null);
+      setPickLinkCopied(false);
+      void refreshPicks();
+    },
+  });
+  const reopenPick = useMutation({
+    mutationFn: (sessionId: string) => reopenPickSession(projectId, sessionId),
+    onSuccess: refreshPicks,
+  });
+  const revokePick = useMutation({
+    mutationFn: (sessionId: string) => revokePickSession(projectId, sessionId),
+    onSuccess: refreshPicks,
+  });
+  const buildFromPicks = useMutation({
+    mutationFn: (session: PickSessionSummary) =>
+      generateAlbum(projectId, {
+        title: t("project.picks.buildTitle", { name: session.clientName }),
+        // Sized from the picks themselves, not the spread-count field above.
+        photoIds: session.pickedPhotoIds,
+        format: {
+          pageWidthMm: selectedDimension.widthCm * 10,
+          pageHeightMm: selectedDimension.heightCm * 10,
+          bleedMm: DEFAULT_BLEED_MM,
+        },
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["albums", projectId] }),
+  });
+
+  // Photos any client has sent as their picks, for the heart on the grid below.
+  const clientPicked = useMemo(
+    () =>
+      new Set(
+        (pickSessions.data ?? [])
+          .filter((session) => session.status === "SUBMITTED")
+          .flatMap((session) => session.pickedPhotoIds),
+      ),
+    [pickSessions.data],
+  );
+
+  const downloadSessions = useQuery({
+    queryKey: ["download-sessions", projectId],
+    queryFn: () => listDownloadSessions(projectId),
+    refetchInterval: 15000,
+  });
+  const refreshDownloads = () => queryClient.invalidateQueries({ queryKey: ["download-sessions", projectId] });
+  const createDownloadLink = useMutation({
+    mutationFn: () =>
+      openDownloadSession(projectId, {
+        clientName: deliveryClientName.trim() || "Client",
+        ...(Number(deliveryDays) > 0 ? { ttlDays: Math.floor(Number(deliveryDays)) } : {}),
+      }),
+    onSuccess: (session) => {
+      setDeliveryLink(`${window.location.origin}/download/${session.token}`);
+      setDeliveryPassword(session.password ?? null);
+      setDeliveryMissing(session.missingCount);
+      setDeliveryCopied(false);
+      void refreshDownloads();
+    },
+  });
+  const revokeDownload = useMutation({
+    mutationFn: (sessionId: string) => revokeDownloadSession(projectId, sessionId),
+    onSuccess: refreshDownloads,
   });
 
   const removeProject = useMutation({
@@ -340,13 +447,266 @@ export function ProjectPage() {
 
       <section className="panel">
         <div className="panel__head">
+          <h2>{t("project.picks.title")}</h2>
+        </div>
+        <p className="muted">{t("project.picks.intro")}</p>
+        <div className="pick-create">
+          <div className="field">
+            <label htmlFor="pick-client-name">{t("project.picks.clientName")}</label>
+            <input
+              id="pick-client-name"
+              value={pickClientName}
+              onChange={(event) => setPickClientName(event.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="pick-limit">{t("project.picks.limit")}</label>
+            <input
+              id="pick-limit"
+              type="number"
+              min={1}
+              value={pickLimit}
+              onChange={(event) => setPickLimit(event.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            className="button button--primary"
+            disabled={createPickLink.isPending}
+            onClick={() => createPickLink.mutate()}
+          >
+            {createPickLink.isPending ? t("project.picks.creating") : t("project.picks.create")}
+          </button>
+        </div>
+        {createPickLink.isError && <p className="error">{(createPickLink.error as Error).message}</p>}
+        {pickLink && (
+          <div className="share-link">
+            <p className="muted">{t("project.picks.linkReady")}</p>
+            <a href={pickLink}>{pickLink}</a>{" "}
+            <button
+              type="button"
+              className="button button--small"
+              onClick={() => {
+                void navigator.clipboard?.writeText(pickLink).then(() => setPickLinkCopied(true));
+              }}
+            >
+              {pickLinkCopied ? t("project.picks.copied") : t("project.picks.copy")}
+            </button>
+            {pickPassword && (
+              <p>
+                <span className="muted">{t("access.details.password")}: </span>
+                <code className="access-modal__password">{pickPassword}</code>
+              </p>
+            )}
+          </div>
+        )}
+
+        {(pickSessions.data ?? []).length === 0 ? (
+          <p className="muted">{t("project.picks.empty")}</p>
+        ) : (
+          <ul className="album-list">
+            {(pickSessions.data ?? []).map((session) => (
+              <li key={session.id}>
+                <div>
+                  <span className="album-list__title">{session.clientName}</span>
+                  <p className="muted">
+                    {session.pickLimit === null
+                      ? t("project.picks.count", { count: session.pickedCount })
+                      : t("project.picks.countLimit", { count: session.pickedCount, limit: session.pickLimit })}
+                  </p>
+                </div>
+                <div className="panel__actions">
+                  <span className={`chip chip--${session.status.toLowerCase()}`}>
+                    {t(`project.picks.status.${session.status.toLowerCase()}`)}
+                  </span>
+                  {session.passwordProtected && (
+                    <button type="button" className="button button--small" onClick={() => setPickDetailsFor(session.id)}>
+                      {t("access.details.open")}
+                    </button>
+                  )}
+                  {session.status !== "OPEN" && session.pickedCount > 0 && (
+                    <button
+                      type="button"
+                      className="button button--primary button--small"
+                      disabled={buildFromPicks.isPending}
+                      onClick={() => buildFromPicks.mutate(session)}
+                    >
+                      {buildFromPicks.isPending ? t("project.picks.building") : t("project.picks.buildAlbum")}
+                    </button>
+                  )}
+                  {session.status === "SUBMITTED" && (
+                    <button
+                      type="button"
+                      className="button button--small"
+                      disabled={reopenPick.isPending}
+                      onClick={() => reopenPick.mutate(session.id)}
+                    >
+                      {t("project.picks.reopen")}
+                    </button>
+                  )}
+                  {session.status !== "REVOKED" && (
+                    <button
+                      type="button"
+                      className="button button--small button--danger"
+                      disabled={revokePick.isPending}
+                      onClick={() => revokePick.mutate(session.id)}
+                    >
+                      {t("project.picks.revoke")}
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {buildFromPicks.isError && <p className="error">{(buildFromPicks.error as Error).message}</p>}
+      </section>
+
+      <section className="panel">
+        <div className="panel__head">
+          <h2>{t("project.delivery.title")}</h2>
+        </div>
+        <p className="muted">{t("project.delivery.intro")}</p>
+        <div className="pick-create">
+          <div className="field">
+            <label htmlFor="delivery-client-name">{t("project.delivery.clientName")}</label>
+            <input
+              id="delivery-client-name"
+              value={deliveryClientName}
+              onChange={(event) => setDeliveryClientName(event.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="delivery-days">{t("project.delivery.days")}</label>
+            <input
+              id="delivery-days"
+              type="number"
+              min={1}
+              max={365}
+              value={deliveryDays}
+              onChange={(event) => setDeliveryDays(event.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            className="button button--primary"
+            disabled={createDownloadLink.isPending}
+            onClick={() => createDownloadLink.mutate()}
+          >
+            {createDownloadLink.isPending ? t("project.delivery.creating") : t("project.delivery.create")}
+          </button>
+        </div>
+        {createDownloadLink.isError && <p className="error">{(createDownloadLink.error as Error).message}</p>}
+        {deliveryLink && (
+          <div className="share-link">
+            <p className="muted">{t("project.delivery.linkReady")}</p>
+            <a href={deliveryLink}>{deliveryLink}</a>{" "}
+            <button
+              type="button"
+              className="button button--small"
+              onClick={() => {
+                void navigator.clipboard?.writeText(deliveryLink).then(() => setDeliveryCopied(true));
+              }}
+            >
+              {deliveryCopied ? t("project.delivery.copied") : t("project.delivery.copy")}
+            </button>
+            {deliveryPassword && (
+              <p>
+                <span className="muted">{t("access.details.password")}: </span>
+                <code className="access-modal__password">{deliveryPassword}</code>
+              </p>
+            )}
+            {deliveryMissing > 0 && (
+              <p className="muted">{t("project.delivery.missing", { count: deliveryMissing })}</p>
+            )}
+          </div>
+        )}
+
+        {(downloadSessions.data ?? []).length === 0 ? (
+          <p className="muted">{t("project.delivery.empty")}</p>
+        ) : (
+          <ul className="album-list">
+            {(downloadSessions.data ?? []).map((session) => (
+              <li key={session.id}>
+                <div>
+                  <span className="album-list__title">{session.clientName}</span>
+                  <p className="muted">
+                    {session.downloadCount === 0
+                      ? t("project.delivery.notDownloaded")
+                      : t("project.delivery.downloaded", {
+                          count: session.downloadCount,
+                          date: new Date(session.lastDownloadedAt ?? session.createdAt).toLocaleString(),
+                        })}
+                  </p>
+                  {session.status === "ACTIVE" && (
+                    <p className="muted">
+                      {t("project.delivery.expires", {
+                        date: new Date(session.expiresAt).toLocaleDateString(),
+                        days: session.daysLeft,
+                      })}
+                    </p>
+                  )}
+                </div>
+                <div className="panel__actions">
+                  <span className={`chip chip--${session.status === "ACTIVE" ? "active" : session.status.toLowerCase()}`}>
+                    {t(`project.delivery.status.${session.status.toLowerCase()}`)}
+                  </span>
+                  {session.passwordProtected && (
+                    <button type="button" className="button button--small" onClick={() => setDetailsFor(session.id)}>
+                      {t("access.details.open")}
+                    </button>
+                  )}
+                  {session.status === "ACTIVE" && (
+                    <button
+                      type="button"
+                      className="button button--small button--danger"
+                      disabled={revokeDownload.isPending}
+                      onClick={() => revokeDownload.mutate(session.id)}
+                    >
+                      {t("project.delivery.revoke")}
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {pickDetailsFor && (
+        <AccessDetailsModal
+          title={t("access.details.title")}
+          queryKey={["pick-access", projectId, pickDetailsFor]}
+          load={() => getPickAccess(projectId, pickDetailsFor)}
+          urlFor={(token) => `${window.location.origin}/pick/${token}`}
+          onClose={() => setPickDetailsFor(null)}
+        />
+      )}
+
+      {detailsFor && (
+        <AccessDetailsModal
+          title={t("access.details.title")}
+          queryKey={["download-access", projectId, detailsFor]}
+          load={() => getDownloadAccess(projectId, detailsFor)}
+          urlFor={(token) => `${window.location.origin}/download/${token}`}
+          onClose={() => setDetailsFor(null)}
+        />
+      )}
+
+      <section className="panel">
+        <div className="panel__head">
           <h2>{t("project.photos.title")}</h2>
         </div>
         <div className="photo-grid">
           {(photos.data ?? []).map((photo) => {
             const analysis = analysisByPhoto.get(photo.id);
             return (
-              <figure key={photo.id} className="photo-card">
+              <figure key={photo.id} className={`photo-card ${clientPicked.has(photo.id) ? "photo-card--picked" : ""}`}>
+                {clientPicked.has(photo.id) && (
+                  <span className="photo-card__pick" title={t("project.picks.badge")} aria-label={t("project.picks.badge")}>
+                    ♥
+                  </span>
+                )}
                 {(photo.thumbnailUrl ?? photo.previewUrl) ? (
                   <img
                     src={photo.thumbnailUrl ?? photo.previewUrl ?? ""}

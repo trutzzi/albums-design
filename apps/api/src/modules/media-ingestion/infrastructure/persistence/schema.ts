@@ -35,4 +35,8 @@ export const photos = pgTable("photos", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
   hasDerivatives: boolean("has_derivatives").notNull().default(false),
+  permanentDerivatives: boolean("permanent_derivatives").notNull().default(false),
+  selectedAt: timestamp("selected_at", { withTimezone: true }),
+  fullResStoredAt: timestamp("full_res_stored_at", { withTimezone: true }),
+  stagedOriginalPurgedAt: timestamp("staged_original_purged_at", { withTimezone: true }),
 });

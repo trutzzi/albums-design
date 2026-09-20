@@ -3,11 +3,15 @@ import { ConflictError, NotFoundError, type ApplicationError } from "../../../..
 import type { ProjectRepository } from "../../../domain/project-repository";
 import type { PhotoRepository } from "../../../domain/photo-repository";
 import type { ObjectStorageWithBody } from "../../ports/object-storage";
+import type { StorageProvider } from "../../../../../shared-kernel/storage-provider";
+import { StorageKey } from "../../../domain/value-objects/storage-key";
 import type { PhotoAnalysisRepository } from "../../../../photo-intelligence/domain/photo-analysis-repository";
 import type { AlbumRepository } from "../../../../album-composition/domain/album-repository";
 import type { ExportJobRepository } from "../../../../export-print/domain/export-job-repository";
 import type { ExportStorage } from "../../../../export-print/application/ports/album-pdf-renderer";
 import type { ReviewSessionRepository } from "../../../../review-collaboration/domain/review-session-repository";
+import type { PickSessionRepository } from "../../../../review-collaboration/domain/pick-session-repository";
+import type { DownloadSessionRepository } from "../../../../review-collaboration/domain/download-session-repository";
 
 export interface DeleteProjectCommand {
   projectId: string;
@@ -15,7 +19,8 @@ export interface DeleteProjectCommand {
 
 /**
  * Removes an entire shoot: every album built from it (with its own exports
- * and review sessions, same as DeleteAlbumUseCase), every uploaded photo
+ * and review sessions, same as DeleteAlbumUseCase), its client selection and download links,
+ * every uploaded photo
  * (original and derivative files in storage, plus its analysis), and finally
  * the shoot itself. Refuses while any album has an export still QUEUED or
  * RENDERING, checked across all of them before anything is touched, so a
@@ -31,6 +36,9 @@ export class DeleteProjectUseCase {
     private readonly exportJobs: ExportJobRepository,
     private readonly exportStorage: ExportStorage,
     private readonly reviewSessions: ReviewSessionRepository,
+    private readonly permanent?: StorageProvider,
+    private readonly pickSessions?: PickSessionRepository,
+    private readonly downloadSessions?: DownloadSessionRepository,
   ) {}
 
   async execute(command: DeleteProjectCommand): Promise<Result<void, ApplicationError>> {
@@ -74,6 +82,13 @@ export class DeleteProjectUseCase {
       await this.photos.delete(photo.id);
     }
 
+    // Before the project row goes: if the long-term provider is unreachable this
+    // throws while the shoot still exists, so the delete can simply be retried —
+    // rather than succeeding and leaving orphaned files nothing points at.
+    await this.permanent?.deletePrefix(StorageKey.projectPrefix(project.studioId, project.id));
+    // Client selection links reference the shoot, so they go before it does.
+    await this.pickSessions?.deleteByProjectId(id);
+    await this.downloadSessions?.deleteByProjectId(id);
     await this.projects.delete(id);
 
     return Result.success(undefined);

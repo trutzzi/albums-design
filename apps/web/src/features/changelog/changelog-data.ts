@@ -17,6 +17,19 @@ export interface ChangelogRelease {
  */
 export const CHANGELOG_RELEASES: ChangelogRelease[] = [
   {
+    date: "September 20, 2026",
+    headingKey: "changelog.release.sep20.heading",
+    items: [
+      { titleKey: "changelog.item.clientPicks", descriptionKey: "changelog.item.clientPicks.desc", howToKey: "changelog.item.clientPicks.how" },
+      { titleKey: "changelog.item.clientPasswords", descriptionKey: "changelog.item.clientPasswords.desc", howToKey: "changelog.item.clientPasswords.how" },
+      { titleKey: "changelog.item.pickEmail", descriptionKey: "changelog.item.pickEmail.desc", howToKey: "changelog.item.pickEmail.how" },
+      { titleKey: "changelog.item.delivery", descriptionKey: "changelog.item.delivery.desc", howToKey: "changelog.item.delivery.how" },
+      { titleKey: "changelog.item.downloadGallery", descriptionKey: "changelog.item.downloadGallery.desc", howToKey: "changelog.item.downloadGallery.how" },
+      { titleKey: "changelog.item.trayFilters", descriptionKey: "changelog.item.trayFilters.desc", howToKey: "changelog.item.trayFilters.how" },
+      { titleKey: "changelog.item.darkTheme", descriptionKey: "changelog.item.darkTheme.desc", howToKey: "changelog.item.darkTheme.how" },
+    ],
+  },
+  {
     date: "September 18, 2026",
     headingKey: "changelog.release.sep18.heading",
     items: [

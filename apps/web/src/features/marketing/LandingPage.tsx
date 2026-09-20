@@ -10,18 +10,26 @@ interface Feature {
 const FEATURES: Feature[] = [
   { icon: "🧠", titleKey: "landing.feature.scoring.title", descKey: "landing.feature.scoring.desc" },
   { icon: "🔒", titleKey: "landing.feature.aiOptIn.title", descKey: "landing.feature.aiOptIn.desc" },
+  { icon: "❤️", titleKey: "landing.feature.picks.title", descKey: "landing.feature.picks.desc" },
   { icon: "🧩", titleKey: "landing.feature.layouts.title", descKey: "landing.feature.layouts.desc" },
   { icon: "🖱️", titleKey: "landing.feature.dragdrop.title", descKey: "landing.feature.dragdrop.desc" },
   { icon: "📐", titleKey: "landing.feature.guides.title", descKey: "landing.feature.guides.desc" },
   { icon: "📏", titleKey: "landing.feature.sizes.title", descKey: "landing.feature.sizes.desc" },
   { icon: "💬", titleKey: "landing.feature.review.title", descKey: "landing.feature.review.desc" },
+  { icon: "📦", titleKey: "landing.feature.delivery.title", descKey: "landing.feature.delivery.desc" },
+  { icon: "🔑", titleKey: "landing.feature.links.title", descKey: "landing.feature.links.desc" },
+  { icon: "✉️", titleKey: "landing.feature.alerts.title", descKey: "landing.feature.alerts.desc" },
+  { icon: "📱", titleKey: "landing.feature.mobile.title", descKey: "landing.feature.mobile.desc" },
+  { icon: "🌙", titleKey: "landing.feature.dark.title", descKey: "landing.feature.dark.desc" },
   { icon: "🌐", titleKey: "landing.feature.language.title", descKey: "landing.feature.language.desc" },
 ];
 
 const STEPS: { titleKey: string; descKey: string }[] = [
   { titleKey: "landing.steps.upload.title", descKey: "landing.steps.upload.desc" },
+  { titleKey: "landing.steps.pick.title", descKey: "landing.steps.pick.desc" },
   { titleKey: "landing.steps.design.title", descKey: "landing.steps.design.desc" },
   { titleKey: "landing.steps.approve.title", descKey: "landing.steps.approve.desc" },
+  { titleKey: "landing.steps.deliver.title", descKey: "landing.steps.deliver.desc" },
 ];
 
 /** The first thing a prospective photographer sees, before they've created an account. */

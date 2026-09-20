@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "../../../../db/client";
 import type { PhotoRepository } from "../../domain/photo-repository";
@@ -24,6 +24,10 @@ export class DrizzlePhotoRepository implements PhotoRepository {
         createdAt: photo.createdAt,
         uploadedAt: photo.uploadedAt,
         hasDerivatives: photo.hasDerivatives,
+        permanentDerivatives: photo.permanentDerivatives,
+        selectedAt: photo.selectedAt,
+        fullResStoredAt: photo.fullResStoredAt,
+        stagedOriginalPurgedAt: photo.stagedOriginalPurgedAt,
       })
       .onConflictDoUpdate({
         target: photos.id,
@@ -42,8 +46,30 @@ export class DrizzlePhotoRepository implements PhotoRepository {
     await this.db.update(photos).set({ status }).where(eq(photos.id, id.toString()));
   }
 
-  async markDerivativesReady(id: UniqueEntityId): Promise<void> {
-    await this.db.update(photos).set({ hasDerivatives: true }).where(eq(photos.id, id.toString()));
+  async markDerivativesReady(id: UniqueEntityId, options: { permanent?: boolean } = {}): Promise<void> {
+    await this.db
+      .update(photos)
+      .set({ hasDerivatives: true, ...(options.permanent ? { permanentDerivatives: true } : {}) })
+      .where(eq(photos.id, id.toString()));
+  }
+
+  async markSelected(ids: UniqueEntityId[], at: Date): Promise<void> {
+    if (ids.length === 0) return;
+    await this.db
+      .update(photos)
+      .set({ selectedAt: at })
+      .where(and(inArray(photos.id, ids.map((id) => id.toString())), isNull(photos.selectedAt)));
+  }
+
+  async markFullResStored(id: UniqueEntityId, at: Date): Promise<void> {
+    await this.db.update(photos).set({ fullResStoredAt: at }).where(eq(photos.id, id.toString()));
+  }
+
+  async markStagedOriginalPurged(id: UniqueEntityId, at: Date): Promise<void> {
+    await this.db
+      .update(photos)
+      .set({ stagedOriginalPurgedAt: at })
+      .where(eq(photos.id, id.toString()));
   }
 
   async findById(id: UniqueEntityId): Promise<Photo | undefined> {
@@ -74,6 +100,10 @@ export class DrizzlePhotoRepository implements PhotoRepository {
         createdAt: row.createdAt,
         uploadedAt: row.uploadedAt ?? undefined,
         hasDerivatives: row.hasDerivatives,
+        permanentDerivatives: row.permanentDerivatives,
+        selectedAt: row.selectedAt ?? undefined,
+        fullResStoredAt: row.fullResStoredAt ?? undefined,
+        stagedOriginalPurgedAt: row.stagedOriginalPurgedAt ?? undefined,
       },
       UniqueEntityId.create(row.id),
     );

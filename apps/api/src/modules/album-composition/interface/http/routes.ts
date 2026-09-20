@@ -45,6 +45,7 @@ export function registerAlbumCompositionRoutes(
       ...(body.title ? { title: body.title } : {}),
       targetSpreads: body.targetSpreads,
       ...(body.format ? { format: body.format } : {}),
+      ...(body.photoIds ? { photoIds: body.photoIds } : {}),
     });
 
     if (result.isFailure) return sendError(reply, result.getError());

@@ -21,6 +21,14 @@ export interface PhotoProps {
   uploadedAt: Date | undefined;
   /** Whether the small display copies have been written beside the original. */
   hasDerivatives: boolean;
+  /** True when those display copies live on the long-term provider rather than beside the original. */
+  permanentDerivatives: boolean;
+  /** First time this photo was placed on an approved/exported album — i.e. chosen. */
+  selectedAt: Date | undefined;
+  /** When the full-resolution original was copied to long-term storage. */
+  fullResStoredAt: Date | undefined;
+  /** When the temporary (staging) copy of the original was deleted. */
+  stagedOriginalPurgedAt: Date | undefined;
 }
 
 export class InvalidPhotoStateTransitionError extends Error {
@@ -64,6 +72,10 @@ export class Photo extends AggregateRoot<PhotoProps> {
         createdAt: new Date(),
         uploadedAt: undefined,
         hasDerivatives: false,
+        permanentDerivatives: false,
+        selectedAt: undefined,
+        fullResStoredAt: undefined,
+        stagedOriginalPurgedAt: undefined,
       },
       photoId,
     );
@@ -103,8 +115,21 @@ export class Photo extends AggregateRoot<PhotoProps> {
    * Idempotent: regenerating derivatives for a photo that already has them is a
    * legitimate repair, not a state error.
    */
-  markDerivativesReady(): void {
+  markDerivativesReady(options: { permanent?: boolean } = {}): void {
     this.props.hasDerivatives = true;
+    if (options.permanent) this.props.permanentDerivatives = true;
+  }
+
+  markSelected(at: Date): void {
+    this.props.selectedAt ??= at;
+  }
+
+  markFullResStored(at: Date): void {
+    this.props.fullResStoredAt = at;
+  }
+
+  markStagedOriginalPurged(at: Date): void {
+    this.props.stagedOriginalPurgedAt = at;
   }
 
   markFailed(): void {
@@ -149,5 +174,21 @@ export class Photo extends AggregateRoot<PhotoProps> {
 
   get hasDerivatives(): boolean {
     return this.props.hasDerivatives;
+  }
+
+  get permanentDerivatives(): boolean {
+    return this.props.permanentDerivatives;
+  }
+
+  get selectedAt(): Date | undefined {
+    return this.props.selectedAt;
+  }
+
+  get fullResStoredAt(): Date | undefined {
+    return this.props.fullResStoredAt;
+  }
+
+  get stagedOriginalPurgedAt(): Date | undefined {
+    return this.props.stagedOriginalPurgedAt;
   }
 }

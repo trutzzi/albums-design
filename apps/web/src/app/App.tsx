@@ -4,6 +4,9 @@ import { ProjectsPage } from "../features/project/ProjectsPage";
 import { ProjectPage } from "../features/project/ProjectPage";
 import { AlbumEditorPage } from "../features/album-editor/AlbumEditorPage";
 import { ReviewPage } from "../features/review/ReviewPage";
+import { PickPage } from "../features/review/PickPage";
+import { DownloadPage } from "../features/review/DownloadPage";
+import { ThemeToggle } from "../components/ThemeToggle";
 import { StudioPage } from "../features/studio/StudioPage";
 import { ChangelogPage } from "../features/changelog/ChangelogPage";
 import { ContactPage } from "../features/marketing/ContactPage";
@@ -28,7 +31,10 @@ function Shell({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage();
   // The client portal and the auth pages are different product surfaces —
   // no studio chrome on either.
-  const isReview = location.pathname.startsWith("/review/");
+  const isReview =
+    location.pathname.startsWith("/review/") ||
+    location.pathname.startsWith("/pick/") ||
+    location.pathname.startsWith("/download/");
   const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
   const firstName = auth.name.trim().split(/\s+/)[0];
 
@@ -50,6 +56,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             {auth.isAuthenticated && <Link to="/studio">{t("nav.studio")}</Link>}
             <Link to="/changelog">{t("nav.changelog")}</Link>
             <Link to="/contact">{t("nav.contact")}</Link>
+            <ThemeToggle />
             {auth.isAuthenticated ? (
               <button type="button" className="link-button" onClick={auth.logout}>
                 {t("nav.logout")}
@@ -87,6 +94,8 @@ export function App() {
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/review/:token" element={<ReviewPage />} />
+              <Route path="/pick/:token" element={<PickPage />} />
+              <Route path="/download/:token" element={<DownloadPage />} />
               <Route path="/" element={<HomeRoute />} />
               <Route
                 path="/projects/:projectId"

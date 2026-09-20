@@ -12,6 +12,9 @@ import { registerReviewRoutes } from "./modules/review-collaboration/interface/h
 import { registerExportRoutes } from "./modules/export-print/interface/http/routes";
 import { registerIdentityRoutes } from "./modules/identity/interface/http/routes";
 import { acceptEmptyJsonBody } from "./interface/empty-body";
+import { registerMediaRoutes } from "./interface/media-routes";
+import { registerPickRoutes } from "./modules/review-collaboration/interface/http/pick-routes";
+import { registerDownloadRoutes } from "./modules/review-collaboration/interface/http/download-routes";
 
 async function main() {
   const root = buildCompositionRoot();
@@ -29,6 +32,10 @@ async function main() {
     albums: root.albums,
     exportJobs: root.exportJobs,
   });
+
+  if (root.permanentStorage) {
+    registerMediaRoutes(app, { signer: root.mediaUrlSigner, provider: root.permanentStorage });
+  }
 
   registerIdentityRoutes(app, {
     administration: root.administration,
@@ -52,7 +59,10 @@ async function main() {
     reviewPortal: root.reviewPortal,
     albumFeedback: root.albumFeedback,
     sessions: root.reviewSessions,
+    reviewAccess: root.reviewAccess,
   });
+  registerPickRoutes(app, { pickAdmin: root.pickAdmin, pickPortal: root.pickPortal });
+  registerDownloadRoutes(app, { downloadAdmin: root.downloadAdmin, downloadPortal: root.downloadPortal });
   registerExportRoutes(app, {
     requestExport: root.requestExport,
     deleteExport: root.deleteExport,

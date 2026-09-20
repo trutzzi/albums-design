@@ -23,6 +23,10 @@ export interface ReviewSessionProps {
   expiresAt: Date;
   approvedAt: Date | undefined;
   createdAt: Date;
+  /** Hash of the client password. Absent on links created before passwords existed, which stay open. */
+  passwordHash?: string | undefined;
+  /** Encrypted link token + password, so the studio can view them again. */
+  sealedSecret?: string | undefined;
 }
 
 export class ReviewClosedError extends Error {
@@ -107,6 +111,20 @@ export class ReviewSession extends AggregateRoot<ReviewSessionProps> {
 
   get tokenHash(): string {
     return this.props.tokenHash;
+  }
+
+  get passwordHash(): string | undefined {
+    return this.props.passwordHash;
+  }
+
+  get sealedSecret(): string | undefined {
+    return this.props.sealedSecret;
+  }
+
+  /** Protect this link with a password (hash to check against, sealed copy for the studio to read back). */
+  protectWith(access: { passwordHash: string; sealedSecret: string }): void {
+    this.props.passwordHash = access.passwordHash;
+    this.props.sealedSecret = access.sealedSecret;
   }
 
   matchesToken(token: string): boolean {

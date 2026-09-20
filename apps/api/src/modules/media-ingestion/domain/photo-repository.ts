@@ -22,5 +22,9 @@ export interface PhotoRepository {
    * ordinary MVCC regardless of which one commits first.
    */
   updateStatus(id: UniqueEntityId, status: PhotoStatus): Promise<void>;
-  markDerivativesReady(id: UniqueEntityId): Promise<void>;
+  markDerivativesReady(id: UniqueEntityId, options?: { permanent?: boolean }): Promise<void>;
+  /** Only sets `selectedAt` where it is still empty, so the first selection time is kept. */
+  markSelected(ids: UniqueEntityId[], at: Date): Promise<void>;
+  markFullResStored(id: UniqueEntityId, at: Date): Promise<void>;
+  markStagedOriginalPurged(id: UniqueEntityId, at: Date): Promise<void>;
 }

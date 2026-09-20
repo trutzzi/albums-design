@@ -50,3 +50,25 @@ export function clientErrorFrom(
     message: typeof candidate.message === "string" ? candidate.message : "Request rejected.",
   };
 }
+
+/** A client link is protected and the caller has not (or no longer) proven the password. */
+export class PasswordRequiredError extends ApplicationError {
+  constructor() {
+    super("This link is protected by a password.", "PASSWORD_REQUIRED");
+  }
+}
+
+export class InvalidPasswordError extends ApplicationError {
+  constructor() {
+    super("That password is not correct.", "INVALID_PASSWORD");
+  }
+}
+
+export class TooManyAttemptsError extends ApplicationError {
+  constructor(readonly retryAfterSeconds: number) {
+    super(
+      `Too many wrong passwords. Try again in ${Math.max(1, Math.ceil(retryAfterSeconds / 60))} minute(s).`,
+      "TOO_MANY_ATTEMPTS",
+    );
+  }
+}

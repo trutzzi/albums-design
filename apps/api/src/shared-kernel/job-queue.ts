@@ -2,6 +2,7 @@ export const QUEUES = {
   mediaIngestion: "media-ingestion",
   photoIntelligence: "photo-intelligence",
   albumExport: "album-export",
+  storage: "storage",
 } as const;
 
 export interface JobQueue {

@@ -2,6 +2,7 @@ import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { PhotoRepository } from "../../../domain/photo-repository";
 import type { Photo } from "../../../domain/photo";
 import type { ObjectStorage } from "../../ports/object-storage";
+import type { StorageProvider } from "../../../../../shared-kernel/storage-provider";
 
 const PREVIEW_TTL_SECONDS = 60 * 60;
 
@@ -23,6 +24,8 @@ export class ListProjectPhotosUseCase {
   constructor(
     private readonly photos: PhotoRepository,
     private readonly storage: ObjectStorage,
+    /** Where display copies live for photos processed while a long-term provider was configured. */
+    private readonly permanent?: StorageProvider,
   ) {}
 
   async execute(projectId: string): Promise<ProjectPhotoView[]> {
@@ -57,9 +60,18 @@ export class ListProjectPhotosUseCase {
       );
       return [original, original];
     }
+    const previewKey = photo.storageKey.derivative("preview").toString();
+    const thumbKey = photo.storageKey.derivative("thumb").toString();
+    if (photo.permanentDerivatives && this.permanent) {
+      const options = { expiresInSeconds: PREVIEW_TTL_SECONDS };
+      return Promise.all([
+        this.permanent.getUrl(previewKey, options),
+        this.permanent.getUrl(thumbKey, options),
+      ]);
+    }
     return Promise.all([
-      this.storage.presignGet(photo.storageKey.derivative("preview").toString(), PREVIEW_TTL_SECONDS),
-      this.storage.presignGet(photo.storageKey.derivative("thumb").toString(), PREVIEW_TTL_SECONDS),
+      this.storage.presignGet(previewKey, PREVIEW_TTL_SECONDS),
+      this.storage.presignGet(thumbKey, PREVIEW_TTL_SECONDS),
     ]);
   }
 }

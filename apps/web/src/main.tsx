@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./app/App.js";
 import "./styles.css";
+import { applyTheme, currentTheme } from "./lib/theme";
+
+applyTheme(currentTheme());
 
 const queryClient = new QueryClient();
 

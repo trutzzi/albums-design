@@ -13,6 +13,7 @@ import {
 } from "../../domain/review-session";
 import type { ReviewSessionRepository } from "../../domain/review-session-repository";
 import type { AlbumGateway, ReviewNotifier, ReviewableAlbum } from "../ports/album-gateway";
+import type { ClientAccessService } from "../services/client-access.service";
 
 export interface ReviewView {
   session: {
@@ -44,7 +45,23 @@ export class ReviewPortalUseCase {
     private readonly sessions: ReviewSessionRepository,
     private readonly albums: AlbumGateway,
     private readonly notifier: ReviewNotifier,
+    private readonly access?: ClientAccessService,
   ) {}
+
+  /** Every client route calls this first: a protected link answers PASSWORD_REQUIRED until unlocked. */
+  async authorize(token: string, grant: string | undefined): Promise<Result<void, ApplicationError>> {
+    const session = await this.sessions.findByTokenHash(hashToken(token));
+    if (!session) return Result.failure(new NotFoundError("Review link", "token"));
+    return this.access ? this.access.authorize("review", session, grant) : Result.success(undefined);
+  }
+
+  async unlock(token: string, password: string): Promise<Result<{ grant: string }, ApplicationError>> {
+    const session = await this.sessions.findByTokenHash(hashToken(token));
+    if (!session) return Result.failure(new NotFoundError("Review link", "token"));
+    if (!this.access) return Result.failure(new NotFoundError("Review link", "token"));
+    const granted = await this.access.unlock("review", session, password);
+    return granted.isFailure ? Result.failure(granted.getError()) : Result.success({ grant: granted.getValue() });
+  }
 
   async view(token: string): Promise<Result<ReviewView, ApplicationError>> {
     const resolved = await this.resolve(token);

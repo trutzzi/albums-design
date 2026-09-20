@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+// Compose declares every variable it forwards even when its value is blank, so
+// "" has to mean "not set" for the optional ones — see ANTHROPIC_API_KEY below.
+const optionalString = z
+  .string()
+  .optional()
+  .transform((value) => (value && value.length > 0 ? value : undefined));
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -28,6 +35,39 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value && value.length > 0 ? value : undefined)),
+
+  /**
+   * Long-term storage for display previews and the originals of selected photos.
+   * "none" keeps today's behaviour exactly: everything stays in the S3/MinIO bucket
+   * and the retention purge stays off (with no second copy, purging would be data loss).
+   */
+  STORAGE_PROVIDER: z.enum(["none", "digistorage"]).default("none"),
+  /** The WebDAV endpoint from DigiStorage's account settings. */
+  DIGISTORAGE_WEBDAV_URL: optionalString,
+  /** The DigiStorage login name (email). */
+  DIGISTORAGE_USERNAME: optionalString,
+  /** A dedicated DigiStorage *app password* — never the main account password. */
+  DIGISTORAGE_APP_PASSWORD: optionalString,
+  DIGISTORAGE_ROOT_PATH: z.string().min(1).default("albumflow"),
+  /** Public origin of this API. Signed preview links point here, so browsers must be able to reach it. */
+  PUBLIC_API_URL: optionalString,
+  /**
+   * Outbound email (notifying the studio when a client downloads photos or sends their picks).
+   * "none" writes each message to the log instead of sending it.
+   */
+  EMAIL_PROVIDER: z.enum(["none", "smtp"]).default("none"),
+  SMTP_HOST: optionalString,
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  /** "true" = implicit TLS (usually port 465). A string enum, because z.coerce.boolean() would read "false" as true. */
+  SMTP_SECURE: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
+  SMTP_USER: optionalString,
+  SMTP_PASSWORD: optionalString,
+  /** The From address, e.g. `AlbumFlow <notifications@yourdomain.ro>`. Must be allowed by your mail server. */
+  MAIL_FROM: optionalString,
+  /** Days after an album's latest export completes before staged full-res originals are deleted. */
+  ORIGINAL_RETENTION_DAYS: z.coerce.number().int().min(1).default(30),
+  /** Longest edge, in pixels, of the previews written to long-term storage. */
+  PREVIEW_LONG_EDGE: z.coerce.number().int().min(800).max(4000).default(1800),
 });
 
 /**

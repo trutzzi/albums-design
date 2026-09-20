@@ -16,6 +16,7 @@ import type {
   RequestUploadResponse,
 } from "@albumflow/contracts";
 import { loadSession } from "./auth-storage";
+import { grantKindForPath, loadGrant, saveGrant } from "./client-grants";
 
 // `||`, not `??`: a GitHub Actions secret that was never created (or left
 // blank) still gets wired into the build as an empty string, not as
@@ -45,6 +46,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (init.body) headers.set("Content-Type", "application/json");
   const session = loadSession();
   if (session?.token) headers.set("Authorization", `Bearer ${session.token}`);
+  // Client links protected by a password: send the proof of it entered earlier in this tab.
+  const clientLink = grantKindForPath(path);
+  const grant = clientLink && loadGrant(clientLink.kind, clientLink.token);
+  if (grant) headers.set("X-Access-Grant", grant);
 
   const response = await fetch(`${API_URL}${path}`, { ...init, headers });
   if (!response.ok) {
@@ -133,6 +138,7 @@ export function listProjectAnalyses(projectId: string): Promise<PhotoAnalysisDTO
 
 // --- Album composition -----------------------------------------------------
 
+
 export function listLayoutTemplates(): Promise<LayoutTemplateDTO[]> {
   return request("/layout-templates");
 }
@@ -149,7 +155,7 @@ export function suggestSpreadLayouts(
 
 export function generateAlbum(
   projectId: string,
-  input: { title?: string; targetSpreads?: number; format?: AlbumFormatDTO } = {},
+  input: { title?: string; targetSpreads?: number; format?: AlbumFormatDTO; photoIds?: string[] } = {},
 ): Promise<AlbumDTO> {
   return request(`/projects/${projectId}/albums`, {
     method: "POST",
@@ -180,6 +186,7 @@ export interface ReviewSessionSummary {
   clientName: string;
   status: string;
   openComments: number;
+  passwordProtected?: boolean;
   expiresAt: string;
   createdAt: string;
 }
@@ -215,11 +222,25 @@ export interface ReviewView {
 export function openReviewSession(
   albumId: string,
   clientName: string,
-): Promise<{ sessionId: string; token: string; expiresAt: string }> {
+): Promise<{ sessionId: string; token: string; expiresAt: string; password?: string }> {
   return request(`/albums/${albumId}/review-sessions`, {
     method: "POST",
     body: JSON.stringify({ clientName }),
   });
+}
+
+/** The album review link and its password, readable again by the studio. */
+export function getReviewAccess(albumId: string, sessionId: string): Promise<{ token: string; password: string }> {
+  return request(`/albums/${albumId}/review-sessions/${sessionId}/access`);
+}
+
+/** Exchanges the password a client typed for a grant, remembered for this tab. Throws ApiError on a wrong password. */
+export async function unlockClientLink(kind: "review" | "download" | "pick", token: string, password: string): Promise<void> {
+  const { grant } = await request<{ grant: string }>(`/${kind}/${token}/unlock`, {
+    method: "POST",
+    body: JSON.stringify({ password }),
+  });
+  saveGrant(kind, token, grant);
 }
 
 export function listReviewSessions(albumId: string): Promise<ReviewSessionSummary[]> {
@@ -373,4 +394,144 @@ export interface AiStatus {
 
 export function getAiStatus(): Promise<AiStatus> {
   return request("/ai/status");
+}
+
+// --- Client photo selection ("picks") ---------------------------------------
+
+export interface PickSessionSummary {
+  id: string;
+  clientName: string;
+  status: "OPEN" | "SUBMITTED" | "REVOKED";
+  pickLimit: number | null;
+  passwordProtected?: boolean;
+  pickedCount: number;
+  pickedPhotoIds: string[];
+  submittedAt: string | null;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export function openPickSession(
+  projectId: string,
+  input: { clientName: string; pickLimit?: number },
+): Promise<{ sessionId: string; token: string; expiresAt: string; password?: string }> {
+  return request(`/projects/${projectId}/pick-sessions`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listPickSessions(projectId: string): Promise<PickSessionSummary[]> {
+  return request(`/projects/${projectId}/pick-sessions`);
+}
+
+/** The selection link and its password, readable again by the studio. */
+export function getPickAccess(projectId: string, sessionId: string): Promise<{ token: string; password: string }> {
+  return request(`/projects/${projectId}/pick-sessions/${sessionId}/access`);
+}
+
+export function reopenPickSession(projectId: string, sessionId: string): Promise<PickSessionSummary> {
+  return request(`/projects/${projectId}/pick-sessions/${sessionId}/reopen`, { method: "POST" });
+}
+
+export function revokePickSession(projectId: string, sessionId: string): Promise<PickSessionSummary> {
+  return request(`/projects/${projectId}/pick-sessions/${sessionId}/revoke`, { method: "POST" });
+}
+
+export interface PickState {
+  id: string;
+  clientName: string;
+  status: "OPEN" | "SUBMITTED" | "REVOKED";
+  pickLimit: number | null;
+  pickedPhotoIds: string[];
+  expiresAt: string;
+}
+
+export interface PickView {
+  session: PickState;
+  projectName: string;
+  photos: { id: string; fileName: string; previewUrl: string; thumbnailUrl: string }[];
+}
+
+export function getPickView(token: string): Promise<PickView> {
+  return request(`/pick/${token}`);
+}
+
+export function setPhotoPicked(token: string, photoId: string, picked: boolean): Promise<PickState> {
+  return request(`/pick/${token}/photos/${photoId}`, {
+    method: "PUT",
+    body: JSON.stringify({ picked }),
+  });
+}
+
+export function submitPicks(token: string): Promise<PickState> {
+  return request(`/pick/${token}/submit`, { method: "POST" });
+}
+
+// --- Client delivery (download links) ----------------------------------------
+
+export interface DownloadSessionSummary {
+  id: string;
+  clientName: string;
+  status: "ACTIVE" | "EXPIRED" | "REVOKED";
+  passwordProtected?: boolean;
+  downloadCount: number;
+  firstDownloadedAt: string | null;
+  lastDownloadedAt: string | null;
+  expiresAt: string;
+  daysLeft: number;
+  createdAt: string;
+}
+
+export function openDownloadSession(
+  projectId: string,
+  input: { clientName: string; ttlDays?: number },
+): Promise<{
+  sessionId: string;
+  token: string;
+  expiresAt: string;
+  photoCount: number;
+  missingCount: number;
+  password?: string;
+}> {
+  return request(`/projects/${projectId}/download-sessions`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listDownloadSessions(projectId: string): Promise<DownloadSessionSummary[]> {
+  return request(`/projects/${projectId}/download-sessions`);
+}
+
+/** The download link and its password, readable again by the studio. */
+export function getDownloadAccess(projectId: string, sessionId: string): Promise<{ token: string; password: string }> {
+  return request(`/projects/${projectId}/download-sessions/${sessionId}/access`);
+}
+
+export function revokeDownloadSession(projectId: string, sessionId: string): Promise<DownloadSessionSummary> {
+  return request(`/projects/${projectId}/download-sessions/${sessionId}/revoke`, { method: "POST" });
+}
+
+export interface DownloadView {
+  clientName: string;
+  projectName: string;
+  photoCount: number;
+  missingCount: number;
+  totalBytes: number;
+  expiresAt: string;
+  daysLeft: number;
+  /** Display copies to browse before downloading. */
+  photos: { id: string; fileName: string; previewUrl: string; thumbnailUrl: string }[];
+}
+
+export function getDownloadView(token: string): Promise<DownloadView> {
+  return request(`/download/${token}`);
+}
+
+/** A plain link the browser follows, so the file streams straight to disk instead of through the page. */
+export function downloadZipUrl(token: string): string {
+  // A plain link cannot send a header, so a protected link's grant travels in the URL.
+  const grant = loadGrant("download", token);
+  return `${API_URL}/download/${token}/photos.zip${grant ? `?grant=${encodeURIComponent(grant)}` : ""}`;
 }

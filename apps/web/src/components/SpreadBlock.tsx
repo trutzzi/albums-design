@@ -68,6 +68,8 @@ export interface SpreadBlockProps {
   /** A tray photo dropped on the margins/gutter, not a specific slot — grows the spread. */
   onAddPhotoDrop: (spreadIndex: number, photoId: string) => void;
   onRemovePhoto: (spreadIndex: number, slotId: string) => void;
+  /** Deselects the photo, which closes its floating tools. */
+  onCloseTools: () => void;
 }
 
 /**
@@ -113,6 +115,7 @@ export const SpreadBlock = memo(function SpreadBlock({
   onPickTemplate,
   onAddPhotoDrop,
   onRemovePhoto,
+  onCloseTools,
 }: SpreadBlockProps) {
   const { t } = useLanguage();
   // Each handler binds this spread's index once, so SpreadCanvas sees stable props.
@@ -303,6 +306,7 @@ export const SpreadBlock = memo(function SpreadBlock({
         onMovePhotoAsNewPhoto={locked ? undefined : movePhotoAsNewPhoto}
         onAddPhotoDrop={locked ? undefined : addPhotoDrop}
         onRemovePhoto={locked ? undefined : removePhoto}
+        onCloseTools={locked ? undefined : onCloseTools}
       />
 
       <LayoutPicker

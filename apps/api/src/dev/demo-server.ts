@@ -12,6 +12,24 @@ import { registerMediaIngestionRoutes } from "../modules/media-ingestion/interfa
 import { registerPhotoIntelligenceRoutes } from "../modules/photo-intelligence/interface/http/routes";
 import { registerAlbumCompositionRoutes } from "../modules/album-composition/interface/http/routes";
 import { registerReviewRoutes } from "../modules/review-collaboration/interface/http/routes";
+import { registerPickRoutes } from "../modules/review-collaboration/interface/http/pick-routes";
+import { registerDownloadRoutes } from "../modules/review-collaboration/interface/http/download-routes";
+import { CompositePickNotifier, IdentityStudioContacts, MediaIngestionDeliveryGateway } from "../modules/review-collaboration/infrastructure/gateways/delivery-gateway";
+import { StudioEmailNotifier } from "../modules/review-collaboration/application/services/studio-email-notifier";
+import { DownloadSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/download-session-admin.use-case";
+import { DownloadPortalUseCase } from "../modules/review-collaboration/application/use-cases/download-portal.use-case";
+import { ReviewCollaborationDownloadHolds } from "../modules/media-ingestion/infrastructure/gateways/download-hold-gateway";
+import { ClientAccessService } from "../modules/review-collaboration/application/services/client-access.service";
+import { ReviewAccessUseCase } from "../modules/review-collaboration/application/use-cases/review-access.use-case";
+import { SecretBox } from "../shared-kernel/secret-box";
+import { ClientGrantSigner } from "../shared-kernel/client-grant";
+import { SmtpEmailSender } from "../infrastructure/email/smtp-email-sender";
+import { LoggingEmailSender } from "../infrastructure/email/logging-email-sender";
+import { LoggingPickNotifier, MediaIngestionPickGateway } from "../modules/review-collaboration/infrastructure/gateways/pick-gateway";
+import { PromoteOnPickNotifier } from "../modules/review-collaboration/infrastructure/gateways/promote-on-pick-notifier";
+import { PickSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/open-pick-session.use-case";
+import { PickPortalUseCase } from "../modules/review-collaboration/application/use-cases/pick-portal.use-case";
+import { ReviewCollaborationClientPickDirectory } from "../modules/media-ingestion/infrastructure/gateways/client-pick-gateway";
 import { registerExportRoutes } from "../modules/export-print/interface/http/routes";
 
 import { Studio, hashApiKey } from "../modules/identity/domain/studio";
@@ -65,6 +83,8 @@ import {
   InMemoryPhotoAnalysisRepository,
   InMemoryPhotoRepository,
   InMemoryProjectRepository,
+  InMemoryDownloadSessionRepository,
+  InMemoryPickSessionRepository,
   InMemoryReviewSessionRepository,
   InMemoryStudioMemberRepository,
   InMemoryStudioRepository,
@@ -73,6 +93,15 @@ import {
 import { LocalBlobStore } from "./local-blob-store";
 import { SynchronousJobQueue } from "./synchronous-job-queue";
 import { acceptEmptyJsonBody } from "../interface/empty-body";
+import { registerMediaRoutes } from "../interface/media-routes";
+import { MediaUrlSigner } from "../infrastructure/storage/media-url-signer";
+import { DigiStorageProvider } from "../infrastructure/storage/digistorage-storage-provider";
+import { TieredPhotoByteSource } from "../infrastructure/storage/tiered-photo-byte-source";
+import { InMemoryStorageProvider } from "./in-memory-storage-provider";
+import { PromoteSelectedPhotosUseCase } from "../modules/media-ingestion/application/use-cases/promote-selected/promote-selected.use-case";
+import { AlbumCompositionPlacementDirectory } from "../modules/media-ingestion/infrastructure/gateways/album-placement-gateway";
+import { PromoteOnApprovalNotifier } from "../modules/review-collaboration/infrastructure/gateways/promote-on-approval-notifier";
+import type { StorageProvider } from "../shared-kernel/storage-provider";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const BASE_URL = process.env.DEMO_BASE_URL ?? `http://localhost:${PORT}`;
@@ -85,6 +114,10 @@ const VISION_PROVIDER = (process.env.VISION_PROVIDER ?? "heuristic") as
   | "ollama";
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5vl:7b";
+// Long-term tier for the two-tier upload pipeline. Unset keeps the single-tier
+// demo; "memory" runs the whole pipeline with no account; "digistorage" talks to
+// the real thing using the same DIGISTORAGE_* variables as production.
+const STORAGE_PROVIDER = process.env.STORAGE_PROVIDER ?? "none";
 
 // Fixed so apps/web/.env can hold a static key across restarts.
 export const DEMO_API_KEY = "af_demo_key_do_not_use_in_production";
@@ -113,10 +146,13 @@ async function main() {
   const analyses = new InMemoryPhotoAnalysisRepository();
   const albums = new InMemoryAlbumRepository();
   const reviewSessions = new InMemoryReviewSessionRepository();
+  const pickSessions = new InMemoryPickSessionRepository();
+  const downloadSessions = new InMemoryDownloadSessionRepository();
   const exportJobs = new InMemoryExportJobRepository();
 
   const storage = new LocalBlobStore(BASE_URL);
   const queue = new SynchronousJobQueue();
+  const clientAccess = new ClientAccessService(new SecretBox(DEMO_JWT_SECRET), new ClientGrantSigner(DEMO_JWT_SECRET));
 
   const administration = new StudioAdministrationUseCase(studios, subscriptions, members);
   const register = new RegisterUseCase(studios, subscriptions, members, DEMO_JWT_SECRET);
@@ -129,6 +165,36 @@ async function main() {
     ollamaBaseUrl: OLLAMA_BASE_URL,
     ollamaModel: OLLAMA_MODEL,
   });
+  const mediaUrlSigner = new MediaUrlSigner(DEMO_JWT_SECRET, BASE_URL);
+  let permanentStorage: StorageProvider | undefined;
+  if (STORAGE_PROVIDER === "memory") {
+    permanentStorage = new InMemoryStorageProvider(mediaUrlSigner);
+  } else if (STORAGE_PROVIDER === "digistorage") {
+    const { DIGISTORAGE_WEBDAV_URL, DIGISTORAGE_USERNAME, DIGISTORAGE_APP_PASSWORD } = process.env;
+    if (!DIGISTORAGE_WEBDAV_URL || !DIGISTORAGE_USERNAME || !DIGISTORAGE_APP_PASSWORD) {
+      throw new Error(
+        "STORAGE_PROVIDER=digistorage needs DIGISTORAGE_WEBDAV_URL, DIGISTORAGE_USERNAME and DIGISTORAGE_APP_PASSWORD.",
+      );
+    }
+    permanentStorage = new DigiStorageProvider({
+      webdavUrl: DIGISTORAGE_WEBDAV_URL,
+      username: DIGISTORAGE_USERNAME,
+      appPassword: DIGISTORAGE_APP_PASSWORD,
+      rootPath: process.env.DIGISTORAGE_ROOT_PATH ?? "albumflow-demo",
+      urlSigner: mediaUrlSigner,
+    });
+  }
+  const promoteSelected = permanentStorage
+    ? new PromoteSelectedPhotosUseCase(
+        photos,
+        storage,
+        permanentStorage,
+        new AlbumCompositionPlacementDirectory(albums),
+        undefined,
+        new ReviewCollaborationClientPickDirectory(pickSessions),
+      )
+    : undefined;
+
   const analyzePhoto = new AnalyzePhotoUseCase(
     analyses,
     storage,
@@ -140,13 +206,18 @@ async function main() {
 
   const reviewGateway = new AlbumCompositionGateway(
     albums,
-    new StoragePhotoPreviewResolver(photos, storage),
+    new StoragePhotoPreviewResolver(photos, storage, permanentStorage),
   );
   const exportGateway = new AlbumCompositionExportGateway(albums);
   const runExport = new RunExportUseCase(
     exportJobs,
     exportGateway,
-    new PdfAlbumRenderer(new StoredPhotoResolver(photos, storage)),
+    new PdfAlbumRenderer(
+      new StoredPhotoResolver(
+        photos,
+        permanentStorage ? new TieredPhotoByteSource(storage, permanentStorage) : storage,
+      ),
+    ),
     storage,
   );
 
@@ -154,6 +225,7 @@ async function main() {
     photos,
     storage,
     new SharpImageResizer(),
+    permanentStorage,
   );
 
   // Wire the queues to run in-process.
@@ -181,6 +253,23 @@ async function main() {
       );
     }
   });
+  queue.on(QUEUES.storage, async (jobName, payload) => {
+    if (!promoteSelected) return;
+    let result;
+    if (jobName === "promote-selected") {
+      result = await promoteSelected.execute({ albumId: String(payload.albumId) });
+    } else if (jobName === "promote-picked") {
+      result = await promoteSelected.executePicked({ projectId: String(payload.projectId) });
+    } else {
+      return;
+    }
+    if (result.isSuccess) {
+      const { promoted, alreadyStored } = result.getValue();
+      console.log(`  long-term storage: ${promoted} originals promoted, ${alreadyStored} already stored`);
+    } else {
+      console.error(`  long-term storage: ${result.getError().message}`);
+    }
+  });
   queue.on(QUEUES.albumExport, async (_jobName, payload) => {
     const result = await runExport.execute(String(payload.exportJobId));
     if (result.isSuccess) console.log(`  export ${result.getValue().status}`);
@@ -190,7 +279,8 @@ async function main() {
   const studio = Studio.reconstitute(
     {
       name: "Golden Hour Photography",
-      ownerEmail: "studio@example.com",
+      // Where the demo studio's notification emails go. Set DEMO_OWNER_EMAIL to receive them in a real inbox.
+      ownerEmail: process.env.DEMO_OWNER_EMAIL || "studio@example.com",
       apiKeyHash: hashApiKey(DEMO_API_KEY),
       createdAt: new Date(),
     },
@@ -261,11 +351,13 @@ async function main() {
   registerStudioAuth(app, studios, DEMO_JWT_SECRET, { publicPrefixes: ["/dev-storage/"] });
   registerTenancyGuard(app, { projects, photos, albums, exportJobs });
 
+  if (permanentStorage) registerMediaRoutes(app, { signer: mediaUrlSigner, provider: permanentStorage });
+
   registerIdentityRoutes(app, { administration, register, login });
   registerMediaIngestionRoutes(app, {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, queue),
-    listProjectPhotos: new ListProjectPhotosUseCase(photos, storage),
+    listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
     deleteProject: new DeleteProjectUseCase(
       projects,
       photos,
@@ -275,6 +367,9 @@ async function main() {
       exportJobs,
       storage,
       reviewSessions,
+      permanentStorage,
+      pickSessions,
+      downloadSessions,
     ),
     projects,
   });
@@ -292,14 +387,77 @@ async function main() {
     albums,
   });
   registerReviewRoutes(app, {
-    openReviewSession: new OpenReviewSessionUseCase(reviewSessions, reviewGateway),
+    openReviewSession: new OpenReviewSessionUseCase(reviewSessions, reviewGateway, clientAccess),
     reviewPortal: new ReviewPortalUseCase(
       reviewSessions,
       reviewGateway,
-      new LoggingReviewNotifier(),
+      permanentStorage
+        ? new PromoteOnApprovalNotifier(new LoggingReviewNotifier(), queue)
+        : new LoggingReviewNotifier(),
+      clientAccess,
     ),
     albumFeedback: new AlbumFeedbackUseCase(reviewSessions),
     sessions: reviewSessions,
+    reviewAccess: new ReviewAccessUseCase(reviewSessions, clientAccess),
+  });
+  const pickGateway = new MediaIngestionPickGateway(
+    projects,
+    photos,
+    new ListProjectPhotosUseCase(photos, storage, permanentStorage),
+  );
+  // Real mail when SMTP_* is set for the demo, otherwise the message is printed in this log.
+  const emailSender =
+    process.env.EMAIL_PROVIDER === "smtp" &&
+    process.env.SMTP_HOST &&
+    process.env.MAIL_FROM &&
+    // A login with no password can only fail, and mail servers lock out repeated failures.
+    !(process.env.SMTP_USER && !process.env.SMTP_PASSWORD)
+      ? new SmtpEmailSender({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT ?? 587),
+          secure: process.env.SMTP_SECURE === "true",
+          user: process.env.SMTP_USER || undefined,
+          password: process.env.SMTP_PASSWORD || undefined,
+          from: process.env.MAIL_FROM,
+        })
+      : new LoggingEmailSender();
+  const emailIncomplete = process.env.EMAIL_PROVIDER === "smtp" && emailSender.id !== "smtp";
+  console.log(
+    `  email      ${
+      emailSender.id === "smtp"
+        ? `SMTP (real mail via ${process.env.SMTP_HOST})`
+        : emailIncomplete
+          ? "logged only — EMAIL_PROVIDER=smtp but SMTP_HOST, MAIL_FROM (and SMTP_PASSWORD, if SMTP_USER is set) are not all filled in .env"
+          : "logged only — set EMAIL_PROVIDER=smtp to send"
+    }`,
+  );
+  const studioEmail = new StudioEmailNotifier(
+    emailSender,
+    new IdentityStudioContacts(projects, members, studios),
+    process.env.WEB_ORIGIN ?? "http://localhost:5173",
+  );
+  const loggedAndEmailed = new CompositePickNotifier([new LoggingPickNotifier(), studioEmail]);
+  registerPickRoutes(app, {
+    pickAdmin: new PickSessionAdminUseCase(pickSessions, pickGateway, clientAccess),
+    pickPortal: new PickPortalUseCase(
+      pickSessions,
+      pickGateway,
+      permanentStorage ? new PromoteOnPickNotifier(loggedAndEmailed, queue) : loggedAndEmailed,
+      clientAccess,
+    ),
+  });
+  const deliveryGateway = new MediaIngestionDeliveryGateway(projects, photos, storage, permanentStorage);
+  registerDownloadRoutes(app, {
+    downloadAdmin: new DownloadSessionAdminUseCase(downloadSessions, deliveryGateway, () => new Date(), clientAccess),
+    downloadPortal: new DownloadPortalUseCase(
+      downloadSessions,
+      deliveryGateway,
+      studioEmail,
+      console.error,
+      () => new Date(),
+      clientAccess,
+      pickGateway,
+    ),
   });
   registerExportRoutes(app, {
     requestExport: new RequestExportUseCase(exportJobs, exportGateway, queue),

@@ -19,9 +19,11 @@ import {
   listExports,
   listLayoutTemplates,
   listPrintProfiles,
+  listPickSessions,
   listProjectAnalyses,
   listProjectPhotos,
   getAlbumFeedback,
+  getReviewAccess,
   listReviewSessions,
   openReviewSession,
   resolveComment,
@@ -29,8 +31,12 @@ import {
   suggestSpreadLayouts,
 } from "../../lib/api";
 import { SpreadBlock } from "../../components/SpreadBlock";
+import { AccessDetailsModal } from "../../components/AccessDetailsModal";
 import { LayoutPicker } from "../../components/LayoutPicker";
 import { PhotoTray } from "../../components/PhotoTray";
+import { loadTrayPrefs, saveTrayPrefs, type TrayPrefs } from "../../lib/tray-prefs";
+import type { TrayDensity } from "../../lib/tray-grid";
+import { countTrayPhotos, filterTrayPhotos, isFiltering, type TrayContext, type TrayShow } from "../../lib/tray-filter";
 import { ClientFeedback, openCommentsBySpread } from "../../components/ClientFeedback";
 import type { FeedbackComment } from "../../lib/api";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
@@ -48,7 +54,7 @@ const CUSTOM_PROFILE_ID = "custom";
 
 export function AlbumEditorPage() {
   const { albumId = "" } = useParams();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<{ spreadIndex: number; slotId: string } | null>(null);
@@ -71,8 +77,24 @@ export function AlbumEditorPage() {
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [picked, setPicked] = useState<string[]>([]);
   const [traySort, setTraySort] = useState<TraySort>("score");
+  // Filters for the tray; they combine, so "client picks" + "portrait" narrows to both.
+  // The sidebar shows one section at a time, so the photo tray can use the whole height of the window.
+  const [sidebarTab, setSidebarTab] = useState<"photos" | "review" | "export">("photos");
+  const [trayShow, setTrayShow] = useState<TrayShow>("all");
+  const [trayCategory, setTrayCategory] = useState("");
+  const [traySearch, setTraySearch] = useState("");
+  // How big the thumbnails are and how wide the sidebar is — remembered between visits.
+  const [trayPrefs, setTrayPrefs] = useState<TrayPrefs>(loadTrayPrefs);
+  const updateTrayPrefs = (patch: Partial<TrayPrefs>) =>
+    setTrayPrefs((current) => {
+      const next = { ...current, ...patch };
+      saveTrayPrefs(next);
+      return next;
+    });
   const [clientName, setClientName] = useState("");
   const [shareLink, setShareLink] = useState<string | null>(null);
+  const [sharePassword, setSharePassword] = useState<string | null>(null);
+  const [reviewDetailsFor, setReviewDetailsFor] = useState<string | null>(null);
 
   const album = useQuery({ queryKey: ["album", albumId], queryFn: () => getAlbum(albumId) });
   const templates = useQuery({ queryKey: ["templates"], queryFn: listLayoutTemplates });
@@ -99,6 +121,12 @@ export function AlbumEditorPage() {
   const analyses = useQuery({
     queryKey: ["analyses", projectId],
     queryFn: () => listProjectAnalyses(projectId),
+    enabled: projectId !== "",
+  });
+  // What clients chose in a submitted selection, for the tray's "client picks" filter.
+  const pickSessions = useQuery({
+    queryKey: ["pick-sessions", projectId],
+    queryFn: () => listPickSessions(projectId),
     enabled: projectId !== "",
   });
   const reviews = useQuery({
@@ -469,6 +497,7 @@ export function AlbumEditorPage() {
     mutationFn: () => openReviewSession(albumId, clientName || "Client"),
     onSuccess: (session) => {
       setShareLink(`${window.location.origin}/review/${session.token}`);
+      setSharePassword(session.password ?? null);
       void queryClient.invalidateQueries({ queryKey: ["reviews", albumId] });
       void queryClient.invalidateQueries({ queryKey: ["album", albumId] });
     },
@@ -554,6 +583,46 @@ export function AlbumEditorPage() {
       ),
     [current],
   );
+  const clientPickedIds = useMemo(
+    () =>
+      new Set(
+        (pickSessions.data ?? [])
+          .filter((session) => session.status === "SUBMITTED")
+          .flatMap((session) => session.pickedPhotoIds),
+      ),
+    [pickSessions.data],
+  );
+  // Categories that actually occur in this shoot, so the menu never offers an empty choice.
+  const trayCategories = useMemo(
+    () => [...new Set((analyses.data ?? []).map((analysis) => analysis.category))].sort(),
+    [analyses.data],
+  );
+  const trayContext = useMemo<TrayContext>(
+    () => ({
+      clientPickedIds,
+      usedPhotoIds,
+      categoryOf: (id) => analysisByPhoto.get(id)?.category,
+      isAlbumWorthy: (id) => analysisByPhoto.get(id)?.albumWorthy === true,
+    }),
+    [clientPickedIds, usedPhotoIds, analysisByPhoto],
+  );
+  const trayFilter = useMemo(
+    () => ({ show: trayShow, category: trayCategory, search: traySearch }),
+    [trayShow, trayCategory, traySearch],
+  );
+  const trayCounts = useMemo(() => countTrayPhotos(trayPhotos, trayContext), [trayPhotos, trayContext]);
+  const trayFilterActive = isFiltering(trayFilter);
+  const visibleTrayPhotos = useMemo(
+    () => filterTrayPhotos(trayPhotos, trayFilter, trayContext),
+    [trayPhotos, trayFilter, trayContext],
+  );
+  const formatCount = (value: number) => value.toLocaleString(language === "ro" ? "ro-RO" : "en-GB");
+  const categoryLabel = (category: string) => {
+    const key = `album.photoTray.category.${category}`;
+    const label = t(key);
+    return label === key ? category.toLowerCase() : label;
+  };
+
 
   // Every callback below is passed to a memoised child, so each one must keep its
   // identity across renders or the memo boundary buys nothing.
@@ -561,6 +630,7 @@ export function AlbumEditorPage() {
     (photoId: string) => previewByPhoto.get(photoId),
     [previewByPhoto],
   );
+  const closeTools = useCallback(() => setSelected(null), []);
   const selectSlot = useCallback((spreadIndex: number, slotId: string) => {
     setAddingToSpread(null);
     setSelected({ spreadIndex, slotId });
@@ -683,6 +753,7 @@ export function AlbumEditorPage() {
   // handler keeps one identity for the life of the page.
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
+
   const addingToSpreadRef = useRef(addingToSpread);
   addingToSpreadRef.current = addingToSpread;
 
@@ -845,7 +916,7 @@ export function AlbumEditorPage() {
         </p>
       )}
 
-      <div className="editor__layout">
+      <div className={`editor__layout ${trayPrefs.wide ? "editor__layout--wide" : ""}`}>
         <main className="spreads">
           {current.spreads.map((spread, spreadIndex) => (
             <div key={spreadIndex} className="spread-slot-group">
@@ -892,6 +963,7 @@ export function AlbumEditorPage() {
                 onPickTemplate={pickTemplate}
                 onAddPhotoDrop={addPhotoDrop}
                 onRemovePhoto={removePhoto}
+                onCloseTools={closeTools}
               />
 
               {!locked && (
@@ -920,7 +992,28 @@ export function AlbumEditorPage() {
         </main>
 
         <aside className="sidebar">
-          <section className="panel">
+          <div className="sidebar__tabs" role="tablist" aria-label={t("album.sidebar.label")}>
+            {(
+              [
+                ["photos", t("album.sidebar.photos"), 0],
+                ["review", t("album.sidebar.review"), feedback.data?.openCount ?? 0],
+                ["export", t("album.sidebar.export"), 0],
+              ] as ["photos" | "review" | "export", string, number][]
+            ).map(([tab, label, badge]) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={sidebarTab === tab}
+                className={`sidebar__tab ${sidebarTab === tab ? "sidebar__tab--on" : ""}`}
+                onClick={() => setSidebarTab(tab)}
+              >
+                {label}
+                {badge > 0 && <span className="sidebar__badge">{badge}</span>}
+              </button>
+            ))}
+          </div>
+          <section className={`panel panel--tray ${sidebarTab === "photos" ? "" : "is-hidden"}`}>
             <div className="panel__head">
               <h2>{t("album.photoTray.title")}</h2>
               <label className="tray-sort">
@@ -935,6 +1028,95 @@ export function AlbumEditorPage() {
                   <option value="similarity">{t("album.photoTray.sort.similarity")}</option>
                 </select>
               </label>
+            </div>
+            <div className="tray-tools">
+              <div className="tray-search">
+                <input
+                  type="search"
+                  value={traySearch}
+                  placeholder={t("album.photoTray.filter.search")}
+                  aria-label={t("album.photoTray.filter.search")}
+                  onChange={(event) => setTraySearch(event.target.value)}
+                />
+              </div>
+              <div className="tray-chips" role="group" aria-label={t("album.photoTray.filter.show")}>
+                {(
+                  [
+                    ["all", t("album.photoTray.chip.all"), trayCounts.all],
+                    ["picks", `♥ ${t("album.photoTray.chip.picks")}`, trayCounts.picks],
+                    ["unused", t("album.photoTray.chip.unused"), trayCounts.unused],
+                    ["used", t("album.photoTray.chip.used"), trayCounts.used],
+                    ["worthy", t("album.photoTray.chip.worthy"), trayCounts.worthy],
+                  ] as [TrayShow, string, number][]
+                ).map(([value, label, count]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`tray-chip ${trayShow === value ? "tray-chip--on" : ""}`}
+                    aria-pressed={trayShow === value}
+                    title={value === "picks" ? t("album.photoTray.clientPicked") : undefined}
+                    onClick={() => setTrayShow(value)}
+                  >
+                    {label} <span className="tray-chip__count">{formatCount(count)}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="tray-tools__row">
+                <select
+                  aria-label={t("album.photoTray.filter.type")}
+                  value={trayCategory}
+                  onChange={(event) => setTrayCategory(event.target.value)}
+                >
+                  <option value="">{t("album.photoTray.filter.anyType")}</option>
+                  {trayCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {categoryLabel(category)}
+                    </option>
+                  ))}
+                </select>
+                <div className="tray-view" role="group" aria-label={t("album.photoTray.view.size")}>
+                  {(["s", "m", "l"] as TrayDensity[]).map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      className={`tray-view__button ${trayPrefs.density === size ? "tray-view__button--on" : ""}`}
+                      aria-pressed={trayPrefs.density === size}
+                      title={t(`album.photoTray.view.${size}`)}
+                      onClick={() => updateTrayPrefs({ density: size })}
+                    >
+                      {size.toUpperCase()}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className={`tray-view__button tray-view__wide ${trayPrefs.wide ? "tray-view__button--on" : ""}`}
+                    aria-pressed={trayPrefs.wide}
+                    title={t(trayPrefs.wide ? "album.photoTray.view.narrower" : "album.photoTray.view.wider")}
+                    onClick={() => updateTrayPrefs({ wide: !trayPrefs.wide })}
+                  >
+                    ↔
+                  </button>
+                </div>
+              </div>
+              {trayFilterActive && (
+                <p className="muted tray-tools__count">
+                  {t("album.photoTray.filter.showing", {
+                    shown: formatCount(visibleTrayPhotos.length),
+                    total: formatCount(trayPhotos.length),
+                  })}{" "}
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => {
+                      setTrayShow("all");
+                      setTrayCategory("");
+                      setTraySearch("");
+                    }}
+                  >
+                    {t("album.photoTray.filter.clear")}
+                  </button>
+                </p>
+              )}
             </div>
             <p className="muted">
               {addingToSpread !== null
@@ -982,8 +1164,18 @@ export function AlbumEditorPage() {
               <p className="error">{(movePhotoAcrossSpreadsAsNewPhoto.error as Error).message}</p>
             )}
 
+            {trayFilterActive && visibleTrayPhotos.length === 0 && (
+              <p className="muted">
+                {trayShow === "picks" && trayCounts.picks === 0
+                  ? t("album.photoTray.noSelections")
+                  : t("album.photoTray.filter.none")}
+              </p>
+            )}
+            <div className="tray-frame">
             <PhotoTray
-              photos={trayPhotos}
+              density={trayPrefs.density}
+              resetKey={`${trayShow}|${trayCategory}|${traySearch}|${traySort}`}
+              photos={visibleTrayPhotos}
               picked={picked}
               locked={locked}
               onPhotoClick={trayPhotoClick}
@@ -991,9 +1183,13 @@ export function AlbumEditorPage() {
               rankByPhoto={rankByPhoto}
               rankedCount={analyses.data?.length ?? 0}
               usedPhotoIds={usedPhotoIds}
+              clientPickedIds={clientPickedIds}
             />
+            </div>
           </section>
 
+          {sidebarTab === "review" && (
+            <>
           <section className="panel">
             <h2>{t("album.review.title")}</h2>
             <div className="field">
@@ -1016,15 +1212,36 @@ export function AlbumEditorPage() {
             {shareLink && (
               <p className="share-link">
                 <a href={shareLink}>{shareLink}</a>
+                {sharePassword && (
+                  <>
+                    <br />
+                    <span className="muted">{t("access.details.password")}: </span>
+                    <code className="access-modal__password">{sharePassword}</code>
+                  </>
+                )}
               </p>
             )}
             {(reviews.data ?? []).map((session) => (
               <p key={session.id} className="muted">
                 {t("album.review.session", { name: session.clientName, status: session.status })}
                 {session.openComments > 0 &&
-                  t("album.review.openComments", { count: session.openComments })}
+                  t("album.review.openComments", { count: session.openComments })}{" "}
+                {session.passwordProtected && (
+                  <button type="button" className="button button--small" onClick={() => setReviewDetailsFor(session.id)}>
+                    {t("access.details.open")}
+                  </button>
+                )}
               </p>
             ))}
+            {reviewDetailsFor && (
+              <AccessDetailsModal
+                title={t("access.details.title")}
+                queryKey={["review-access", albumId, reviewDetailsFor]}
+                load={() => getReviewAccess(albumId, reviewDetailsFor)}
+                urlFor={(token) => `${window.location.origin}/review/${token}`}
+                onClose={() => setReviewDetailsFor(null)}
+              />
+            )}
           </section>
 
           <section className="panel">
@@ -1047,6 +1264,10 @@ export function AlbumEditorPage() {
             />
           </section>
 
+            </>
+          )}
+
+          {sidebarTab === "export" && (
           <section className="panel">
             <h2>{t("album.export.title")}</h2>
             <button
@@ -1109,6 +1330,7 @@ export function AlbumEditorPage() {
               })}
             </ul>
           </section>
+          )}
         </aside>
       </div>
 

@@ -23,7 +23,33 @@ import { ListProjectPhotosUseCase } from "./modules/media-ingestion/application/
 import { DeleteProjectUseCase } from "./modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
 import { GenerateDerivativesUseCase } from "./modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
 import { SharpImageResizer } from "./modules/media-ingestion/infrastructure/imaging/sharp-image-resizer";
+import { PromoteSelectedPhotosUseCase } from "./modules/media-ingestion/application/use-cases/promote-selected/promote-selected.use-case";
+import { PurgeExpiredOriginalsUseCase } from "./modules/media-ingestion/application/use-cases/purge-expired-originals/purge-expired-originals.use-case";
+import { AlbumCompositionPlacementDirectory } from "./modules/media-ingestion/infrastructure/gateways/album-placement-gateway";
+import { ExportPrintDeliveryDirectory } from "./modules/media-ingestion/infrastructure/gateways/delivery-gateway";
+import { ReviewCollaborationClientPickDirectory } from "./modules/media-ingestion/infrastructure/gateways/client-pick-gateway";
+import { DrizzlePickSessionRepository } from "./modules/review-collaboration/infrastructure/persistence/drizzle-pick-session-repository";
+import { LoggingPickNotifier, MediaIngestionPickGateway } from "./modules/review-collaboration/infrastructure/gateways/pick-gateway";
+import { DrizzleDownloadSessionRepository } from "./modules/review-collaboration/infrastructure/persistence/drizzle-download-session-repository";
+import { CompositePickNotifier, IdentityStudioContacts, MediaIngestionDeliveryGateway } from "./modules/review-collaboration/infrastructure/gateways/delivery-gateway";
+import { StudioEmailNotifier } from "./modules/review-collaboration/application/services/studio-email-notifier";
+import { DownloadSessionAdminUseCase } from "./modules/review-collaboration/application/use-cases/download-session-admin.use-case";
+import { DownloadPortalUseCase } from "./modules/review-collaboration/application/use-cases/download-portal.use-case";
+import { ReviewCollaborationDownloadHolds } from "./modules/media-ingestion/infrastructure/gateways/download-hold-gateway";
+import { ClientAccessService } from "./modules/review-collaboration/application/services/client-access.service";
+import { ReviewAccessUseCase } from "./modules/review-collaboration/application/use-cases/review-access.use-case";
+import { SecretBox } from "./shared-kernel/secret-box";
+import { ClientGrantSigner } from "./shared-kernel/client-grant";
+import { buildEmailSender } from "./infrastructure/email/build-email-sender";
+import { PromoteOnPickNotifier } from "./modules/review-collaboration/infrastructure/gateways/promote-on-pick-notifier";
+import { PickSessionAdminUseCase } from "./modules/review-collaboration/application/use-cases/open-pick-session.use-case";
+import { PickPortalUseCase } from "./modules/review-collaboration/application/use-cases/pick-portal.use-case";
 import type { MediaIngestionDependencies } from "./modules/media-ingestion/interface/http/routes";
+import { buildStorage } from "./infrastructure/storage/build-storage-provider";
+import type { MediaUrlSigner } from "./infrastructure/storage/media-url-signer";
+import { TieredPhotoByteSource } from "./infrastructure/storage/tiered-photo-byte-source";
+import type { StorageProvider } from "./shared-kernel/storage-provider";
+import { PromoteOnApprovalNotifier } from "./modules/review-collaboration/infrastructure/gateways/promote-on-approval-notifier";
 
 import { DrizzlePhotoAnalysisRepository } from "./modules/photo-intelligence/infrastructure/persistence/drizzle-photo-analysis-repository";
 import { SharpImageInspector } from "./modules/photo-intelligence/infrastructure/vision/sharp-image-inspector";
@@ -76,6 +102,11 @@ export interface CompositionRoot {
   login: LoginUseCase;
   mediaIngestion: MediaIngestionDependencies;
   generateDerivatives: GenerateDerivativesUseCase;
+  /** Long-term storage; `undefined` unless STORAGE_PROVIDER is configured. */
+  permanentStorage: StorageProvider | undefined;
+  mediaUrlSigner: MediaUrlSigner;
+  promoteSelected: PromoteSelectedPhotosUseCase | undefined;
+  purgeExpiredOriginals: PurgeExpiredOriginalsUseCase | undefined;
   analyses: DrizzlePhotoAnalysisRepository;
   analyzePhoto: AnalyzePhotoUseCase;
   visionClassifier: VisionClassifier;
@@ -88,6 +119,11 @@ export interface CompositionRoot {
   openReviewSession: OpenReviewSessionUseCase;
   reviewPortal: ReviewPortalUseCase;
   albumFeedback: AlbumFeedbackUseCase;
+  pickAdmin: PickSessionAdminUseCase;
+  pickPortal: PickPortalUseCase;
+  downloadAdmin: DownloadSessionAdminUseCase;
+  downloadPortal: DownloadPortalUseCase;
+  reviewAccess: ReviewAccessUseCase;
   exportJobs: DrizzleExportJobRepository;
   requestExport: RequestExportUseCase;
   deleteExport: DeleteExportUseCase;
@@ -145,10 +181,16 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   });
   const jobQueue = new BullMqJobQueue(redisConnectionFrom(env.REDIS_URL));
 
+  // Long-term tier. Absent unless configured, in which case every consumer below
+  // behaves exactly as it did before this tier existed.
+  const { provider: permanentStorage, signer: mediaUrlSigner } = buildStorage(env);
+
   const generateDerivatives = new GenerateDerivativesUseCase(
     photos,
     storage,
     new SharpImageResizer(),
+    permanentStorage,
+    env.PREVIEW_LONG_EDGE,
   );
 
   // Photo intelligence
@@ -182,16 +224,64 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
 
   // Review & collaboration
   const reviewSessions = new DrizzleReviewSessionRepository(db);
+  const pickSessions = new DrizzlePickSessionRepository(db);
+  const downloadSessions = new DrizzleDownloadSessionRepository(db);
   const reviewAlbumGateway = new AlbumCompositionGateway(
     albums,
-    new StoragePhotoPreviewResolver(photos, storage),
+    new StoragePhotoPreviewResolver(photos, storage, permanentStorage),
   );
-  const openReviewSession = new OpenReviewSessionUseCase(reviewSessions, reviewAlbumGateway);
+  // Passwords for client links (album review and download): generated per link, checked
+  // against a hash, and kept encrypted so the studio can look the link + password up again.
+  const clientAccess = new ClientAccessService(new SecretBox(env.JWT_SECRET), new ClientGrantSigner(env.JWT_SECRET));
+  const openReviewSession = new OpenReviewSessionUseCase(reviewSessions, reviewAlbumGateway, clientAccess);
+  const reviewAccess = new ReviewAccessUseCase(reviewSessions, clientAccess);
   const albumFeedback = new AlbumFeedbackUseCase(reviewSessions);
   const reviewPortal = new ReviewPortalUseCase(
     reviewSessions,
     reviewAlbumGateway,
-    new LoggingReviewNotifier(),
+    permanentStorage
+      ? new PromoteOnApprovalNotifier(new LoggingReviewNotifier(), jobQueue)
+      : new LoggingReviewNotifier(),
+    clientAccess,
+  );
+
+  // Client photo selection ("picks"), the step before an album exists.
+  const pickGateway = new MediaIngestionPickGateway(
+    projects,
+    photos,
+    new ListProjectPhotosUseCase(photos, storage, permanentStorage),
+  );
+  const pickAdmin = new PickSessionAdminUseCase(pickSessions, pickGateway, clientAccess);
+  // Email the studio's owners when a client sends picks or finishes a download.
+  const studioEmail = new StudioEmailNotifier(
+    buildEmailSender(env),
+    new IdentityStudioContacts(projects, members, studios),
+    env.WEB_ORIGIN,
+  );
+  const loggedAndEmailed = new CompositePickNotifier([new LoggingPickNotifier(), studioEmail]);
+  const pickPortal = new PickPortalUseCase(
+    pickSessions,
+    pickGateway,
+    permanentStorage ? new PromoteOnPickNotifier(loggedAndEmailed, jobQueue) : loggedAndEmailed,
+    clientAccess,
+  );
+
+  // Client delivery: a time-limited link that downloads every original as one ZIP.
+  const deliveryGateway = new MediaIngestionDeliveryGateway(projects, photos, storage, permanentStorage);
+  const downloadAdmin = new DownloadSessionAdminUseCase(
+    downloadSessions,
+    deliveryGateway,
+    () => new Date(),
+    clientAccess,
+  );
+  const downloadPortal = new DownloadPortalUseCase(
+    downloadSessions,
+    deliveryGateway,
+    studioEmail,
+    console.error,
+    () => new Date(),
+    clientAccess,
+    pickGateway,
   );
 
   // Export & print
@@ -203,7 +293,13 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const runExport = new RunExportUseCase(
     exportJobs,
     exportAlbumGateway,
-    new PdfAlbumRenderer(new StoredPhotoResolver(photos, byteSource)),
+    new PdfAlbumRenderer(
+      new StoredPhotoResolver(
+        photos,
+        // After retention, an original may live only on long-term storage.
+        permanentStorage ? new TieredPhotoByteSource(byteSource, permanentStorage) : byteSource,
+      ),
+    ),
     exportStorage,
   );
 
@@ -217,12 +313,37 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     exportJobs,
     exportStorage,
     reviewSessions,
+    permanentStorage,
+    pickSessions,
+    downloadSessions,
   );
+
+  // Two-tier pipeline, second and third stages: promote chosen originals to
+  // long-term storage, and expire the staged copies after delivery.
+  const placements = new AlbumCompositionPlacementDirectory(albums);
+  const clientPicks = new ReviewCollaborationClientPickDirectory(pickSessions);
+  const promoteSelected = permanentStorage
+    ? new PromoteSelectedPhotosUseCase(photos, storage, permanentStorage, placements, undefined, clientPicks)
+    : undefined;
+  const purgeExpiredOriginals = promoteSelected
+    ? new PurgeExpiredOriginalsUseCase(
+        projects,
+        photos,
+        storage,
+        new ExportPrintDeliveryDirectory(exportJobs, albums),
+        placements,
+        promoteSelected,
+        env.ORIGINAL_RETENTION_DAYS,
+        undefined,
+        clientPicks,
+        new ReviewCollaborationDownloadHolds(downloadSessions),
+      )
+    : undefined;
 
   const mediaIngestion: MediaIngestionDependencies = {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue),
-    listProjectPhotos: new ListProjectPhotosUseCase(photos, storage),
+    listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
     deleteProject,
     projects,
   };
@@ -238,6 +359,10 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     login,
     mediaIngestion,
     generateDerivatives,
+    permanentStorage,
+    mediaUrlSigner,
+    promoteSelected,
+    purgeExpiredOriginals,
     analyses,
     analyzePhoto,
     visionClassifier,
@@ -250,6 +375,11 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     openReviewSession,
     reviewPortal,
     albumFeedback,
+    pickAdmin,
+    pickPortal,
+    downloadAdmin,
+    downloadPortal,
+    reviewAccess,
     exportJobs,
     requestExport,
     deleteExport,

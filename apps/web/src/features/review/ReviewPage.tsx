@@ -3,13 +3,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { addReviewComment, getReview, listLayoutTemplates, submitReviewDecision } from "../../lib/api";
 import { SpreadCanvas } from "../../components/SpreadCanvas";
+import { PasswordGate, needsPassword } from "../../components/PasswordGate";
 
 export function ReviewPage() {
   const { token = "" } = useParams();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Record<number, string>>({});
 
-  const review = useQuery({ queryKey: ["review", token], queryFn: () => getReview(token) });
+  const review = useQuery({ queryKey: ["review", token], queryFn: () => getReview(token), retry: false });
   const templates = useQuery({ queryKey: ["templates"], queryFn: listLayoutTemplates });
 
   const comment = useMutation({
@@ -29,6 +30,15 @@ export function ReviewPage() {
   );
 
   if (review.isLoading) return <p className="page muted">Opening your album…</p>;
+  if (needsPassword(review.error)) {
+    return (
+      <PasswordGate
+        kind="review"
+        token={token}
+        onUnlocked={() => void queryClient.invalidateQueries({ queryKey: ["review", token] })}
+      />
+    );
+  }
   if (review.isError) {
     return (
       <div className="page">

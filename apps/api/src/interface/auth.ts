@@ -10,7 +10,7 @@ import "./request-context";
  * studio-scoped route (uploads, billing, members) would be public.
  */
 const PUBLIC_EXACT = ["/health", "/plans", "/layout-templates", "/print-profiles"];
-const PUBLIC_PREFIXES = ["/review/"];
+const PUBLIC_PREFIXES = ["/review/", "/pick/", "/download/", "/media/"];
 
 export interface StudioAuthOptions {
   /**

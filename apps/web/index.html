@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>AlbumFlow Studio</title>
+    <script>
+      // Set the theme before first paint so a dark-mode user never sees a white flash.
+      try {
+        var stored = localStorage.getItem("albumflow.theme");
+        var dark = stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

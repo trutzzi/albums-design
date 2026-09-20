@@ -22,6 +22,8 @@ export class DrizzleReviewSessionRepository implements ReviewSessionRepository {
       expiresAt: session.expiresAt,
       approvedAt: session.approvedAt ?? null,
       createdAt: session.createdAt,
+      passwordHash: session.passwordHash ?? null,
+      sealedSecret: session.sealedSecret ?? null,
     };
     await this.db
       .insert(reviewSessions)
@@ -77,6 +79,8 @@ function toDomain(row: typeof reviewSessions.$inferSelect): ReviewSession {
       expiresAt: row.expiresAt,
       approvedAt: row.approvedAt ?? undefined,
       createdAt: row.createdAt,
+      passwordHash: row.passwordHash ?? undefined,
+      sealedSecret: row.sealedSecret ?? undefined,
     },
     UniqueEntityId.create(row.id),
   );

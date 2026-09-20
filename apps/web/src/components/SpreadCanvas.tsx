@@ -91,6 +91,8 @@ export interface SpreadCanvasProps {
   onAddPhotoDrop?: ((photoId: string) => void) | undefined;
   /** Removes one photo from the spread outright, not just clears its slot. */
   onRemovePhoto?: ((slotId: string) => void) | undefined;
+  /** Closes the floating tools (deselects the photo). Drawn as the ✕ at the end of the tools bar. */
+  onCloseTools?: (() => void) | undefined;
 }
 
 const DEFAULT_CROP: Crop = { x: 0, y: 0, width: 1, height: 1 };
@@ -123,6 +125,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   onMovePhotoAsNewPhoto,
   onAddPhotoDrop,
   onRemovePhoto,
+  onCloseTools,
 }: SpreadCanvasProps) {
   const { t } = useLanguage();
   // Natural aspect per photo, learned on load — the crop maths needs it.
@@ -538,6 +541,17 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                     onClick={() => onRemovePhoto(slot.id)}
                   >
                     {t("spread.removePhoto")}
+                  </button>
+                )}
+                {onCloseTools && (
+                  <button
+                    type="button"
+                    className="slot-tools__button slot-tools__close"
+                    title={t("spread.closeTools")}
+                    aria-label={t("spread.closeTools")}
+                    onClick={onCloseTools}
+                  >
+                    ✕
                   </button>
                 )}
               </div>

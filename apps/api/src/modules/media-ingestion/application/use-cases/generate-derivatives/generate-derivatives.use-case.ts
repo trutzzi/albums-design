@@ -4,6 +4,7 @@ import type { DerivativeVariant } from "../../../domain/value-objects/storage-ke
 import type { PhotoRepository } from "../../../domain/photo-repository";
 import type { ImageResizer } from "../../ports/image-resizer";
 import type { ObjectStorageWithBody } from "../../ports/object-storage";
+import type { StorageProvider } from "../../../../../shared-kernel/storage-provider";
 
 /**
  * Two sizes, chosen from how the editor actually draws them: the tray and the
@@ -30,6 +31,13 @@ export class GenerateDerivativesUseCase {
     private readonly photos: PhotoRepository,
     private readonly storage: ObjectStorageWithBody,
     private readonly resizer: ImageResizer,
+    /**
+     * When set, display copies are written here — long-term storage — instead of
+     * beside the original in the staging bucket, and the preview is cut at
+     * `previewLongEdge` rather than the default.
+     */
+    private readonly permanent?: StorageProvider,
+    private readonly previewLongEdge: number = DERIVATIVE_SPECS.preview.longestEdge,
   ) {}
 
   async execute(
@@ -40,17 +48,21 @@ export class GenerateDerivativesUseCase {
 
     const original = await this.storage.getObject(photo.storageKey.toString());
     const written = {} as Record<DerivativeVariant, number>;
+    const specs = this.permanent
+      ? { ...DERIVATIVE_SPECS, preview: { ...DERIVATIVE_SPECS.preview, longestEdge: this.previewLongEdge } }
+      : DERIVATIVE_SPECS;
 
-    for (const [variant, spec] of Object.entries(DERIVATIVE_SPECS) as [
+    for (const [variant, spec] of Object.entries(specs) as [
       DerivativeVariant,
       (typeof DERIVATIVE_SPECS)[DerivativeVariant],
     ][]) {
       const body = await this.resizer.toJpeg({ data: original, ...spec });
-      await this.storage.putObject({
-        key: photo.storageKey.derivative(variant).toString(),
-        body,
-        contentType: "image/jpeg",
-      });
+      const key = photo.storageKey.derivative(variant).toString();
+      if (this.permanent) {
+        await this.permanent.upload(key, body, { contentType: "image/jpeg" });
+      } else {
+        await this.storage.putObject({ key, body, contentType: "image/jpeg" });
+      }
       written[variant] = body.byteLength;
     }
 
@@ -58,8 +70,9 @@ export class GenerateDerivativesUseCase {
     // racing on this same row, and re-saving the whole snapshot here would
     // silently revert whichever field IT changed, depending on nothing but
     // which of the two jobs happens to commit last.
-    photo.markDerivativesReady();
-    await this.photos.markDerivativesReady(photo.id);
+    const permanent = this.permanent !== undefined;
+    photo.markDerivativesReady({ permanent });
+    await this.photos.markDerivativesReady(photo.id, { permanent });
 
     return Result.success({ photoId: photo.id.toString(), written });
   }

@@ -15,6 +15,10 @@ import type { PhotoByteSource } from "../modules/photo-intelligence/application/
 import type { Album } from "../modules/album-composition/domain/album";
 import type { AlbumRepository } from "../modules/album-composition/domain/album-repository";
 import type { ReviewSession } from "../modules/review-collaboration/domain/review-session";
+import type { PickSession } from "../modules/review-collaboration/domain/pick-session";
+import type { PickSessionRepository } from "../modules/review-collaboration/domain/pick-session-repository";
+import type { DownloadSession } from "../modules/review-collaboration/domain/download-session";
+import type { DownloadSessionRepository } from "../modules/review-collaboration/domain/download-session-repository";
 import type { ReviewSessionRepository } from "../modules/review-collaboration/domain/review-session-repository";
 import type { ExportJob } from "../modules/export-print/domain/export-job";
 import type { ExportJobRepository } from "../modules/export-print/domain/export-job-repository";
@@ -59,6 +63,10 @@ function clonePhoto(photo: Photo): Photo {
       createdAt: photo.createdAt,
       uploadedAt: photo.uploadedAt,
       hasDerivatives: photo.hasDerivatives,
+      permanentDerivatives: photo.permanentDerivatives,
+      selectedAt: photo.selectedAt,
+      fullResStoredAt: photo.fullResStoredAt,
+      stagedOriginalPurgedAt: photo.stagedOriginalPurgedAt,
     },
     photo.id,
   );
@@ -97,11 +105,23 @@ export class InMemoryPhotoRepository implements PhotoRepository {
     (updated as unknown as { props: { status: Photo["status"] } }).props.status = status;
     this.items.set(id.toString(), updated);
   }
-  async markDerivativesReady(id: UniqueEntityId) {
+  async markDerivativesReady(id: UniqueEntityId, options: { permanent?: boolean } = {}) {
+    await this.mutate(id, (photo) => photo.markDerivativesReady(options));
+  }
+  async markSelected(ids: UniqueEntityId[], at: Date) {
+    for (const id of ids) await this.mutate(id, (photo) => photo.markSelected(at));
+  }
+  async markFullResStored(id: UniqueEntityId, at: Date) {
+    await this.mutate(id, (photo) => photo.markFullResStored(at));
+  }
+  async markStagedOriginalPurged(id: UniqueEntityId, at: Date) {
+    await this.mutate(id, (photo) => photo.markStagedOriginalPurged(at));
+  }
+  private async mutate(id: UniqueEntityId, change: (photo: Photo) => void) {
     const stored = this.items.get(id.toString());
     if (!stored) return;
     const updated = clonePhoto(stored);
-    updated.markDerivativesReady();
+    change(updated);
     this.items.set(id.toString(), updated);
   }
   async delete(id: UniqueEntityId) {
@@ -224,6 +244,52 @@ export class InMemoryReviewSessionRepository implements ReviewSessionRepository 
   }
 }
 
+export class InMemoryPickSessionRepository implements PickSessionRepository {
+  readonly items = new Map<string, PickSession>();
+  async save(session: PickSession) {
+    this.items.set(session.id.toString(), session);
+  }
+  async findById(id: UniqueEntityId) {
+    return this.items.get(id.toString());
+  }
+  async findByTokenHash(tokenHash: string) {
+    return [...this.items.values()].find((session) => session.tokenHash === tokenHash);
+  }
+  async findByProjectId(projectId: UniqueEntityId) {
+    return [...this.items.values()].filter(
+      (session) => session.projectId.toString() === projectId.toString(),
+    );
+  }
+  async deleteByProjectId(projectId: UniqueEntityId) {
+    for (const [id, session] of this.items) {
+      if (session.projectId.toString() === projectId.toString()) this.items.delete(id);
+    }
+  }
+}
+
+export class InMemoryDownloadSessionRepository implements DownloadSessionRepository {
+  readonly items = new Map<string, DownloadSession>();
+  async save(session: DownloadSession) {
+    this.items.set(session.id.toString(), session);
+  }
+  async findById(id: UniqueEntityId) {
+    return this.items.get(id.toString());
+  }
+  async findByTokenHash(tokenHash: string) {
+    return [...this.items.values()].find((session) => session.tokenHash === tokenHash);
+  }
+  async findByProjectId(projectId: UniqueEntityId) {
+    return [...this.items.values()].filter(
+      (session) => session.projectId.toString() === projectId.toString(),
+    );
+  }
+  async deleteByProjectId(projectId: UniqueEntityId) {
+    for (const [id, session] of this.items) {
+      if (session.projectId.toString() === projectId.toString()) this.items.delete(id);
+    }
+  }
+}
+
 export class InMemoryExportJobRepository implements ExportJobRepository {
   readonly items = new Map<string, ExportJob>();
   async save(job: ExportJob) {
@@ -235,6 +301,11 @@ export class InMemoryExportJobRepository implements ExportJobRepository {
   async findByAlbumId(albumId: UniqueEntityId) {
     return [...this.items.values()].filter(
       (job) => job.albumId.toString() === albumId.toString(),
+    );
+  }
+  async findReadyCompletedBefore(cutoff: Date) {
+    return [...this.items.values()].filter(
+      (job) => job.status === "READY" && job.completedAt !== undefined && job.completedAt < cutoff,
     );
   }
   async delete(id: UniqueEntityId) {

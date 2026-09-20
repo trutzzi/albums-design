@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, lt } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "../../../../db/client";
 import { ExportJob } from "../../domain/export-job";
@@ -52,6 +52,14 @@ export class DrizzleExportJobRepository implements ExportJobRepository {
       .from(exportJobs)
       .where(eq(exportJobs.albumId, albumId.toString()))
       .orderBy(desc(exportJobs.requestedAt));
+    return rows.map(toDomain);
+  }
+
+  async findReadyCompletedBefore(cutoff: Date): Promise<ExportJob[]> {
+    const rows = await this.db
+      .select()
+      .from(exportJobs)
+      .where(and(eq(exportJobs.status, "READY"), lt(exportJobs.completedAt, cutoff)));
     return rows.map(toDomain);
   }
 

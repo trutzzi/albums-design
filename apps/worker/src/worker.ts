@@ -1,4 +1,4 @@
-import { Worker } from "bullmq";
+import { Queue, Worker } from "bullmq";
 import type { ConnectionOptions, Job } from "bullmq";
 import { buildCompositionRoot } from "@albumflow/api";
 import { QUEUES } from "@albumflow/api/shared-kernel/job-queue";
@@ -16,6 +16,14 @@ interface RenderAlbumJob {
 
 interface GenerateDerivativesJob {
   photoId: string;
+}
+
+interface PromoteSelectedJob {
+  albumId: string;
+}
+
+interface PromotePickedJob {
+  projectId: string;
 }
 
 /**
@@ -96,18 +104,53 @@ async function main() {
   );
   exportWorker.on("active", (job) => log(`[export] started ${job.data.exportJobId}`));
 
-  for (const worker of [derivativeWorker, analysisWorker, exportWorker]) {
+  // Long-term tier: promote chosen originals when an album is approved, and
+  // expire staged originals after delivery. Only exists when a provider is
+  // configured — with STORAGE_PROVIDER=none there is no second copy, so a
+  // purge would be data loss and neither job is ever registered.
+  const storageWorker = root.promoteSelected && root.purgeExpiredOriginals
+    ? new Worker(
+        QUEUES.storage,
+        async (job: Job<PromoteSelectedJob | PromotePickedJob | Record<string, never>>) => {
+          if (job.name === "promote-picked") {
+            const result = await root.promoteSelected!.executePicked({ projectId: (job.data as PromotePickedJob).projectId });
+            if (result.isFailure) throw new Error(result.getError().message);
+            const { promoted, alreadyStored } = result.getValue();
+            log(`[storage] client picks of project ${(job.data as PromotePickedJob).projectId}: ${promoted} promoted, ${alreadyStored} already stored`);
+          } else if (job.name === "promote-selected") {
+            const result = await root.promoteSelected!.execute({ albumId: (job.data as PromoteSelectedJob).albumId });
+            if (result.isFailure) throw new Error(result.getError().message);
+            const { promoted, alreadyStored } = result.getValue();
+            log(`[storage] album ${(job.data as PromoteSelectedJob).albumId}: ${promoted} promoted, ${alreadyStored} already stored`);
+          } else if (job.name === "purge-expired") {
+            const summary = await root.purgeExpiredOriginals!.execute();
+            log(
+              `[storage] retention sweep: ${summary.projectsSwept} shoots, ${summary.purged} originals purged, ${summary.heldBack} held back, ${summary.projectsOnHold} shoots kept for active download links`,
+            );
+          }
+        },
+        // Copies move whole originals through memory; keep them one at a time.
+        { connection, concurrency: 1 },
+      )
+    : undefined;
+
+  const storageQueue = storageWorker ? new Queue(QUEUES.storage, { connection }) : undefined;
+  // Idempotent by scheduler id: restarting the worker does not stack schedules.
+  await storageQueue?.upsertJobScheduler(
+    "purge-expired-originals",
+    { pattern: "0 3 * * *" },
+    { name: "purge-expired", data: {} },
+  );
+
+  const workers = [derivativeWorker, analysisWorker, exportWorker, ...(storageWorker ? [storageWorker] : [])];
+  for (const worker of workers) {
     worker.on("failed", (job, error) => {
       log(`[${worker.name}] job ${job?.id} failed: ${error.message}`);
     });
   }
 
   const shutdown = async () => {
-    await Promise.all([
-      derivativeWorker.close(),
-      analysisWorker.close(),
-      exportWorker.close(),
-    ]);
+    await Promise.all([...workers.map((worker) => worker.close()), storageQueue?.close()]);
     await root.shutdown();
     process.exit(0);
   };
@@ -115,7 +158,8 @@ async function main() {
   process.on("SIGTERM", () => void shutdown());
 
   log(
-    `Worker listening on: ${QUEUES.mediaIngestion}, ${QUEUES.photoIntelligence}, ${QUEUES.albumExport}`,
+    `Worker listening on: ${QUEUES.mediaIngestion}, ${QUEUES.photoIntelligence}, ${QUEUES.albumExport}` +
+      (storageWorker ? `, ${QUEUES.storage} (long-term storage: ${root.permanentStorage?.id})` : ""),
   );
 }
 

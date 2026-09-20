@@ -69,6 +69,8 @@ export const generateAlbumSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   targetSpreads: z.number().int().min(1).max(60).optional(),
   format: albumFormatSchema.optional(),
+  /** Build from exactly these photos (a client's picks) instead of the auto-selected best. */
+  photoIds: z.array(z.string().uuid()).min(1).max(2000).optional(),
 });
 export type GenerateAlbumInput = z.infer<typeof generateAlbumSchema>;
 

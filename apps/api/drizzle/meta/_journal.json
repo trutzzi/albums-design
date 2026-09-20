@@ -36,6 +36,41 @@
       "when": 1789723889723,
       "tag": "0004_bouncy_wendigo",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789858423800,
+      "tag": "0005_marvelous_stature",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789861034529,
+      "tag": "0006_legal_sabra",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789864825200,
+      "tag": "0007_petite_ultron",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789867770588,
+      "tag": "0008_zippy_lockheed",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789868586140,
+      "tag": "0009_moaning_molly_hayes",
+      "breakpoints": true
     }
   ]
 }

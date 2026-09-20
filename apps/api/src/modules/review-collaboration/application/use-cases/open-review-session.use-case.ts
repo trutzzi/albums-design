@@ -3,6 +3,7 @@ import { NotFoundError, type ApplicationError } from "../../../../shared-kernel/
 import { ReviewSession } from "../../domain/review-session";
 import type { ReviewSessionRepository } from "../../domain/review-session-repository";
 import type { AlbumGateway } from "../ports/album-gateway";
+import type { ClientAccessService } from "../services/client-access.service";
 
 export interface OpenReviewSessionCommand {
   albumId: string;
@@ -14,12 +15,15 @@ export interface OpenReviewSessionResult {
   sessionId: string;
   token: string;
   expiresAt: string;
+  /** The generated password the client must enter. Absent when passwords are not configured. */
+  password?: string;
 }
 
 export class OpenReviewSessionUseCase {
   constructor(
     private readonly sessions: ReviewSessionRepository,
     private readonly albums: AlbumGateway,
+    private readonly access?: ClientAccessService,
   ) {}
 
   async execute(
@@ -34,6 +38,9 @@ export class OpenReviewSessionUseCase {
       ...(command.ttlDays ? { ttlDays: command.ttlDays } : {}),
     });
 
+    const issued = this.access ? await this.access.issue(token) : undefined;
+    if (issued) session.protectWith(issued);
+
     await this.sessions.save(session);
     await this.albums.markInReview(command.albumId);
 
@@ -41,6 +48,7 @@ export class OpenReviewSessionUseCase {
       sessionId: session.id.toString(),
       token,
       expiresAt: session.expiresAt.toISOString(),
+      ...(issued ? { password: issued.password } : {}),
     });
   }
 }
