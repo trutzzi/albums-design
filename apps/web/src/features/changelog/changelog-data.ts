@@ -27,6 +27,7 @@ export const CHANGELOG_RELEASES: ChangelogRelease[] = [
       { titleKey: "changelog.item.downloadGallery", descriptionKey: "changelog.item.downloadGallery.desc", howToKey: "changelog.item.downloadGallery.how" },
       { titleKey: "changelog.item.trayFilters", descriptionKey: "changelog.item.trayFilters.desc", howToKey: "changelog.item.trayFilters.how" },
       { titleKey: "changelog.item.darkTheme", descriptionKey: "changelog.item.darkTheme.desc", howToKey: "changelog.item.darkTheme.how" },
+      { titleKey: "changelog.item.responsive", descriptionKey: "changelog.item.responsive.desc", howToKey: "changelog.item.responsive.how" },
     ],
   },
   {

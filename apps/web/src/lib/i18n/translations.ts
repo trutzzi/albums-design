@@ -413,6 +413,11 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "album.sidebar.review": "Review",
     "album.sidebar.export": "Export",
     "spread.closeTools": "Close",
+    "nav.menu.open": "Menu",
+    "nav.menu.close": "Close menu",
+    "changelog.item.responsive": "Works on phones and tablets",
+    "changelog.item.responsive.desc": "The whole app now fits smaller screens. On a phone the top bar folds into a menu button, pages no longer scroll sideways, and buttons and panels wrap neatly instead of running off the edge — including the album editor. Client links (selection, review and download) already worked well on phones and still do.",
+    "changelog.item.responsive.how": "Nothing to set up. Open AlbumFlow on your phone or tablet and tap the menu button (three lines) in the top right to reach Shoots, Studio, What's new and Contact.",
     "changelog.item.launch": "AlbumFlow launches",
     "changelog.item.launch.desc":
       "Upload a shoot, let AlbumFlow score and categorise every photo, generate a draft album automatically, fine-tune the layout, collect client feedback, and export a print-ready PDF.",
@@ -1025,6 +1030,11 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "album.sidebar.review": "Recenzie",
     "album.sidebar.export": "Export",
     "spread.closeTools": "Închide",
+    "nav.menu.open": "Meniu",
+    "nav.menu.close": "Închide meniul",
+    "changelog.item.responsive": "Funcționează pe telefoane și tablete",
+    "changelog.item.responsive.desc": "Întreaga aplicație se potrivește acum ecranelor mici. Pe telefon, bara de sus se transformă într-un buton de meniu, paginile nu mai derulează lateral, iar butoanele și panourile se așază frumos pe rânduri în loc să iasă din ecran — inclusiv editorul de album. Linkurile pentru clienți (selecție, recenzie și descărcare) funcționau deja bine pe telefon și continuă să funcționeze.",
+    "changelog.item.responsive.how": "Nu ai nimic de configurat. Deschide AlbumFlow pe telefon sau tabletă și apasă butonul de meniu (trei linii) din dreapta sus ca să ajungi la Sesiuni foto, Studio, Noutăți și Contact.",
     "changelog.item.launch": "AlbumFlow este lansat",
     "changelog.item.launch.desc":
       "Încarcă o sesiune foto, lasă AlbumFlow să evalueze și să categorisească fiecare fotografie, generează automat o schiță de album, ajustează aspectul, colectează feedback de la client și exportă un PDF gata de tipar.",
