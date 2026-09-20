@@ -246,6 +246,61 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The API and worker read their optional settings (DigiStorage, email) from the
+      # server's own `.env`, not from GitHub — so a value stored only as a GitHub secret
+      # never reaches them. This collects those secrets into `.env.deploy`, which travels
+      # with the release below and is merged into the server's `.env` (then deleted) by
+      # the "Migrate and restart" step. Written to a file rather than passed on the ssh
+      # command line so that a password with quotes, `$` or `<>` in it cannot break
+      # anything or be mangled by a shell on the way.
+      #
+      # A secret that is unset or empty is skipped, never written — so an unset secret
+      # can not blank out a value that is already working on the server.
+      - name: Collect server settings from secrets
+        env:
+          STORAGE_PROVIDER: ${{ secrets.STORAGE_PROVIDER }}
+          DIGISTORAGE_WEBDAV_URL: ${{ secrets.DIGISTORAGE_WEBDAV_URL }}
+          DIGISTORAGE_USERNAME: ${{ secrets.DIGISTORAGE_USERNAME }}
+          DIGISTORAGE_APP_PASSWORD: ${{ secrets.DIGISTORAGE_APP_PASSWORD }}
+          DIGISTORAGE_ROOT_PATH: ${{ secrets.DIGISTORAGE_ROOT_PATH }}
+          EMAIL_PROVIDER: ${{ secrets.EMAIL_PROVIDER }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+        run: |
+          set -euo pipefail
+          : > .env.deploy
+          add() {
+            local key="$1" value="${2:-}"
+            [ -z "$value" ] && return 0
+            # Values are stored single-quoted (so nothing in them is expanded), which
+            # means a single quote or a line break inside one cannot be stored safely.
+            case "$value" in
+              *"'"*|*$'\n'*) echo "::error::Secret $key contains a single quote or a line break, which this step cannot store safely."; exit 1 ;;
+            esac
+            printf "%s='%s'\n" "$key" "$value" >> .env.deploy
+          }
+          add STORAGE_PROVIDER "${STORAGE_PROVIDER:-}"
+          add DIGISTORAGE_WEBDAV_URL "${DIGISTORAGE_WEBDAV_URL:-}"
+          add DIGISTORAGE_USERNAME "${DIGISTORAGE_USERNAME:-}"
+          add DIGISTORAGE_APP_PASSWORD "${DIGISTORAGE_APP_PASSWORD:-}"
+          add DIGISTORAGE_ROOT_PATH "${DIGISTORAGE_ROOT_PATH:-}"
+          add EMAIL_PROVIDER "${EMAIL_PROVIDER:-}"
+          add SMTP_HOST "${SMTP_HOST:-}"
+          add SMTP_PORT "${SMTP_PORT:-}"
+          add SMTP_SECURE "${SMTP_SECURE:-}"
+          add SMTP_USER "${SMTP_USER:-}"
+          add SMTP_PASSWORD "${SMTP_PASSWORD:-}"
+          add MAIL_FROM "${MAIL_FROM:-}"
+          # Not a secret, and only meaningful alongside DigiStorage: the public origin the
+          # signed preview links point at.
+          add PUBLIC_API_URL "https://api.valentintruta.ro"
+          # Key names only — the values are never printed.
+          echo "Prepared $(wc -l < .env.deploy | tr -d ' ') setting(s): $(cut -d= -f1 .env.deploy | tr '\n' ' ')"
+
       # Syncs the checkout into /opt/albumflow. This never includes a real
       # `.env` — it's gitignored, so it was never in this checkout to begin
       # with — which is exactly why the server's own `.env` (holding the
@@ -274,10 +329,68 @@ jobs:
             set -euo pipefail
             cd /opt/albumflow
             COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+
+            # Merge the settings that arrived with the release (see "Collect server
+            # settings from secrets") into the server's own .env: each key replaces its
+            # old line, everything else in .env is left exactly as it was. Then the
+            # temporary file is removed so no secret is left lying around.
+            SETTINGS_CHANGED=0
+            if [ -s .env.deploy ]; then
+              SETTINGS_CHANGED=1
+              touch .env
+              cp .env .env.bak
+              while IFS= read -r line; do
+                key="${line%%=*}"
+                sed -i "/^${key}=/d" .env
+                printf '%s\n' "$line" >> .env
+              done < .env.deploy
+              chmod 600 .env
+              echo "Updated .env keys: $(cut -d= -f1 .env.deploy | tr '\n' ' ')"
+            fi
+            rm -f .env.deploy
+
             $COMPOSE build api worker
             $COMPOSE run --rm api pnpm --filter @albumflow/api exec tsx src/db/migrate.ts
             $COMPOSE up -d postgres redis minio minio-init api worker caddy
             docker image prune -f
+
+            # A wrong value in a secret (a port that is not a number, say) makes the API refuse
+            # to start. When this deploy changed the server's .env, confirm the API really came
+            # up; if it did not, put the previous .env back so the site is not left down over
+            # a settings typo, and fail this job with the API's own log.
+            if [ "$SETTINGS_CHANGED" = 1 ]; then
+              healthy=0
+              for attempt in $(seq 1 45); do
+                if $COMPOSE exec -T api node -e "fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+                  healthy=1
+                  break
+                fi
+                sleep 2
+              done
+              if [ "$healthy" != 1 ]; then
+                echo "::error::The API did not become healthy with the new settings. Restoring the previous .env."
+                $COMPOSE logs --tail 60 api
+                cp .env.bak .env
+                $COMPOSE up -d api worker
+                exit 1
+              fi
+            fi
+
+            # If long-term storage is switched on, the worker says so when it starts. Wait
+            # for that line, so a wrong or missing setting turns this job red with the
+            # logs attached, instead of silently storing nothing.
+            if grep -qE "^STORAGE_PROVIDER='?digistorage'?$" .env; then
+              for attempt in $(seq 1 30); do
+                $COMPOSE logs --tail 200 worker 2>&1 | grep -q "long-term storage: digistorage" && break
+                sleep 2
+              done
+              if ! $COMPOSE logs --tail 200 worker 2>&1 | grep -q "long-term storage: digistorage"; then
+                echo "::error::STORAGE_PROVIDER is digistorage but the worker did not report long-term storage as active."
+                $COMPOSE logs --tail 60 api worker
+                exit 1
+              fi
+              echo "DigiStorage long-term storage is active."
+            fi
 
   deploy-web:
     name: Deploy web to valentintruta.ro (cPanel, FTP)
