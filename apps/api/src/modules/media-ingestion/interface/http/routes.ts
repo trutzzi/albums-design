@@ -42,6 +42,8 @@ function toProjectDto(project: Project) {
     name: project.name,
     type: project.type,
     eventDate: project.eventDate?.toISOString() ?? null,
+    clientName: project.clientName ?? null,
+    clientEmail: project.clientEmail ?? null,
     createdAt: project.createdAt.toISOString(),
   };
 }
@@ -56,6 +58,8 @@ export function registerMediaIngestionRoutes(app: FastifyInstance, deps: MediaIn
       name: body.name,
       type: body.type,
       ...(body.eventDate ? { eventDate: new Date(body.eventDate) } : {}),
+      ...(body.clientName ? { clientName: body.clientName } : {}),
+      ...(body.clientEmail ? { clientEmail: body.clientEmail } : {}),
     });
     await deps.projects.save(project);
     return reply.code(201).send(toProjectDto(project));

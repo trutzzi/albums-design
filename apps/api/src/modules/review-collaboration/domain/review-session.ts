@@ -21,6 +21,9 @@ export interface ReviewSessionProps {
   status: ReviewStatus;
   comments: ReviewComment[];
   expiresAt: Date;
+  /** The address this link was last emailed to, and when — so a resend is a conscious choice. */
+  lastSentTo?: string | undefined;
+  lastSentAt?: Date | undefined;
   approvedAt: Date | undefined;
   createdAt: Date;
   /** Hash of the client password. Absent on links created before passwords existed, which stay open. */
@@ -170,6 +173,20 @@ export class ReviewSession extends AggregateRoot<ReviewSessionProps> {
     this.assertActionable();
     this.props.status = "APPROVED";
     this.props.approvedAt = new Date();
+  }
+
+  get lastSentTo(): string | undefined {
+    return this.props.lastSentTo;
+  }
+
+  get lastSentAt(): Date | undefined {
+    return this.props.lastSentAt;
+  }
+
+  /** Notes that the link was emailed to the client. Nothing else about the link changes. */
+  recordSent(to: string, at: Date = new Date()): void {
+    this.props.lastSentTo = to;
+    this.props.lastSentAt = at;
   }
 
   revoke(): void {

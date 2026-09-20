@@ -7,7 +7,9 @@ export class LoggingEmailSender implements EmailSender {
 
   async send(message: EmailMessage): Promise<void> {
     this.log(
-      `[email] (not sent — no SMTP configured) to ${message.to.join(", ")}\n  subject: ${message.subject}\n  ${message.text.split("\n").join("\n  ")}`,
+      `[email] (not sent — no SMTP configured) to ${message.to.join(", ")}` +
+        (message.replyTo ? ` (reply-to ${message.replyTo})` : "") +
+        `\n  subject: ${message.subject}\n  ${message.text.split("\n").join("\n  ")}`,
     );
   }
 }

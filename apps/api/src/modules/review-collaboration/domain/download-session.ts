@@ -16,6 +16,9 @@ export interface DownloadSessionProps {
   firstDownloadedAt: Date | undefined;
   lastDownloadedAt: Date | undefined;
   createdAt: Date;
+  /** The address this link was last emailed to, and when — so a resend is a conscious choice. */
+  lastSentTo?: string | undefined;
+  lastSentAt?: Date | undefined;
   /** Hash of the client password. Absent on links created before passwords existed, which stay open. */
   passwordHash?: string | undefined;
   /** Encrypted link token + password, so the studio can view them again. */
@@ -133,6 +136,20 @@ export class DownloadSession extends AggregateRoot<DownloadSessionProps> {
     this.props.downloadCount += 1;
     this.props.firstDownloadedAt ??= now;
     this.props.lastDownloadedAt = now;
+  }
+
+  get lastSentTo(): string | undefined {
+    return this.props.lastSentTo;
+  }
+
+  get lastSentAt(): Date | undefined {
+    return this.props.lastSentAt;
+  }
+
+  /** Notes that the link was emailed to the client. Nothing else about the link changes. */
+  recordSent(to: string, at: Date = new Date()): void {
+    this.props.lastSentTo = to;
+    this.props.lastSentAt = at;
   }
 
   revoke(): void {

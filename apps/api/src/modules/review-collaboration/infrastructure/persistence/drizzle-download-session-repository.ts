@@ -20,6 +20,8 @@ export class DrizzleDownloadSessionRepository implements DownloadSessionReposito
       firstDownloadedAt: session.firstDownloadedAt ?? null,
       lastDownloadedAt: session.lastDownloadedAt ?? null,
       createdAt: session.createdAt,
+      lastSentTo: session.lastSentTo ?? null,
+      lastSentAt: session.lastSentAt ?? null,
       passwordHash: session.passwordHash ?? null,
       sealedSecret: session.sealedSecret ?? null,
     };
@@ -33,6 +35,8 @@ export class DrizzleDownloadSessionRepository implements DownloadSessionReposito
           downloadCount: row.downloadCount,
           firstDownloadedAt: row.firstDownloadedAt,
           lastDownloadedAt: row.lastDownloadedAt,
+          lastSentTo: row.lastSentTo,
+          lastSentAt: row.lastSentAt,
         },
       });
   }
@@ -76,6 +80,8 @@ function toDomain(row: typeof downloadSessions.$inferSelect): DownloadSession {
       firstDownloadedAt: row.firstDownloadedAt ?? undefined,
       lastDownloadedAt: row.lastDownloadedAt ?? undefined,
       createdAt: row.createdAt,
+      lastSentTo: row.lastSentTo ?? undefined,
+      lastSentAt: row.lastSentAt ?? undefined,
       passwordHash: row.passwordHash ?? undefined,
       sealedSecret: row.sealedSecret ?? undefined,
     },

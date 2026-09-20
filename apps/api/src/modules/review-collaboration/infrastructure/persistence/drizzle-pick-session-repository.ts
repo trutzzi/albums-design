@@ -23,6 +23,8 @@ export class DrizzlePickSessionRepository implements PickSessionRepository {
       expiresAt: session.expiresAt,
       submittedAt: session.submittedAt ?? null,
       createdAt: session.createdAt,
+      lastSentTo: session.lastSentTo ?? null,
+      lastSentAt: session.lastSentAt ?? null,
       passwordHash: session.passwordHash ?? null,
       sealedSecret: session.sealedSecret ?? null,
     };
@@ -38,6 +40,8 @@ export class DrizzlePickSessionRepository implements PickSessionRepository {
           stage: row.stage,
           firstReachedFinalAt: row.firstReachedFinalAt,
           submittedAt: row.submittedAt,
+          lastSentTo: row.lastSentTo,
+          lastSentAt: row.lastSentAt,
         },
       });
   }
@@ -88,6 +92,8 @@ function toDomain(row: typeof pickSessions.$inferSelect): PickSession {
       expiresAt: row.expiresAt,
       submittedAt: row.submittedAt ?? undefined,
       createdAt: row.createdAt,
+      lastSentTo: row.lastSentTo ?? undefined,
+      lastSentAt: row.lastSentAt ?? undefined,
       passwordHash: row.passwordHash ?? undefined,
       sealedSecret: row.sealedSecret ?? undefined,
     },

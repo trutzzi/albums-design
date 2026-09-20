@@ -78,6 +78,13 @@
       "when": 1789930927043,
       "tag": "0010_dashing_doctor_faustus",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789933871335,
+      "tag": "0011_loud_gargoyle",
+      "breakpoints": true
     }
   ]
 }

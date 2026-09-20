@@ -22,6 +22,7 @@ export const CHANGELOG_RELEASES: ChangelogRelease[] = [
     items: [
       { titleKey: "changelog.item.clientPicks", descriptionKey: "changelog.item.clientPicks.desc", howToKey: "changelog.item.clientPicks.how" },
       { titleKey: "changelog.item.twoStepPicks", descriptionKey: "changelog.item.twoStepPicks.desc", howToKey: "changelog.item.twoStepPicks.how" },
+      { titleKey: "changelog.item.clientEmails", descriptionKey: "changelog.item.clientEmails.desc", howToKey: "changelog.item.clientEmails.how" },
       { titleKey: "changelog.item.clientPasswords", descriptionKey: "changelog.item.clientPasswords.desc", howToKey: "changelog.item.clientPasswords.how" },
       { titleKey: "changelog.item.pickEmail", descriptionKey: "changelog.item.pickEmail.desc", howToKey: "changelog.item.pickEmail.how" },
       { titleKey: "changelog.item.delivery", descriptionKey: "changelog.item.delivery.desc", howToKey: "changelog.item.delivery.how" },

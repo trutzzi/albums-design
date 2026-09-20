@@ -22,6 +22,8 @@ export class DrizzleReviewSessionRepository implements ReviewSessionRepository {
       expiresAt: session.expiresAt,
       approvedAt: session.approvedAt ?? null,
       createdAt: session.createdAt,
+      lastSentTo: session.lastSentTo ?? null,
+      lastSentAt: session.lastSentAt ?? null,
       passwordHash: session.passwordHash ?? null,
       sealedSecret: session.sealedSecret ?? null,
     };
@@ -30,7 +32,13 @@ export class DrizzleReviewSessionRepository implements ReviewSessionRepository {
       .values(row)
       .onConflictDoUpdate({
         target: reviewSessions.id,
-        set: { status: row.status, comments: row.comments, approvedAt: row.approvedAt },
+        set: {
+          status: row.status,
+          comments: row.comments,
+          approvedAt: row.approvedAt,
+          lastSentTo: row.lastSentTo,
+          lastSentAt: row.lastSentAt,
+        },
       });
   }
 
@@ -79,6 +87,8 @@ function toDomain(row: typeof reviewSessions.$inferSelect): ReviewSession {
       expiresAt: row.expiresAt,
       approvedAt: row.approvedAt ?? undefined,
       createdAt: row.createdAt,
+      lastSentTo: row.lastSentTo ?? undefined,
+      lastSentAt: row.lastSentAt ?? undefined,
       passwordHash: row.passwordHash ?? undefined,
       sealedSecret: row.sealedSecret ?? undefined,
     },

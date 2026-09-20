@@ -34,6 +34,9 @@ import { DrizzlePickSessionRepository } from "./modules/review-collaboration/inf
 import { LoggingPickNotifier, MediaIngestionPickGateway } from "./modules/review-collaboration/infrastructure/gateways/pick-gateway";
 import { DrizzleDownloadSessionRepository } from "./modules/review-collaboration/infrastructure/persistence/drizzle-download-session-repository";
 import { CompositePickNotifier, IdentityStudioContacts, MediaIngestionDeliveryGateway } from "./modules/review-collaboration/infrastructure/gateways/delivery-gateway";
+import { ClientInvitationMailer } from "./modules/review-collaboration/application/services/client-invitation.mailer";
+import { ClientLinkInvitations } from "./modules/review-collaboration/application/services/client-link-invitations";
+import { ProjectClientContactDirectory } from "./modules/review-collaboration/infrastructure/gateways/client-contact-gateway";
 import { StudioEmailNotifier } from "./modules/review-collaboration/application/services/studio-email-notifier";
 import { DownloadSessionAdminUseCase } from "./modules/review-collaboration/application/use-cases/download-session-admin.use-case";
 import { DownloadPortalUseCase } from "./modules/review-collaboration/application/use-cases/download-portal.use-case";
@@ -229,6 +232,17 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const suggestLayouts = new SuggestLayoutsUseCase(new PhotoIntelligenceDirectory(analyses));
 
   // Review & collaboration
+  const emailSender = buildEmailSender(env);
+  const studioContacts = new IdentityStudioContacts(projects, members, studios);
+  // Client invitations: the photographer's own "here is your link" email, for all three
+  // link kinds, plus the shoot's client contact they prefill from.
+  const clientContacts = new ProjectClientContactDirectory(projects, albums);
+  const invitations = new ClientLinkInvitations(
+    new ClientInvitationMailer(emailSender),
+    clientContacts,
+    studioContacts,
+    env.WEB_ORIGIN,
+  );
   const reviewSessions = new DrizzleReviewSessionRepository(db);
   const pickSessions = new DrizzlePickSessionRepository(db);
   const downloadSessions = new DrizzleDownloadSessionRepository(db);
@@ -239,8 +253,14 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   // Passwords for client links (album review and download): generated per link, checked
   // against a hash, and kept encrypted so the studio can look the link + password up again.
   const clientAccess = new ClientAccessService(new SecretBox(env.JWT_SECRET), new ClientGrantSigner(env.JWT_SECRET));
-  const openReviewSession = new OpenReviewSessionUseCase(reviewSessions, reviewAlbumGateway, clientAccess);
-  const reviewAccess = new ReviewAccessUseCase(reviewSessions, clientAccess);
+  const openReviewSession = new OpenReviewSessionUseCase(
+    reviewSessions,
+    reviewAlbumGateway,
+    clientAccess,
+    invitations,
+    clientContacts,
+  );
+  const reviewAccess = new ReviewAccessUseCase(reviewSessions, clientAccess, invitations, clientContacts);
   const albumFeedback = new AlbumFeedbackUseCase(reviewSessions);
   const reviewPortal = new ReviewPortalUseCase(
     reviewSessions,
@@ -257,13 +277,15 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     photos,
     new ListProjectPhotosUseCase(photos, storage, permanentStorage),
   );
-  const pickAdmin = new PickSessionAdminUseCase(pickSessions, pickGateway, clientAccess);
-  // Email the studio's owners when a client sends picks or finishes a download.
-  const studioEmail = new StudioEmailNotifier(
-    buildEmailSender(env),
-    new IdentityStudioContacts(projects, members, studios),
-    env.WEB_ORIGIN,
+  const pickAdmin = new PickSessionAdminUseCase(
+    pickSessions,
+    pickGateway,
+    clientAccess,
+    invitations,
+    clientContacts,
   );
+  // Email the studio's owners when a client sends picks or finishes a download.
+  const studioEmail = new StudioEmailNotifier(emailSender, studioContacts, env.WEB_ORIGIN);
   const loggedAndEmailed = new CompositePickNotifier([new LoggingPickNotifier(), studioEmail]);
   const pickPortal = new PickPortalUseCase(
     pickSessions,
@@ -279,6 +301,8 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     deliveryGateway,
     () => new Date(),
     clientAccess,
+    invitations,
+    clientContacts,
   );
   const downloadPortal = new DownloadPortalUseCase(
     downloadSessions,

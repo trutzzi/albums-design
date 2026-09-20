@@ -95,7 +95,7 @@ export class IdentityStudioContacts implements StudioContacts {
       seen.add(key);
       return true;
     });
-    return { projectName: project.name, ownerEmails };
+    return { projectName: project.name, ownerEmails, ...(studio ? { studioName: studio.name } : {}) };
   }
 }
 

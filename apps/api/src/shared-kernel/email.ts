@@ -3,6 +3,8 @@ export interface EmailMessage {
   subject: string;
   text: string;
   html?: string;
+  /** Where a reply should go when it is not the From address — the photographer, for a client invitation. */
+  replyTo?: string;
 }
 
 /**

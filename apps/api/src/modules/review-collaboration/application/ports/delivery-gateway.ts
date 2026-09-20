@@ -36,5 +36,7 @@ export interface DownloadNotifier {
 
 /** Who at the studio should hear about a client's activity. */
 export interface StudioContacts {
-  forProject(projectId: string): Promise<{ projectName: string; ownerEmails: string[] } | undefined>;
+  forProject(
+    projectId: string,
+  ): Promise<{ projectName: string; ownerEmails: string[]; studioName?: string } | undefined>;
 }

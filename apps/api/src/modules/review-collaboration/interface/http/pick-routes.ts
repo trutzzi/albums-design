@@ -10,12 +10,19 @@ const tokenParams = z.object({ token: z.string().min(10) });
 const pickParams = z.object({ token: z.string().min(10), photoId: z.string().uuid() });
 
 const openSchema = z.object({
-  clientName: z.string().min(1).max(255),
+  clientName: z.string().trim().max(255).optional(),
+  clientEmail: z.string().trim().email().max(320).optional(),
+  sendEmail: z.boolean().optional(),
+  language: z.enum(["en", "ro"]).optional(),
   pickLimit: z.number().int().min(1).max(5000).optional(),
   ttlDays: z.number().int().min(1).max(365).optional(),
 });
 const pickSchema = z.object({ picked: z.boolean() });
 const unlockSchema = z.object({ password: z.string().min(1).max(100) });
+const invitationSchema = z.object({
+  email: z.string().trim().email().max(320).optional(),
+  language: z.enum(["en", "ro"]).optional(),
+});
 const stageSchema = z.object({ stage: z.enum(["SHORTLIST", "FINAL"]) });
 
 export interface PickDependencies {
@@ -28,7 +35,7 @@ export function registerPickRoutes(app: FastifyInstance, deps: PickDependencies)
   app.post("/projects/:projectId/pick-sessions", async (request, reply) => {
     const { projectId } = projectParams.parse(request.params);
     const body = openSchema.parse(request.body);
-    const result = await deps.pickAdmin.open({ projectId, ...body });
+    const result = await deps.pickAdmin.open({ projectId, ...body, clientName: body.clientName ?? "" });
     if (result.isFailure) return sendClientError(reply, result.getError());
     return reply.code(201).send(result.getValue());
   });
@@ -36,6 +43,15 @@ export function registerPickRoutes(app: FastifyInstance, deps: PickDependencies)
   app.get("/projects/:projectId/pick-sessions", async (request) => {
     const { projectId } = projectParams.parse(request.params);
     return deps.pickAdmin.list(projectId);
+  });
+
+  // Emails the link to the client — a resend, or a link made before emailing existed.
+  app.post("/projects/:projectId/pick-sessions/:sessionId/send", async (request, reply) => {
+    const { projectId, sessionId } = sessionParams.parse(request.params);
+    const body = invitationSchema.parse(request.body ?? {});
+    const result = await deps.pickAdmin.sendInvitation(projectId, sessionId, body);
+    if (result.isFailure) return sendClientError(reply, result.getError());
+    return result.getValue();
   });
 
   app.post("/projects/:projectId/pick-sessions/:sessionId/reopen", async (request, reply) => {

@@ -187,6 +187,8 @@ export interface ReviewSessionSummary {
   status: string;
   openComments: number;
   passwordProtected?: boolean;
+  lastSentTo?: string | null;
+  lastSentAt?: string | null;
   expiresAt: string;
   createdAt: string;
 }
@@ -219,13 +221,40 @@ export interface ReviewView {
   };
 }
 
+/** Optional client email and whether to send the link there, shared by all three link kinds. */
+export interface InvitationInput {
+  clientEmail?: string;
+  sendEmail?: boolean;
+  language?: "en" | "ro";
+}
+
+export interface InvitationOutcome {
+  /** Present when the link really was emailed. */
+  emailSentTo?: string;
+  /** Present when it could not be — the link itself is still fine. */
+  emailError?: string;
+}
+
 export function openReviewSession(
   albumId: string,
   clientName: string,
-): Promise<{ sessionId: string; token: string; expiresAt: string; password?: string }> {
+  invitation: InvitationInput = {},
+): Promise<{ sessionId: string; token: string; expiresAt: string; password?: string } & InvitationOutcome> {
   return request(`/albums/${albumId}/review-sessions`, {
     method: "POST",
-    body: JSON.stringify({ clientName }),
+    body: JSON.stringify({ clientName, ...invitation }),
+  });
+}
+
+/** Emails an existing link — a resend, or one made before emailing existed. */
+export function sendReviewInvitation(
+  albumId: string,
+  sessionId: string,
+  input: { email?: string; language?: "en" | "ro" } = {},
+): Promise<{ sentTo: string }> {
+  return request(`/albums/${albumId}/review-sessions/${sessionId}/send`, {
+    method: "POST",
+    body: JSON.stringify(input),
   });
 }
 
@@ -412,14 +441,16 @@ export interface PickSessionSummary {
   pickedCount: number;
   pickedPhotoIds: string[];
   submittedAt: string | null;
+  lastSentTo?: string | null;
+  lastSentAt?: string | null;
   expiresAt: string;
   createdAt: string;
 }
 
 export function openPickSession(
   projectId: string,
-  input: { clientName: string; pickLimit?: number },
-): Promise<{ sessionId: string; token: string; expiresAt: string; password?: string }> {
+  input: { clientName: string; pickLimit?: number } & InvitationInput,
+): Promise<{ sessionId: string; token: string; expiresAt: string; password?: string } & InvitationOutcome> {
   return request(`/projects/${projectId}/pick-sessions`, {
     method: "POST",
     body: JSON.stringify(input),
@@ -431,6 +462,17 @@ export function listPickSessions(projectId: string): Promise<PickSessionSummary[
 }
 
 /** The selection link and its password, readable again by the studio. */
+export function sendPickInvitation(
+  projectId: string,
+  sessionId: string,
+  input: { email?: string; language?: "en" | "ro" } = {},
+): Promise<PickSessionSummary> {
+  return request(`/projects/${projectId}/pick-sessions/${sessionId}/send`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export function getPickAccess(projectId: string, sessionId: string): Promise<{ token: string; password: string }> {
   return request(`/projects/${projectId}/pick-sessions/${sessionId}/access`);
 }
@@ -495,6 +537,8 @@ export interface DownloadSessionSummary {
   downloadCount: number;
   firstDownloadedAt: string | null;
   lastDownloadedAt: string | null;
+  lastSentTo?: string | null;
+  lastSentAt?: string | null;
   expiresAt: string;
   daysLeft: number;
   createdAt: string;
@@ -502,15 +546,17 @@ export interface DownloadSessionSummary {
 
 export function openDownloadSession(
   projectId: string,
-  input: { clientName: string; ttlDays?: number },
-): Promise<{
-  sessionId: string;
-  token: string;
-  expiresAt: string;
-  photoCount: number;
-  missingCount: number;
-  password?: string;
-}> {
+  input: { clientName: string; ttlDays?: number } & InvitationInput,
+): Promise<
+  {
+    sessionId: string;
+    token: string;
+    expiresAt: string;
+    photoCount: number;
+    missingCount: number;
+    password?: string;
+  } & InvitationOutcome
+> {
   return request(`/projects/${projectId}/download-sessions`, {
     method: "POST",
     body: JSON.stringify(input),
@@ -522,6 +568,17 @@ export function listDownloadSessions(projectId: string): Promise<DownloadSession
 }
 
 /** The download link and its password, readable again by the studio. */
+export function sendDownloadInvitation(
+  projectId: string,
+  sessionId: string,
+  input: { email?: string; language?: "en" | "ro" } = {},
+): Promise<DownloadSessionSummary> {
+  return request(`/projects/${projectId}/download-sessions/${sessionId}/send`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export function getDownloadAccess(projectId: string, sessionId: string): Promise<{ token: string; password: string }> {
   return request(`/projects/${projectId}/download-sessions/${sessionId}/access`);
 }

@@ -3,11 +3,19 @@ import { z } from "zod";
 export const projectTypeSchema = z.enum(["WEDDING", "BAPTISM", "EVENT"]);
 export type ProjectType = z.infer<typeof projectTypeSchema>;
 
-export const createProjectSchema = z.object({
-  name: z.string().min(1).max(255),
-  type: projectTypeSchema.default("WEDDING"),
-  eventDate: z.string().datetime().optional(),
+/** Who the shoot is for. Optional, and remembered so client links prefill instead of asking again. */
+export const clientContactSchema = z.object({
+  clientName: z.string().trim().max(255).optional(),
+  clientEmail: z.string().trim().email().max(320).optional(),
 });
+
+export const createProjectSchema = z
+  .object({
+    name: z.string().min(1).max(255),
+    type: projectTypeSchema.default("WEDDING"),
+    eventDate: z.string().datetime().optional(),
+  })
+  .merge(clientContactSchema);
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 
 export const projectDtoSchema = z.object({
@@ -16,6 +24,8 @@ export const projectDtoSchema = z.object({
   name: z.string(),
   type: projectTypeSchema,
   eventDate: z.string().datetime().nullable(),
+  clientName: z.string().nullable(),
+  clientEmail: z.string().nullable(),
   createdAt: z.string().datetime(),
 });
 export type ProjectDTO = z.infer<typeof projectDtoSchema>;

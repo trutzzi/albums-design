@@ -24,6 +24,7 @@ import {
   listProjectPhotos,
   getAlbumFeedback,
   getReviewAccess,
+  sendReviewInvitation,
   listReviewSessions,
   openReviewSession,
   resolveComment,
@@ -94,6 +95,10 @@ export function AlbumEditorPage() {
   const [clientName, setClientName] = useState("");
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [sharePassword, setSharePassword] = useState<string | null>(null);
+  const [reviewClientEmail, setReviewClientEmail] = useState("");
+  const [reviewSendEmail, setReviewSendEmail] = useState(false);
+  const [reviewEmailLanguage, setReviewEmailLanguage] = useState<"en" | "ro">(language);
+  const [reviewEmailNote, setReviewEmailNote] = useState<{ sentTo?: string; error?: string } | null>(null);
   const [reviewDetailsFor, setReviewDetailsFor] = useState<string | null>(null);
 
   const album = useQuery({ queryKey: ["album", albumId], queryFn: () => getAlbum(albumId) });
@@ -494,10 +499,17 @@ export function AlbumEditorPage() {
   });
 
   const share = useMutation({
-    mutationFn: () => openReviewSession(albumId, clientName || "Client"),
+    mutationFn: () =>
+      openReviewSession(albumId, clientName || "Client", {
+        ...(reviewClientEmail.trim() ? { clientEmail: reviewClientEmail.trim() } : {}),
+        ...(reviewSendEmail ? { sendEmail: true, language: reviewEmailLanguage } : {}),
+      }),
     onSuccess: (session) => {
       setShareLink(`${window.location.origin}/review/${session.token}`);
       setSharePassword(session.password ?? null);
+      setReviewEmailNote(
+        session.emailSentTo ? { sentTo: session.emailSentTo } : session.emailError ? { error: session.emailError } : null,
+      );
       void queryClient.invalidateQueries({ queryKey: ["reviews", albumId] });
       void queryClient.invalidateQueries({ queryKey: ["album", albumId] });
     },
@@ -1201,6 +1213,35 @@ export function AlbumEditorPage() {
                 onChange={(event) => setClientName(event.target.value)}
               />
             </div>
+            <div className="field">
+              <label htmlFor="review-client-email">{t("client.email")}</label>
+              <input
+                id="review-client-email"
+                type="email"
+                value={reviewClientEmail}
+                placeholder={t("client.email.placeholder")}
+                onChange={(event) => setReviewClientEmail(event.target.value)}
+              />
+            </div>
+            <div className="client-invite">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={reviewSendEmail}
+                  disabled={!reviewClientEmail.trim()}
+                  onChange={(event) => setReviewSendEmail(event.target.checked)}
+                />
+                {t("client.sendEmail")}
+              </label>
+              <select
+                value={reviewEmailLanguage}
+                aria-label={t("client.emailLanguage")}
+                onChange={(event) => setReviewEmailLanguage(event.target.value as "en" | "ro")}
+              >
+                <option value="en">English</option>
+                <option value="ro">Română</option>
+              </select>
+            </div>
             <button
               type="button"
               className="button button--primary"
@@ -1209,6 +1250,16 @@ export function AlbumEditorPage() {
             >
               {share.isPending ? t("album.review.creating") : t("album.review.createLink")}
             </button>
+            {reviewEmailNote?.sentTo && (
+              <p className="notice notice--good" role="status">
+                {t("client.send.done", { email: reviewEmailNote.sentTo })}
+              </p>
+            )}
+            {reviewEmailNote?.error && (
+              <p className="notice" role="alert">
+                {t("client.notSent", { reason: reviewEmailNote.error })}
+              </p>
+            )}
             {shareLink && (
               <p className="share-link">
                 <a href={shareLink}>{shareLink}</a>
@@ -1231,6 +1282,15 @@ export function AlbumEditorPage() {
                     {t("access.details.open")}
                   </button>
                 )}
+                {session.lastSentTo && (
+                  <>
+                    <br />
+                    {t("client.sentAt", {
+                      email: session.lastSentTo,
+                      date: new Date(session.lastSentAt ?? session.createdAt).toLocaleString(),
+                    })}
+                  </>
+                )}
               </p>
             ))}
             {reviewDetailsFor && (
@@ -1239,6 +1299,11 @@ export function AlbumEditorPage() {
                 queryKey={["review-access", albumId, reviewDetailsFor]}
                 load={() => getReviewAccess(albumId, reviewDetailsFor)}
                 urlFor={(token) => `${window.location.origin}/review/${token}`}
+                defaultEmail={reviewClientEmail}
+                onSend={async ({ email, language: emailIn }) => {
+                  await sendReviewInvitation(albumId, reviewDetailsFor, { email, language: emailIn });
+                  await queryClient.invalidateQueries({ queryKey: ["reviews", albumId] });
+                }}
                 onClose={() => setReviewDetailsFor(null)}
               />
             )}

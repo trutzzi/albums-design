@@ -26,6 +26,8 @@ export const reviewSessions = pgTable("review_sessions", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  lastSentTo: varchar("last_sent_to", { length: 320 }),
+  lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
   passwordHash: text("password_hash"),
   sealedSecret: text("sealed_secret"),
 });
@@ -47,6 +49,8 @@ export const pickSessions = pgTable("pick_sessions", {
   shortlistedPhotoIds: jsonb("shortlisted_photo_ids").$type<string[]>(),
   stage: pickStageEnum("stage"),
   firstReachedFinalAt: timestamp("first_reached_final_at", { withTimezone: true }),
+  lastSentTo: varchar("last_sent_to", { length: 320 }),
+  lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
   pickLimit: integer("pick_limit"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   submittedAt: timestamp("submitted_at", { withTimezone: true }),
@@ -71,6 +75,8 @@ export const downloadSessions = pgTable("download_sessions", {
   firstDownloadedAt: timestamp("first_downloaded_at", { withTimezone: true }),
   lastDownloadedAt: timestamp("last_downloaded_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  lastSentTo: varchar("last_sent_to", { length: 320 }),
+  lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
   passwordHash: text("password_hash"),
   sealedSecret: text("sealed_secret"),
 });

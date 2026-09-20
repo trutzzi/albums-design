@@ -13,7 +13,10 @@ const albumParams = z.object({ albumId: z.string().uuid() });
 const tokenParams = z.object({ token: z.string().min(10) });
 
 const openSchema = z.object({
-  clientName: z.string().min(1).max(255),
+  clientName: z.string().trim().max(255).optional(),
+  clientEmail: z.string().trim().email().max(320).optional(),
+  sendEmail: z.boolean().optional(),
+  language: z.enum(["en", "ro"]).optional(),
   ttlDays: z.number().int().min(1).max(365).optional(),
 });
 
@@ -23,6 +26,10 @@ const commentSchema = z.object({
   body: z.string().min(1).max(2000),
 });
 
+const invitationSchema = z.object({
+  email: z.string().trim().email().max(320).optional(),
+  language: z.enum(["en", "ro"]).optional(),
+});
 const unlockSchema = z.object({ password: z.string().min(1).max(100) });
 const reviewSessionParams = z.object({ albumId: z.string().uuid(), sessionId: z.string().uuid() });
 
@@ -48,8 +55,11 @@ export function registerReviewRoutes(app: FastifyInstance, deps: ReviewDependenc
     const body = openSchema.parse(request.body);
     const result = await deps.openReviewSession.execute({
       albumId,
-      clientName: body.clientName,
+      clientName: body.clientName ?? "",
       ...(body.ttlDays ? { ttlDays: body.ttlDays } : {}),
+      ...(body.clientEmail ? { clientEmail: body.clientEmail } : {}),
+      ...(body.sendEmail ? { sendEmail: body.sendEmail } : {}),
+      ...(body.language ? { language: body.language } : {}),
     });
     if (result.isFailure) return sendError(reply, result.getError());
     return reply.code(201).send(result.getValue());
@@ -64,12 +74,23 @@ export function registerReviewRoutes(app: FastifyInstance, deps: ReviewDependenc
       status: session.status,
       openComments: session.openComments.length,
       passwordProtected: Boolean(session.passwordHash),
+      lastSentTo: session.lastSentTo ?? null,
+      lastSentAt: session.lastSentAt?.toISOString() ?? null,
       expiresAt: session.expiresAt.toISOString(),
       createdAt: session.createdAt.toISOString(),
     }));
   });
 
   // What the studio opens in the details window: the link and its password, readable again.
+  app.post("/albums/:albumId/review-sessions/:sessionId/send", async (request, reply) => {
+    const { albumId, sessionId } = reviewSessionParams.parse(request.params);
+    const body = invitationSchema.parse(request.body ?? {});
+    if (!deps.reviewAccess) return reply.code(404).send({ code: "NOT_FOUND", message: "Not available." });
+    const result = await deps.reviewAccess.sendInvitation(albumId, sessionId, body);
+    if (result.isFailure) return sendClientError(reply, result.getError());
+    return result.getValue();
+  });
+
   app.get("/albums/:albumId/review-sessions/:sessionId/access", async (request, reply) => {
     const { albumId, sessionId } = reviewSessionParams.parse(request.params);
     if (!deps.reviewAccess) return reply.code(404).send({ code: "NOT_FOUND", message: "Not available." });

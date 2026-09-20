@@ -2216,3 +2216,37 @@ a:focus-visible,
   align-items: center;
   gap: 8px;
 }
+
+/* ---- emailing a client link ---- */
+.access-modal__send {
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.access-modal__send h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.access-modal__send-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.access-modal__send-row input[type="email"] {
+  flex: 1 1 190px;
+  min-width: 0;
+}
+.client-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 2px;
+}
+.client-invite label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}

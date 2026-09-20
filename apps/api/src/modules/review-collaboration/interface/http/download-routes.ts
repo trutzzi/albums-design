@@ -9,10 +9,17 @@ const projectParams = z.object({ projectId: z.string().uuid() });
 const sessionParams = z.object({ projectId: z.string().uuid(), sessionId: z.string().uuid() });
 const tokenParams = z.object({ token: z.string().min(10) });
 
+const invitationSchema = z.object({
+  email: z.string().trim().email().max(320).optional(),
+  language: z.enum(["en", "ro"]).optional(),
+});
 const unlockSchema = z.object({ password: z.string().min(1).max(100) });
 
 const openSchema = z.object({
-  clientName: z.string().min(1).max(255),
+  clientName: z.string().trim().max(255).optional(),
+  clientEmail: z.string().trim().email().max(320).optional(),
+  sendEmail: z.boolean().optional(),
+  language: z.enum(["en", "ro"]).optional(),
   ttlDays: z.number().int().min(1).max(365).optional(),
 });
 
@@ -26,7 +33,7 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
   app.post("/projects/:projectId/download-sessions", async (request, reply) => {
     const { projectId } = projectParams.parse(request.params);
     const body = openSchema.parse(request.body);
-    const result = await deps.downloadAdmin.open({ projectId, ...body });
+    const result = await deps.downloadAdmin.open({ projectId, ...body, clientName: body.clientName ?? "" });
     if (result.isFailure) return sendClientError(reply, result.getError());
     return reply.code(201).send(result.getValue());
   });
@@ -34,6 +41,14 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
   app.get("/projects/:projectId/download-sessions", async (request) => {
     const { projectId } = projectParams.parse(request.params);
     return deps.downloadAdmin.list(projectId);
+  });
+
+  app.post("/projects/:projectId/download-sessions/:sessionId/send", async (request, reply) => {
+    const { projectId, sessionId } = sessionParams.parse(request.params);
+    const body = invitationSchema.parse(request.body ?? {});
+    const result = await deps.downloadAdmin.sendInvitation(projectId, sessionId, body);
+    if (result.isFailure) return sendClientError(reply, result.getError());
+    return result.getValue();
   });
 
   app.post("/projects/:projectId/download-sessions/:sessionId/revoke", async (request, reply) => {

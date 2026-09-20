@@ -11,6 +11,8 @@ import {
   generateAlbum,
   getDownloadAccess,
   getPickAccess,
+  sendDownloadInvitation,
+  sendPickInvitation,
   listDownloadSessions,
   listPickSessions,
   openDownloadSession,
@@ -53,7 +55,7 @@ const UPLOAD_PARALLELISM = 6;
 
 export function ProjectPage() {
   const { studioId } = useAuth();
-  const { t, hasChosenLanguage } = useLanguage();
+  const { t, language, hasChosenLanguage } = useLanguage();
   const { projectId = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -81,6 +83,13 @@ export function ProjectPage() {
   const [pickLink, setPickLink] = useState<string | null>(null);
   const [pickLinkCopied, setPickLinkCopied] = useState(false);
   const [pickPassword, setPickPassword] = useState<string | null>(null);
+  // One client per shoot: typed once, prefilled into every link form from here on.
+  const [clientEmail, setClientEmail] = useState("");
+  const [emailLanguage, setEmailLanguage] = useState<"en" | "ro">(language);
+  const [pickSendEmail, setPickSendEmail] = useState(false);
+  const [pickEmailNote, setPickEmailNote] = useState<{ sentTo?: string; error?: string } | null>(null);
+  const [deliverySendEmail, setDeliverySendEmail] = useState(false);
+  const [deliveryEmailNote, setDeliveryEmailNote] = useState<{ sentTo?: string; error?: string } | null>(null);
   const [pickDetailsFor, setPickDetailsFor] = useState<string | null>(null);
 
   // Client delivery: the link is shown once (only its hash is stored).
@@ -143,6 +152,11 @@ export function ProjectPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["albums", projectId] }),
   });
 
+  const shootClientName = project.data?.clientName ?? "";
+  const shootClientEmail = project.data?.clientEmail ?? "";
+  // The shoot is the source of truth; the fields start from it and the photographer can edit.
+  const effectiveClientEmail = clientEmail || shootClientEmail;
+
   const pickSessions = useQuery({
     queryKey: ["pick-sessions", projectId],
     queryFn: () => listPickSessions(projectId),
@@ -153,10 +167,16 @@ export function ProjectPage() {
   const createPickLink = useMutation({
     mutationFn: () =>
       openPickSession(projectId, {
-        clientName: pickClientName.trim() || "Client",
+        clientName: pickClientName.trim() || shootClientName || "Client",
         ...(Number(pickLimit) > 0 ? { pickLimit: Math.floor(Number(pickLimit)) } : {}),
+        ...(effectiveClientEmail ? { clientEmail: effectiveClientEmail } : {}),
+        ...(pickSendEmail ? { sendEmail: true, language: emailLanguage } : {}),
       }),
     onSuccess: (session) => {
+      setPickEmailNote(
+        session.emailSentTo ? { sentTo: session.emailSentTo } : session.emailError ? { error: session.emailError } : null,
+      );
+      void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       setPickLink(`${window.location.origin}/pick/${session.token}`);
       setPickPassword(session.password ?? null);
       setPickLinkCopied(false);
@@ -206,10 +226,16 @@ export function ProjectPage() {
   const createDownloadLink = useMutation({
     mutationFn: () =>
       openDownloadSession(projectId, {
-        clientName: deliveryClientName.trim() || "Client",
+        clientName: deliveryClientName.trim() || shootClientName || "Client",
         ...(Number(deliveryDays) > 0 ? { ttlDays: Math.floor(Number(deliveryDays)) } : {}),
+        ...(effectiveClientEmail ? { clientEmail: effectiveClientEmail } : {}),
+        ...(deliverySendEmail ? { sendEmail: true, language: emailLanguage } : {}),
       }),
     onSuccess: (session) => {
+      setDeliveryEmailNote(
+        session.emailSentTo ? { sentTo: session.emailSentTo } : session.emailError ? { error: session.emailError } : null,
+      );
+      void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       setDeliveryLink(`${window.location.origin}/download/${session.token}`);
       setDeliveryPassword(session.password ?? null);
       setDeliveryMissing(session.missingCount);
@@ -488,6 +514,45 @@ export function ProjectPage() {
             {createPickLink.isPending ? t("project.picks.creating") : t("project.picks.create")}
           </button>
         </div>
+            <div className="client-invite">
+              <div className="field">
+                <label htmlFor="pick-client-email">{t("client.email")}</label>
+                <input
+                  id="pick-client-email"
+                  type="email"
+                  value={effectiveClientEmail}
+                  placeholder={t("client.email.placeholder")}
+                  onChange={(event) => setClientEmail(event.target.value)}
+                />
+              </div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={pickSendEmail}
+                  disabled={!effectiveClientEmail}
+                  onChange={(event) => setPickSendEmail(event.target.checked)}
+                />
+                {t("client.sendEmail")}
+              </label>
+              <select
+                value={emailLanguage}
+                aria-label={t("client.emailLanguage")}
+                onChange={(event) => setEmailLanguage(event.target.value as "en" | "ro")}
+              >
+                <option value="en">English</option>
+                <option value="ro">Română</option>
+              </select>
+            </div>
+        {pickEmailNote?.sentTo && (
+          <p className="notice notice--good" role="status">
+            {t("client.send.done", { email: pickEmailNote.sentTo })}
+          </p>
+        )}
+        {pickEmailNote?.error && (
+          <p className="notice" role="alert">
+            {t("client.notSent", { reason: pickEmailNote.error })}
+          </p>
+        )}
         {createPickLink.isError && <p className="error">{(createPickLink.error as Error).message}</p>}
         {pickLink && (
           <div className="share-link">
@@ -534,6 +599,14 @@ export function ProjectPage() {
                   {session.status === "OPEN" && (
                     <p className="muted">
                       {t(session.stage === "SHORTLIST" ? "project.picks.step.shortlist" : "project.picks.step.final")}
+                    </p>
+                  )}
+                  {session.lastSentTo && (
+                    <p className="muted">
+                      {t("client.sentAt", {
+                        email: session.lastSentTo,
+                        date: new Date(session.lastSentAt ?? session.createdAt).toLocaleString(),
+                      })}
                     </p>
                   )}
                 </div>
@@ -618,6 +691,45 @@ export function ProjectPage() {
             {createDownloadLink.isPending ? t("project.delivery.creating") : t("project.delivery.create")}
           </button>
         </div>
+            <div className="client-invite">
+              <div className="field">
+                <label htmlFor="delivery-client-email">{t("client.email")}</label>
+                <input
+                  id="delivery-client-email"
+                  type="email"
+                  value={effectiveClientEmail}
+                  placeholder={t("client.email.placeholder")}
+                  onChange={(event) => setClientEmail(event.target.value)}
+                />
+              </div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={deliverySendEmail}
+                  disabled={!effectiveClientEmail}
+                  onChange={(event) => setDeliverySendEmail(event.target.checked)}
+                />
+                {t("client.sendEmail")}
+              </label>
+              <select
+                value={emailLanguage}
+                aria-label={t("client.emailLanguage")}
+                onChange={(event) => setEmailLanguage(event.target.value as "en" | "ro")}
+              >
+                <option value="en">English</option>
+                <option value="ro">Română</option>
+              </select>
+            </div>
+        {deliveryEmailNote?.sentTo && (
+          <p className="notice notice--good" role="status">
+            {t("client.send.done", { email: deliveryEmailNote.sentTo })}
+          </p>
+        )}
+        {deliveryEmailNote?.error && (
+          <p className="notice" role="alert">
+            {t("client.notSent", { reason: deliveryEmailNote.error })}
+          </p>
+        )}
         {createDownloadLink.isError && <p className="error">{(createDownloadLink.error as Error).message}</p>}
         {deliveryLink && (
           <div className="share-link">
@@ -660,6 +772,14 @@ export function ProjectPage() {
                           date: new Date(session.lastDownloadedAt ?? session.createdAt).toLocaleString(),
                         })}
                   </p>
+                  {session.lastSentTo && (
+                    <p className="muted">
+                      {t("client.sentAt", {
+                        email: session.lastSentTo,
+                        date: new Date(session.lastSentAt ?? session.createdAt).toLocaleString(),
+                      })}
+                    </p>
+                  )}
                   {session.status === "ACTIVE" && (
                     <p className="muted">
                       {t("project.delivery.expires", {
@@ -701,6 +821,11 @@ export function ProjectPage() {
           queryKey={["pick-access", projectId, pickDetailsFor]}
           load={() => getPickAccess(projectId, pickDetailsFor)}
           urlFor={(token) => `${window.location.origin}/pick/${token}`}
+          defaultEmail={effectiveClientEmail}
+          onSend={async ({ email, language: emailIn }) => {
+            await sendPickInvitation(projectId, pickDetailsFor, { email, language: emailIn });
+            await refreshPicks();
+          }}
           onClose={() => setPickDetailsFor(null)}
         />
       )}
@@ -711,6 +836,11 @@ export function ProjectPage() {
           queryKey={["download-access", projectId, detailsFor]}
           load={() => getDownloadAccess(projectId, detailsFor)}
           urlFor={(token) => `${window.location.origin}/download/${token}`}
+          defaultEmail={effectiveClientEmail}
+          onSend={async ({ email, language: emailIn }) => {
+            await sendDownloadInvitation(projectId, detailsFor, { email, language: emailIn });
+            await refreshDownloads();
+          }}
           onClose={() => setDetailsFor(null)}
         />
       )}

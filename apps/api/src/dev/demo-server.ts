@@ -15,6 +15,9 @@ import { registerReviewRoutes } from "../modules/review-collaboration/interface/
 import { registerPickRoutes } from "../modules/review-collaboration/interface/http/pick-routes";
 import { registerDownloadRoutes } from "../modules/review-collaboration/interface/http/download-routes";
 import { CompositePickNotifier, IdentityStudioContacts, MediaIngestionDeliveryGateway } from "../modules/review-collaboration/infrastructure/gateways/delivery-gateway";
+import { ClientInvitationMailer } from "../modules/review-collaboration/application/services/client-invitation.mailer";
+import { ClientLinkInvitations } from "../modules/review-collaboration/application/services/client-link-invitations";
+import { ProjectClientContactDirectory } from "../modules/review-collaboration/infrastructure/gateways/client-contact-gateway";
 import { StudioEmailNotifier } from "../modules/review-collaboration/application/services/studio-email-notifier";
 import { DownloadSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/download-session-admin.use-case";
 import { DownloadPortalUseCase } from "../modules/review-collaboration/application/use-cases/download-portal.use-case";
@@ -396,25 +399,6 @@ async function main() {
     deleteAlbum: new DeleteAlbumUseCase(albums, exportJobs, storage, reviewSessions),
     albums,
   });
-  registerReviewRoutes(app, {
-    openReviewSession: new OpenReviewSessionUseCase(reviewSessions, reviewGateway, clientAccess),
-    reviewPortal: new ReviewPortalUseCase(
-      reviewSessions,
-      reviewGateway,
-      permanentStorage
-        ? new PromoteOnApprovalNotifier(new LoggingReviewNotifier(), queue)
-        : new LoggingReviewNotifier(),
-      clientAccess,
-    ),
-    albumFeedback: new AlbumFeedbackUseCase(reviewSessions),
-    sessions: reviewSessions,
-    reviewAccess: new ReviewAccessUseCase(reviewSessions, clientAccess),
-  });
-  const pickGateway = new MediaIngestionPickGateway(
-    projects,
-    photos,
-    new ListProjectPhotosUseCase(photos, storage, permanentStorage),
-  );
   // Real mail when SMTP_* is set for the demo, otherwise the message is printed in this log.
   const emailSender =
     process.env.EMAIL_PROVIDER === "smtp" &&
@@ -441,14 +425,48 @@ async function main() {
           : "logged only — set EMAIL_PROVIDER=smtp to send"
     }`,
   );
+  const studioContacts = new IdentityStudioContacts(projects, members, studios);
+  const clientContacts = new ProjectClientContactDirectory(projects, albums);
+  const invitations = new ClientLinkInvitations(
+    new ClientInvitationMailer(emailSender),
+    clientContacts,
+    studioContacts,
+    process.env.WEB_ORIGIN ?? "http://localhost:5173",
+  );
   const studioEmail = new StudioEmailNotifier(
     emailSender,
-    new IdentityStudioContacts(projects, members, studios),
+    studioContacts,
     process.env.WEB_ORIGIN ?? "http://localhost:5173",
   );
   const loggedAndEmailed = new CompositePickNotifier([new LoggingPickNotifier(), studioEmail]);
+
+  registerReviewRoutes(app, {
+    openReviewSession: new OpenReviewSessionUseCase(
+      reviewSessions,
+      reviewGateway,
+      clientAccess,
+      invitations,
+      clientContacts,
+    ),
+    reviewPortal: new ReviewPortalUseCase(
+      reviewSessions,
+      reviewGateway,
+      permanentStorage
+        ? new PromoteOnApprovalNotifier(new LoggingReviewNotifier(), queue)
+        : new LoggingReviewNotifier(),
+      clientAccess,
+    ),
+    albumFeedback: new AlbumFeedbackUseCase(reviewSessions),
+    sessions: reviewSessions,
+    reviewAccess: new ReviewAccessUseCase(reviewSessions, clientAccess, invitations, clientContacts),
+  });
+  const pickGateway = new MediaIngestionPickGateway(
+    projects,
+    photos,
+    new ListProjectPhotosUseCase(photos, storage, permanentStorage),
+  );
   registerPickRoutes(app, {
-    pickAdmin: new PickSessionAdminUseCase(pickSessions, pickGateway, clientAccess),
+    pickAdmin: new PickSessionAdminUseCase(pickSessions, pickGateway, clientAccess, invitations, clientContacts),
     pickPortal: new PickPortalUseCase(
       pickSessions,
       pickGateway,
@@ -458,7 +476,14 @@ async function main() {
   });
   const deliveryGateway = new MediaIngestionDeliveryGateway(projects, photos, storage, permanentStorage);
   registerDownloadRoutes(app, {
-    downloadAdmin: new DownloadSessionAdminUseCase(downloadSessions, deliveryGateway, () => new Date(), clientAccess),
+    downloadAdmin: new DownloadSessionAdminUseCase(
+      downloadSessions,
+      deliveryGateway,
+      () => new Date(),
+      clientAccess,
+      invitations,
+      clientContacts,
+    ),
     downloadPortal: new DownloadPortalUseCase(
       downloadSessions,
       deliveryGateway,

@@ -38,6 +38,9 @@ export interface PickSessionProps {
   expiresAt: Date;
   submittedAt: Date | undefined;
   createdAt: Date;
+  /** The address this link was last emailed to, and when — so a resend is a conscious choice. */
+  lastSentTo?: string | undefined;
+  lastSentAt?: Date | undefined;
   /** Hash of the client password. Absent on links created before passwords existed, which stay open. */
   passwordHash?: string | undefined;
   /** Encrypted link token + password, so the studio can view them again. */
@@ -298,6 +301,20 @@ export class PickSession extends AggregateRoot<PickSessionProps> {
     if (this.props.status === "REVOKED") throw new PickClosedError("REVOKED");
     this.props.status = "OPEN";
     this.props.submittedAt = undefined;
+  }
+
+  get lastSentTo(): string | undefined {
+    return this.props.lastSentTo;
+  }
+
+  get lastSentAt(): Date | undefined {
+    return this.props.lastSentAt;
+  }
+
+  /** Notes that the link was emailed to the client. Nothing else about the link changes. */
+  recordSent(to: string, at: Date = new Date()): void {
+    this.props.lastSentTo = to;
+    this.props.lastSentAt = at;
   }
 
   revoke(): void {

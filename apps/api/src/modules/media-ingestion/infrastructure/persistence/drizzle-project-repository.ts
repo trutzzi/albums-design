@@ -17,11 +17,18 @@ export class DrizzleProjectRepository implements ProjectRepository {
         name: project.name,
         type: project.type,
         eventDate: project.eventDate,
+        clientName: project.clientName ?? null,
+        clientEmail: project.clientEmail ?? null,
         createdAt: project.createdAt,
       })
       .onConflictDoUpdate({
         target: projects.id,
-        set: { name: project.name, eventDate: project.eventDate },
+        set: {
+          name: project.name,
+          eventDate: project.eventDate,
+          clientName: project.clientName ?? null,
+          clientEmail: project.clientEmail ?? null,
+        },
       });
   }
 
@@ -51,6 +58,8 @@ function toDomain(row: typeof projects.$inferSelect): Project {
       name: row.name,
       type: row.type,
       eventDate: row.eventDate ?? undefined,
+      clientName: row.clientName ?? undefined,
+      clientEmail: row.clientEmail ?? undefined,
       createdAt: row.createdAt,
     },
     UniqueEntityId.create(row.id),

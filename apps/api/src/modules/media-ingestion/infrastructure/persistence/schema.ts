@@ -18,6 +18,8 @@ export const projects = pgTable("projects", {
   name: varchar("name", { length: 255 }).notNull(),
   type: projectTypeEnum("type").notNull(),
   eventDate: timestamp("event_date", { withTimezone: true }),
+  clientName: varchar("client_name", { length: 255 }),
+  clientEmail: varchar("client_email", { length: 320 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 });
 

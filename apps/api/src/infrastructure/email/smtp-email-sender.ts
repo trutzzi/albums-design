@@ -35,6 +35,7 @@ export class SmtpEmailSender implements EmailSender {
       subject: message.subject,
       text: message.text,
       ...(message.html ? { html: message.html } : {}),
+      ...(message.replyTo ? { replyTo: message.replyTo } : {}),
     });
   }
 }
