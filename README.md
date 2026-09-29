@@ -34,15 +34,18 @@ A modular monolith. Each bounded context is a module under `apps/api/src/modules
 ## Quick preview (no Docker, no database)
 
 ```bash
-npx pnpm install
-npx pnpm demo
+npx pnpm@9.15.0 install
+npx pnpm@9.15.0 demo      # starts the API (:4000) and the web app (:5173) together
 ```
 
 Then open http://localhost:5173.
 
-(If you have pnpm on your PATH, drop the `npx` — `brew install pnpm` or
-`corepack enable` will put it there. Everything below assumes the plain `pnpm`
-form; prefix with `npx` if you skipped that.)
+(If you have pnpm on your PATH, drop the `npx pnpm@9.15.0` for plain `pnpm` —
+`brew install pnpm`, or `corepack enable` on Node 22–24, will put it there; Node 25
+no longer ships corepack. Keep the `@9.15.0`
+when going through `npx`: a bare `npx pnpm` fetches the newest major, which doesn't
+match the version the lockfile and `packageManager` pin. Everything below assumes the
+plain `pnpm` form.)
 
 Demo mode swaps Postgres, Redis and S3 for the in-memory adapters the test suite
 uses, serves uploaded bytes from the API's own `/dev-storage` routes, and runs
@@ -68,8 +71,12 @@ pnpm db:generate && pnpm db:migrate
 pnpm db:seed          # prints a studio API key — put it in apps/web/.env
 
 cp apps/web/.env.example apps/web/.env   # then paste the key into VITE_STUDIO_API_KEY
-pnpm dev
+pnpm dev              # API + worker + web app together
 ```
+
+The API, worker and database scripts read the root `.env` themselves, so nothing
+needs exporting first; a variable already set in your shell wins over the file. To run
+one process on its own, use `pnpm dev:api`, `pnpm dev:worker` or `pnpm dev:web`.
 
 - Studio app: http://localhost:5173
 - API: http://localhost:4000/health

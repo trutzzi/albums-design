@@ -376,12 +376,42 @@ a:focus-visible,
 
 /* ---- auth ---- */
 .auth-page {
-  display: grid;
-  place-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
   min-height: 70vh;
+  padding-top: 48px;
 }
-.auth-panel {
+.auth-page__image {
+  width: 340px;
+  min-height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius) 0 0 var(--radius);
+  box-shadow: var(--shadow);
+}
+.auth-page .auth-panel {
   width: min(380px, 100%);
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: 0;
+  margin-bottom: 0;
+  padding: 32px 30px;
+}
+@media (max-width: 760px) {
+  .auth-page {
+    padding-top: 0;
+  }
+  .auth-page__image {
+    display: none;
+  }
+  .auth-page .auth-panel {
+    border-radius: var(--radius);
+    border-left: 1px solid var(--line);
+    align-self: center;
+  }
 }
 .auth-panel__logo {
   display: block;
@@ -1644,8 +1674,19 @@ a:focus-visible,
 
 /* ---- landing page ---- */
 .landing-hero {
-  text-align: center;
-  padding: 56px 12px 36px;
+  display: flex;
+  align-items: center;
+  min-height: 480px;
+  padding: 48px 44px;
+  border-radius: calc(var(--radius) * 1.6);
+  /* The photo's empty table on the left sits under the fade, so the copy stays readable in both themes. */
+  background:
+    linear-gradient(90deg, var(--bg) 28%, color-mix(in srgb, var(--bg) 60%, transparent) 42%, transparent 58%),
+    url("/images/hero-album.webp") right center / auto 100% no-repeat;
+  box-shadow: var(--shadow);
+}
+.landing-hero__content {
+  max-width: 480px;
 }
 .landing-hero__kicker {
   display: inline-block;
@@ -1668,14 +1709,13 @@ a:focus-visible,
 }
 .landing-hero__subtitle {
   max-width: 620px;
-  margin: 0 auto 28px;
+  margin: 0 0 28px;
   font-size: 1.05rem;
   color: var(--ink-soft);
   line-height: 1.6;
 }
 .landing-hero__actions {
   display: flex;
-  justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -1683,6 +1723,48 @@ a:focus-visible,
   padding: 11px 24px;
   font-size: 0.95rem;
   text-decoration: none;
+}
+.landing-showcase {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+.landing-showcase__tile {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  aspect-ratio: 4 / 3;
+}
+.landing-showcase__tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.landing-showcase__tile:hover img {
+  transform: scale(1.04);
+}
+.landing-showcase__tile figcaption {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 28px 16px 12px;
+  background: linear-gradient(transparent, rgba(20, 24, 28, 0.72));
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.landing-steps__banner {
+  display: block;
+  width: 100%;
+  aspect-ratio: 21 / 8;
+  object-fit: cover;
+  margin: 18px 0 26px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 .landing-section-heading {
   text-align: center;
@@ -1771,6 +1853,23 @@ a:focus-visible,
 .landing-cta .button {
   text-decoration: none;
   padding: 11px 24px;
+}
+
+@media (max-width: 820px) {
+  .landing-hero {
+    align-items: flex-end;
+    min-height: 0;
+    padding: 58vw 20px 28px;
+    background:
+      linear-gradient(180deg, transparent 30%, var(--bg) 62%),
+      url("/images/hero-album.webp") top center / 100% auto no-repeat;
+  }
+  .landing-hero__title {
+    font-size: 1.7rem;
+  }
+  .landing-showcase {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---- contact page ---- */

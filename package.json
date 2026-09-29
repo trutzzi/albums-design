@@ -9,6 +9,9 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:api": "pnpm --filter @albumflow/api dev",
+    "dev:worker": "pnpm --filter @albumflow/worker dev",
+    "dev:web": "pnpm --filter @albumflow/web dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

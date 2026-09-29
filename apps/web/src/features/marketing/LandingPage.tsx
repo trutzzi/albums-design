@@ -32,6 +32,13 @@ const STEPS: { titleKey: string; descKey: string }[] = [
   { titleKey: "landing.steps.deliver.title", descKey: "landing.steps.deliver.desc" },
 ];
 
+/** Photo tiles under the hero, captioned with the feature each one illustrates. */
+const SHOWCASE: { image: string; titleKey: string }[] = [
+  { image: "/images/photographer-desk.webp", titleKey: "landing.feature.layouts.title" },
+  { image: "/images/client-approval.webp", titleKey: "landing.feature.review.title" },
+  { image: "/images/album-delivery.webp", titleKey: "landing.feature.delivery.title" },
+];
+
 /** The first thing a prospective photographer sees, before they've created an account. */
 export function LandingPage() {
   const { t } = useLanguage();
@@ -39,18 +46,29 @@ export function LandingPage() {
   return (
     <div className="page landing">
       <section className="landing-hero">
-        <span className="landing-hero__kicker">{t("landing.kicker")}</span>
-        <h1 className="landing-hero__title">{t("landing.hero.title")}</h1>
-        <p className="landing-hero__subtitle">{t("landing.hero.subtitle")}</p>
-        <div className="landing-hero__actions">
-          <Link to="/register" className="button button--primary">
-            {t("landing.hero.cta.primary")}
-          </Link>
-          <Link to="/login" className="button">
-            {t("landing.hero.cta.secondary")}
-          </Link>
+        <div className="landing-hero__content">
+          <span className="landing-hero__kicker">{t("landing.kicker")}</span>
+          <h1 className="landing-hero__title">{t("landing.hero.title")}</h1>
+          <p className="landing-hero__subtitle">{t("landing.hero.subtitle")}</p>
+          <div className="landing-hero__actions">
+            <Link to="/register" className="button button--primary">
+              {t("landing.hero.cta.primary")}
+            </Link>
+            <Link to="/login" className="button">
+              {t("landing.hero.cta.secondary")}
+            </Link>
+          </div>
         </div>
       </section>
+
+      <div className="landing-showcase">
+        {SHOWCASE.map((tile) => (
+          <figure key={tile.titleKey} className="landing-showcase__tile">
+            <img src={tile.image} alt="" loading="lazy" />
+            <figcaption>{t(tile.titleKey)}</figcaption>
+          </figure>
+        ))}
+      </div>
 
       <h2 className="landing-section-heading">{t("landing.features.heading")}</h2>
       <p className="landing-section-subheading">{t("landing.features.subheading")}</p>
@@ -67,6 +85,7 @@ export function LandingPage() {
       </div>
 
       <h2 className="landing-section-heading">{t("landing.steps.heading")}</h2>
+      <img src="/images/memory-card-to-album.webp" alt="" loading="lazy" className="landing-steps__banner" />
       <div className="landing-steps">
         {STEPS.map((step, index) => (
           <div key={step.titleKey} className="landing-step">

@@ -16,6 +16,7 @@ export function RegisterPage() {
 
   return (
     <div className="page auth-page">
+      <img src="/images/bouquet-album.webp" alt="" className="auth-page__image" />
       <section className="panel auth-panel">
         <img src="/logo-full.png" alt="AlbumFlow Studio" className="auth-panel__logo" />
         <div className="panel__head">
