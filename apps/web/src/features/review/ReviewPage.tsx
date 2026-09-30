@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ClientBrandBar, brandStyle } from "../../components/ClientBrand";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { addReviewComment, getReview, listLayoutTemplates, submitReviewDecision } from "../../lib/api";
@@ -64,7 +65,8 @@ export function ReviewPage() {
   const aspectRatio = (album.format.pageWidthMm * 2) / album.format.pageHeightMm;
 
   return (
-    <div className="page review">
+    <div className="page review" style={brandStyle(album.branding)}>
+      <ClientBrandBar branding={album.branding} />
       <header className="page__header">
         <div>
           <p className="muted">{t("review.eyebrow", { name: session.clientName })}</p>

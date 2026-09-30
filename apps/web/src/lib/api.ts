@@ -1,6 +1,8 @@
 import type {
   AlbumCoverDTO,
   AlbumStyleDTO,
+  ClientBrandingDTO,
+  StudioBrandingInput,
   Crop,
   PhotoFocus,
   PhotoTreatment,
@@ -251,6 +253,7 @@ export interface ReviewView {
     status: string;
     /** The studio's plan watermarks client proofs. */
     watermark: boolean;
+    branding?: ClientBrandingDTO | null;
     format: { pageWidthMm: number; pageHeightMm: number; bleedMm: number };
     style: AlbumStyleDTO;
     cover: (AlbumCoverDTO & { previewUrl: string | null; focus?: PhotoFocus | null }) | null;
@@ -424,7 +427,13 @@ export function deleteExport(exportJobId: string): Promise<void> {
 // --- Studio & billing ------------------------------------------------------
 
 export interface StudioOverview {
-  studio: { id: string; name: string; ownerEmail: string; createdAt: string };
+  studio: {
+    id: string;
+    name: string;
+    ownerEmail: string;
+    createdAt: string;
+    branding: { displayName: string; accent: string | null; logo: string | null } | null;
+  };
   subscription: {
     planCode: string;
     planName: string;
@@ -439,6 +448,8 @@ export interface StudioOverview {
     watermarkDrafts: boolean;
     watermarkExports: boolean;
     hasBillingAccount: boolean;
+    /** The plan shows the studio's own branding on client pages (Studio Pro). */
+    whiteLabel: boolean;
   };
   members: { id: string; name: string; email: string; role: string; accepted: boolean }[];
   /** "stripe": the studio can open the payment provider's portal for its card and invoices. */
@@ -465,6 +476,11 @@ export function listPlans(): Promise<PlanDto[]> {
 
 export function openBillingPortal(studioId: string): Promise<{ url: string }> {
   return request(`/studios/${studioId}/billing/portal`, { method: "POST" });
+}
+
+/** Studio Pro: the studio's own name, colour and logo on client pages. */
+export function saveStudioBranding(studioId: string, branding: StudioBrandingInput): Promise<StudioOverview> {
+  return request(`/studios/${studioId}/branding`, { method: "PUT", body: JSON.stringify(branding) });
 }
 
 export function getStudioOverview(studioId: string): Promise<StudioOverview> {
@@ -573,6 +589,7 @@ export interface PickView {
   photos: { id: string; fileName: string; previewUrl: string; thumbnailUrl: string }[];
   /** Photos still being prepared; the gallery grows as they finish. */
   processingCount: number;
+  branding: ClientBrandingDTO | null;
 }
 
 export function getPickView(token: string): Promise<PickView> {
@@ -667,6 +684,7 @@ export interface DownloadView {
   photos: { id: string; fileName: string; previewUrl: string; thumbnailUrl: string }[];
   /** Photos still being prepared for the gallery (they are in the download regardless). */
   processingCount: number;
+  branding: ClientBrandingDTO | null;
 }
 
 export function getDownloadView(token: string): Promise<DownloadView> {
@@ -813,13 +831,30 @@ export interface AdminStudio {
   /** `null` means unlimited. */
   albumsIncluded: number | null;
   periodEnd: string | null;
+  /** Whether the owner opened their confirmation link. */
+  emailConfirmed: boolean | null;
+  shoots: number | null;
 }
 
-export function listAdminStudios(): Promise<AdminStudio[]> {
-  return request("/admin/studios");
+export interface AdminStudioPage {
+  studios: AdminStudio[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export function listAdminStudios(query: { page: number; pageSize: number; search?: string }): Promise<AdminStudioPage> {
+  const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
+  if (query.search?.trim()) params.set("search", query.search.trim());
+  return request(`/admin/studios?${params.toString()}`);
 }
 
 /** Plans are changed only here, by a platform admin. */
 export function setStudioPlan(studioId: string, planCode: PlanDto["code"]): Promise<AdminStudio> {
   return request(`/admin/studios/${studioId}/plan`, { method: "PUT", body: JSON.stringify({ planCode }) });
+}
+
+/** Removes the studio with all its shoots, photos and members. */
+export function deleteAdminStudio(studioId: string): Promise<{ shootsDeleted: number }> {
+  return request(`/admin/studios/${studioId}`, { method: "DELETE" });
 }

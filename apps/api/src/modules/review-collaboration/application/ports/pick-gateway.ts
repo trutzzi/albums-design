@@ -1,6 +1,9 @@
+import type { ClientBrandingDTO } from "@albumflow/contracts";
 export interface PickableProject {
   id: string;
   name: string;
+  /** The studio's own look for the client page, when its plan includes it. */
+  branding?: ClientBrandingDTO | null;
 }
 
 export interface PickablePhoto {

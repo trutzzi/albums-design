@@ -42,6 +42,8 @@ const envSchema = z.object({
     .transform((value) => value.split(",").map((email) => email.trim()).filter(Boolean)),
   /** Error monitoring. Unset (the default) sends nothing anywhere. */
   SENTRY_DSN: optionalString,
+  /** Cloudflare Turnstile secret. When set, signing up needs a passed human check. */
+  TURNSTILE_SECRET_KEY: optionalString,
   /**
    * "true" only when the API is reachable solely through a reverse proxy (Caddy in
    * production), so the client address comes from X-Forwarded-For. Left off, anyone

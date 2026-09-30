@@ -1,3 +1,4 @@
+import type { ClientBrandingDTO } from "@albumflow/contracts";
 import { Result } from "@albumflow/domain-kernel";
 import {
   ConflictError,
@@ -20,6 +21,7 @@ export interface DownloadView {
   totalBytes: number;
   expiresAt: string;
   daysLeft: number;
+  branding: ClientBrandingDTO | null;
   /** Display copies to browse before downloading — never the originals. */
   photos: PickablePhoto[];
   /** Photos still being prepared for the gallery; the page keeps refreshing until this reaches zero. */
@@ -84,6 +86,7 @@ export class DownloadPortalUseCase {
       daysLeft: session.daysLeft(this.now()),
       photos: (await this.gallery?.listPhotos(project.id)) ?? [],
       processingCount: (await this.gallery?.countProcessing(project.id)) ?? 0,
+      branding: project.branding ?? null,
     });
   }
 

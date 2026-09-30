@@ -1,4 +1,4 @@
-import type { AlbumCoverDTO, AlbumStyleDTO, PhotoFocus, TextBlockDTO } from "@albumflow/contracts";
+import type { AlbumCoverDTO, AlbumStyleDTO, ClientBrandingDTO, PhotoFocus, TextBlockDTO } from "@albumflow/contracts";
 
 export interface ReviewableAlbum {
   id: string;
@@ -6,6 +6,8 @@ export interface ReviewableAlbum {
   status: string;
   /** The studio's plan puts a watermark over client proofs. */
   watermark: boolean;
+  /** The studio's own name, colour and logo, when its plan includes them. */
+  branding?: ClientBrandingDTO | null;
   format: { pageWidthMm: number; pageHeightMm: number; bleedMm: number };
   style: AlbumStyleDTO;
   /** The cover the client will hold, with a loadable preview of its photo. */

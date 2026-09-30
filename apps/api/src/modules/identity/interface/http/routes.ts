@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { z } from "zod";
-import { loginInputSchema, registerInputSchema } from "@albumflow/contracts";
+import { loginInputSchema, registerInputSchema, studioBrandingSchema } from "@albumflow/contracts";
 import { ApplicationError, NotFoundError, TooManyAttemptsError } from "../../../../shared-kernel/errors";
 import { PLANS } from "../../domain/plan";
 import type { StudioAdministrationUseCase } from "../../application/use-cases/studio-administration.use-case";
@@ -8,6 +8,7 @@ import type { RegisterUseCase } from "../../application/use-cases/register.use-c
 import type { LoginUseCase } from "../../application/use-cases/login.use-case";
 import type { PasswordResetUseCase } from "../../application/use-cases/password-reset.use-case";
 import type { BillingUseCase } from "../../application/use-cases/billing.use-case";
+import type { HumanCheck } from "../../../../shared-kernel/human-check";
 import "../../../../interface/request-context";
 
 const studioParams = z.object({ studioId: z.string().uuid() });
@@ -42,15 +43,21 @@ export interface IdentityDependencies {
   login: LoginUseCase;
   passwordReset: PasswordResetUseCase;
   billing: BillingUseCase;
+  humanCheck?: HumanCheck | undefined;
 }
 
 export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDependencies): void {
   app.get("/plans", async () => Object.values(PLANS).map(toPlanDto));
 
   app.post("/auth/register", async (request, reply) => {
-    const { website, ...body } = registerInputSchema.parse(request.body);
+    const { website, captchaToken, ...body } = registerInputSchema.parse(request.body);
     // The hidden field was filled in: a bot. Answer exactly as for a person, create nothing.
     if (website) return reply.code(201).send({ status: "CONFIRMATION_SENT", email: body.email.trim().toLowerCase() });
+    if (deps.humanCheck && !(await deps.humanCheck.verify(captchaToken, request.ip))) {
+      return reply
+        .code(400)
+        .send({ code: "HUMAN_CHECK_FAILED", message: "Please complete the check that you are not a robot, then try again." });
+    }
     const result = await deps.register.execute({ ...body, ip: request.ip });
     if (result.isFailure) return sendError(reply, result.getError());
     return reply.code(201).send(result.getValue());
@@ -111,6 +118,15 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
     const result = await deps.administration.inviteMember({ studioId, ...body });
     if (result.isFailure) return sendError(reply, result.getError());
     return reply.code(201).send(result.getValue());
+  });
+
+  // A logo arrives as a data: URL, larger than the default 1 MB body limit allows.
+  app.put("/studios/:studioId/branding", { bodyLimit: 4 * 1024 * 1024 }, async (request, reply) => {
+    const { studioId } = studioParams.parse(request.params);
+    const body = studioBrandingSchema.parse(request.body);
+    const result = await deps.administration.setBranding(studioId, request.role, body);
+    if (result.isFailure) return sendError(reply, result.getError());
+    return { ...result.getValue(), billing: { provider: deps.billing.provider } };
   });
 
   app.delete("/studios/:studioId/members/:memberId", async (request, reply) => {

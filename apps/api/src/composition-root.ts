@@ -1,3 +1,6 @@
+import { SharpLogoProcessor } from "./modules/identity/infrastructure/branding/sharp-logo-processor";
+import { SubscriptionStudioBrandingDirectory } from "./modules/identity/infrastructure/branding/subscription-branding-directory";
+import { NoHumanCheck, TurnstileHumanCheck, type HumanCheck } from "./shared-kernel/human-check";
 import { AnalysisPhotoFocusDirectory } from "./modules/photo-intelligence/infrastructure/gateways/photo-focus-directory";
 import { S3Client } from "@aws-sdk/client-s3";
 import { SubscriptionPlanFeatureDirectory } from "./modules/identity/infrastructure/gateways/subscription-plan-features";
@@ -116,6 +119,10 @@ import {
   FeedbackUseCase,
   StudioPlansUseCase,
 } from "./modules/platform-admin/application/use-cases/admin.use-cases";
+import {
+  DeleteStudioUseCase,
+  PurgeUnconfirmedSignupsUseCase,
+} from "./modules/platform-admin/application/use-cases/studio-deletion.use-cases";
 
 export interface CompositionRoot {
   env: Env;
@@ -168,6 +175,11 @@ export interface CompositionRoot {
   feedback: FeedbackUseCase;
   adminDashboard: AdminDashboardUseCase;
   studioPlans: StudioPlansUseCase;
+  deleteStudio: DeleteStudioUseCase;
+  /** Cloudflare Turnstile on signup when TURNSTILE_SECRET_KEY is set; a pass-through otherwise. */
+  humanCheck: HumanCheck;
+  /** The hourly sweep of signups nobody confirmed (run by the worker). */
+  purgeUnconfirmedSignups: PurgeUnconfirmedSignupsUseCase;
   shutdown: () => Promise<void>;
 }
 
@@ -202,7 +214,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const subscriptions = new DrizzleSubscriptionRepository(db);
   const members = new DrizzleStudioMemberRepository(db);
   const emailSender = buildEmailSender(env);
-  const administration = new StudioAdministrationUseCase(studios, subscriptions, members);
+  const administration = new StudioAdministrationUseCase(studios, subscriptions, members, new SharpLogoProcessor());
   const register = new RegisterUseCase(
     studios,
     subscriptions,
@@ -245,6 +257,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   // Photo intelligence
   const analyses = new DrizzlePhotoAnalysisRepository(db);
   const photoFocus = new AnalysisPhotoFocusDirectory(analyses);
+  const studioBranding = new SubscriptionStudioBrandingDirectory(projects, studios, subscriptions);
   const byteSource = new S3PhotoByteSource(s3, env.S3_BUCKET);
   const visionClassifier = buildVisionClassifier({
     provider: env.VISION_PROVIDER,
@@ -298,6 +311,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     new StoragePhotoPreviewResolver(photos, storage, permanentStorage),
     planFeatures,
     photoFocus,
+    studioBranding,
   );
   // Passwords for client links (album review and download): generated per link, checked
   // against a hash, and kept encrypted so the studio can look the link + password up again.
@@ -344,7 +358,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   );
 
   // Client delivery: a time-limited link that downloads every original as one ZIP.
-  const deliveryGateway = new MediaIngestionDeliveryGateway(projects, photos, storage, permanentStorage);
+  const deliveryGateway = new MediaIngestionDeliveryGateway(projects, photos, storage, permanentStorage, studioBranding);
   const downloadAdmin = new DownloadSessionAdminUseCase(
     downloadSessions,
     deliveryGateway,
@@ -453,7 +467,17 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     },
     permanentStorage,
   );
-  const studioPlans = new StudioPlansUseCase(studios, subscriptions);
+  const studioPlans = new StudioPlansUseCase(studios, subscriptions, members, projects);
+  const deleteStudio = new DeleteStudioUseCase(
+    studios,
+    subscriptions,
+    members,
+    projects,
+    deleteProject,
+    feedbackRepository,
+    adminAccess,
+  );
+  const purgeUnconfirmedSignups = new PurgeUnconfirmedSignupsUseCase(members, projects, deleteStudio);
 
   const mediaIngestion: MediaIngestionDependencies = {
     requestUpload: new RequestUploadUseCase(projects, photos, storage, planFeatures),
@@ -512,6 +536,9 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     feedback,
     adminDashboard,
     studioPlans,
+    deleteStudio,
+    humanCheck: env.TURNSTILE_SECRET_KEY ? new TurnstileHumanCheck(env.TURNSTILE_SECRET_KEY) : new NoHumanCheck(),
+    purgeUnconfirmedSignups,
     shutdown: async () => {
       await Promise.all([closeDb(), jobQueue.close()]);
     },

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ClientBrandBar, brandStyle } from "../../components/ClientBrand";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { downloadZipUrl, getDownloadView } from "../../lib/api";
@@ -66,7 +67,8 @@ export function DownloadPage() {
   const size = formatSize(data.totalBytes);
 
   return (
-    <div className="page download">
+    <div className="page download" style={brandStyle(data.branding)}>
+      <ClientBrandBar branding={data.branding} />
       <header className="page__header">
         <div>
           <p className="muted">{t("download.eyebrow", { name: data.clientName })}</p>

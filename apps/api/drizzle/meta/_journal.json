@@ -113,6 +113,13 @@
       "when": 1790780874200,
       "tag": "0015_photo_focus_and_studio_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790787651121,
+      "tag": "0016_studio_branding",
+      "breakpoints": true
     }
   ]
 }

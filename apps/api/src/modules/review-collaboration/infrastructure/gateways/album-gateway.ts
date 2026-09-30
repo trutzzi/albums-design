@@ -2,6 +2,7 @@ import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { AlbumRepository } from "../../../album-composition/domain/album-repository";
 import type { PlanFeatureDirectory } from "../../../../shared-kernel/plan-features";
 import type { PhotoFocusDirectory } from "../../../../shared-kernel/photo-focus";
+import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
 import type {
   AlbumGateway,
   PhotoPreviewResolver,
@@ -15,6 +16,7 @@ export class AlbumCompositionGateway implements AlbumGateway {
     private readonly previews?: PhotoPreviewResolver,
     private readonly features?: PlanFeatureDirectory,
     private readonly focus?: PhotoFocusDirectory,
+    private readonly branding?: StudioBrandingDirectory,
   ) {}
 
   async load(albumId: string): Promise<ReviewableAlbum | undefined> {
@@ -26,6 +28,7 @@ export class AlbumCompositionGateway implements AlbumGateway {
       title: album.title,
       status: album.status,
       watermark: (await this.features?.forProject(album.projectId.toString()))?.watermarkDrafts ?? false,
+      branding: (await this.branding?.forProject(album.projectId.toString())) ?? null,
       format: album.format,
       style: album.style,
       cover: album.cover

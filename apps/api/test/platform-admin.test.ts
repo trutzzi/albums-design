@@ -278,7 +278,8 @@ describe("feedback and the admin area", () => {
     assert.equal(denied.statusCode, 404);
 
     const list = await server.inject({ method: "GET", url: "/admin/studios", headers: { "x-member": adminId } });
-    assert.ok(list.json().every((studio: { planCode: string }) => studio.planCode === "STUDIO"), "new studios start on Studio");
+    assert.ok(list.json().studios.every((studio: { planCode: string }) => studio.planCode === "STUDIO"), "new studios start on Studio");
+    assert.equal(list.json().total, 2);
 
     const changed = await server.inject({ method: "PUT", url, headers: { "x-member": adminId }, payload: { planCode: "STUDIO_PRO" } });
     assert.equal(changed.statusCode, 200, changed.body);

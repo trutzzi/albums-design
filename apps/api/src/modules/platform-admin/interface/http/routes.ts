@@ -8,6 +8,7 @@ import type {
   FeedbackUseCase,
   StudioPlansUseCase,
 } from "../../application/use-cases/admin.use-cases";
+import type { DeleteStudioUseCase } from "../../application/use-cases/studio-deletion.use-cases";
 import "../../../../interface/request-context";
 
 const kinds = z.enum(["IDEA", "PROBLEM", "QUESTION", "PRAISE"]);
@@ -21,6 +22,11 @@ const submitSchema = z.object({
 });
 const listSchema = z.object({ status: statuses.optional(), kind: kinds.optional() });
 const triageSchema = z.object({ status: statuses.optional(), adminNote: z.string().max(4000).optional() });
+const studioListSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(5).max(200).default(50),
+  search: z.string().trim().max(200).optional(),
+});
 const planSchema = z.object({ planCode: z.enum(["TRIAL", "STARTER", "STUDIO", "STUDIO_PRO"]) });
 
 export interface PlatformAdminDependencies {
@@ -28,6 +34,7 @@ export interface PlatformAdminDependencies {
   feedback: FeedbackUseCase;
   dashboard: AdminDashboardUseCase;
   plans: StudioPlansUseCase;
+  deleteStudio?: DeleteStudioUseCase | undefined;
 }
 
 export function registerPlatformAdminRoutes(app: FastifyInstance, deps: PlatformAdminDependencies): void {
@@ -67,7 +74,17 @@ export function registerPlatformAdminRoutes(app: FastifyInstance, deps: Platform
     admin.get("/admin/stats/business", async () => deps.dashboard.business());
     admin.get("/admin/stats/system", async () => deps.dashboard.system());
 
-    admin.get("/admin/studios", async () => deps.plans.list());
+    admin.get("/admin/studios", async (request) => deps.plans.list(studioListSchema.parse(request.query)));
+
+    // `:targetStudioId` for the same reason as the plan route below: the tenancy guard
+    // reads `studioId` as "the caller's own studio".
+    admin.delete("/admin/studios/:targetStudioId", async (request, reply) => {
+      if (!deps.deleteStudio) return reply.code(404).send({ code: "NOT_FOUND", message: "Not found." });
+      const { targetStudioId } = z.object({ targetStudioId: z.string().uuid() }).parse(request.params);
+      const result = await deps.deleteStudio.execute(targetStudioId);
+      if (result.isFailure) return sendError(reply, result.getError());
+      return result.getValue();
+    });
 
     // `:targetStudioId`, not `:studioId`: the tenancy guard reads a `studioId` param as
     // "must be the caller's own studio", and an admin changes other people's.
@@ -82,6 +99,6 @@ export function registerPlatformAdminRoutes(app: FastifyInstance, deps: Platform
 }
 
 function sendError(reply: FastifyReply, error: ApplicationError) {
-  const status = error instanceof NotFoundError ? 404 : 422;
+  const status = error instanceof NotFoundError ? 404 : error.code === "CONFLICT" ? 409 : 422;
   return reply.code(status).send({ code: error.code, message: error.message });
 }

@@ -6,6 +6,7 @@ import {
   getBusinessStats,
   getSystemStats,
   listAdminFeedback,
+  deleteAdminStudio,
   listAdminStudios,
   listPlans,
   setStudioPlan,
@@ -229,24 +230,43 @@ function BusinessTab() {
 }
 
 const KIND_LABELS: Record<FeedbackKind, string> = { IDEA: "Idea", PROBLEM: "Problem", QUESTION: "Question", PRAISE: "Praise" };
-/** Every studio and its plan. Studios cannot change plans themselves — this is the only place. */
+const PAGE_SIZE = 50;
+
+/** Every studio and its plan, a page at a time. Studios cannot change plans themselves — this is the only place. */
 function StudiosTab() {
   const [search, setSearch] = useState("");
-  const studios = useQuery({ queryKey: ["admin-studios"], queryFn: listAdminStudios });
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  // Waits for a pause in typing, so each keystroke is not a request.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuery(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const studios = useQuery({
+    queryKey: ["admin-studios", query, page],
+    queryFn: () => listAdminStudios({ page, pageSize: PAGE_SIZE, search: query }),
+    placeholderData: (previous) => previous,
+  });
   const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
-  const needle = search.trim().toLowerCase();
-  const shown = (studios.data ?? []).filter(
-    (studio) => !needle || studio.name.toLowerCase().includes(needle) || studio.ownerEmail.toLowerCase().includes(needle),
-  );
+  const total = studios.data?.total ?? 0;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
       <div className="admin__filters">
         <label>
           Search{" "}
-          <input value={search} placeholder="Studio or email" onChange={(event) => setSearch(event.target.value)} />
+          <input value={search} placeholder="Studio or email, e.g. admin.com" onChange={(event) => setSearch(event.target.value)} />
         </label>
-        {studios.data && <span className="muted">{studios.data.length} studios</span>}
+        {studios.data && (
+          <span className="muted">
+            {total.toLocaleString("en-GB")} studio{total === 1 ? "" : "s"}
+            {query ? ` matching “${query}”` : ""}
+          </span>
+        )}
       </div>
       {studios.isLoading && <p className="muted">Loading…</p>}
       {studios.isError && <p className="error">{(studios.error as Error).message}</p>}
@@ -258,18 +278,33 @@ function StudiosTab() {
                 <th>Studio</th>
                 <th>Owner</th>
                 <th>Signed up</th>
+                <th>Email</th>
+                <th>Shoots</th>
                 <th>Albums this period</th>
-                <th>Status</th>
                 <th>Plan</th>
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
-              {shown.map((studio) => (
+              {studios.data.studios.map((studio) => (
                 <StudioRow key={studio.studioId} studio={studio} plans={plans.data ?? []} />
               ))}
             </tbody>
           </table>
-          {shown.length === 0 && <p className="muted">No studios match.</p>}
+          {studios.data.studios.length === 0 && <p className="muted">No studios match.</p>}
+          {pages > 1 && (
+            <div className="admin__pager">
+              <button type="button" className="button button--small" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                ← Previous
+              </button>
+              <span className="muted">
+                Page {page} of {pages.toLocaleString("en-GB")}
+              </span>
+              <button type="button" className="button button--small" disabled={page >= pages} onClick={() => setPage(page + 1)}>
+                Next →
+              </button>
+            </div>
+          )}
         </section>
       )}
     </>
@@ -278,16 +313,18 @@ function StudiosTab() {
 
 function StudioRow({ studio, plans }: { studio: AdminStudio; plans: PlanDto[] }) {
   const queryClient = useQueryClient();
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ["admin-studios"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin-business"] });
+  };
   const change = useMutation({
     mutationFn: (planCode: PlanDto["code"]) => setStudioPlan(studio.studioId, planCode),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["admin-studios"] });
-      void queryClient.invalidateQueries({ queryKey: ["admin-business"] });
-    },
+    onSuccess: refresh,
   });
+  const remove = useMutation({ mutationFn: () => deleteAdminStudio(studio.studioId), onSuccess: refresh });
 
   return (
-    <tr>
+    <tr className={remove.isPending ? "admin__row--busy" : undefined}>
       <td>
         <strong>{studio.name}</strong>
       </td>
@@ -296,9 +333,16 @@ function StudioRow({ studio, plans }: { studio: AdminStudio; plans: PlanDto[] })
       </td>
       <td>{new Date(studio.createdAt).toLocaleDateString("en-GB")}</td>
       <td>
+        {studio.emailConfirmed === null ? "—" : studio.emailConfirmed ? (
+          <span className="chip chip--active">confirmed</span>
+        ) : (
+          <span className="chip chip--past_due">unconfirmed</span>
+        )}
+      </td>
+      <td>{studio.shoots ?? "—"}</td>
+      <td>
         {studio.albumsUsed} / {studio.albumsIncluded ?? "∞"}
       </td>
-      <td>{studio.status ? studio.status.toLowerCase().replace("_", " ") : "—"}</td>
       <td>
         <select
           aria-label={`Plan for ${studio.name}`}
@@ -317,6 +361,20 @@ function StudioRow({ studio, plans }: { studio: AdminStudio; plans: PlanDto[] })
           ))}
         </select>
         {change.isError && <p className="error">{(change.error as Error).message}</p>}
+      </td>
+      <td>
+        <button
+          type="button"
+          className="button button--small button--danger"
+          disabled={remove.isPending}
+          onClick={() => {
+            const shoots = studio.shoots ? ` and its ${studio.shoots} shoot${studio.shoots === 1 ? "" : "s"} with every photo` : "";
+            if (window.confirm(`Delete ${studio.name} (${studio.ownerEmail})${shoots}? This cannot be undone.`)) remove.mutate();
+          }}
+        >
+          {remove.isPending ? "Deleting…" : "Delete"}
+        </button>
+        {remove.isError && <p className="error">{(remove.error as Error).message}</p>}
       </td>
     </tr>
   );

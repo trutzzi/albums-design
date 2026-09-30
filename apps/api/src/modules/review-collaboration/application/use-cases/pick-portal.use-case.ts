@@ -1,3 +1,4 @@
+import type { ClientBrandingDTO } from "@albumflow/contracts";
 import { Result } from "@albumflow/domain-kernel";
 import {
   ConflictError,
@@ -38,6 +39,7 @@ export interface PickView {
   photos: PickablePhoto[];
   /** Photos still being prepared; the page keeps refreshing until this reaches zero. */
   processingCount: number;
+  branding: ClientBrandingDTO | null;
 }
 
 /**
@@ -89,6 +91,7 @@ export class PickPortalUseCase {
       projectName: project.name,
       photos,
       processingCount,
+      branding: project.branding ?? null,
     });
   }
 

@@ -48,6 +48,7 @@ async function main() {
     login: root.login,
     passwordReset: root.passwordReset,
     billing: root.billing,
+    humanCheck: root.humanCheck,
   });
   registerBillingRoutes(app, root.billing);
   registerPlatformAdminRoutes(app, {
@@ -55,6 +56,7 @@ async function main() {
     feedback: root.feedback,
     dashboard: root.adminDashboard,
     plans: root.studioPlans,
+    deleteStudio: root.deleteStudio,
   });
   registerMediaIngestionRoutes(app, root.mediaIngestion);
   registerPhotoIntelligenceRoutes(app, {

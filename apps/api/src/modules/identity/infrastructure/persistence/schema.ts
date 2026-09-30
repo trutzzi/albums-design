@@ -1,4 +1,4 @@
-import { index, integer, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { index, integer, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const studios = pgTable("studios", {
   id: uuid("id").primaryKey(),
@@ -6,6 +6,11 @@ export const studios = pgTable("studios", {
   ownerEmail: varchar("owner_email", { length: 255 }).notNull(),
   apiKeyHash: varchar("api_key_hash", { length: 64 }).notNull().unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  // Client-facing branding (Studio Pro). All null until the studio sets it.
+  brandName: varchar("brand_name", { length: 80 }),
+  brandAccent: varchar("brand_accent", { length: 7 }),
+  /** A small PNG as a data: URL — kept in the row so client pages need no storage round trip. */
+  brandLogo: text("brand_logo"),
 });
 
 export const planCodeEnum = pgEnum("plan_code", ["TRIAL", "STARTER", "STUDIO", "STUDIO_PRO"]);

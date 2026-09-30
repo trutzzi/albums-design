@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { ApiError, resendConfirmation } from "../../lib/api";
+import { Turnstile, TURNSTILE_SITE_KEY } from "../../components/Turnstile";
 
 export function RegisterPage() {
   const auth = useAuth();
@@ -16,6 +17,8 @@ export function RegisterPage() {
   const [website, setWebsite] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   return (
     <div className="page auth-page">
@@ -51,10 +54,16 @@ export function RegisterPage() {
             setError(null);
             setPending(true);
             try {
-              await auth.register(name, email, password, { language, website });
+              await auth.register(name, email, password, {
+                language,
+                website,
+                ...(captchaToken ? { captchaToken } : {}),
+              });
               setSentTo(email.trim().toLowerCase());
             } catch (err) {
               setError(err instanceof ApiError ? err.message : t("auth.error.generic"));
+              // Each token works once: a failed attempt needs a fresh check.
+              setCaptchaReset((value) => value + 1);
             } finally {
               setPending(false);
             }
@@ -103,8 +112,13 @@ export function RegisterPage() {
               onChange={(event) => setWebsite(event.target.value)}
             />
           </div>
+          <Turnstile onToken={setCaptchaToken} language={language} resetKey={captchaReset} />
           {error && <p className="error">{error}</p>}
-          <button type="submit" className="button button--primary" disabled={pending}>
+          <button
+            type="submit"
+            className="button button--primary"
+            disabled={pending || (Boolean(TURNSTILE_SITE_KEY) && !captchaToken)}
+          >
             {pending ? t("auth.register.submitting") : t("auth.register.submit")}
           </button>
         </form>

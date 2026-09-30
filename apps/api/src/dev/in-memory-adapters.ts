@@ -362,6 +362,16 @@ export class InMemoryStudioRepository implements StudioRepository {
   async listAll() {
     return [...this.items.values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
+  async listPage(query: { search?: string | undefined; offset: number; limit: number }) {
+    const term = query.search?.trim().toLowerCase();
+    const matching = (await this.listAll()).filter(
+      (studio) => !term || studio.name.toLowerCase().includes(term) || studio.ownerEmail.toLowerCase().includes(term),
+    );
+    return { studios: matching.slice(query.offset, query.offset + query.limit), total: matching.length };
+  }
+  async delete(id: UniqueEntityId) {
+    this.items.delete(id.toString());
+  }
 }
 
 export class InMemorySubscriptionRepository implements SubscriptionRepository {
@@ -377,6 +387,9 @@ export class InMemorySubscriptionRepository implements SubscriptionRepository {
   }
   async listAll() {
     return [...this.items.values()];
+  }
+  async deleteByStudioId(studioId: UniqueEntityId) {
+    this.items.delete(studioId.toString());
   }
 }
 
@@ -398,5 +411,10 @@ export class InMemoryStudioMemberRepository implements StudioMemberRepository {
   }
   async findByEmail(email: string) {
     return [...this.items.values()].find((member) => member.email === email);
+  }
+  async findUnconfirmedSignupsBefore(cutoff: Date, limit: number) {
+    return [...this.items.values()]
+      .filter((member) => member.passwordHash && !member.emailVerified && member.invitedAt < cutoff)
+      .slice(0, limit);
   }
 }

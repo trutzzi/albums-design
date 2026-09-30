@@ -7,6 +7,15 @@ export interface StudioProps {
   /** Only the hash is stored; the key itself is shown once at creation. */
   apiKeyHash: string;
   createdAt: Date;
+  /** What clients see instead of AlbumFlow (Studio Pro). Absent until the studio sets it. */
+  branding?: StudioBranding | undefined;
+}
+
+export interface StudioBranding {
+  displayName: string;
+  accent: string | null;
+  /** A small PNG as a data: URL. */
+  logo: string | null;
 }
 
 export class Studio extends AggregateRoot<StudioProps> {
@@ -49,6 +58,14 @@ export class Studio extends AggregateRoot<StudioProps> {
 
   get createdAt(): Date {
     return this.props.createdAt;
+  }
+
+  get branding(): StudioBranding | undefined {
+    return this.props.branding;
+  }
+
+  setBranding(branding: StudioBranding | undefined): void {
+    this.props.branding = branding;
   }
 
   rename(name: string): void {

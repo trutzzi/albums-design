@@ -275,6 +275,7 @@ jobs:
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           BILLING_PROVIDER: ${{ secrets.BILLING_PROVIDER }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
@@ -309,6 +310,7 @@ jobs:
           add MAIL_FROM "${MAIL_FROM:-}"
           add SENTRY_DSN "${SENTRY_DSN:-}"
           add ADMIN_EMAILS "${ADMIN_EMAILS:-}"
+          add TURNSTILE_SECRET_KEY "${TURNSTILE_SECRET_KEY:-}"
           add BILLING_PROVIDER "${BILLING_PROVIDER:-}"
           add STRIPE_SECRET_KEY "${STRIPE_SECRET_KEY:-}"
           add STRIPE_WEBHOOK_SECRET "${STRIPE_WEBHOOK_SECRET:-}"
@@ -447,6 +449,7 @@ jobs:
           VITE_STUDIO_ID: ${{ secrets.VITE_STUDIO_ID }}
           VITE_STUDIO_API_KEY: ${{ secrets.VITE_STUDIO_API_KEY }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
 
       # cPanel here has no SSH (confirmed: Security has no "SSH Access" icon),
       # so FTP is the deploy path. FTP_USERNAME should be a dedicated account

@@ -11,6 +11,7 @@ import type {
 import { PLANS, type PlanCode } from "../../../identity/domain/plan";
 import type { Subscription } from "../../../identity/domain/subscription";
 import type { Studio } from "../../../identity/domain/studio";
+import type { ProjectRepository } from "../../../media-ingestion/domain/project-repository";
 import { computeBusinessStats, type BusinessStats } from "../../domain/business-stats";
 import {
   Feedback,
@@ -198,6 +199,16 @@ export interface StudioPlanView {
   /** `null` means unlimited. */
   albumsIncluded: number | null;
   periodEnd: string | null;
+  /** Whether the owner opened their confirmation link; `null` when unknown. */
+  emailConfirmed: boolean | null;
+  shoots: number | null;
+}
+
+export interface StudioPage {
+  studios: StudioPlanView[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 /**
@@ -208,12 +219,33 @@ export class StudioPlansUseCase {
   constructor(
     private readonly studios: StudioRepository,
     private readonly subscriptions: SubscriptionRepository,
+    private readonly members?: StudioMemberRepository,
+    private readonly projects?: ProjectRepository,
   ) {}
 
-  async list(): Promise<StudioPlanView[]> {
-    const [studios, subscriptions] = await Promise.all([this.studios.listAll(), this.subscriptions.listAll()]);
-    const byStudio = new Map(subscriptions.map((sub) => [sub.studioId.toString(), sub]));
-    return studios.map((studio) => toStudioPlanView(studio, byStudio.get(studio.id.toString())));
+  /** One page at a time: a flood of signups must never make the admin page load them all. */
+  async list(query: { page: number; pageSize: number; search?: string | undefined }): Promise<StudioPage> {
+    const page = Math.max(1, query.page);
+    const { studios, total } = await this.studios.listPage({
+      search: query.search,
+      offset: (page - 1) * query.pageSize,
+      limit: query.pageSize,
+    });
+    const views = await Promise.all(
+      studios.map(async (studio) => {
+        const [subscription, owner, shoots] = await Promise.all([
+          this.subscriptions.findByStudioId(studio.id),
+          this.members?.findByEmail(studio.ownerEmail.toLowerCase()),
+          this.projects?.listByStudioId(studio.id),
+        ]);
+        return {
+          ...toStudioPlanView(studio, subscription),
+          emailConfirmed: owner ? owner.emailVerified || !owner.passwordHash : null,
+          shoots: shoots ? shoots.length : null,
+        };
+      }),
+    );
+    return { studios: views, total, page, pageSize: query.pageSize };
   }
 
   async assign(studioId: string, planCode: PlanCode): Promise<Result<StudioPlanView, ApplicationError>> {
@@ -223,11 +255,14 @@ export class StudioPlansUseCase {
     if (!studio || !subscription) return Result.failure(new NotFoundError("Studio", studioId));
     subscription.assignPlan(planCode);
     await this.subscriptions.save(subscription);
-    return Result.success(toStudioPlanView(studio, subscription));
+    return Result.success({ ...toStudioPlanView(studio, subscription), emailConfirmed: null, shoots: null });
   }
 }
 
-function toStudioPlanView(studio: Studio, subscription: Subscription | undefined): StudioPlanView {
+function toStudioPlanView(
+  studio: Studio,
+  subscription: Subscription | undefined,
+): Omit<StudioPlanView, "emailConfirmed" | "shoots"> {
   return {
     studioId: studio.id.toString(),
     name: studio.name,

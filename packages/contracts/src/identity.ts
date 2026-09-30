@@ -48,6 +48,8 @@ export const registerInputSchema = z.object({
   language: z.enum(["en", "ro"]).optional(),
   /** A field people never see: only bots fill it in. */
   website: z.string().max(255).optional(),
+  /** The Cloudflare Turnstile token, when the human check is switched on. */
+  captchaToken: z.string().max(4096).optional(),
 });
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 
@@ -63,3 +65,22 @@ export const authSessionSchema = z.object({
   name: z.string(),
 });
 export type AuthSession = z.infer<typeof authSessionSchema>;
+
+/**
+ * How a studio presents itself to its clients on review, selection and download pages
+ * (Studio Pro): its own name, accent colour and logo instead of AlbumFlow's.
+ */
+export const studioBrandingSchema = z.object({
+  displayName: z.string().trim().max(80),
+  accent: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Colours are #rrggbb.").nullable(),
+  /** A data: URL; the server shrinks it to a small PNG before storing it. `null` removes the logo. */
+  logo: z.string().max(3_000_000).nullable(),
+});
+export type StudioBrandingInput = z.infer<typeof studioBrandingSchema>;
+
+/** What a client page receives: present only when the studio's plan includes branding. */
+export interface ClientBrandingDTO {
+  name: string;
+  accent: string | null;
+  logo: string | null;
+}

@@ -6,6 +6,7 @@ import type { ObjectStorageWithBody } from "../../../media-ingestion/application
 import type { StudioMemberRepository, StudioRepository } from "../../../identity/domain/repositories";
 import { compareFileNames } from "../../../../shared-kernel/natural-order";
 import type { StorageProvider } from "../../../../shared-kernel/storage-provider";
+import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
 import type { DeliverablePhoto, DeliveryGateway, StudioContacts } from "../../application/ports/delivery-gateway";
 import type { PickNotifier } from "../../application/ports/pick-gateway";
 
@@ -16,11 +17,13 @@ export class MediaIngestionDeliveryGateway implements DeliveryGateway {
     private readonly photos: PhotoRepository,
     private readonly staging: ObjectStorageWithBody,
     private readonly permanent?: StorageProvider,
+    private readonly branding?: StudioBrandingDirectory,
   ) {}
 
   async loadProject(projectId: string) {
     const project = await this.projects.findById(UniqueEntityId.create(projectId));
-    return project ? { id: project.id.toString(), name: project.name } : undefined;
+    if (!project) return undefined;
+    return { id: project.id.toString(), name: project.name, branding: (await this.branding?.forProject(projectId)) ?? null };
   }
 
   async listDeliverable(projectId: string) {

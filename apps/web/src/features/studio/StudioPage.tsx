@@ -6,12 +6,15 @@ import {
   listPlans,
   openBillingPortal,
   removeMember,
+  saveStudioBranding,
   type PlanDto,
+  type StudioOverview,
 } from "../../lib/api";
 import { useAuth } from "../../app/AuthContext";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { LANGUAGES } from "../../lib/i18n/translations";
 import { tip } from "../../lib/tip";
+import { ClientBrandBar } from "../../components/ClientBrand";
 
 
 export function StudioPage() {
@@ -121,6 +124,8 @@ export function StudioPage() {
         </div>
         {manageBilling.isError && <p className="error">{(manageBilling.error as Error).message}</p>}
       </section>
+
+      <BrandingPanel overview={overview.data} studioId={studioId} onSaved={(updated) => queryClient.setQueryData(["studio", studioId], updated)} />
 
       <section className="panel">
         <div className="panel__head">
@@ -241,5 +246,117 @@ function PlanCard(props: { plan: PlanDto; current: boolean }) {
       </ul>
       {props.current && <span className="chip">{t("studio.plan.current")}</span>}
     </article>
+  );
+}
+
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+
+/** Studio Pro: the name, colour and logo clients see on review, selection and download pages. */
+function BrandingPanel({
+  overview,
+  studioId,
+  onSaved,
+}: {
+  overview: StudioOverview;
+  studioId: string;
+  onSaved: (updated: StudioOverview) => void;
+}) {
+  const { t } = useLanguage();
+  const saved = overview.studio.branding;
+  const [displayName, setDisplayName] = useState(saved?.displayName ?? "");
+  const [accent, setAccent] = useState<string | null>(saved?.accent ?? null);
+  const [logo, setLogo] = useState<string | null>(saved?.logo ?? null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: () => saveStudioBranding(studioId, { displayName, accent, logo }),
+    onSuccess: onSaved,
+  });
+
+  if (!overview.subscription.whiteLabel) {
+    return (
+      <section className="panel">
+        <div className="panel__head">
+          <h2>{t("branding.title")}</h2>
+        </div>
+        <p className="muted">{t("branding.proOnly")}</p>
+      </section>
+    );
+  }
+
+  const preview = { name: displayName.trim() || overview.studio.name, accent, logo };
+  return (
+    <section className="panel">
+      <div className="panel__head">
+        <h2>{t("branding.title")}</h2>
+      </div>
+      <p className="muted">{t("branding.intro")}</p>
+      <div className="branding">
+        <div className="branding__fields">
+          <div className="field">
+            <label htmlFor="brand-name">{t("branding.name")}</label>
+            <input
+              id="brand-name"
+              value={displayName}
+              maxLength={80}
+              placeholder={overview.studio.name}
+              onChange={(event) => setDisplayName(event.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="brand-accent">{t("branding.accent")}</label>
+            <div className="branding__row">
+              <input
+                id="brand-accent"
+                type="color"
+                value={accent ?? "#ad5522"}
+                onChange={(event) => setAccent(event.target.value)}
+              />
+              {accent && (
+                <button type="button" className="link-button" onClick={() => setAccent(null)}>
+                  {t("branding.accent.reset")}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="brand-logo">{t("branding.logo")}</label>
+            <input
+              id="brand-logo"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                setFileError(null);
+                if (!file) return;
+                if (file.size > MAX_LOGO_BYTES) {
+                  setFileError(t("branding.logo.tooBig"));
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => setLogo(typeof reader.result === "string" ? reader.result : null);
+                reader.readAsDataURL(file);
+              }}
+            />
+            <span className="muted">{t("branding.logo.hint")}</span>
+            {logo && (
+              <button type="button" className="link-button branding__remove" onClick={() => setLogo(null)}>
+                {t("branding.logo.remove")}
+              </button>
+            )}
+            {fileError && <p className="error">{fileError}</p>}
+          </div>
+        </div>
+        <div className="branding__preview" style={accent ? ({ "--accent": accent } as React.CSSProperties) : undefined}>
+          <span className="muted">{t("branding.preview")}</span>
+          <ClientBrandBar branding={preview} />
+          <span className="button button--primary branding__sample">{t("branding.sampleButton")}</span>
+        </div>
+      </div>
+      <button type="button" className="button button--primary" disabled={save.isPending} onClick={() => save.mutate()}>
+        {save.isPending ? t("branding.saving") : t("branding.save")}
+      </button>
+      {save.isSuccess && !save.isPending && <p className="notice notice--good">{t("branding.saved")}</p>}
+      {save.isError && <p className="error">{(save.error as Error).message}</p>}
+    </section>
   );
 }

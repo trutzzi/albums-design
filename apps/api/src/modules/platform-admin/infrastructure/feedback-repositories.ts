@@ -7,6 +7,10 @@ import { feedback } from "./schema";
 export class DrizzleFeedbackRepository implements FeedbackRepository {
   constructor(private readonly db: Database) {}
 
+  async deleteByStudioId(studioId: string): Promise<void> {
+    await this.db.delete(feedback).where(eq(feedback.studioId, studioId));
+  }
+
   async save(item: Feedback): Promise<void> {
     const props = item.snapshot;
     const row = {
@@ -91,6 +95,10 @@ function toDomain(row: typeof feedback.$inferSelect): Feedback {
 
 export class InMemoryFeedbackRepository implements FeedbackRepository {
   readonly items = new Map<string, Feedback>();
+
+  async deleteByStudioId(studioId: string): Promise<void> {
+    for (const [id, item] of this.items) if (item.snapshot.studioId === studioId) this.items.delete(id);
+  }
 
   async save(item: Feedback): Promise<void> {
     this.items.set(item.id.toString(), item);

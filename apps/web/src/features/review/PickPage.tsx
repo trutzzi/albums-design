@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ClientBrandBar, brandStyle } from "../../components/ClientBrand";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { getPickView, setPhotoPicked, setPickStage, submitPicks, type PickView } from "../../lib/api";
@@ -169,7 +170,8 @@ export function PickPage() {
   };
 
   return (
-    <div className="page pick">
+    <div className="page pick" style={brandStyle(data.branding)}>
+      <ClientBrandBar branding={data.branding} />
       <header className="page__header">
         <div>
           <p className="muted">{t("pick.eyebrow", { name: session.clientName })}</p>

@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, ilike, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "../../../../db/client";
 import type {
@@ -23,10 +23,11 @@ export class DrizzleStudioRepository implements StudioRepository {
         ownerEmail: studio.ownerEmail,
         apiKeyHash: studio.apiKeyHash,
         createdAt: studio.createdAt,
+        ...brandingColumns(studio),
       })
       .onConflictDoUpdate({
         target: studios.id,
-        set: { name: studio.name, ownerEmail: studio.ownerEmail, apiKeyHash: studio.apiKeyHash },
+        set: { name: studio.name, ownerEmail: studio.ownerEmail, apiKeyHash: studio.apiKeyHash, ...brandingColumns(studio) },
       });
   }
 
@@ -43,6 +44,22 @@ export class DrizzleStudioRepository implements StudioRepository {
   async listAll(): Promise<Studio[]> {
     const rows = await this.db.select().from(studios).orderBy(desc(studios.createdAt));
     return rows.map(toStudio);
+  }
+
+  async listPage(query: { search?: string | undefined; offset: number; limit: number }) {
+    const term = query.search?.trim();
+    // `%` and `_` typed by the admin are matched literally, not as wildcards.
+    const pattern = term ? `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : undefined;
+    const where = pattern ? or(ilike(studios.name, pattern), ilike(studios.ownerEmail, pattern)) : undefined;
+    const [rows, [totals]] = await Promise.all([
+      this.db.select().from(studios).where(where).orderBy(desc(studios.createdAt)).limit(query.limit).offset(query.offset),
+      this.db.select({ total: count() }).from(studios).where(where),
+    ]);
+    return { studios: rows.map(toStudio), total: Number(totals?.total ?? 0) };
+  }
+
+  async delete(id: UniqueEntityId): Promise<void> {
+    await this.db.delete(studios).where(eq(studios.id, id.toString()));
   }
 }
 
@@ -88,6 +105,10 @@ export class DrizzleSubscriptionRepository implements SubscriptionRepository {
   async listAll(): Promise<Subscription[]> {
     const rows = await this.db.select().from(subscriptions);
     return rows.map(toSubscription);
+  }
+
+  async deleteByStudioId(studioId: UniqueEntityId): Promise<void> {
+    await this.db.delete(subscriptions).where(eq(subscriptions.studioId, studioId.toString()));
   }
 }
 
@@ -166,6 +187,29 @@ export class DrizzleStudioMemberRepository implements StudioMemberRepository {
       .limit(1);
     return row ? toMember(row) : undefined;
   }
+
+  async findUnconfirmedSignupsBefore(cutoff: Date, limit: number): Promise<StudioMember[]> {
+    const rows = await this.db
+      .select()
+      .from(studioMembers)
+      .where(
+        and(
+          isNotNull(studioMembers.passwordHash),
+          isNull(studioMembers.emailVerifiedAt),
+          lt(studioMembers.invitedAt, cutoff),
+        ),
+      )
+      .limit(limit);
+    return rows.map(toMember);
+  }
+}
+
+function brandingColumns(studio: Studio) {
+  return {
+    brandName: studio.branding?.displayName ?? null,
+    brandAccent: studio.branding?.accent ?? null,
+    brandLogo: studio.branding?.logo ?? null,
+  };
 }
 
 function toStudio(row: typeof studios.$inferSelect): Studio {
@@ -175,6 +219,10 @@ function toStudio(row: typeof studios.$inferSelect): Studio {
       ownerEmail: row.ownerEmail,
       apiKeyHash: row.apiKeyHash,
       createdAt: row.createdAt,
+      branding:
+        row.brandName !== null || row.brandAccent !== null || row.brandLogo !== null
+          ? { displayName: row.brandName ?? "", accent: row.brandAccent, logo: row.brandLogo }
+          : undefined,
     },
     UniqueEntityId.create(row.id),
   );

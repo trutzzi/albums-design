@@ -1,3 +1,6 @@
+import { SharpLogoProcessor } from "../modules/identity/infrastructure/branding/sharp-logo-processor";
+import { SubscriptionStudioBrandingDirectory } from "../modules/identity/infrastructure/branding/subscription-branding-directory";
+import { NoHumanCheck, TurnstileHumanCheck } from "../shared-kernel/human-check";
 import { AnalysisPhotoFocusDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-focus-directory";
 import Fastify from "fastify";
 import { SubscriptionPlanFeatureDirectory } from "../modules/identity/infrastructure/gateways/subscription-plan-features";
@@ -22,6 +25,10 @@ import {
   FeedbackUseCase,
   StudioPlansUseCase,
 } from "../modules/platform-admin/application/use-cases/admin.use-cases";
+import {
+  DeleteStudioUseCase,
+  PurgeUnconfirmedSignupsUseCase,
+} from "../modules/platform-admin/application/use-cases/studio-deletion.use-cases";
 import { NoBillingGateway } from "../modules/identity/application/ports/billing-gateway";
 import { registerMediaIngestionRoutes } from "../modules/media-ingestion/interface/http/routes";
 import { registerPhotoIntelligenceRoutes } from "../modules/photo-intelligence/interface/http/routes";
@@ -170,6 +177,7 @@ async function main() {
   const photos = new InMemoryPhotoRepository();
   const analyses = new InMemoryPhotoAnalysisRepository();
   const photoFocus = new AnalysisPhotoFocusDirectory(analyses);
+  const studioBranding = new SubscriptionStudioBrandingDirectory(projects, studios, subscriptions);
   const albums = new InMemoryAlbumRepository();
   const reviewSessions = new InMemoryReviewSessionRepository();
   const pickSessions = new InMemoryPickSessionRepository();
@@ -196,7 +204,7 @@ async function main() {
           from: process.env.MAIL_FROM,
         })
       : new LoggingEmailSender();
-  const administration = new StudioAdministrationUseCase(studios, subscriptions, members);
+  const administration = new StudioAdministrationUseCase(studios, subscriptions, members, new SharpLogoProcessor());
   const register = new RegisterUseCase(
     studios,
     subscriptions,
@@ -263,6 +271,7 @@ async function main() {
     new StoragePhotoPreviewResolver(photos, storage, permanentStorage),
     planFeatures,
     photoFocus,
+    studioBranding,
   );
   const exportGateway = new AlbumCompositionExportGateway(albums, planFeatures, photoFocus);
   const runExport = new RunExportUseCase(
@@ -417,25 +426,26 @@ async function main() {
 
   if (permanentStorage) registerMediaRoutes(app, { signer: mediaUrlSigner, provider: permanentStorage });
 
+  const deleteProject = new DeleteProjectUseCase(
+    projects,
+    photos,
+    storage,
+    analyses,
+    albums,
+    exportJobs,
+    storage,
+    reviewSessions,
+    permanentStorage,
+    pickSessions,
+    downloadSessions,
+    );
   registerMediaIngestionRoutes(app, {
     requestUpload: new RequestUploadUseCase(projects, photos, storage, planFeatures),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, queue, storeEverything),
     abandonUpload: new AbandonUploadUseCase(photos, storage),
     listStudioProjects: new ListStudioProjectsUseCase(projects, photos, albums, storage, permanentStorage),
     listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
-    deleteProject: new DeleteProjectUseCase(
-      projects,
-      photos,
-      storage,
-      analyses,
-      albums,
-      exportJobs,
-      storage,
-      reviewSessions,
-      permanentStorage,
-      pickSessions,
-      downloadSessions,
-    ),
+    deleteProject,
     projects,
   });
   registerPhotoIntelligenceRoutes(app, { analyses, visionClassifier });
@@ -467,6 +477,10 @@ async function main() {
     login,
     passwordReset: new PasswordResetUseCase(members, new PasswordResetMailer(emailSender), DEMO_JWT_SECRET, WEB_ORIGIN),
     billing,
+    // Cloudflare's always-pass test keys work here too (see .env.example).
+    humanCheck: process.env.TURNSTILE_SECRET_KEY
+      ? new TurnstileHumanCheck(process.env.TURNSTILE_SECRET_KEY)
+      : new NoHumanCheck(),
   });
   registerBillingRoutes(app, billing);
   // In demo mode ADMIN_EMAILS works the same way; sign up with one of them to see /admin.
@@ -475,6 +489,18 @@ async function main() {
     (process.env.ADMIN_EMAILS ?? "").split(",").map((email) => email.trim()).filter(Boolean),
   );
   const feedbackRepository = new InMemoryFeedbackRepository();
+  const deleteStudio = new DeleteStudioUseCase(
+    studios,
+    subscriptions,
+    members,
+    projects,
+    deleteProject,
+    feedbackRepository,
+    adminAccess,
+  );
+  // No worker in demo mode: the unconfirmed-signup sweep runs on a timer in this process.
+  const purgeUnconfirmed = new PurgeUnconfirmedSignupsUseCase(members, projects, deleteStudio);
+  setInterval(() => void purgeUnconfirmed.execute().catch(() => undefined), 60 * 60 * 1000).unref();
   registerPlatformAdminRoutes(app, {
     access: adminAccess,
     feedback: new FeedbackUseCase(feedbackRepository, members, studios, adminAccess, emailSender, WEB_ORIGIN),
@@ -502,7 +528,8 @@ async function main() {
       },
       permanentStorage,
     ),
-    plans: new StudioPlansUseCase(studios, subscriptions),
+    plans: new StudioPlansUseCase(studios, subscriptions, members, projects),
+    deleteStudio,
   });
   const studioContacts = new IdentityStudioContacts(projects, members, studios);
   const clientContacts = new ProjectClientContactDirectory(projects, albums);
@@ -553,7 +580,7 @@ async function main() {
       clientAccess,
     ),
   });
-  const deliveryGateway = new MediaIngestionDeliveryGateway(projects, photos, storage, permanentStorage);
+  const deliveryGateway = new MediaIngestionDeliveryGateway(projects, photos, storage, permanentStorage, studioBranding);
   registerDownloadRoutes(app, {
     downloadAdmin: new DownloadSessionAdminUseCase(
       downloadSessions,

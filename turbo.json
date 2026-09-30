@@ -44,7 +44,8 @@
         "STRIPE_PRICE_STARTER",
         "STRIPE_PRICE_STUDIO",
         "STRIPE_PRICE_STUDIO_PRO",
-        "ADMIN_EMAILS"
+        "ADMIN_EMAILS",
+        "TURNSTILE_SECRET_KEY"
       ]
     },
     "lint": {
@@ -90,7 +91,8 @@
         "LONG_TERM_ORIGINALS",
         "PREVIEW_LONG_EDGE",
         "VITE_*",
-        "ADMIN_EMAILS"
+        "ADMIN_EMAILS",
+        "TURNSTILE_SECRET_KEY"
       ]
     }
   }

@@ -3,6 +3,7 @@ import type { ProjectRepository } from "../../../media-ingestion/domain/project-
 import type { PhotoRepository } from "../../../media-ingestion/domain/photo-repository";
 import type { ListProjectPhotosUseCase } from "../../../media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
 import type { PickGateway, PickNotifier } from "../../application/ports/pick-gateway";
+import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
 
 /** Anti-corruption layer over Media Ingestion: the client only ever sees display copies, never originals. */
 export class MediaIngestionPickGateway implements PickGateway {
@@ -10,11 +11,13 @@ export class MediaIngestionPickGateway implements PickGateway {
     private readonly projects: ProjectRepository,
     private readonly photos: PhotoRepository,
     private readonly listPhotoViews: ListProjectPhotosUseCase,
+    private readonly branding?: StudioBrandingDirectory,
   ) {}
 
   async loadProject(projectId: string) {
     const project = await this.projects.findById(UniqueEntityId.create(projectId));
-    return project ? { id: project.id.toString(), name: project.name } : undefined;
+    if (!project) return undefined;
+    return { id: project.id.toString(), name: project.name, branding: (await this.branding?.forProject(projectId)) ?? null };
   }
 
   async listPhotos(projectId: string) {

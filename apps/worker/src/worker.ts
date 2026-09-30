@@ -191,7 +191,33 @@ async function main() {
     await storageQueue.add("store-pending", {}, { removeOnComplete: 50, removeOnFail: 50 });
   }
 
-  const workers = [derivativeWorker, analysisWorker, exportWorker, ...(storageWorker ? [storageWorker] : [])];
+  const maintenanceWorker = new Worker(
+    QUEUES.maintenance,
+    async (job: Job) => {
+      if (job.name === "purge-unconfirmed") {
+        const { deleted, kept } = await root.purgeUnconfirmedSignups.execute();
+        if (deleted > 0 || kept > 0) {
+          log(`[accounts] unconfirmed signups older than 48h: ${deleted} removed, ${kept} kept (they have shoots or teammates)`);
+        }
+      }
+    },
+    { connection, concurrency: 1 },
+  );
+  const maintenanceQueue = new Queue(QUEUES.maintenance, { connection });
+  await maintenanceQueue.upsertJobScheduler(
+    "purge-unconfirmed-signups",
+    { pattern: "20 * * * *" },
+    { name: "purge-unconfirmed", data: {} },
+  );
+  await maintenanceQueue.add("purge-unconfirmed", {}, { removeOnComplete: 20, removeOnFail: 20 });
+
+  const workers = [
+    derivativeWorker,
+    analysisWorker,
+    exportWorker,
+    maintenanceWorker,
+    ...(storageWorker ? [storageWorker] : []),
+  ];
   for (const worker of workers) {
     worker.on("failed", (job, error) => {
       log(`[${worker.name}] job ${job?.id} failed: ${error.message}`);
@@ -203,7 +229,7 @@ async function main() {
   }
 
   const shutdown = async () => {
-    await Promise.all([...workers.map((worker) => worker.close()), storageQueue?.close()]);
+    await Promise.all([...workers.map((worker) => worker.close()), storageQueue?.close(), maintenanceQueue.close()]);
     await root.shutdown();
     await flushErrorReports();
     process.exit(0);
