@@ -1,5 +1,11 @@
 import { AggregateRoot, UniqueEntityId } from "@albumflow/domain-kernel";
-import { DEFAULT_STYLE, type AlbumCoverDTO, type AlbumStyleDTO, type TextBlockDTO } from "@albumflow/contracts";
+import {
+  DEFAULT_STYLE,
+  spacedSlotRect,
+  type AlbumCoverDTO,
+  type AlbumStyleDTO,
+  type TextBlockDTO,
+} from "@albumflow/contracts";
 import { findTemplate, type LayoutTemplate } from "./layout-template";
 
 export type AlbumStatus = "DRAFT" | "IN_REVIEW" | "CHANGES_REQUESTED" | "APPROVED" | "EXPORTED";
@@ -49,6 +55,15 @@ export interface Spread {
   templateId: string;
   placements: Placement[];
   texts?: TextBlock[];
+  /** Finished: its layout is frozen until unlocked. */
+  locked?: boolean;
+}
+
+export class SpreadLockedError extends Error {
+  constructor(index: number) {
+    super(`Spread ${index + 1} is locked. Unlock it to change its layout.`);
+    this.name = "SpreadLockedError";
+  }
 }
 
 export interface AlbumFormat {
@@ -311,6 +326,7 @@ export class Album extends AggregateRoot<AlbumProps> {
 
   setFrame(spreadIndex: number, slotId: string, frame: SlotFrame): void {
     this.assertEditable();
+    this.assertUnlocked(spreadIndex);
     const spread = this.spreadAt(spreadIndex);
     const placement = spread.placements.find((candidate) => candidate.slotId === slotId);
     if (!placement) throw new SlotNotFoundError(slotId, spread.templateId);
@@ -318,9 +334,57 @@ export class Album extends AggregateRoot<AlbumProps> {
     this.touch();
   }
 
+  /** Several frames in one step — a divider dragged between photos moves both sides at once. */
+  setFrames(spreadIndex: number, frames: { slotId: string; frame: SlotFrame }[]): void {
+    this.assertEditable();
+    this.assertUnlocked(spreadIndex);
+    const spread = this.spreadAt(spreadIndex);
+    const bySlot = new Map(spread.placements.map((placement) => [placement.slotId, placement]));
+    for (const { slotId } of frames) {
+      if (!bySlot.has(slotId)) throw new SlotNotFoundError(slotId, spread.templateId);
+    }
+    for (const { slotId, frame } of frames) bySlot.get(slotId)!.frame = normaliseFrame(frame);
+    this.touch();
+  }
+
+  /**
+   * Flips the layout left-to-right: every photo's rectangle and every text block moves
+   * to the mirrored position (the photos themselves are not flipped). Stored as frames,
+   * so "Reset layout" still brings back the template exactly.
+   */
+  mirrorSpread(spreadIndex: number): void {
+    this.assertEditable();
+    const spread = this.spreadAt(spreadIndex);
+    this.assertUnlocked(spreadIndex);
+    const template = findTemplate(spread.templateId);
+    for (const placement of spread.placements) {
+      const slot = template?.slots.find((candidate) => candidate.id === placement.slotId);
+      const rect = placement.frame ?? (slot ? spacedSlotRect(slot, template!.fullBleed, this.props.style.spacing) : undefined);
+      if (!rect) continue;
+      placement.frame = normaliseFrame({ ...rect, x: 1 - rect.x - rect.width });
+    }
+    if (spread.texts) {
+      spread.texts = spread.texts.map((block) => ({
+        ...block,
+        x: Math.min(1 - block.width, Math.max(0, 1 - block.x - block.width)),
+        align: block.align === "left" ? "right" : block.align === "right" ? "left" : block.align,
+      }));
+    }
+    this.touch();
+  }
+
+  setSpreadLocked(spreadIndex: number, locked: boolean): void {
+    this.assertEditable();
+    const spread = this.spreadAt(spreadIndex);
+    if (locked) spread.locked = true;
+    else delete spread.locked;
+    this.touch();
+  }
+
   /** Drops every hand-adjusted rectangle on the spread, back to the template's own. */
   resetFrames(spreadIndex: number): void {
     this.assertEditable();
+    this.assertUnlocked(spreadIndex);
     const spread = this.spreadAt(spreadIndex);
     for (const placement of spread.placements) delete placement.frame;
     this.touch();
@@ -342,6 +406,7 @@ export class Album extends AggregateRoot<AlbumProps> {
   changeTemplate(spreadIndex: number, templateId: string, photoOrder?: string[]): void {
     this.assertEditable();
     const spread = this.spreadAt(spreadIndex);
+    this.assertUnlocked(spreadIndex);
     const template = findTemplate(templateId);
     if (!template) throw new Error(`Unknown layout template ${templateId}.`);
 
@@ -468,6 +533,10 @@ export class Album extends AggregateRoot<AlbumProps> {
 
   private assertSpreadExists(index: number): void {
     if (index < 0 || index >= this.props.spreads.length) throw new SpreadNotFoundError(index);
+  }
+
+  private assertUnlocked(index: number): void {
+    if (this.props.spreads[index]?.locked) throw new SpreadLockedError(index);
   }
 
   private assertEditable(): void {

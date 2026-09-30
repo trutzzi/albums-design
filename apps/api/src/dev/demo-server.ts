@@ -1,3 +1,4 @@
+import { AnalysisPhotoFocusDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-focus-directory";
 import Fastify from "fastify";
 import { SubscriptionPlanFeatureDirectory } from "../modules/identity/infrastructure/gateways/subscription-plan-features";
 import cors from "@fastify/cors";
@@ -168,6 +169,7 @@ async function main() {
   const planFeatures = new SubscriptionPlanFeatureDirectory(projects, subscriptions);
   const photos = new InMemoryPhotoRepository();
   const analyses = new InMemoryPhotoAnalysisRepository();
+  const photoFocus = new AnalysisPhotoFocusDirectory(analyses);
   const albums = new InMemoryAlbumRepository();
   const reviewSessions = new InMemoryReviewSessionRepository();
   const pickSessions = new InMemoryPickSessionRepository();
@@ -260,8 +262,9 @@ async function main() {
     albums,
     new StoragePhotoPreviewResolver(photos, storage, permanentStorage),
     planFeatures,
+    photoFocus,
   );
-  const exportGateway = new AlbumCompositionExportGateway(albums, planFeatures);
+  const exportGateway = new AlbumCompositionExportGateway(albums, planFeatures, photoFocus);
   const runExport = new RunExportUseCase(
     exportJobs,
     exportGateway,

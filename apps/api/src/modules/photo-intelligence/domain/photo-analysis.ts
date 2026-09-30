@@ -18,6 +18,8 @@ export interface PhotoAnalysisProps {
   analyzedAt: Date;
   /** Coarse color histogram, used only to find photos from the same setting — see photo-similarity.ts. Undefined for analyses recorded before this field existed. */
   histogram: number[] | undefined;
+  /** Where the subject sits (fractions of width/height). Undefined for analyses recorded before it was measured. */
+  focus: { x: number; y: number } | undefined;
 }
 
 export class PhotoAnalysis extends AggregateRoot<PhotoAnalysisProps> {
@@ -38,6 +40,7 @@ export class PhotoAnalysis extends AggregateRoot<PhotoAnalysisProps> {
       capturedAt?: Date | undefined;
       analyzedAt?: Date;
       histogram?: number[] | undefined;
+      focus?: { x: number; y: number } | undefined;
     },
     id?: UniqueEntityId,
   ): PhotoAnalysis {
@@ -55,6 +58,7 @@ export class PhotoAnalysis extends AggregateRoot<PhotoAnalysisProps> {
         capturedAt: params.capturedAt,
         analyzedAt: params.analyzedAt ?? new Date(),
         histogram: params.histogram,
+        focus: params.focus,
       },
       id ?? UniqueEntityId.create(),
     );
@@ -114,6 +118,10 @@ export class PhotoAnalysis extends AggregateRoot<PhotoAnalysisProps> {
 
   get histogram(): number[] | undefined {
     return this.props.histogram;
+  }
+
+  get focus(): { x: number; y: number } | undefined {
+    return this.props.focus;
   }
 
   /** Ordering key for building a chronological narrative — falls back to analysis time. */

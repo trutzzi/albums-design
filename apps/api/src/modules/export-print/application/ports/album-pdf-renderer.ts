@@ -1,4 +1,4 @@
-import type { AlbumCoverDTO, AlbumStyleDTO, TextBlockDTO } from "@albumflow/contracts";
+import type { AlbumCoverDTO, AlbumStyleDTO, PhotoFocus, TextBlockDTO } from "@albumflow/contracts";
 import type { PrintProfile } from "../../domain/print-profile";
 
 export interface RenderableCrop {
@@ -41,6 +41,8 @@ export interface RenderableAlbum {
   style?: AlbumStyleDTO | undefined;
   /** Printed as its own single page before the spreads. */
   cover?: AlbumCoverDTO | null | undefined;
+  /** Subject points by photo id: an untouched crop centres on them, exactly as the editor shows. */
+  focusByPhoto?: Record<string, PhotoFocus> | undefined;
 }
 
 export interface RenderResult {

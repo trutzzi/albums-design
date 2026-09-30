@@ -1,4 +1,4 @@
-import { boolean, integer, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { studios } from "../../../identity/infrastructure/persistence/schema";
 
 export const projectTypeEnum = pgEnum("project_type", ["WEDDING", "BAPTISM", "EVENT"]);
@@ -10,18 +10,23 @@ export const photoStatusEnum = pgEnum("photo_status", [
   "FAILED",
 ]);
 
-export const projects = pgTable("projects", {
-  id: uuid("id").primaryKey(),
-  studioId: uuid("studio_id")
-    .notNull()
-    .references(() => studios.id),
-  name: varchar("name", { length: 255 }).notNull(),
-  type: projectTypeEnum("type").notNull(),
-  eventDate: timestamp("event_date", { withTimezone: true }),
-  clientName: varchar("client_name", { length: 255 }),
-  clientEmail: varchar("client_email", { length: 320 }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
-});
+export const projects = pgTable(
+  "projects",
+  {
+    id: uuid("id").primaryKey(),
+    studioId: uuid("studio_id")
+      .notNull()
+      .references(() => studios.id),
+    name: varchar("name", { length: 255 }).notNull(),
+    type: projectTypeEnum("type").notNull(),
+    eventDate: timestamp("event_date", { withTimezone: true }),
+    clientName: varchar("client_name", { length: 255 }),
+    clientEmail: varchar("client_email", { length: 320 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  },
+  // Deleting a studio checks this column; without an index that check reads the whole table.
+  (table) => [index("projects_studio_id_idx").on(table.studioId)],
+);
 
 export const photos = pgTable("photos", {
   id: uuid("id").primaryKey(),

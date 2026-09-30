@@ -4,10 +4,13 @@ import {
   DEFAULT_STYLE,
   TEXT_LINE_HEIGHT,
   TEXT_SIZE_RATIO,
+  focusedBaseCrop,
+  isUntouchedCrop,
   spacedSlotRect,
   textColorOn,
   type AlbumCoverDTO,
   type AlbumStyleDTO,
+  type PhotoFocus,
   type TextBlockDTO,
 } from "@albumflow/contracts";
 import { AlbumFonts, wrapText } from "./album-fonts";
@@ -53,7 +56,7 @@ export class PdfAlbumRenderer implements AlbumPdfRenderer {
     const ink = hexToRgb(textColorOn(style.background));
 
     if (album.cover) {
-      await this.renderCover(pdf, album.cover, style, fonts, profile, {
+      await this.renderCover(pdf, album.cover, style, fonts, profile, album.focusByPhoto?.[album.cover.photoId ?? ""], {
         width: mmToPoints(album.format.pageWidthMm + bleedMm * 2),
         height: pageHeight,
         bleed,
@@ -96,7 +99,13 @@ export class PdfAlbumRenderer implements AlbumPdfRenderer {
         // Templates use a top-left origin; PDF user space is bottom-left.
         const rectY = areaY + areaHeight - rect.y * areaHeight - rectHeight;
 
-        const jpeg = await this.prepareImage(placement, rectWidth, rectHeight, profile.dpi);
+        const jpeg = await this.prepareImage(
+          placement,
+          rectWidth,
+          rectHeight,
+          profile.dpi,
+          album.focusByPhoto?.[placement.photoId],
+        );
         if (!jpeg) continue;
 
         const embedded = await pdf.embedJpg(jpeg);
@@ -148,6 +157,7 @@ export class PdfAlbumRenderer implements AlbumPdfRenderer {
     style: AlbumStyleDTO,
     fonts: AlbumFonts,
     profile: PrintProfile,
+    focus: PhotoFocus | undefined,
     size: { width: number; height: number; bleed: number },
   ): Promise<void> {
     const { width, height, bleed } = size;
@@ -164,6 +174,7 @@ export class PdfAlbumRenderer implements AlbumPdfRenderer {
         width,
         height,
         profile.dpi,
+        focus,
       );
       if (jpeg) page.drawImage(await pdf.embedJpg(jpeg), { x: 0, y: 0, width, height });
       page.drawRectangle({ x: 0, y: 0, width, height: height * 0.34, color: rgb(0, 0, 0), opacity: 0.32 });
@@ -194,6 +205,7 @@ export class PdfAlbumRenderer implements AlbumPdfRenderer {
     rectWidthPt: number,
     rectHeightPt: number,
     dpi: number,
+    focus?: PhotoFocus | undefined,
   ): Promise<Buffer | undefined> {
     const source = await this.photos.resolve(placement.photoId);
     if (!source) return undefined;
@@ -204,7 +216,12 @@ export class PdfAlbumRenderer implements AlbumPdfRenderer {
     const sourceHeight = metadata.height ?? 0;
     if (sourceWidth === 0 || sourceHeight === 0) return undefined;
 
-    const region = cropRegion(placement.crop, sourceWidth, sourceHeight);
+    // A crop nobody framed by hand centres on the photo's subject — the very rect the
+    // editor and the client proof draw for it, so print matches what was approved.
+    const crop = isUntouchedCrop(placement.crop)
+      ? focusedBaseCrop(sourceWidth / sourceHeight, rectWidthPt / rectHeightPt, focus)
+      : placement.crop;
+    const region = cropRegion(crop, sourceWidth, sourceHeight);
     const targetWidth = Math.max(1, Math.round((rectWidthPt / POINTS_PER_INCH) * dpi));
     const targetHeight = Math.max(1, Math.round((rectHeightPt / POINTS_PER_INCH) * dpi));
 

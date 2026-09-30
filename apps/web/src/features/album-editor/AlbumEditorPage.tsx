@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type {
   AlbumDTO,
@@ -41,6 +41,12 @@ import { SpreadBlock } from "../../components/SpreadBlock";
 import { StylePanel } from "../../components/StylePanel";
 import { CoverEditor } from "../../components/CoverEditor";
 import { GuidedTour, type TourStep } from "../../components/GuidedTour";
+import { PageStrip } from "../../components/PageStrip";
+import { AlbumCheckPanel } from "../../components/AlbumCheckPanel";
+import { BookPreview } from "../../components/BookPreview";
+import { ShortcutsHelp } from "../../components/ShortcutsHelp";
+import { checkAlbum, issuesBySpread } from "../../lib/album-check";
+import { chapterStarts } from "../../lib/chapters";
 import { tip } from "../../lib/tip";
 
 const EDITOR_TOUR: TourStep[] = [
@@ -50,6 +56,8 @@ const EDITOR_TOUR: TourStep[] = [
   { target: '[data-tour="editor-layouts"]', titleKey: "tour.editor.layouts.title", bodyKey: "tour.editor.layouts.body" },
   { target: '[data-tour="editor-sidebar"]', titleKey: "tour.editor.sidebar.title", bodyKey: "tour.editor.sidebar.body" },
   { target: '[data-tour="editor-tools"]', titleKey: "tour.editor.tools.title", bodyKey: "tour.editor.tools.body" },
+  { target: '[data-tour="editor-strip"]', titleKey: "tour.editor.strip.title", bodyKey: "tour.editor.strip.body" },
+  { target: '[data-tour="editor-check"]', titleKey: "tour.editor.check.title", bodyKey: "tour.editor.check.body" },
   { target: '[data-tour="editor-ready"]', titleKey: "tour.editor.ready.title", bodyKey: "tour.editor.ready.body" },
 ];
 import { AccessDetailsModal } from "../../components/AccessDetailsModal";
@@ -122,6 +130,12 @@ export function AlbumEditorPage() {
   const [reviewEmailLanguage, setReviewEmailLanguage] = useState<"en" | "ro">(language);
   const [reviewEmailNote, setReviewEmailNote] = useState<{ sentTo?: string; error?: string } | null>(null);
   const [reviewDetailsFor, setReviewDetailsFor] = useState<string | null>(null);
+  const [checkOpen, setCheckOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // The spread most in view — what the strip highlights and the keyboard acts on.
+  const [currentSpread, setCurrentSpread] = useState(0);
+  const saving = useIsMutating() > 0;
 
   const album = useQuery({ queryKey: ["album", albumId], queryFn: () => getAlbum(albumId) });
   const templates = useQuery({ queryKey: ["templates"], queryFn: listLayoutTemplates });
@@ -319,6 +333,42 @@ export function AlbumEditorPage() {
       if (commit) send();
       else pendingFrame.current = setTimeout(send, 400);
     },
+    [runEdit],
+  );
+
+  const pendingFrames = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleFramesChange = useCallback(
+    (spreadIndex: number, frames: { slotId: string; frame: SlotFrame }[], commit: boolean) => {
+      const bySlot = new Map(frames.map((entry) => [entry.slotId, entry.frame]));
+      setDraft((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          spreads: current.spreads.map((spread, index) =>
+            index !== spreadIndex
+              ? spread
+              : {
+                  ...spread,
+                  placements: spread.placements.map((placement) => {
+                    const frame = bySlot.get(placement.slotId);
+                    return frame ? { ...placement, frame } : placement;
+                  }),
+                },
+          ),
+        };
+      });
+
+      if (pendingFrames.current) clearTimeout(pendingFrames.current);
+      const send = () => runEdit({ type: "SET_FRAMES", spreadIndex, frames });
+      if (commit) send();
+      else pendingFrames.current = setTimeout(send, 400);
+    },
+    [runEdit],
+  );
+  const mirrorSpread = useCallback((spreadIndex: number) => runEdit({ type: "MIRROR_SPREAD", spreadIndex }), [runEdit]);
+  const toggleSpreadLock = useCallback(
+    (spreadIndex: number, locked: boolean) => runEdit({ type: "SET_SPREAD_LOCK", spreadIndex, locked }),
     [runEdit],
   );
 
@@ -617,6 +667,30 @@ export function AlbumEditorPage() {
       ),
     [current],
   );
+  const thumbnailByPhoto = useMemo(
+    () => new Map((photos.data ?? []).map((photo) => [photo.id, photo.thumbnailUrl ?? photo.previewUrl])),
+    [photos.data],
+  );
+  const thumbnailUrlFor = useCallback((photoId: string) => thumbnailByPhoto.get(photoId), [thumbnailByPhoto]);
+  const issues = useMemo(
+    () =>
+      current && photos.data
+        ? checkAlbum({
+            album: { ...current, style: current.style ?? DEFAULT_STYLE },
+            templates: templateById,
+            analyses: analysisByPhoto,
+            existingPhotoIds: new Set(photos.data.map((photo) => photo.id)),
+          })
+        : [],
+    [current, photos.data, templateById, analysisByPhoto],
+  );
+  const issueCounts = useMemo(() => issuesBySpread(issues), [issues]);
+  const needsAttention = issues.filter((issue) => issue.severity !== "info").length;
+  const chapters = useMemo(
+    () => chapterStarts(current?.spreads ?? [], analysisByPhoto),
+    [current?.spreads, analysisByPhoto],
+  );
+
   const clientPickedIds = useMemo(
     () =>
       new Set(
@@ -663,6 +737,10 @@ export function AlbumEditorPage() {
   const previewUrlFor = useCallback(
     (photoId: string) => previewByPhoto.get(photoId),
     [previewByPhoto],
+  );
+  const focusFor = useCallback(
+    (photoId: string) => analysisByPhoto.get(photoId)?.focus,
+    [analysisByPhoto],
   );
   const closeTools = useCallback(() => {
     setSelected(null);
@@ -890,6 +968,137 @@ export function AlbumEditorPage() {
     [runEdit],
   );
 
+  const jumpToSpread = useCallback((spreadIndex: number, slotId?: string) => {
+    document.getElementById(`spread-${spreadIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setCurrentSpread(spreadIndex);
+    if (slotId) {
+      setAddingToSpread(null);
+      setSelectedText(null);
+      setSelected({ spreadIndex, slotId });
+    }
+  }, []);
+
+  const spreadCount = current?.spreads.length ?? 0;
+  // Follows the scroll: whichever spread fills most of the window is the current one.
+  useEffect(() => {
+    if (spreadCount === 0) return;
+    const ratios = new Map<number, number>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          ratios.set(Number((entry.target as HTMLElement).dataset.spreadIndex), entry.intersectionRatio);
+        }
+        let best = -1;
+        let bestRatio = 0;
+        for (const [index, ratio] of ratios) {
+          if (ratio > bestRatio) {
+            best = index;
+            bestRatio = ratio;
+          }
+        }
+        if (best >= 0) setCurrentSpread(best);
+      },
+      { threshold: [0, 0.25, 0.5, 0.75, 1] },
+    );
+    document.querySelectorAll<HTMLElement>("[data-spread-index]").forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, [spreadCount]);
+
+  // Keyboard shortcuts (listed in ShortcutsHelp). Read through a ref so the listener is
+  // installed once and always sees the latest state.
+  const keyState = useRef({ currentSpread, selected, spreadCount, undo, redo, locked: false, modalOpen: false });
+  keyState.current = {
+    currentSpread,
+    selected,
+    spreadCount,
+    undo,
+    redo,
+    locked: current?.status === "APPROVED",
+    modalOpen: checkOpen || previewOpen || shortcutsOpen || confirmingDelete || insertAt !== null || guidesModalOpen,
+  };
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const state = keyState.current;
+      const target = event.target as HTMLElement | null;
+      const typing =
+        target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+      if (typing || state.modalOpen) return;
+      const mod = event.metaKey || event.ctrlKey;
+      const spreads = spreadsRef.current ?? [];
+      const here = state.currentSpread;
+
+      if (mod && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (state.locked) return;
+        if (event.shiftKey) state.redo();
+        else state.undo();
+        return;
+      }
+      if (mod && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        if (!state.locked) state.redo();
+        return;
+      }
+      if (mod || event.altKey) return;
+
+      switch (event.key) {
+        case "?":
+          setShortcutsOpen(true);
+          return;
+        case "Escape":
+          setSelected(null);
+          setSelectedText(null);
+          setAddingToSpread(null);
+          return;
+        case "p":
+        case "P":
+          setPreviewOpen(true);
+          return;
+        case "c":
+        case "C":
+          setCheckOpen(true);
+          return;
+      }
+      // Arrow keys belong to the selected photo (they nudge it); without one they turn pages.
+      if (!state.selected && (event.key === "ArrowRight" || event.key === "ArrowDown" || event.key === "PageDown")) {
+        event.preventDefault();
+        jumpToSpread(Math.min(state.spreadCount - 1, here + 1));
+        return;
+      }
+      if (!state.selected && (event.key === "ArrowLeft" || event.key === "ArrowUp" || event.key === "PageUp")) {
+        event.preventDefault();
+        jumpToSpread(Math.max(0, here - 1));
+        return;
+      }
+      if (state.locked) return;
+      const spread = spreads[here];
+      switch (event.key) {
+        case "s":
+        case "S":
+          if (spread && !spread.locked) runShuffle(here);
+          return;
+        case "m":
+        case "M":
+          if (spread && !spread.locked) mirrorSpread(here);
+          return;
+        case "l":
+        case "L":
+          if (spread) toggleSpreadLock(here, !spread.locked);
+          return;
+        case "Delete":
+        case "Backspace":
+          if (state.selected && !spreads[state.selected.spreadIndex]?.locked) {
+            event.preventDefault();
+            removePhoto(state.selected.spreadIndex, state.selected.slotId);
+            setSelected(null);
+          }
+          return;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [jumpToSpread, runShuffle, mirrorSpread, toggleSpreadLock, removePhoto]);
+
   if (album.isLoading) return <p className="page muted">Loading album…</p>;
   if (album.isError) return <p className="page error">{(album.error as Error).message}</p>;
   if (!current) return null;
@@ -897,7 +1106,7 @@ export function AlbumEditorPage() {
   const aspectRatio = (current.format.pageWidthMm * 2) / current.format.pageHeightMm;
 
   return (
-    <div className="page editor">
+    <div className="page editor editor--with-strip">
       <GuidedTour id="editor" steps={EDITOR_TOUR} ready={current.spreads.length > 0} />
       <header className="page__header">
         <div>
@@ -920,6 +1129,31 @@ export function AlbumEditorPage() {
           </p>
         </div>
         <div className="page__header-actions" data-tour="editor-tools">
+          <span className={`save-state ${saving ? "save-state--saving" : ""}`} role="status" aria-live="polite">
+            {saving ? t("album.saving") : t("album.saved")}
+          </span>
+          <button type="button" className="button button--small" onClick={() => setPreviewOpen(true)} {...tip(t("tip.preview"))}>
+            {t("album.preview")}
+          </button>
+          <button
+            type="button"
+            className={`button button--small ${needsAttention > 0 ? "button--attention" : ""}`}
+            onClick={() => setCheckOpen(true)}
+            data-tour="editor-check"
+            {...tip(t("tip.check"))}
+          >
+            {t("album.check")}
+            {needsAttention > 0 && <span className="sidebar__badge">{needsAttention}</span>}
+          </button>
+          <button
+            type="button"
+            className="button button--small"
+            onClick={() => setShortcutsOpen(true)}
+            aria-label={t("shortcuts.title")}
+            {...tip(t("shortcuts.title"))}
+          >
+            ?
+          </button>
           <button
             type="button"
             className="button button--small"
@@ -1038,6 +1272,7 @@ export function AlbumEditorPage() {
             aspectRatio={current.format.pageWidthMm / current.format.pageHeightMm}
             albumTitle={current.title}
             previewUrlFor={previewUrlFor}
+            focusFor={focusFor}
             locked={locked}
             onChange={setCover}
           />
@@ -1079,6 +1314,10 @@ export function AlbumEditorPage() {
                 onCropChange={handleCropChange}
                 onTreatmentChange={setSlotTreatment}
                 onFrameChange={handleFrameChange}
+                onFramesChange={handleFramesChange}
+                onMirror={mirrorSpread}
+                onToggleLock={toggleSpreadLock}
+                chapterLabel={chapters[spreadIndex] ? t(`chapter.${chapters[spreadIndex]}`) : undefined}
                 onReorderPlacement={reorderPlacement}
                 onMoveToNeighbor={moveToNeighbor}
                 onMovePlacementAcrossSpreads={movePlacementAcrossSpreads}
@@ -1093,6 +1332,7 @@ export function AlbumEditorPage() {
                 onTextSelect={selectText}
                 onTextChange={handleTextChange}
                 onTextRemove={removeText}
+                focusFor={focusFor}
               />
 
               {!locked && (
@@ -1523,6 +1763,47 @@ export function AlbumEditorPage() {
           )}
         </aside>
       </div>
+
+      <PageStrip
+        spreads={current.spreads}
+        templateById={templateById}
+        thumbnailUrlFor={thumbnailUrlFor}
+        albumStyle={current.style ?? DEFAULT_STYLE}
+        aspectRatio={aspectRatio}
+        currentIndex={currentSpread}
+        locked={locked}
+        openCommentsBySpread={commentsBySpread}
+        issuesBySpread={issueCounts}
+        chapters={chapters}
+        onJump={jumpToSpread}
+        onReorder={reorderSpread}
+        onDropPhoto={addPhotoDrop}
+      />
+
+      {checkOpen && (
+        <AlbumCheckPanel
+          issues={issues}
+          thumbnailUrlFor={thumbnailUrlFor}
+          onJump={jumpToSpread}
+          onShowUnused={() => {
+            setSidebarTab("photos");
+            setTrayShow("unused");
+            setTraySort("score");
+          }}
+          onClose={() => setCheckOpen(false)}
+        />
+      )}
+      {previewOpen && (
+        <BookPreview
+          album={{ ...current, style: current.style ?? DEFAULT_STYLE }}
+          templateById={templateById}
+          previewUrlFor={previewUrlFor}
+          focusFor={focusFor}
+          startAt={currentSpread}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
+      {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
 
       {confirmingDelete && (
         <div

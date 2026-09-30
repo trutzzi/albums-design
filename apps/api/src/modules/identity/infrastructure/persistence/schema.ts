@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { index, integer, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const studios = pgTable("studios", {
   id: uuid("id").primaryKey(),
@@ -32,19 +32,24 @@ export const subscriptions = pgTable("subscriptions", {
   externalSubscriptionId: varchar("external_subscription_id", { length: 128 }),
 });
 
-export const studioMembers = pgTable("studio_members", {
-  id: uuid("id").primaryKey(),
-  studioId: uuid("studio_id")
-    .notNull()
-    .references(() => studios.id),
-  email: varchar("email", { length: 255 }).notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
-  role: studioRoleEnum("role").notNull(),
-  invitedAt: timestamp("invited_at", { withTimezone: true }).notNull(),
-  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
-  /** scrypt hash, `salt:hash` hex-encoded. Unset for an invited member who has
-   * never logged in — invitations don't carry credentials, signing up does. */
-  passwordHash: varchar("password_hash", { length: 255 }),
-  /** Null until the member opens the confirmation link (or proves the mailbox by a reset). */
-  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
-});
+export const studioMembers = pgTable(
+  "studio_members",
+  {
+    id: uuid("id").primaryKey(),
+    studioId: uuid("studio_id")
+      .notNull()
+      .references(() => studios.id),
+    email: varchar("email", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    role: studioRoleEnum("role").notNull(),
+    invitedAt: timestamp("invited_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    /** scrypt hash, `salt:hash` hex-encoded. Unset for an invited member who has
+     * never logged in — invitations don't carry credentials, signing up does. */
+    passwordHash: varchar("password_hash", { length: 255 }),
+    /** Null until the member opens the confirmation link (or proves the mailbox by a reset). */
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+  },
+  // Deleting a studio checks this column; without an index that check reads the whole table.
+  (table) => [index("studio_members_studio_id_idx").on(table.studioId)],
+);

@@ -60,6 +60,8 @@ export const spreadSchema = z.object({
   placements: z.array(placementSchema),
   /** Absent on albums made before text existed — the same as none. */
   texts: z.array(textBlockSchema).optional(),
+  /** A finished spread: shuffling and layout changes leave it exactly as it is. */
+  locked: z.boolean().optional(),
 });
 export type SpreadDTO = z.infer<typeof spreadSchema>;
 
@@ -140,6 +142,9 @@ export const generateAlbumSchema = z.object({
 });
 export type GenerateAlbumInput = z.infer<typeof generateAlbumSchema>;
 
+/** Declared ahead of the edit schema, which needs it; MAX_PHOTOS_PER_SPREAD below is the same number. */
+const MAX_PHOTOS_PER_SPREAD_LIMIT = 9;
+
 export const albumEditSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("RENAME"), title: z.string().min(1).max(255) }),
   z.object({
@@ -209,6 +214,15 @@ export const albumEditSchema = z.discriminatedUnion("type", [
     frame: slotFrameSchema,
   }),
   z.object({ type: z.literal("RESET_FRAMES"), spreadIndex: z.number().int().min(0) }),
+  z.object({
+    type: z.literal("SET_FRAMES"),
+    spreadIndex: z.number().int().min(0),
+    /** Several photos resized in one gesture — dragging the line between them. */
+    frames: z.array(z.object({ slotId: z.string(), frame: slotFrameSchema })).min(1).max(MAX_PHOTOS_PER_SPREAD_LIMIT),
+  }),
+  /** Flips the layout left-to-right; the photos themselves are never flipped. */
+  z.object({ type: z.literal("MIRROR_SPREAD"), spreadIndex: z.number().int().min(0) }),
+  z.object({ type: z.literal("SET_SPREAD_LOCK"), spreadIndex: z.number().int().min(0), locked: z.boolean() }),
   z.object({ type: z.literal("REMOVE_SPREAD"), index: z.number().int().min(0) }),
   z.object({
     type: z.literal("RESTORE_SPREADS"),
@@ -247,6 +261,10 @@ export const layoutTemplateSchema = z.object({
 });
 export type LayoutTemplateDTO = z.infer<typeof layoutTemplateSchema>;
 
+/** Where a photo's subject sits, as fractions of its width and height (top-left origin). */
+export const photoFocusSchema = z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) });
+export type PhotoFocus = z.infer<typeof photoFocusSchema>;
+
 export const photoAnalysisDtoSchema = z.object({
   photoId: z.string().uuid(),
   overall: z.number().int(),
@@ -263,11 +281,18 @@ export const photoAnalysisDtoSchema = z.object({
   albumWorthy: z.boolean(),
   /** 1-based group of photos shot in the same setting — see photo-similarity.ts. */
   similarityGroup: z.number().int(),
+  /** Pixel size of the original, for print-resolution checks. */
+  width: z.number().int(),
+  height: z.number().int(),
+  /** When the photo was taken (EXIF), if the camera recorded it. */
+  capturedAt: z.string().datetime().nullable(),
+  /** The subject's position; `null` for photos analysed before it was measured. */
+  focus: photoFocusSchema.nullable(),
 });
 export type PhotoAnalysisDTO = z.infer<typeof photoAnalysisDtoSchema>;
 
 /** A spread holds up to a nine-photo contact sheet. */
-export const MAX_PHOTOS_PER_SPREAD = 9;
+export const MAX_PHOTOS_PER_SPREAD = MAX_PHOTOS_PER_SPREAD_LIMIT;
 
 export const suggestLayoutsSchema = z.object({
   photoIds: z.array(z.string().uuid()).min(1).max(MAX_PHOTOS_PER_SPREAD),
@@ -310,6 +335,32 @@ export function spacedSlotRect(slot: NormalisedRect, fullBleed: boolean, spacing
     width: slot.width * AIRY_SCALE,
     height: slot.height * AIRY_SCALE,
   };
+}
+
+export const FULL_CROP_RECT: NormalisedRect = { x: 0, y: 0, width: 1, height: 1 };
+
+/** A placement nobody has framed by hand still carries the full-photo default. */
+export function isUntouchedCrop(crop: NormalisedRect): boolean {
+  return crop.x === 0 && crop.y === 0 && crop.width === 1 && crop.height === 1;
+}
+
+/**
+ * The zoom-1 crop: the largest slot-shaped rect that fits inside the photo, centred on
+ * the photo's subject when one was found (and on the middle otherwise), without ever
+ * running past the photo's edges. Every renderer uses this one function for a photo the
+ * photographer has not framed by hand, so the editor, the client proof and the PDF show
+ * the same picture. `imageAspect` and `slotAspect` are width ÷ height.
+ */
+export function focusedBaseCrop(imageAspect: number, slotAspect: number, focus?: PhotoFocus | null): NormalisedRect {
+  const centre = focus ?? { x: 0.5, y: 0.5 };
+  if (imageAspect >= slotAspect) {
+    const width = slotAspect / imageAspect;
+    const x = Math.min(1 - width, Math.max(0, centre.x - width / 2));
+    return { x, y: 0, width, height: 1 };
+  }
+  const height = imageAspect / slotAspect;
+  const y = Math.min(1 - height, Math.max(0, centre.y - height / 2));
+  return { x: 0, y, width: 1, height };
 }
 
 /** Type size as a fraction of the page height — so a 20 cm and a 30 cm album look alike. */

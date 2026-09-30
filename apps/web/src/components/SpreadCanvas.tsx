@@ -1,10 +1,13 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_STYLE,
+  focusedBaseCrop,
+  isUntouchedCrop,
   spacedSlotRect,
   type AlbumStyleDTO,
   type Crop,
   type LayoutTemplateDTO,
+  type PhotoFocus,
   type PhotoTreatment,
   type SlotFrame,
   type TextBlockDTO,
@@ -13,7 +16,6 @@ import { SpreadTexts } from "./SpreadTexts";
 import {
   MAX_ZOOM,
   MIN_ZOOM,
-  baseCrop,
   cropToStyle,
   pannedCrop,
   withZoom,
@@ -32,6 +34,7 @@ import {
   resizeFrameSnapped,
   type ResizeCorner,
 } from "../lib/frame-geometry";
+import { findDividers, moveDivider, type Divider } from "../lib/dividers";
 import { RulerOverlay } from "./RulerOverlay";
 import { PrintGuidesOverlay } from "./PrintGuidesOverlay";
 import { useLanguage } from "../lib/i18n/LanguageContext";
@@ -72,6 +75,8 @@ export interface SpreadCanvasProps {
   onTreatmentChange?: ((slotId: string, treatment: PhotoTreatment) => void) | undefined;
   /** Live while dragging a corner; `commit` marks the gesture finished. */
   onFrameChange?: ((slotId: string, frame: SlotFrame, commit: boolean) => void) | undefined;
+  /** Live while dragging the line between photos, which resizes both sides at once. */
+  onFramesChange?: ((frames: { slotId: string; frame: SlotFrame }[], commit: boolean) => void) | undefined;
   /**
    * Dragging a filled slot onto another one moves it there — every placement
    * between the two shifts over by one, rather than the two trading places.
@@ -114,6 +119,8 @@ export interface SpreadCanvasProps {
   onTextRemove?: ((blockId: string) => void) | undefined;
   /** A small numbered marker per slot — client comments pinned to that photo. */
   slotBadges?: Record<string, number> | undefined;
+  /** Where each photo's subject sits: a crop nobody has framed by hand centres on it. */
+  focusFor?: ((photoId: string) => PhotoFocus | null | undefined) | undefined;
 }
 
 const DEFAULT_CROP: Crop = { x: 0, y: 0, width: 1, height: 1 };
@@ -147,6 +154,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   onCropChange,
   onTreatmentChange,
   onFrameChange,
+  onFramesChange,
   onReorderPlacement,
   onMoveToNeighbor,
   onMovePlacementAcrossSpreads,
@@ -161,6 +169,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   onTextChange,
   onTextRemove,
   slotBadges,
+  focusFor,
 }: SpreadCanvasProps) {
   const { t } = useLanguage();
   // Natural aspect per photo, learned on load — the crop maths needs it.
@@ -181,6 +190,13 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   } | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const moveRef = useRef<{ slotId: string; startX: number; startY: number; frame: SlotFrame } | null>(null);
+  const dividerRef = useRef<{
+    divider: Divider;
+    startX: number;
+    startY: number;
+    rects: { slotId: string; rect: SlotFrame }[];
+    last: { slotId: string; frame: SlotFrame }[];
+  } | null>(null);
 
   const rememberAspect = useCallback((photoId: string, width: number, height: number) => {
     if (!width || !height) return;
@@ -204,6 +220,9 @@ export const SpreadCanvas = memo(function SpreadCanvas({
       };
     });
   }, [template, placements, albumStyle.spacing]);
+
+  // Recomputed from what is on screen, so a divider follows the photos while it is dragged.
+  const dividers = useMemo(() => (onFramesChange ? findDividers(allRects) : []), [onFramesChange, allRects]);
 
   if (!template) return <div className="spread spread--missing">{t("spread.unknownLayout")}</div>;
 
@@ -293,7 +312,14 @@ export const SpreadCanvas = memo(function SpreadCanvas({
         const rect = placement?.frame ?? spacedSlotRect(slot, template.fullBleed, albumStyle.spacing);
         const slotAspect = (rect.width * aspectRatio) / rect.height;
         const imageAspect = placement ? aspects[placement.photoId] : undefined;
-        const crop = placement?.crop ?? DEFAULT_CROP;
+        const storedCrop = placement?.crop ?? DEFAULT_CROP;
+        const focus = placement ? focusFor?.(placement.photoId) : undefined;
+        // An untouched placement is drawn exactly as the PDF will print it: the slot-shaped
+        // crop centred on the photo's subject (see focusedBaseCrop in contracts).
+        const crop =
+          imageAspect !== undefined && isUntouchedCrop(storedCrop)
+            ? focusedBaseCrop(imageAspect, slotAspect, focus)
+            : storedCrop;
         const treatment = placement?.treatment ?? "COLOR";
 
         const style =
@@ -307,7 +333,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
             slotId: slot.id,
             startX: event.clientX,
             startY: event.clientY,
-            crop: normalise(crop, imageAspect, slotAspect),
+            crop,
           };
         };
 
@@ -334,8 +360,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
 
         const applyZoom = (zoom: number, commit: boolean) => {
           if (imageAspect === undefined) return;
-          const from = normalise(crop, imageAspect, slotAspect);
-          onCropChange?.(slot.id, withZoom(from, zoom, imageAspect, slotAspect), commit);
+          onCropChange?.(slot.id, withZoom(crop, zoom, imageAspect, slotAspect), commit);
         };
 
         const slotElement = (
@@ -620,7 +645,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                   title={t("spread.resetFraming.title")}
                   onClick={() =>
                     imageAspect !== undefined &&
-                    onCropChange?.(slot.id, baseCrop(imageAspect, slotAspect), true)
+                    onCropChange?.(slot.id, focusedBaseCrop(imageAspect, slotAspect, focus), true)
                   }
                 >
                   {t("spread.resetFraming")}
@@ -659,9 +684,59 @@ export const SpreadCanvas = memo(function SpreadCanvas({
         return slotElement;
       });
 
+      const dividerElements = dividers.map((divider) => {
+        const vertical = divider.axis === "vertical";
+        return (
+          <span
+            key={divider.id}
+            className={`divider-handle divider-handle--${divider.axis}`}
+            title={t("spread.divider.title")}
+            role="separator"
+            aria-orientation={vertical ? "vertical" : "horizontal"}
+            style={
+              vertical
+                ? { left: `${divider.position * 100}%`, top: `${divider.start * 100}%`, height: `${(divider.end - divider.start) * 100}%` }
+                : { top: `${divider.position * 100}%`, left: `${divider.start * 100}%`, width: `${(divider.end - divider.start) * 100}%` }
+            }
+            onClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              event.currentTarget.setPointerCapture(event.pointerId);
+              dividerRef.current = {
+                divider,
+                startX: event.clientX,
+                startY: event.clientY,
+                rects: allRects.map((entry) => ({ slotId: entry.slotId, rect: { ...entry.rect } })),
+                last: [],
+              };
+            }}
+            onPointerMove={(event) => {
+              const drag = dividerRef.current;
+              const bounds = spreadRef.current?.getBoundingClientRect();
+              if (!drag || drag.divider.id !== divider.id || !bounds) return;
+              const delta = vertical
+                ? (event.clientX - drag.startX) / bounds.width
+                : (event.clientY - drag.startY) / bounds.height;
+              drag.last = moveDivider(drag.rects, drag.divider, delta, snapEnabled);
+              if (drag.last.length > 0) onFramesChange?.(drag.last, false);
+            }}
+            onPointerUp={() => {
+              const drag = dividerRef.current;
+              dividerRef.current = null;
+              if (drag && drag.last.length > 0) onFramesChange?.(drag.last, true);
+            }}
+            onPointerCancel={() => {
+              dividerRef.current = null;
+            }}
+          />
+        );
+      });
+
       return (
         <>
           {slotElements}
+          {dividerElements}
           {toolsOverlay}
           {texts && texts.length > 0 && (
             <SpreadTexts
@@ -680,9 +755,3 @@ export const SpreadCanvas = memo(function SpreadCanvas({
     </div>
   );
 });
-
-/** An untouched placement still carries the full-frame default; snap it to the slot shape. */
-function normalise(crop: Crop, imageAspect: number, slotAspect: number): Crop {
-  const isUntouched = crop.x === 0 && crop.y === 0 && crop.width === 1 && crop.height === 1;
-  return isUntouched ? baseCrop(imageAspect, slotAspect) : crop;
-}

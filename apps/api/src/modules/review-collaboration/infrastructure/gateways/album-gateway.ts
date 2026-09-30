@@ -1,6 +1,7 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { AlbumRepository } from "../../../album-composition/domain/album-repository";
 import type { PlanFeatureDirectory } from "../../../../shared-kernel/plan-features";
+import type { PhotoFocusDirectory } from "../../../../shared-kernel/photo-focus";
 import type {
   AlbumGateway,
   PhotoPreviewResolver,
@@ -13,11 +14,13 @@ export class AlbumCompositionGateway implements AlbumGateway {
     private readonly albums: AlbumRepository,
     private readonly previews?: PhotoPreviewResolver,
     private readonly features?: PlanFeatureDirectory,
+    private readonly focus?: PhotoFocusDirectory,
   ) {}
 
   async load(albumId: string): Promise<ReviewableAlbum | undefined> {
     const album = await this.albums.findById(UniqueEntityId.create(albumId));
     if (!album) return undefined;
+    const focus = await this.focus?.forProject(album.projectId.toString());
     return {
       id: album.id.toString(),
       title: album.title,
@@ -28,6 +31,7 @@ export class AlbumCompositionGateway implements AlbumGateway {
       cover: album.cover
         ? {
             ...album.cover,
+            focus: (album.cover.photoId && focus?.get(album.cover.photoId)) || null,
             previewUrl: album.cover.photoId ? ((await this.previews?.previewUrl(album.cover.photoId)) ?? null) : null,
           }
         : null,
@@ -42,6 +46,7 @@ export class AlbumCompositionGateway implements AlbumGateway {
               crop: placement.crop,
               treatment: placement.treatment ?? "COLOR",
               frame: placement.frame,
+              focus: focus?.get(placement.photoId) ?? null,
               previewUrl: placement.photoId
                 ? ((await this.previews?.previewUrl(placement.photoId)) ?? null)
                 : null,

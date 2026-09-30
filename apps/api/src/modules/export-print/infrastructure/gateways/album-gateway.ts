@@ -5,6 +5,7 @@ import type { PhotoByteSource } from "../../../photo-intelligence/application/po
 import type { PhotoResolver, RenderableAlbum } from "../../application/ports/album-pdf-renderer";
 import type { ExportAlbumGateway } from "../../application/use-cases/request-export.use-case";
 import type { PlanFeatureDirectory } from "../../../../shared-kernel/plan-features";
+import type { PhotoFocusDirectory } from "../../../../shared-kernel/photo-focus";
 
 export const TRIAL_WATERMARK = "AlbumFlow · trial";
 
@@ -12,12 +13,14 @@ export class AlbumCompositionExportGateway implements ExportAlbumGateway {
   constructor(
     private readonly albums: AlbumRepository,
     private readonly features?: PlanFeatureDirectory,
+    private readonly focus?: PhotoFocusDirectory,
   ) {}
 
   async load(albumId: string): Promise<RenderableAlbum | undefined> {
     const album = await this.albums.findById(UniqueEntityId.create(albumId));
     if (!album) return undefined;
     const features = await this.features?.forProject(album.projectId.toString());
+    const focus = await this.focus?.forProject(album.projectId.toString());
     return {
       id: album.id.toString(),
       title: album.title,
@@ -25,6 +28,7 @@ export class AlbumCompositionExportGateway implements ExportAlbumGateway {
       format: album.format,
       style: album.style,
       cover: album.cover,
+      focusByPhoto: focus ? Object.fromEntries(focus) : undefined,
       spreads: album.spreads.map((spread) => ({
         templateId: spread.templateId,
         placements: spread.placements.map((placement) => ({

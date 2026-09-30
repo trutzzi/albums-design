@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { addReviewComment, getReview, listLayoutTemplates, submitReviewDecision } from "../../lib/api";
 import { SpreadCanvas } from "../../components/SpreadCanvas";
 import { CoverPreview } from "../../components/CoverEditor";
+import { BookPreview } from "../../components/BookPreview";
 import { PasswordGate, needsPassword } from "../../components/PasswordGate";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
@@ -16,6 +17,7 @@ export function ReviewPage() {
   const [draft, setDraft] = useState<Record<number, string>>({});
   // The photo a client tapped, so their next note on that spread is pinned to it.
   const [pinned, setPinned] = useState<{ spreadIndex: number; slotId: string } | null>(null);
+  const [asBook, setAsBook] = useState(false);
 
   const review = useQuery({ queryKey: ["review", token], queryFn: () => getReview(token), retry: false });
   const templates = useQuery({ queryKey: ["templates"], queryFn: listLayoutTemplates });
@@ -68,6 +70,9 @@ export function ReviewPage() {
           <p className="muted">{t("review.eyebrow", { name: session.clientName })}</p>
           <h1>{album.title}</h1>
           <p className="muted">{t("review.subtitle", { count: album.spreads.length })}</p>
+          <button type="button" className="button button--primary review__book" onClick={() => setAsBook(true)}>
+            {t("review.viewAsBook")}
+          </button>
         </div>
         <div className="pick__lang" role="group" aria-label={t("pick.language")}>
           <span className={`chip chip--${session.status.toLowerCase()}`}>{t(`review.status.${session.status}`)}</span>
@@ -85,6 +90,25 @@ export function ReviewPage() {
         </div>
       </header>
 
+      {asBook && (
+        <BookPreview
+          album={album}
+          templateById={templateById}
+          watermark={album.watermark}
+          previewUrlFor={(photoId) =>
+            album.cover?.photoId === photoId
+              ? album.cover.previewUrl
+              : album.spreads.flatMap((spread) => spread.placements).find((placement) => placement.photoId === photoId)?.previewUrl
+          }
+          focusFor={(photoId) =>
+            album.cover?.photoId === photoId
+              ? album.cover.focus
+              : album.spreads.flatMap((spread) => spread.placements).find((placement) => placement.photoId === photoId)?.focus
+          }
+          onClose={() => setAsBook(false)}
+        />
+      )}
+
       {album.cover && (
         <section className="review-cover">
           <h2>{t("review.cover")}</h2>
@@ -94,6 +118,7 @@ export function ReviewPage() {
               albumStyle={album.style}
               aspectRatio={album.format.pageWidthMm / album.format.pageHeightMm}
               previewUrl={album.cover.previewUrl}
+              focus={album.cover.focus}
             />
           </div>
         </section>
@@ -155,6 +180,9 @@ export function ReviewPage() {
                   }
                   previewUrlFor={(photoId) =>
                     spread.placements.find((placement) => placement.photoId === photoId)?.previewUrl
+                  }
+                  focusFor={(photoId) =>
+                    spread.placements.find((placement) => placement.photoId === photoId)?.focus
                   }
                   aspectRatio={aspectRatio}
                   pageWidthMm={album.format.pageWidthMm}
