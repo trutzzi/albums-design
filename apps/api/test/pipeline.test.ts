@@ -264,6 +264,14 @@ describe("upload → analysis → album → review → export", () => {
     assert.ok(commented.isSuccess);
     assert.equal(commented.getValue().session.comments.length, 1);
 
+    // A note pinned to a photo names a slot that is really on that spread.
+    const firstSlot = viewed.getValue().album.spreads[0]!.placements[0]!.slotId;
+    const pinned = await world.reviewPortal.comment(token, { spreadIndex: 0, slotId: firstSlot, body: "Brighter, please" });
+    assert.ok(pinned.isSuccess);
+    assert.equal(pinned.getValue().session.comments.at(-1)?.slotId, firstSlot);
+    const madeUp = await world.reviewPortal.comment(token, { spreadIndex: 0, slotId: "not-a-slot", body: "?" });
+    assert.equal(madeUp.getError().code, "VALIDATION_ERROR");
+
     const approved = await world.reviewPortal.decide(token, "APPROVED");
     assert.ok(approved.isSuccess, "approval failed");
     assert.equal(approved.getValue().session.status, "APPROVED");

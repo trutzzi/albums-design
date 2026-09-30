@@ -10,20 +10,25 @@ import { registerPhotoIntelligenceRoutes } from "./modules/photo-intelligence/in
 import { registerAlbumCompositionRoutes } from "./modules/album-composition/interface/http/routes";
 import { registerReviewRoutes } from "./modules/review-collaboration/interface/http/routes";
 import { registerExportRoutes } from "./modules/export-print/interface/http/routes";
-import { registerIdentityRoutes } from "./modules/identity/interface/http/routes";
+import { registerBillingRoutes, registerIdentityRoutes } from "./modules/identity/interface/http/routes";
 import { acceptEmptyJsonBody } from "./interface/empty-body";
 import { registerMediaRoutes } from "./interface/media-routes";
 import { registerPickRoutes } from "./modules/review-collaboration/interface/http/pick-routes";
 import { registerDownloadRoutes } from "./modules/review-collaboration/interface/http/download-routes";
+import { flushErrorReports, reportError, startErrorMonitoring } from "./infrastructure/monitoring/error-monitoring";
+import { registerRequestMetrics } from "./interface/request-metrics";
+import { registerPlatformAdminRoutes } from "./modules/platform-admin/interface/http/routes";
 
 async function main() {
   const root = buildCompositionRoot();
-  const app = Fastify({ logger: true });
+  startErrorMonitoring({ dsn: root.env.SENTRY_DSN, environment: root.env.NODE_ENV, service: "api" });
+  const app = Fastify({ logger: true, trustProxy: root.env.TRUST_PROXY });
 
   acceptEmptyJsonBody(app);
   await app.register(cors, { origin: root.env.WEB_ORIGIN });
 
   app.get("/health", async () => ({ status: "ok" }));
+  registerRequestMetrics(app, root.requestMetrics);
 
   registerStudioAuth(app, root.studios, root.env.JWT_SECRET);
   registerTenancyGuard(app, {
@@ -41,6 +46,14 @@ async function main() {
     administration: root.administration,
     register: root.register,
     login: root.login,
+    passwordReset: root.passwordReset,
+    billing: root.billing,
+  });
+  registerBillingRoutes(app, root.billing);
+  registerPlatformAdminRoutes(app, {
+    access: root.adminAccess,
+    feedback: root.feedback,
+    dashboard: root.adminDashboard,
   });
   registerMediaIngestionRoutes(app, root.mediaIngestion);
   registerPhotoIntelligenceRoutes(app, {
@@ -70,7 +83,7 @@ async function main() {
     storage: root.exportStorage,
   });
 
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) {
       return reply
         .code(400)
@@ -83,6 +96,13 @@ async function main() {
         .send({ code: clientError.code, message: clientError.message });
     }
     app.log.error(error);
+    reportError(error, { method: request.method, route: request.routeOptions.url });
+    root.requestMetrics.recordError({
+      at: new Date().toISOString(),
+      method: request.method,
+      route: request.routeOptions.url ?? request.url.split("?")[0] ?? "",
+      message: error instanceof Error ? error.message : String(error),
+    });
     return reply.code(500).send({ code: "INTERNAL_ERROR", message: "Something went wrong." });
   });
 
@@ -90,6 +110,7 @@ async function main() {
     app.log.info(`Received ${signal}, shutting down…`);
     await app.close();
     await root.shutdown();
+    await flushErrorReports();
     process.exit(0);
   };
   process.on("SIGINT", () => void closeGracefully("SIGINT"));

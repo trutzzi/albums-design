@@ -1,4 +1,10 @@
 import type {
+  AlbumCoverDTO,
+  AlbumStyleDTO,
+  Crop,
+  PhotoTreatment,
+  SlotFrame,
+  TextBlockDTO,
   AlbumDTO,
   AlbumFormatDTO,
   AuthSession,
@@ -75,6 +81,15 @@ export function registerAccount(input: RegisterInput): Promise<AuthSession> {
 
 export function login(input: LoginInput): Promise<AuthSession> {
   return request("/auth/login", { method: "POST", body: JSON.stringify(input) });
+}
+
+/** Always resolves, whether or not the address has an account — the API never says which. */
+export function requestPasswordReset(email: string, language: "en" | "ro"): Promise<void> {
+  return request("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email, language }) });
+}
+
+export function resetPassword(token: string, password: string): Promise<AuthSession> {
+  return request("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) });
 }
 
 // --- Projects --------------------------------------------------------------
@@ -223,10 +238,22 @@ export interface ReviewView {
     id: string;
     title: string;
     status: string;
+    /** The studio's plan watermarks client proofs. */
+    watermark: boolean;
     format: { pageWidthMm: number; pageHeightMm: number; bleedMm: number };
+    style: AlbumStyleDTO;
+    cover: (AlbumCoverDTO & { previewUrl: string | null }) | null;
     spreads: {
       templateId: string;
-      placements: { slotId: string; photoId: string; previewUrl: string | null }[];
+      texts?: TextBlockDTO[];
+      placements: {
+        slotId: string;
+        photoId: string;
+        previewUrl: string | null;
+        crop?: Crop;
+        treatment?: PhotoTreatment;
+        frame?: SlotFrame;
+      }[];
     }[];
   };
 }
@@ -398,8 +425,38 @@ export interface StudioOverview {
     periodStart: string;
     periodEnd: string;
     watermarkDrafts: boolean;
+    watermarkExports: boolean;
+    hasBillingAccount: boolean;
   };
   members: { id: string; name: string; email: string; role: string; accepted: boolean }[];
+  /** "none": plans switch freely (local, demo). "stripe": paid plans go through checkout. */
+  billing: { provider: "none" | "stripe" };
+}
+
+export interface PlanDto {
+  code: "TRIAL" | "STARTER" | "STUDIO" | "STUDIO_PRO";
+  name: string;
+  monthlyPriceUsd: number;
+  /** `null` means unlimited. */
+  albumsPerPeriod: number | null;
+  seats: number | null;
+  watermarkDrafts: boolean;
+  watermarkExports: boolean;
+}
+
+export function listPlans(): Promise<PlanDto[]> {
+  return request("/plans");
+}
+
+export type UpgradeOutcome = { kind: "changed" } | { kind: "redirect"; url: string };
+
+/** Paid plans: straight switch without a payment provider, otherwise a Stripe page to go to. */
+export function upgradePlan(studioId: string, planCode: string): Promise<UpgradeOutcome> {
+  return request(`/studios/${studioId}/billing/upgrade`, { method: "POST", body: JSON.stringify({ planCode }) });
+}
+
+export function openBillingPortal(studioId: string): Promise<{ url: string }> {
+  return request(`/studios/${studioId}/billing/portal`, { method: "POST" });
 }
 
 export function getStudioOverview(studioId: string): Promise<StudioOverview> {
@@ -620,4 +677,126 @@ export function downloadZipUrl(token: string): string {
   // A plain link cannot send a header, so a protected link's grant travels in the URL.
   const grant = loadGrant("download", token);
   return `${API_URL}/download/${token}/photos.zip${grant ? `?grant=${encodeURIComponent(grant)}` : ""}`;
+}
+
+// --- Feedback & admin ------------------------------------------------------
+
+export type FeedbackKind = "IDEA" | "PROBLEM" | "QUESTION" | "PRAISE";
+export type FeedbackStatus = "NEW" | "IN_PROGRESS" | "RESOLVED";
+
+export function submitFeedback(input: {
+  kind: FeedbackKind;
+  message: string;
+  rating?: number;
+  page?: string;
+}): Promise<{ id: string }> {
+  return request("/feedback", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function getAdminMe(): Promise<{ admin: boolean }> {
+  return request("/admin/me");
+}
+
+export interface AdminFeedback {
+  id: string;
+  studioId: string;
+  studioName: string | undefined;
+  authorName: string;
+  authorEmail: string;
+  kind: FeedbackKind;
+  message: string;
+  rating: number | null;
+  page: string | null;
+  userAgent: string | null;
+  status: FeedbackStatus;
+  adminNote: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function listAdminFeedback(filter: { status?: FeedbackStatus; kind?: FeedbackKind }): Promise<AdminFeedback[]> {
+  const params = new URLSearchParams();
+  if (filter.status) params.set("status", filter.status);
+  if (filter.kind) params.set("kind", filter.kind);
+  const query = params.toString();
+  return request(`/admin/feedback${query ? `?${query}` : ""}`);
+}
+
+export function triageFeedback(
+  id: string,
+  change: { status?: FeedbackStatus; adminNote?: string },
+): Promise<AdminFeedback> {
+  return request(`/admin/feedback/${id}`, { method: "PATCH", body: JSON.stringify(change) });
+}
+
+export type FunnelStep =
+  | "signedUp"
+  | "createdShoot"
+  | "uploadedPhotos"
+  | "builtAlbum"
+  | "sentForReview"
+  | "approved"
+  | "exported";
+
+export interface BusinessStats {
+  generatedAt: string;
+  studios: { total: number; new7d: number; new30d: number };
+  activeStudios: { d7: number; d30: number };
+  revenue: {
+    mrrUsd: number;
+    payingStudios: number;
+    trialToPaidPct: number;
+    pastDue: number;
+    cancelled: number;
+    plans: { code: string; name: string; studios: number }[];
+  };
+  funnel: { step: FunnelStep; studios: number }[];
+  totals: {
+    photos: number;
+    albums: number;
+    reviewLinks: number;
+    approvedAlbums: number;
+    clientPicksSubmitted: number;
+    exportsReady: number;
+    exportsFailed: number;
+  };
+  daily: { day: string; signups: number; photos: number; albums: number }[];
+  feedback: { open: number; newCount: number; averageRating: number | null; ratings: number };
+}
+
+export function getBusinessStats(): Promise<BusinessStats> {
+  return request("/admin/stats/business");
+}
+
+export interface SystemStats {
+  generatedAt: string;
+  process: {
+    uptimeSeconds: number;
+    nodeVersion: string;
+    memoryMb: { rss: number; heapUsed: number; heapTotal: number };
+    loadAverage: [number, number, number];
+    cpus: number;
+    /** `null` when the host does not report reclaimable memory (anything but Linux). */
+    hostMemoryMb: { total: number; available: number | null };
+  };
+  dependencies: {
+    database: { ok: boolean; latencyMs: number | null };
+    queues: { name: string; waiting: number; active: number; delayed: number; failed: number; completed: number }[];
+  };
+  config: { mode: "production" | "demo"; storage: string; email: string; billing: string; vision: string; errorMonitoring: boolean };
+  /** The long-term store's space; `null` when there is none (STORAGE_PROVIDER=none). */
+  storageSpace:
+    | { provider: string; usedBytes: number; totalBytes: number | null; checkedAt: string }
+    | { provider: string; error: string; checkedAt: string }
+    | null;
+  http: {
+    perMinute: { minute: string; requests: number; errors: number; p95Ms: number | null }[];
+    lastHour: { requests: number; errors: number; errorRatePct: number; p50Ms: number | null; p95Ms: number | null };
+    slowestRoutes: { route: string; requests: number; p95Ms: number }[];
+    recentErrors: { at: string; method: string; route: string; message: string }[];
+  };
+}
+
+export function getSystemStats(): Promise<SystemStats> {
+  return request("/admin/stats/system");
 }

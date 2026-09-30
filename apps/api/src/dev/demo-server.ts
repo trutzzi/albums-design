@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { SubscriptionPlanFeatureDirectory } from "../modules/identity/infrastructure/gateways/subscription-plan-features";
 import cors from "@fastify/cors";
 import { ZodError } from "zod";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
@@ -7,7 +8,19 @@ import { MAX_UPLOAD_BYTES } from "@albumflow/contracts";
 import { registerStudioAuth } from "../interface/auth";
 import { clientErrorFrom } from "../shared-kernel/errors";
 import { registerTenancyGuard } from "../interface/tenancy";
-import { registerIdentityRoutes } from "../modules/identity/interface/http/routes";
+import { registerBillingRoutes, registerIdentityRoutes } from "../modules/identity/interface/http/routes";
+import { BillingUseCase } from "../modules/identity/application/use-cases/billing.use-case";
+import { RequestMetrics, registerRequestMetrics } from "../interface/request-metrics";
+import { InMemoryFeedbackRepository } from "../modules/platform-admin/infrastructure/feedback-repositories";
+import { InMemoryStatsSource } from "../modules/platform-admin/infrastructure/stats-sources";
+import { InProcessDependencyProbe } from "../modules/platform-admin/infrastructure/dependency-probes";
+import { registerPlatformAdminRoutes } from "../modules/platform-admin/interface/http/routes";
+import {
+  AdminAccess,
+  AdminDashboardUseCase,
+  FeedbackUseCase,
+} from "../modules/platform-admin/application/use-cases/admin.use-cases";
+import { NoBillingGateway } from "../modules/identity/application/ports/billing-gateway";
 import { registerMediaIngestionRoutes } from "../modules/media-ingestion/interface/http/routes";
 import { registerPhotoIntelligenceRoutes } from "../modules/photo-intelligence/interface/http/routes";
 import { registerAlbumCompositionRoutes } from "../modules/album-composition/interface/http/routes";
@@ -42,6 +55,8 @@ import { Project } from "../modules/media-ingestion/domain/project";
 import { StudioAdministrationUseCase } from "../modules/identity/application/use-cases/studio-administration.use-case";
 import { RegisterUseCase } from "../modules/identity/application/use-cases/register.use-case";
 import { LoginUseCase } from "../modules/identity/application/use-cases/login.use-case";
+import { PasswordResetUseCase } from "../modules/identity/application/use-cases/password-reset.use-case";
+import { PasswordResetMailer } from "../modules/identity/application/services/password-reset.mailer";
 import { SubscriptionQuotaPolicy } from "../modules/identity/application/subscription-quota-policy";
 import { RequestUploadUseCase } from "../modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
 import { AbandonUploadUseCase } from "../modules/media-ingestion/application/use-cases/abandon-upload/abandon-upload.use-case";
@@ -148,6 +163,7 @@ async function main() {
   const subscriptions = new InMemorySubscriptionRepository();
   const members = new InMemoryStudioMemberRepository();
   const projects = new InMemoryProjectRepository();
+  const planFeatures = new SubscriptionPlanFeatureDirectory(projects, subscriptions);
   const photos = new InMemoryPhotoRepository();
   const analyses = new InMemoryPhotoAnalysisRepository();
   const albums = new InMemoryAlbumRepository();
@@ -164,6 +180,8 @@ async function main() {
   const register = new RegisterUseCase(studios, subscriptions, members, DEMO_JWT_SECRET);
   const login = new LoginUseCase(members, DEMO_JWT_SECRET);
   const quota = new SubscriptionQuotaPolicy(subscriptions);
+  // The demo never takes payment: choosing a plan switches it, as before.
+  const billing = new BillingUseCase(studios, subscriptions, new NoBillingGateway(), WEB_ORIGIN);
 
   const visionClassifier = buildVisionClassifier({
     provider: VISION_PROVIDER,
@@ -216,8 +234,9 @@ async function main() {
   const reviewGateway = new AlbumCompositionGateway(
     albums,
     new StoragePhotoPreviewResolver(photos, storage, permanentStorage),
+    planFeatures,
   );
-  const exportGateway = new AlbumCompositionExportGateway(albums);
+  const exportGateway = new AlbumCompositionExportGateway(albums, planFeatures);
   const runExport = new RunExportUseCase(
     exportJobs,
     exportGateway,
@@ -341,6 +360,8 @@ async function main() {
   });
 
   app.get("/health", async () => ({ status: "ok", mode: "demo" }));
+  const requestMetrics = new RequestMetrics();
+  registerRequestMetrics(app, requestMetrics);
 
   // Stands in for S3 over HTTP so the browser can upload and load previews.
   app.put("/dev-storage/*", async (request, reply) => {
@@ -368,7 +389,6 @@ async function main() {
 
   if (permanentStorage) registerMediaRoutes(app, { signer: mediaUrlSigner, provider: permanentStorage });
 
-  registerIdentityRoutes(app, { administration, register, login });
   registerMediaIngestionRoutes(app, {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, queue, storeEverything),
@@ -429,6 +449,48 @@ async function main() {
           : "logged only — set EMAIL_PROVIDER=smtp to send"
     }`,
   );
+  registerIdentityRoutes(app, {
+    administration,
+    register,
+    login,
+    passwordReset: new PasswordResetUseCase(members, new PasswordResetMailer(emailSender), DEMO_JWT_SECRET, WEB_ORIGIN),
+    billing,
+  });
+  registerBillingRoutes(app, billing);
+  // In demo mode ADMIN_EMAILS works the same way; sign up with one of them to see /admin.
+  const adminAccess = new AdminAccess(
+    members,
+    (process.env.ADMIN_EMAILS ?? "").split(",").map((email) => email.trim()).filter(Boolean),
+  );
+  const feedbackRepository = new InMemoryFeedbackRepository();
+  registerPlatformAdminRoutes(app, {
+    access: adminAccess,
+    feedback: new FeedbackUseCase(feedbackRepository, members, studios, adminAccess, emailSender, WEB_ORIGIN),
+    dashboard: new AdminDashboardUseCase(
+      new InMemoryStatsSource({
+        studios,
+        subscriptions,
+        projects,
+        photos,
+        albums,
+        reviews: reviewSessions,
+        picks: pickSessions,
+        exports: exportJobs,
+      }),
+      feedbackRepository,
+      new InProcessDependencyProbe(),
+      requestMetrics,
+      {
+        mode: "demo",
+        storage: STORAGE_PROVIDER,
+        email: emailSender.id,
+        billing: "none",
+        vision: VISION_PROVIDER,
+        errorMonitoring: false,
+      },
+      permanentStorage,
+    ),
+  });
   const studioContacts = new IdentityStudioContacts(projects, members, studios);
   const clientContacts = new ProjectClientContactDirectory(projects, albums);
   const invitations = new ClientLinkInvitations(
@@ -505,7 +567,7 @@ async function main() {
     storage,
   });
 
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) {
       return reply
         .code(400)
@@ -519,6 +581,12 @@ async function main() {
     }
     console.error(error);
     const message = error instanceof Error ? error.message : "Something went wrong.";
+    requestMetrics.recordError({
+      at: new Date().toISOString(),
+      method: request.method,
+      route: request.routeOptions.url ?? request.url.split("?")[0] ?? "",
+      message,
+    });
     return reply.code(500).send({ code: "INTERNAL_ERROR", message });
   });
 

@@ -6,6 +6,13 @@ export interface StoredObjectInfo {
   lastModified?: Date | undefined;
 }
 
+/** How full the long-term store is. */
+export interface StorageUsage {
+  usedBytes: number;
+  /** `null` when the backend has no fixed limit (or does not say). */
+  totalBytes: number | null;
+}
+
 export class StorageObjectNotFoundError extends Error {
   constructor(readonly key: string) {
     super(`No object stored at ${key}.`);
@@ -52,6 +59,12 @@ export interface StorageProvider {
    * returns a signed URL to this API's own `/media/` route instead.
    */
   getUrl(key: string, options: { expiresInSeconds: number }): Promise<string>;
+
+  /**
+   * Space used on the whole account, for the admin dashboard. Optional: a backend that
+   * cannot report it leaves this out. Throws when the backend could not be asked.
+   */
+  usage?(): Promise<StorageUsage>;
 }
 
 /** `a/b/` and `a/b` name the same prefix; validates the result like a key. */

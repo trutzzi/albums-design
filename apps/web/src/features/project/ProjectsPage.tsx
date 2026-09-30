@@ -5,6 +5,18 @@ import type { ProjectSummaryDTO, ProjectType } from "@albumflow/contracts";
 import { createProject, listProjects } from "../../lib/api";
 import { useAuth } from "../../app/AuthContext";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
+import { GettingStarted, onboardingDismissed } from "../../components/GettingStarted";
+import { GuidedTour, type TourStep } from "../../components/GuidedTour";
+import { tip } from "../../lib/tip";
+
+const SHOOTS_TOUR: TourStep[] = [
+  { target: '[data-tour="new-shoot"]', titleKey: "tour.shoots.new.title", bodyKey: "tour.shoots.new.body" },
+  { target: '[data-tour="getting-started"]', titleKey: "tour.shoots.checklist.title", bodyKey: "tour.shoots.checklist.body" },
+  { target: '[data-tour="shoot-grid"]', titleKey: "tour.shoots.grid.title", bodyKey: "tour.shoots.grid.body" },
+  { target: '[data-tour="nav-studio"]', titleKey: "tour.shoots.studio.title", bodyKey: "tour.shoots.studio.body" },
+  { target: '[data-tour="nav-feedback"]', titleKey: "tour.shoots.feedback.title", bodyKey: "tour.shoots.feedback.body" },
+  { target: '[data-tour="nav-guide"]', titleKey: "tour.shoots.guide.title", bodyKey: "tour.shoots.guide.body" },
+];
 
 const TYPES: { value: ProjectType; labelKey: string }[] = [
   { value: "WEDDING", labelKey: "projects.new.type.wedding" },
@@ -29,6 +41,7 @@ export function ProjectsPage() {
   }>({ name: "", type: "WEDDING", eventDate: "", clientName: "", clientEmail: "" });
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
+  const [onboardingHidden, setOnboardingHidden] = useState(onboardingDismissed);
 
   const projects = useQuery({
     queryKey: ["projects", studioId],
@@ -148,6 +161,7 @@ export function ProjectsPage() {
 
   return (
     <div className="page">
+      <GuidedTour id="shoots" steps={SHOOTS_TOUR} ready={projects.isSuccess} />
       <header className="page__header">
         <div>
           <h1>{t("projects.title")}</h1>
@@ -166,7 +180,13 @@ export function ProjectsPage() {
               onChange={(event) => setSearch(event.target.value)}
             />
           )}
-          <button type="button" className="button button--primary" onClick={() => setAdding((open) => !open)}>
+          <button
+            type="button"
+            className="button button--primary"
+            onClick={() => setAdding((open) => !open)}
+            data-tour="new-shoot"
+            {...tip(t("tip.newShoot"))}
+          >
             {adding ? t("common.cancel") : t("projects.new.open")}
           </button>
         </div>
@@ -184,7 +204,17 @@ export function ProjectsPage() {
 
       {projects.isLoading && <p className="muted">{t("common.loading")}</p>}
 
-      {!projects.isLoading && all.length === 0 && !adding && (
+      {!projects.isLoading && !adding && (
+        <GettingStarted
+          projects={all}
+          dismissed={onboardingHidden}
+          onDismiss={() => setOnboardingHidden(true)}
+          onCreateShoot={() => setAdding(true)}
+        />
+      )}
+
+      {/* The checklist already offers the first shoot; this card is for those who hid it. */}
+      {!projects.isLoading && all.length === 0 && !adding && onboardingHidden && (
         <section className="panel shoot-empty">
           <h2>{t("projects.empty.title")}</h2>
           <p className="muted">{t("projects.empty.body")}</p>
@@ -196,7 +226,7 @@ export function ProjectsPage() {
 
       {all.length > 0 && visible.length === 0 && <p className="muted">{t("projects.search.none")}</p>}
 
-      <div className="shoot-grid">
+      <div className="shoot-grid" data-tour={visible.length > 0 ? "shoot-grid" : undefined}>
         {visible.map((project: ProjectSummaryDTO) => (
           <Link key={project.id} to={`/projects/${project.id}`} className="shoot-card">
             <div className="shoot-card__cover">

@@ -81,6 +81,11 @@ export class ReviewPortalUseCase {
     if (input.spreadIndex < 0 || input.spreadIndex >= album.spreads.length) {
       return Result.failure(new ValidationError(`Spread ${input.spreadIndex} is not in this album.`));
     }
+    // A comment pinned to a photo must name one that is really on that spread.
+    const spread = album.spreads[input.spreadIndex]!;
+    if (input.slotId && !spread.placements.some((placement) => placement.slotId === input.slotId)) {
+      return Result.failure(new ValidationError(`That photo is not on spread ${input.spreadIndex + 1}.`));
+    }
 
     try {
       session.addComment({

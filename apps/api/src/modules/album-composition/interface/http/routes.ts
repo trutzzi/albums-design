@@ -89,6 +89,8 @@ export function toDto(album: Album) {
     status: album.status,
     format: album.format,
     spreads: album.spreads,
+    style: album.style,
+    cover: album.cover,
     spreadCount: album.spreadCount,
     pageCount: album.pageCount,
     photoCount: album.photoCount,

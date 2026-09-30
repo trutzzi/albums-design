@@ -4,17 +4,27 @@ import type { PhotoRepository } from "../../../media-ingestion/domain/photo-repo
 import type { PhotoByteSource } from "../../../photo-intelligence/application/ports/photo-source";
 import type { PhotoResolver, RenderableAlbum } from "../../application/ports/album-pdf-renderer";
 import type { ExportAlbumGateway } from "../../application/use-cases/request-export.use-case";
+import type { PlanFeatureDirectory } from "../../../../shared-kernel/plan-features";
+
+export const TRIAL_WATERMARK = "AlbumFlow · trial";
 
 export class AlbumCompositionExportGateway implements ExportAlbumGateway {
-  constructor(private readonly albums: AlbumRepository) {}
+  constructor(
+    private readonly albums: AlbumRepository,
+    private readonly features?: PlanFeatureDirectory,
+  ) {}
 
   async load(albumId: string): Promise<RenderableAlbum | undefined> {
     const album = await this.albums.findById(UniqueEntityId.create(albumId));
     if (!album) return undefined;
+    const features = await this.features?.forProject(album.projectId.toString());
     return {
       id: album.id.toString(),
       title: album.title,
+      watermark: features?.watermarkExports ? TRIAL_WATERMARK : undefined,
       format: album.format,
+      style: album.style,
+      cover: album.cover,
       spreads: album.spreads.map((spread) => ({
         templateId: spread.templateId,
         placements: spread.placements.map((placement) => ({
@@ -24,6 +34,7 @@ export class AlbumCompositionExportGateway implements ExportAlbumGateway {
           treatment: placement.treatment ?? "COLOR",
           frame: placement.frame,
         })),
+        texts: spread.texts,
       })),
     };
   }

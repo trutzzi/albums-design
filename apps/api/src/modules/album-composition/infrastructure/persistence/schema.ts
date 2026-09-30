@@ -1,6 +1,6 @@
 import { integer, jsonb, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { projects } from "../../../media-ingestion/infrastructure/persistence/schema";
-import type { AlbumFormat, Spread } from "../../domain/album";
+import type { AlbumCover, AlbumFormat, AlbumStyle, Spread } from "../../domain/album";
 
 export const albumStatusEnum = pgEnum("album_status", [
   "DRAFT",
@@ -24,6 +24,9 @@ export const albums = pgTable("albums", {
   status: albumStatusEnum("status").notNull(),
   format: jsonb("format").$type<AlbumFormat>().notNull(),
   spreads: jsonb("spreads").$type<Spread[]>().notNull(),
+  /** Null on albums made before styles existed; read as the default style. */
+  style: jsonb("style").$type<AlbumStyle>(),
+  cover: jsonb("cover").$type<AlbumCover>(),
   spreadCount: integer("spread_count").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),

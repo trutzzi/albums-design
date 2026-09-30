@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminMe } from "../lib/api";
+import { FeedbackButton } from "./FeedbackButton";
+import { useAvailableTour } from "./GuidedTour";
 import { useAuth } from "../app/AuthContext";
 import { useLanguage } from "../lib/i18n/LanguageContext";
 import { ThemeToggle } from "./ThemeToggle";
@@ -25,6 +29,14 @@ export function AppHeader() {
   const auth = useAuth();
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
+  const tour = useAvailableTour();
+  const adminMe = useQuery({
+    queryKey: ["admin-me", auth.studioId],
+    queryFn: getAdminMe,
+    enabled: auth.isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
   const firstName = auth.name.trim().split(/\s+/)[0];
   const greeting =
     auth.isAuthenticated && firstName
@@ -61,7 +73,18 @@ export function AppHeader() {
         >
           {greeting && <p className="app-header__greeting app-header__greeting--menu">{greeting}</p>}
           {auth.isAuthenticated && <Link to="/">{t("nav.shoots")}</Link>}
-          {auth.isAuthenticated && <Link to="/studio">{t("nav.studio")}</Link>}
+          {auth.isAuthenticated && (
+            <Link to="/studio" data-tour="nav-studio">
+              {t("nav.studio")}
+            </Link>
+          )}
+          {auth.isAuthenticated && adminMe.data?.admin && <Link to="/admin">{t("nav.admin")}</Link>}
+          {auth.isAuthenticated && <FeedbackButton />}
+          {auth.isAuthenticated && tour && (
+            <button type="button" className="link-button" onClick={tour.start} data-tour="nav-guide">
+              {t("nav.guide")}
+            </button>
+          )}
           <Link to="/changelog">{t("nav.changelog")}</Link>
           <Link to="/contact">{t("nav.contact")}</Link>
           {auth.isAuthenticated ? (

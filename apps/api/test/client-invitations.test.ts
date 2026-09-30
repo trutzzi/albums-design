@@ -232,7 +232,7 @@ describe("sending a link to the client", () => {
       })
     ).getValue();
     const mail = w.post.sent.at(-1)!;
-    assert.ok(mail.text.includes(`${ORIGIN}/pick/${opened.token}`));
+    assert.ok(mail.text.includes(`${ORIGIN}/pick/${opened.token}?lang=`), "the link opens in the email's language");
     assert.ok(mail.text.includes(opened.password!));
   });
 

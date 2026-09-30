@@ -12,6 +12,8 @@ export interface StudioRepository {
 export interface SubscriptionRepository {
   save(subscription: Subscription): Promise<void>;
   findByStudioId(studioId: UniqueEntityId): Promise<Subscription | undefined>;
+  /** The payment provider's webhooks name its subscription, not our studio. */
+  findByExternalSubscriptionId(externalId: string): Promise<Subscription | undefined>;
 }
 
 export interface StudioMemberRepository {

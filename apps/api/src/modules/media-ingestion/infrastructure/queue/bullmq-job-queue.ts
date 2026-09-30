@@ -29,6 +29,23 @@ export class BullMqJobQueue implements JobQueue {
     });
   }
 
+  /** Jobs per state for each named queue — the admin dashboard's backlog view. */
+  async counts(names: readonly string[]) {
+    return Promise.all(
+      names.map(async (name) => {
+        const counts = await this.queueFor(name).getJobCounts("waiting", "active", "delayed", "failed", "completed");
+        return {
+          name,
+          waiting: counts["waiting"] ?? 0,
+          active: counts["active"] ?? 0,
+          delayed: counts["delayed"] ?? 0,
+          failed: counts["failed"] ?? 0,
+          completed: counts["completed"] ?? 0,
+        };
+      }),
+    );
+  }
+
   async close(): Promise<void> {
     await Promise.all([...this.queues.values()].map((queue) => queue.close()));
   }

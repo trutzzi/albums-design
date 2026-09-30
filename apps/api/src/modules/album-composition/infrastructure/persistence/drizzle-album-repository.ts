@@ -2,6 +2,7 @@ import { and, count, eq, gte, inArray } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "../../../../db/client";
 import { projects } from "../../../media-ingestion/infrastructure/persistence/schema";
+import { DEFAULT_STYLE } from "@albumflow/contracts";
 import { Album } from "../../domain/album";
 import type { AlbumRepository } from "../../domain/album-repository";
 import { albums } from "./schema";
@@ -17,6 +18,8 @@ export class DrizzleAlbumRepository implements AlbumRepository {
       status: album.status,
       format: album.format,
       spreads: [...album.spreads],
+      style: album.style,
+      cover: album.cover,
       spreadCount: album.spreadCount,
       createdAt: album.createdAt,
       updatedAt: album.updatedAt,
@@ -31,6 +34,8 @@ export class DrizzleAlbumRepository implements AlbumRepository {
           status: row.status,
           format: row.format,
           spreads: row.spreads,
+          style: row.style,
+          cover: row.cover,
           spreadCount: row.spreadCount,
           updatedAt: row.updatedAt,
         },
@@ -102,6 +107,8 @@ function toDomain(row: typeof albums.$inferSelect): Album {
           treatment: placement.treatment ?? "COLOR",
         })),
       })),
+      style: row.style ?? DEFAULT_STYLE,
+      cover: row.cover ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     },

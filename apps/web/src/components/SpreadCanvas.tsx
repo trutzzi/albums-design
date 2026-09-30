@@ -1,5 +1,15 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-import type { Crop, LayoutTemplateDTO, PhotoTreatment, SlotFrame } from "@albumflow/contracts";
+import {
+  DEFAULT_STYLE,
+  spacedSlotRect,
+  type AlbumStyleDTO,
+  type Crop,
+  type LayoutTemplateDTO,
+  type PhotoTreatment,
+  type SlotFrame,
+  type TextBlockDTO,
+} from "@albumflow/contracts";
+import { SpreadTexts } from "./SpreadTexts";
 import {
   MAX_ZOOM,
   MIN_ZOOM,
@@ -15,6 +25,8 @@ import {
   collectSnapTargets,
   edgeDirectionFromPoint,
   mergeSnapTargets,
+  moveFrame,
+  moveFrameSnapped,
   nearestNeighborInDirection,
   resizeFrame,
   resizeFrameSnapped,
@@ -93,9 +105,25 @@ export interface SpreadCanvasProps {
   onRemovePhoto?: ((slotId: string) => void) | undefined;
   /** Closes the floating tools (deselects the photo). Drawn as the ✕ at the end of the tools bar. */
   onCloseTools?: (() => void) | undefined;
+  /** Paper colour, spacing and keylines. Absent means the default style. */
+  albumStyle?: AlbumStyleDTO | undefined;
+  texts?: TextBlockDTO[] | undefined;
+  selectedTextId?: string | null | undefined;
+  onTextSelect?: ((blockId: string) => void) | undefined;
+  onTextChange?: ((block: TextBlockDTO, commit: boolean) => void) | undefined;
+  onTextRemove?: ((blockId: string) => void) | undefined;
+  /** A small numbered marker per slot — client comments pinned to that photo. */
+  slotBadges?: Record<string, number> | undefined;
 }
 
 const DEFAULT_CROP: Crop = { x: 0, y: 0, width: 1, height: 1 };
+
+const ARROW_NUDGE: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+};
 
 /**
  * Memoised: the editor re-renders on every crop drag frame, and re-rendering a
@@ -126,6 +154,13 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   onAddPhotoDrop,
   onRemovePhoto,
   onCloseTools,
+  albumStyle = DEFAULT_STYLE,
+  texts,
+  selectedTextId,
+  onTextSelect,
+  onTextChange,
+  onTextRemove,
+  slotBadges,
 }: SpreadCanvasProps) {
   const { t } = useLanguage();
   // Natural aspect per photo, learned on load — the crop maths needs it.
@@ -145,6 +180,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
     frame: SlotFrame;
   } | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const moveRef = useRef<{ slotId: string; startX: number; startY: number; frame: SlotFrame } | null>(null);
 
   const rememberAspect = useCallback((photoId: string, width: number, height: number) => {
     if (!width || !height) return;
@@ -162,9 +198,12 @@ export const SpreadCanvas = memo(function SpreadCanvas({
     if (!template) return [];
     return template.slots.map((slot) => {
       const placement = placements.find((candidate) => candidate.slotId === slot.id);
-      return { slotId: slot.id, rect: placement?.frame ?? slot };
+      return {
+        slotId: slot.id,
+        rect: placement?.frame ?? spacedSlotRect(slot, template.fullBleed, albumStyle.spacing),
+      };
     });
-  }, [template, placements]);
+  }, [template, placements, albumStyle.spacing]);
 
   if (!template) return <div className="spread spread--missing">{t("spread.unknownLayout")}</div>;
 
@@ -182,7 +221,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
       className={`spread ${spreadDropActive ? "spread--drop-active" : ""} ${
         toolsOpen ? "spread--tools-open" : ""
       }`}
-      style={{ aspectRatio: String(aspectRatio) }}
+      style={{ aspectRatio: String(aspectRatio), background: albumStyle.background }}
       onDragOver={
         onAddPhotoDrop || onMoveToNeighbor || onMovePhotoAsNewPhoto
           ? (event) => {
@@ -251,7 +290,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
         const editable = Boolean(onCropChange) && selected;
         const interactive = Boolean(onSlotClick || onSlotDrop);
 
-        const rect = placement?.frame ?? slot;
+        const rect = placement?.frame ?? spacedSlotRect(slot, template.fullBleed, albumStyle.spacing);
         const slotAspect = (rect.width * aspectRatio) / rect.height;
         const imageAspect = placement ? aspects[placement.photoId] : undefined;
         const crop = placement?.crop ?? DEFAULT_CROP;
@@ -308,6 +347,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
               interactive ? "slot--interactive" : "",
               editable ? "slot--editable" : "",
               dropTarget === slot.id ? "slot--drop-target" : "",
+              albumStyle.keyline && !template.fullBleed ? "slot--keyline" : "",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -390,6 +430,14 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
                       onSlotClick(slot.id);
+                      return;
+                    }
+                    // Arrow keys nudge the selected photo; Shift takes bigger steps.
+                    const nudge = ARROW_NUDGE[event.key];
+                    if (editable && onFrameChange && nudge) {
+                      event.preventDefault();
+                      const step = event.shiftKey ? 0.02 : 0.004;
+                      onFrameChange(slot.id, moveFrame(rect, nudge[0] * step, nudge[1] * step), false);
                     }
                   }
                 : undefined
@@ -416,7 +464,56 @@ export const SpreadCanvas = memo(function SpreadCanvas({
             ) : (
               <span className="slot__empty">{t(`spread.slot.${slot.prefers.toLowerCase()}`)}</span>
             )}
+            {slotBadges?.[slot.id] !== undefined && (
+              <span className="slot__badge" aria-hidden="true">
+                {slotBadges[slot.id]}
+              </span>
+            )}
 
+            {editable && onFrameChange && (
+              <span
+                className="slot-move"
+                title={t("spread.move.title")}
+                aria-hidden="true"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  moveRef.current = { slotId: slot.id, startX: event.clientX, startY: event.clientY, frame: { ...rect } };
+                }}
+                onPointerMove={(event) => {
+                  const move = moveRef.current;
+                  const bounds = spreadRef.current?.getBoundingClientRect();
+                  if (!move || move.slotId !== slot.id || !bounds) return;
+                  event.stopPropagation();
+                  const dx = (event.clientX - move.startX) / bounds.width;
+                  const dy = (event.clientY - move.startY) / bounds.height;
+                  const next = snapEnabled
+                    ? moveFrameSnapped(
+                        move.frame,
+                        dx,
+                        dy,
+                        mergeSnapTargets(
+                          collectSnapTargets(allRects.filter((entry) => entry.slotId !== slot.id).map((entry) => entry.rect)),
+                          showGuides ? collectPrintGuideTargets(pageWidthMm, pageHeightMm, safeMarginMm) : { x: [], y: [] },
+                        ),
+                      )
+                    : moveFrame(move.frame, dx, dy);
+                  onFrameChange(slot.id, next, false);
+                }}
+                onPointerUp={(event) => {
+                  if (moveRef.current?.slotId !== slot.id) return;
+                  event.stopPropagation();
+                  moveRef.current = null;
+                  onFrameChange(slot.id, rect, true);
+                }}
+                onPointerCancel={() => {
+                  moveRef.current = null;
+                }}
+              >
+                ✥ {t("spread.move")}
+              </span>
+            )}
             {editable &&
               onFrameChange &&
               RESIZE_CORNERS.map((corner) => (
@@ -566,6 +663,17 @@ export const SpreadCanvas = memo(function SpreadCanvas({
         <>
           {slotElements}
           {toolsOverlay}
+          {texts && texts.length > 0 && (
+            <SpreadTexts
+              texts={texts}
+              albumStyle={albumStyle}
+              aspectRatio={aspectRatio}
+              selectedTextId={selectedTextId}
+              onSelect={onTextSelect}
+              onChange={onTextChange}
+              onRemove={onTextRemove}
+            />
+          )}
         </>
       );
     })()}

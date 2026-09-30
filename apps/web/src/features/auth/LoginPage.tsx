@@ -61,6 +61,9 @@ export function LoginPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
+            <Link to="/forgot-password" className="auth-form__forgot">
+              {t("auth.login.forgot")}
+            </Link>
           </div>
           {error && <p className="error">{error}</p>}
           <button type="submit" className="button button--primary" disabled={pending}>

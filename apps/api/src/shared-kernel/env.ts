@@ -20,6 +20,34 @@ const envSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().min(1),
   S3_FORCE_PATH_STYLE: z.coerce.boolean().default(true),
   WEB_ORIGIN: z.string().min(1).default("http://localhost:5173"),
+  /**
+   * Payments. "none" (the default) lets a studio switch plans freely, for local and demo
+   * use. "stripe" sells the paid plans through Stripe Checkout and needs every STRIPE_* below.
+   */
+  BILLING_PROVIDER: z.enum(["none", "stripe"]).default("none"),
+  STRIPE_SECRET_KEY: optionalString,
+  /** The signing secret of the webhook endpoint (`whsec_…`) pointed at /billing/webhook. */
+  STRIPE_WEBHOOK_SECRET: optionalString,
+  /** Price ids (`price_…`) of the recurring monthly price for each plan. */
+  STRIPE_PRICE_STARTER: optionalString,
+  STRIPE_PRICE_STUDIO: optionalString,
+  STRIPE_PRICE_STUDIO_PRO: optionalString,
+  /**
+   * Comma-separated emails of the people who run AlbumFlow. Signed in with one of these,
+   * a member sees the admin dashboard (feedback inbox, business numbers, server health).
+   */
+  ADMIN_EMAILS: z
+    .string()
+    .default("")
+    .transform((value) => value.split(",").map((email) => email.trim()).filter(Boolean)),
+  /** Error monitoring. Unset (the default) sends nothing anywhere. */
+  SENTRY_DSN: optionalString,
+  /**
+   * "true" only when the API is reachable solely through a reverse proxy (Caddy in
+   * production), so the client address comes from X-Forwarded-For. Left off, anyone
+   * reaching the API directly could forge that header to dodge the login lockout.
+   */
+  TRUST_PROXY: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
   /** Signs and verifies the per-person login JWT. `openssl rand -hex 32`. */
   JWT_SECRET: z.string().min(32),
   VISION_PROVIDER: z.enum(["heuristic", "anthropic", "ollama"]).default("heuristic"),
@@ -76,6 +104,13 @@ const envSchema = z.object({
    * bigger server to clear a large upload faster; each one holds a decoded photo in memory.
    */
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(8),
+  /**
+   * Where the `db-backup` service writes its nightly Postgres dumps. Set on the worker,
+   * together with a long-term STORAGE_PROVIDER, to have each dump copied off the server.
+   */
+  BACKUP_DIR: optionalString,
+  /** How many database dumps to keep on long-term storage. */
+  BACKUP_KEEP: z.coerce.number().int().min(1).default(30),
   /** Days after an album's latest export completes before staged full-res originals are deleted. */
   ORIGINAL_RETENTION_DAYS: z.coerce.number().int().min(1).default(30),
   /** Longest edge, in pixels, of the previews written to long-term storage. */

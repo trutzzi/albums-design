@@ -33,7 +33,18 @@
         "WORKER_CONCURRENCY",
         "ORIGINAL_RETENTION_DAYS",
         "PREVIEW_LONG_EDGE",
-        "VITE_*"
+        "VITE_*",
+        "TRUST_PROXY",
+        "SENTRY_DSN",
+        "BACKUP_DIR",
+        "BACKUP_KEEP",
+        "BILLING_PROVIDER",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "STRIPE_PRICE_STARTER",
+        "STRIPE_PRICE_STUDIO",
+        "STRIPE_PRICE_STUDIO_PRO",
+        "ADMIN_EMAILS"
       ]
     },
     "lint": {
@@ -78,7 +89,8 @@
         "PUBLIC_API_URL",
         "LONG_TERM_ORIGINALS",
         "PREVIEW_LONG_EDGE",
-        "VITE_*"
+        "VITE_*",
+        "ADMIN_EMAILS"
       ]
     }
   }

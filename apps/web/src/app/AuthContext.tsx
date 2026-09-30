@@ -3,6 +3,7 @@ import {
   DEMO_STUDIO_ID,
   login as loginRequest,
   registerAccount as registerRequest,
+  resetPassword as resetPasswordRequest,
 } from "../lib/api";
 import { clearSession, loadSession, saveSession, type StoredSession } from "../lib/auth-storage";
 
@@ -15,6 +16,8 @@ interface AuthContextValue {
   name: string;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  /** Sets a new password from an emailed reset link and signs straight in. */
+  resetPassword: (token: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -35,6 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       register: async (name, email, password) => {
         const result = await registerRequest({ name, email, password });
+        saveSession(result);
+        setSession(result);
+      },
+      resetPassword: async (token, password) => {
+        const result = await resetPasswordRequest(token, password);
         saveSession(result);
         setSession(result);
       },

@@ -11,6 +11,17 @@ import "./request-context";
  */
 const PUBLIC_EXACT = ["/health", "/plans", "/layout-templates", "/print-profiles"];
 const PUBLIC_PREFIXES = ["/review/", "/pick/", "/download/", "/media/"];
+/**
+ * Signing up, logging in and resetting a password are how a request earns a credential.
+ * The billing webhook comes from the payment provider, which proves itself by signature.
+ */
+const PUBLIC_AUTH_POSTS = [
+  "/auth/register",
+  "/auth/login",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/billing/webhook",
+];
 
 export interface StudioAuthOptions {
   /**
@@ -25,11 +36,7 @@ function isPublic(request: FastifyRequest, extraPrefixes: string[]): boolean {
   const path = request.url.split("?")[0] ?? "";
   // Onboarding creates the very first studio, so it cannot require a key.
   if (request.method === "POST" && path === "/studios") return true;
-  // Signing up and logging in are how a request earns a credential — neither
-  // can itself require one.
-  if (request.method === "POST" && (path === "/auth/register" || path === "/auth/login")) {
-    return true;
-  }
+  if (request.method === "POST" && PUBLIC_AUTH_POSTS.includes(path)) return true;
   if (PUBLIC_EXACT.includes(path)) return true;
   return [...PUBLIC_PREFIXES, ...extraPrefixes].some((prefix) => path.startsWith(prefix));
 }

@@ -4,6 +4,7 @@ import {
   assertSafeKey,
   normalizePrefix,
   type StorageProvider,
+  type StorageUsage,
   type StoredObjectInfo,
 } from "../shared-kernel/storage-provider";
 import type { MediaUrlSigner } from "../infrastructure/storage/media-url-signer";
@@ -58,5 +59,11 @@ export class InMemoryStorageProvider implements StorageProvider {
   async getUrl(key: string, options: { expiresInSeconds: number }): Promise<string> {
     assertSafeKey(key);
     return this.signer.sign(key, options.expiresInSeconds);
+  }
+
+  async usage(): Promise<StorageUsage> {
+    let usedBytes = 0;
+    for (const body of this.objects.values()) usedBytes += body.byteLength;
+    return { usedBytes, totalBytes: null };
   }
 }

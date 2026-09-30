@@ -8,13 +8,18 @@ import { PickPage } from "../features/review/PickPage";
 import { DownloadPage } from "../features/review/DownloadPage";
 import { AppHeader } from "../components/AppHeader";
 import { StudioPage } from "../features/studio/StudioPage";
+import { AdminPage } from "../features/admin/AdminPage";
 import { ChangelogPage } from "../features/changelog/ChangelogPage";
 import { ContactPage } from "../features/marketing/ContactPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { RegisterPage } from "../features/auth/RegisterPage";
+import { ForgotPasswordPage } from "../features/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "../features/auth/ResetPasswordPage";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { RequireAuth } from "./RequireAuth";
 import { LanguageProvider, useLanguage } from "../lib/i18n/LanguageContext";
+
+const AUTH_PAGES = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 function Shell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -24,7 +29,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     location.pathname.startsWith("/review/") ||
     location.pathname.startsWith("/pick/") ||
     location.pathname.startsWith("/download/");
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
+  const isAuthPage = AUTH_PAGES.includes(location.pathname);
 
   return (
     <div className="app-shell">
@@ -49,6 +54,8 @@ export function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               {/* Public: a prospective user reads this before ever signing up. */}
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/contact" element={<ContactPage />} />
@@ -77,6 +84,14 @@ export function App() {
                 element={
                   <RequireAuth>
                     <StudioPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <RequireAuth>
+                    <AdminPage />
                   </RequireAuth>
                 }
               />

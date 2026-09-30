@@ -14,6 +14,10 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(undefine
 
 function detectDefaultLanguage(): Language {
   try {
+    // A client link emailed by the photographer carries ?lang= — the language they
+    // chose for that client, which beats a guess from the browser.
+    const fromLink = new URLSearchParams(window.location.search).get("lang");
+    if (fromLink === "ro" || fromLink === "en") return fromLink;
     return navigator.language.toLowerCase().startsWith("ro") ? "ro" : "en";
   } catch {
     return "en";

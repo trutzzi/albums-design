@@ -5,7 +5,7 @@ import {
   ValidationError,
   type ApplicationError,
 } from "../../../../../shared-kernel/errors";
-import type { SpreadDTO } from "@albumflow/contracts";
+import type { AlbumCoverDTO, AlbumStyleDTO, SpreadDTO, TextBlockDTO } from "@albumflow/contracts";
 import {
   Album,
   AlbumLockedError,
@@ -38,6 +38,10 @@ export type AlbumEditCommand =
   | { type: "CHANGE_TEMPLATE"; spreadIndex: number; templateId: string; photoIds?: string[] | undefined }
   | { type: "ADD_SPREAD"; atIndex: number; templateId: string; photoIds: string[] }
   | { type: "REMOVE_SPREAD"; index: number }
+  | { type: "SET_TEXT_BLOCK"; spreadIndex: number; block: TextBlockDTO }
+  | { type: "REMOVE_TEXT_BLOCK"; spreadIndex: number; blockId: string }
+  | { type: "SET_STYLE"; style: AlbumStyleDTO }
+  | { type: "SET_COVER"; cover: AlbumCoverDTO | null }
   | { type: "SUBMIT_FOR_REVIEW" }
   | { type: "REOPEN" };
 
@@ -134,8 +138,21 @@ function apply(album: Album, command: AlbumEditCommand): void {
             treatment: placement.treatment,
             ...(placement.frame ? { frame: placement.frame } : {}),
           })),
+          ...(spread.texts ? { texts: spread.texts.map(withoutUndefinedFont) } : {}),
         })),
       );
+      return;
+    case "SET_TEXT_BLOCK":
+      album.setTextBlock(command.spreadIndex, withoutUndefinedFont(command.block));
+      return;
+    case "REMOVE_TEXT_BLOCK":
+      album.removeTextBlock(command.spreadIndex, command.blockId);
+      return;
+    case "SET_STYLE":
+      album.setStyle(command.style);
+      return;
+    case "SET_COVER":
+      album.setCover(command.cover);
       return;
     case "SUBMIT_FOR_REVIEW":
       album.submitForReview();
@@ -144,4 +161,10 @@ function apply(album: Album, command: AlbumEditCommand): void {
       album.reopen();
       return;
   }
+}
+
+/** Same `exactOptionalPropertyTypes` reason as frames above: an unset font is absent, not undefined. */
+function withoutUndefinedFont(block: TextBlockDTO): TextBlockDTO {
+  const { font, ...rest } = block;
+  return font ? { ...rest, font } : rest;
 }

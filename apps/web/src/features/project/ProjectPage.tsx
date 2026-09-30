@@ -29,6 +29,8 @@ import {
   requestUpload,
 } from "../../lib/api";
 import { useAuth } from "../../app/AuthContext";
+import { GuidedTour, type TourStep } from "../../components/GuidedTour";
+import { tip } from "../../lib/tip";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { LanguagePrompt } from "../../components/LanguagePrompt";
 import { AccessDetailsModal } from "../../components/AccessDetailsModal";
@@ -53,6 +55,14 @@ interface Transfer {
 
 /** Uploads in flight at once. Enough to keep a fast connection busy, few enough to stay orderly. */
 const UPLOAD_PARALLELISM = 6;
+
+const PROJECT_TOUR: TourStep[] = [
+  { target: '[data-tour="project-upload"]', titleKey: "tour.project.upload.title", bodyKey: "tour.project.upload.body" },
+  { target: '[data-tour="project-photos"]', titleKey: "tour.project.photos.title", bodyKey: "tour.project.photos.body" },
+  { target: '[data-tour="project-picks"]', titleKey: "tour.project.picks.title", bodyKey: "tour.project.picks.body" },
+  { target: '[data-tour="project-generate"]', titleKey: "tour.project.generate.title", bodyKey: "tour.project.generate.body" },
+  { target: '[data-tour="project-delivery"]', titleKey: "tour.project.delivery.title", bodyKey: "tour.project.delivery.body" },
+];
 
 export function ProjectPage() {
   const { studioId } = useAuth();
@@ -373,6 +383,7 @@ export function ProjectPage() {
 
   return (
     <div className="page">
+      <GuidedTour id="project" steps={PROJECT_TOUR} ready={project.isSuccess} />
       <header className="page__header">
         <div>
           <Link to="/" className="muted back-link">
@@ -394,6 +405,7 @@ export function ProjectPage() {
             removeProject.reset();
             setConfirmingDelete(true);
           }}
+          {...tip(t("tip.deleteShoot"))}
         >
           {t("project.deleteShoot")}
         </button>
@@ -432,6 +444,7 @@ export function ProjectPage() {
       </div>
 
       <section
+        data-tour="project-upload"
         className={`dropzone ${isDragging ? "dropzone--active" : ""}`}
         onDragOver={(event) => {
           event.preventDefault();
@@ -475,7 +488,7 @@ export function ProjectPage() {
         </ul>
       )}
 
-      <section className="panel">
+      <section className="panel" data-tour="project-generate">
         <div className="panel__head">
           <h2>{t("project.generate.title")}</h2>
           <div className="panel__actions">
@@ -506,6 +519,7 @@ export function ProjectPage() {
               className="button button--primary"
               disabled={generate.isPending || analysed === 0}
               onClick={startGenerate}
+              {...tip(analysed === 0 ? t("tip.generate.waiting") : t("tip.generate"))}
             >
               {generate.isPending ? t("project.generate.submitting") : t("project.generate.submit")}
             </button>
@@ -533,7 +547,7 @@ export function ProjectPage() {
         )}
       </section>
 
-      <section className="panel">
+      <section className="panel" data-tour="project-picks">
         <div className="panel__head">
           <h2>{t("project.picks.title")}</h2>
         </div>
@@ -562,6 +576,7 @@ export function ProjectPage() {
             className="button button--primary"
             disabled={createPickLink.isPending}
             onClick={() => createPickLink.mutate()}
+            {...tip(t("tip.pickLink"))}
           >
             {createPickLink.isPending ? t("project.picks.creating") : t("project.picks.create")}
           </button>
@@ -709,7 +724,7 @@ export function ProjectPage() {
         {buildFromPicks.isError && <p className="error">{(buildFromPicks.error as Error).message}</p>}
       </section>
 
-      <section className="panel">
+      <section className="panel" data-tour="project-delivery">
         <div className="panel__head">
           <h2>{t("project.delivery.title")}</h2>
         </div>
@@ -739,6 +754,7 @@ export function ProjectPage() {
             className="button button--primary"
             disabled={createDownloadLink.isPending}
             onClick={() => createDownloadLink.mutate()}
+            {...tip(t("tip.deliveryLink"))}
           >
             {createDownloadLink.isPending ? t("project.delivery.creating") : t("project.delivery.create")}
           </button>
@@ -897,7 +913,7 @@ export function ProjectPage() {
         />
       )}
 
-      <section className="panel">
+      <section className="panel" data-tour="project-photos">
         <div className="panel__head">
           <h2>{t("project.photos.title")}</h2>
         </div>

@@ -8,6 +8,7 @@ import {
   edgeDirectionFromPoint,
   mergeSnapTargets,
   moveFrame,
+  moveFrameSnapped,
   nearestNeighborInDirection,
   resizeFrame,
   resizeFrameSnapped,
@@ -92,6 +93,36 @@ describe("moveFrame", () => {
     assert.ok(Math.abs(shoved.x + shoved.width - 1) < 1e-9);
     assert.ok(Math.abs(shoved.y + shoved.height - 1) < 1e-9);
     near(shoved.width, FRAME.width, "clamping changed width");
+  });
+});
+
+describe("moveFrameSnapped", () => {
+  const targets = { x: [0, 0.5, 1, 0.75], y: [0, 0.5, 1] };
+
+  it("pulls the nearest edge onto a line when it lands just short of it", () => {
+    // Left edge lands at 0.505: snaps to the page centre, size unchanged.
+    const next = moveFrameSnapped(FRAME, 0.305, 0, targets);
+    near(next.x, 0.5, "x");
+    near(next.width, 0.4, "width");
+  });
+
+  it("can align the right edge or the centre instead of the left", () => {
+    // Right edge lands at 0.746, beside the 0.75 line (left 0.346 and centre 0.546 are far from any).
+    near(moveFrameSnapped(FRAME, 0.146, 0, targets).x + FRAME.width, 0.75, "right edge");
+    // Centre lands at 0.496, beside the page centre.
+    near(moveFrameSnapped(FRAME, 0.096, 0, targets).x + FRAME.width / 2, 0.5, "centre");
+  });
+
+  it("moves freely where no line is close", () => {
+    const next = moveFrameSnapped(FRAME, 0.05, 0.03, targets);
+    near(next.x, 0.25, "x");
+    near(next.y, 0.23, "y");
+  });
+
+  it("never leaves the page", () => {
+    const next = moveFrameSnapped(FRAME, 2, -2, targets);
+    near(next.x, 1 - FRAME.width, "x");
+    near(next.y, 0, "y");
   });
 });
 

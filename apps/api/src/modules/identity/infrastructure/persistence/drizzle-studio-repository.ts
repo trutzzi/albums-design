@@ -68,21 +68,33 @@ export class DrizzleSubscriptionRepository implements SubscriptionRepository {
       .from(subscriptions)
       .where(eq(subscriptions.studioId, studioId.toString()))
       .limit(1);
-    if (!row) return undefined;
-    return Subscription.reconstitute(
-      {
-        studioId: UniqueEntityId.create(row.studioId),
-        planCode: row.planCode,
-        status: row.status,
-        periodStart: row.periodStart,
-        periodEnd: row.periodEnd,
-        albumsUsed: row.albumsUsed,
-        externalCustomerId: row.externalCustomerId ?? undefined,
-        externalSubscriptionId: row.externalSubscriptionId ?? undefined,
-      },
-      UniqueEntityId.create(row.id),
-    );
+    return row ? toSubscription(row) : undefined;
   }
+
+  async findByExternalSubscriptionId(externalId: string): Promise<Subscription | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.externalSubscriptionId, externalId))
+      .limit(1);
+    return row ? toSubscription(row) : undefined;
+  }
+}
+
+function toSubscription(row: typeof subscriptions.$inferSelect): Subscription {
+  return Subscription.reconstitute(
+    {
+      studioId: UniqueEntityId.create(row.studioId),
+      planCode: row.planCode,
+      status: row.status,
+      periodStart: row.periodStart,
+      periodEnd: row.periodEnd,
+      albumsUsed: row.albumsUsed,
+      externalCustomerId: row.externalCustomerId ?? undefined,
+      externalSubscriptionId: row.externalSubscriptionId ?? undefined,
+    },
+    UniqueEntityId.create(row.id),
+  );
 }
 
 export class DrizzleStudioMemberRepository implements StudioMemberRepository {

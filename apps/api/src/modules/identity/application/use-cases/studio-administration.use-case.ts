@@ -29,6 +29,9 @@ export interface StudioOverview {
     periodStart: string;
     periodEnd: string;
     watermarkDrafts: boolean;
+    watermarkExports: boolean;
+    /** True once the studio has paid through the provider, so it can open the billing portal. */
+    hasBillingAccount: boolean;
   };
   members: { id: string; name: string; email: string; role: StudioRole; accepted: boolean }[];
 }
@@ -90,6 +93,8 @@ export class StudioAdministrationUseCase {
         periodStart: subscription.periodStart.toISOString(),
         periodEnd: subscription.periodEnd.toISOString(),
         watermarkDrafts: plan.watermarkDrafts,
+        watermarkExports: plan.watermarkExports,
+        hasBillingAccount: subscription.externalCustomerId !== undefined,
       },
       members: members.map((member) => ({
         id: member.id.toString(),
