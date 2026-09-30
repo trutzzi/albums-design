@@ -555,6 +555,15 @@ describe("the configured sender address", () => {
     // which strict receivers reject with 501 and the mail bounces.
     assert.deepEqual(parseSender("AlbumFlow app@studio.ro"), { name: "AlbumFlow", address: "app@studio.ro" });
   });
+
+  it("ignores the quotes a secret keeps from its .env line", () => {
+    // What production had: every Gmail recipient bounced it with 550 5.7.1.
+    const expected = { name: "AlbumFlow", address: "app@valentintruta.ro" };
+    assert.deepEqual(parseSender('"AlbumFlow <app@valentintruta.ro>"'), expected);
+    assert.deepEqual(parseSender('AlbumFlow <app@valentintruta.ro>"'), expected);
+    assert.deepEqual(parseSender("'AlbumFlow <app@valentintruta.ro>'"), expected);
+    assert.deepEqual(parseSender('"app@valentintruta.ro"'), { address: "app@valentintruta.ro" });
+  });
 });
 
 describe("real SMTP delivery", () => {

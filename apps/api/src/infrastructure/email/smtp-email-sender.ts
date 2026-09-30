@@ -22,12 +22,17 @@ export interface SmtpConfig {
  * SMTP envelope correct no matter which shape it was written in.
  */
 export function parseSender(value: string): { name?: string; address: string } {
+  // Secrets often arrive wrapped in the quotes .env files use ("AlbumFlow <app@x.ro>"),
+  // sometimes only half of them. The address is whatever looks like one; everything
+  // before it, minus brackets and quotes, is the display name.
   const trimmed = value.trim();
-  const bracketed = /<([^<>]+)>\s*$/.exec(trimmed);
-  const address = (bracketed ? bracketed[1]! : trimmed.split(/\s+/).pop() ?? trimmed).trim();
-  const name = (bracketed ? trimmed.slice(0, bracketed.index) : trimmed.slice(0, trimmed.length - address.length))
-    .trim()
-    .replace(/^["']|["']$/g, "")
+  const match = /[^\s<>"',;]+@[^\s<>"',;]+/.exec(trimmed);
+  if (!match) return { address: trimmed };
+  const address = match[0];
+  const name = trimmed
+    .slice(0, match.index)
+    .replace(/[<>"']/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
   return name ? { name, address } : { address };
 }
