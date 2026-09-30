@@ -52,6 +52,13 @@ export function clientErrorFrom(
 }
 
 /** A client link is protected and the caller has not (or no longer) proven the password. */
+/** Right password, but the account's email address has not been confirmed yet. */
+export class EmailNotVerifiedError extends ApplicationError {
+  constructor() {
+    super("Confirm your email address first — we sent you a link when you signed up.", "EMAIL_NOT_VERIFIED");
+  }
+}
+
 export class PasswordRequiredError extends ApplicationError {
   constructor() {
     super("This link is protected by a password.", "PASSWORD_REQUIRED");

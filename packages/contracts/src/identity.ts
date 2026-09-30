@@ -44,6 +44,10 @@ export const registerInputSchema = z.object({
   name: z.string().min(1).max(255),
   email: z.string().email(),
   password: z.string().min(8).max(255),
+  /** The language of the confirmation email. */
+  language: z.enum(["en", "ro"]).optional(),
+  /** A field people never see: only bots fill it in. */
+  website: z.string().max(255).optional(),
 });
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 

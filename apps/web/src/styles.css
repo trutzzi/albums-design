@@ -431,6 +431,14 @@ a:focus-visible,
   width: 100%;
   margin-top: 4px;
 }
+/* The signup form's bot trap: off-screen rather than display:none, which some bots skip. */
+.auth-form__trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
 .auth-form__forgot {
   align-self: flex-end;
   margin-top: 4px;

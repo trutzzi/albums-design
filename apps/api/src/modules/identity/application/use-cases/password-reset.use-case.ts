@@ -86,6 +86,8 @@ export class PasswordResetUseCase {
     }
 
     member.setPassword(await hashPassword(params.password));
+    // Opening the emailed link proves the mailbox just as a confirmation link would.
+    member.markEmailVerified();
     await this.members.save(member);
     this.limiter.reset(`reset:${member.email}`);
 

@@ -120,6 +120,7 @@ export class DrizzleStudioMemberRepository implements StudioMemberRepository {
       invitedAt: member.invitedAt,
       acceptedAt: member.acceptedAt ?? null,
       passwordHash: member.passwordHash ?? null,
+      emailVerifiedAt: member.emailVerifiedAt ?? null,
     };
     await this.db
       .insert(studioMembers)
@@ -131,6 +132,7 @@ export class DrizzleStudioMemberRepository implements StudioMemberRepository {
           role: row.role,
           acceptedAt: row.acceptedAt,
           passwordHash: row.passwordHash,
+          emailVerifiedAt: row.emailVerifiedAt,
         },
       });
   }
@@ -188,6 +190,7 @@ function toMember(row: typeof studioMembers.$inferSelect): StudioMember {
       invitedAt: row.invitedAt,
       acceptedAt: row.acceptedAt ?? undefined,
       passwordHash: row.passwordHash ?? undefined,
+      emailVerifiedAt: row.emailVerifiedAt ?? undefined,
     },
     UniqueEntityId.create(row.id),
   );

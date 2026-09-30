@@ -29,6 +29,8 @@ const forgotPasswordSchema = z.object({
   language: z.enum(["en", "ro"]).default("en"),
 });
 
+const verifyEmailSchema = z.object({ token: z.string().min(1).max(2048) });
+
 const resetPasswordSchema = z.object({
   token: z.string().min(1).max(2048),
   password: z.string().min(1).max(200),
@@ -46,10 +48,26 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
   app.get("/plans", async () => Object.values(PLANS).map(toPlanDto));
 
   app.post("/auth/register", async (request, reply) => {
-    const body = registerInputSchema.parse(request.body);
-    const result = await deps.register.execute(body);
+    const { website, ...body } = registerInputSchema.parse(request.body);
+    // The hidden field was filled in: a bot. Answer exactly as for a person, create nothing.
+    if (website) return reply.code(201).send({ status: "CONFIRMATION_SENT", email: body.email.trim().toLowerCase() });
+    const result = await deps.register.execute({ ...body, ip: request.ip });
     if (result.isFailure) return sendError(reply, result.getError());
     return reply.code(201).send(result.getValue());
+  });
+
+  app.post("/auth/verify-email", async (request, reply) => {
+    const { token } = verifyEmailSchema.parse(request.body);
+    const result = await deps.register.confirm(token);
+    if (result.isFailure) return sendError(reply, result.getError());
+    return result.getValue();
+  });
+
+  // 202 whether or not the address has an account waiting, so it reveals nothing.
+  app.post("/auth/resend-confirmation", async (request, reply) => {
+    const body = forgotPasswordSchema.parse(request.body);
+    await deps.register.resend(body);
+    return reply.code(202).send({ ok: true });
   });
 
   app.post("/auth/login", async (request, reply) => {
@@ -153,7 +171,7 @@ function sendError(reply: FastifyReply, error: ApplicationError) {
         ? 409
         : error.code === "UNAUTHORIZED"
           ? 401
-          : error.code === "FORBIDDEN"
+          : error.code === "FORBIDDEN" || error.code === "EMAIL_NOT_VERIFIED"
             ? 403
             : error.code === "TOO_MANY_ATTEMPTS"
               ? 429

@@ -15,11 +15,12 @@ import { LoginPage } from "../features/auth/LoginPage";
 import { RegisterPage } from "../features/auth/RegisterPage";
 import { ForgotPasswordPage } from "../features/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "../features/auth/ResetPasswordPage";
+import { VerifyEmailPage } from "../features/auth/VerifyEmailPage";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { RequireAuth } from "./RequireAuth";
 import { LanguageProvider, useLanguage } from "../lib/i18n/LanguageContext";
 
-const AUTH_PAGES = ["/login", "/register", "/forgot-password", "/reset-password"];
+const AUTH_PAGES = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
 
 function Shell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -56,6 +57,7 @@ export function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
               {/* Public: a prospective user reads this before ever signing up. */}
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/contact" element={<ContactPage />} />

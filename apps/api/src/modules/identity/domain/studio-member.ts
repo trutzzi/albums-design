@@ -11,6 +11,8 @@ export interface StudioMemberProps {
   acceptedAt: Date | undefined;
   /** Set once the member has real login credentials — an invite alone never has one. */
   passwordHash: string | undefined;
+  /** When the member proved they own the address. A self-serve signup cannot log in before it. */
+  emailVerifiedAt: Date | undefined;
 }
 
 const EDIT_ROLES: readonly StudioRole[] = ["OWNER", "EDITOR"];
@@ -33,12 +35,13 @@ export class StudioMember extends AggregateRoot<StudioMemberProps> {
         invitedAt: new Date(),
         acceptedAt: undefined,
         passwordHash: undefined,
+        emailVerifiedAt: undefined,
       },
       id ?? UniqueEntityId.create(),
     );
   }
 
-  /** A self-serve signup: unlike an invited member, this one can log in immediately. */
+  /** A self-serve signup: it has a password, but logs in only once its email is confirmed. */
   static signUp(
     params: { studioId: UniqueEntityId; email: string; name: string; passwordHash: string },
     id?: UniqueEntityId,
@@ -86,6 +89,24 @@ export class StudioMember extends AggregateRoot<StudioMemberProps> {
 
   get passwordHash(): string | undefined {
     return this.props.passwordHash;
+  }
+
+  get emailVerifiedAt(): Date | undefined {
+    return this.props.emailVerifiedAt;
+  }
+
+  get emailVerified(): boolean {
+    return this.props.emailVerifiedAt !== undefined;
+  }
+
+  markEmailVerified(at: Date = new Date()): void {
+    if (!this.props.emailVerifiedAt) this.props.emailVerifiedAt = at;
+  }
+
+  /** Someone signing up again before confirming: the newest details win, still unconfirmed. */
+  restartSignUp(params: { name: string; passwordHash: string }): void {
+    this.props.name = params.name;
+    this.props.passwordHash = params.passwordHash;
   }
 
   accept(): void {

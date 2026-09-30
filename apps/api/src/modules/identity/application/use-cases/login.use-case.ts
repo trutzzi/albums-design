@@ -1,6 +1,11 @@
 import { Result } from "@albumflow/domain-kernel";
 import { AttemptLimiter } from "../../../../shared-kernel/attempt-limiter";
-import { TooManyAttemptsError, UnauthorizedError, type ApplicationError } from "../../../../shared-kernel/errors";
+import {
+  EmailNotVerifiedError,
+  TooManyAttemptsError,
+  UnauthorizedError,
+  type ApplicationError,
+} from "../../../../shared-kernel/errors";
 import { verifyPassword } from "../../../../shared-kernel/password-hasher";
 import { signJwt } from "../../../../shared-kernel/jwt";
 import type { StudioMemberRepository } from "../../domain/repositories";
@@ -50,6 +55,8 @@ export class LoginUseCase {
       return Result.failure(new UnauthorizedError(INVALID_CREDENTIALS));
     }
     this.limiters.perEmail.reset(emailKey);
+    // Only after the password checked out, so this reveals nothing to a guesser.
+    if (!member.emailVerified) return Result.failure(new EmailNotVerifiedError());
 
     return Result.success(issueSession(member, this.jwtSecret));
   }

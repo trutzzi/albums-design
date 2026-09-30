@@ -57,6 +57,7 @@ import { StudioAdministrationUseCase } from "../modules/identity/application/use
 import { RegisterUseCase } from "../modules/identity/application/use-cases/register.use-case";
 import { LoginUseCase } from "../modules/identity/application/use-cases/login.use-case";
 import { PasswordResetUseCase } from "../modules/identity/application/use-cases/password-reset.use-case";
+import { EmailConfirmationMailer } from "../modules/identity/application/services/email-confirmation.mailer";
 import { PasswordResetMailer } from "../modules/identity/application/services/password-reset.mailer";
 import { SubscriptionQuotaPolicy } from "../modules/identity/application/subscription-quota-policy";
 import { RequestUploadUseCase } from "../modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
@@ -177,8 +178,31 @@ async function main() {
   const queue = new SynchronousJobQueue();
   const clientAccess = new ClientAccessService(new SecretBox(DEMO_JWT_SECRET), new ClientGrantSigner(DEMO_JWT_SECRET));
 
+  // Real mail when SMTP_* is set for the demo, otherwise the message is printed in this log.
+  const emailSender =
+    process.env.EMAIL_PROVIDER === "smtp" &&
+    process.env.SMTP_HOST &&
+    process.env.MAIL_FROM &&
+    // A login with no password can only fail, and mail servers lock out repeated failures.
+    !(process.env.SMTP_USER && !process.env.SMTP_PASSWORD)
+      ? new SmtpEmailSender({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT ?? 587),
+          secure: process.env.SMTP_SECURE === "true",
+          user: process.env.SMTP_USER || undefined,
+          password: process.env.SMTP_PASSWORD || undefined,
+          from: process.env.MAIL_FROM,
+        })
+      : new LoggingEmailSender();
   const administration = new StudioAdministrationUseCase(studios, subscriptions, members);
-  const register = new RegisterUseCase(studios, subscriptions, members, DEMO_JWT_SECRET);
+  const register = new RegisterUseCase(
+    studios,
+    subscriptions,
+    members,
+    DEMO_JWT_SECRET,
+    new EmailConfirmationMailer(emailSender),
+    WEB_ORIGIN,
+  );
   const login = new LoginUseCase(members, DEMO_JWT_SECRET);
   const quota = new SubscriptionQuotaPolicy(subscriptions);
   // The demo never takes payment: choosing a plan switches it, as before.
@@ -424,22 +448,6 @@ async function main() {
     deleteAlbum: new DeleteAlbumUseCase(albums, exportJobs, storage, reviewSessions),
     albums,
   });
-  // Real mail when SMTP_* is set for the demo, otherwise the message is printed in this log.
-  const emailSender =
-    process.env.EMAIL_PROVIDER === "smtp" &&
-    process.env.SMTP_HOST &&
-    process.env.MAIL_FROM &&
-    // A login with no password can only fail, and mail servers lock out repeated failures.
-    !(process.env.SMTP_USER && !process.env.SMTP_PASSWORD)
-      ? new SmtpEmailSender({
-          host: process.env.SMTP_HOST,
-          port: Number(process.env.SMTP_PORT ?? 587),
-          secure: process.env.SMTP_SECURE === "true",
-          user: process.env.SMTP_USER || undefined,
-          password: process.env.SMTP_PASSWORD || undefined,
-          from: process.env.MAIL_FROM,
-        })
-      : new LoggingEmailSender();
   const emailIncomplete = process.env.EMAIL_PROVIDER === "smtp" && emailSender.id !== "smtp";
   console.log(
     `  email      ${

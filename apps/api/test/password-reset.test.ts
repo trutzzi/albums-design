@@ -7,6 +7,7 @@ import { RegisterUseCase } from "../src/modules/identity/application/use-cases/r
 import { LoginUseCase } from "../src/modules/identity/application/use-cases/login.use-case";
 import { PasswordResetUseCase } from "../src/modules/identity/application/use-cases/password-reset.use-case";
 import { PasswordResetMailer } from "../src/modules/identity/application/services/password-reset.mailer";
+import { EmailConfirmationMailer } from "../src/modules/identity/application/services/email-confirmation.mailer";
 import {
   InMemoryStudioRepository,
   InMemorySubscriptionRepository,
@@ -17,13 +18,17 @@ const SECRET = "test-only-jwt-secret-at-least-32-characters-long";
 
 async function setup() {
   const members = new InMemoryStudioMemberRepository();
+  const confirmations: EmailMessage[] = [];
   const register = new RegisterUseCase(
     new InMemoryStudioRepository(),
     new InMemorySubscriptionRepository(),
     members,
     SECRET,
+    new EmailConfirmationMailer({ id: "test", send: async (message) => void confirmations.push(message) }),
+    "https://app.test/",
   );
   await register.execute({ name: "Alex", email: "alex@example.com", password: "original-pass" });
+  await register.confirm(decodeURIComponent(/token=([^\s"]+)/.exec(confirmations[0]?.text ?? "")?.[1] ?? ""));
 
   const sent: EmailMessage[] = [];
   const sender: EmailSender = { id: "test", send: async (message) => void sent.push(message) };

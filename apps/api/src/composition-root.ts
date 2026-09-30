@@ -13,6 +13,7 @@ import { StudioAdministrationUseCase } from "./modules/identity/application/use-
 import { RegisterUseCase } from "./modules/identity/application/use-cases/register.use-case";
 import { LoginUseCase } from "./modules/identity/application/use-cases/login.use-case";
 import { PasswordResetUseCase } from "./modules/identity/application/use-cases/password-reset.use-case";
+import { EmailConfirmationMailer } from "./modules/identity/application/services/email-confirmation.mailer";
 import { PasswordResetMailer } from "./modules/identity/application/services/password-reset.mailer";
 import { BillingUseCase } from "./modules/identity/application/use-cases/billing.use-case";
 import { buildBillingGateway } from "./infrastructure/billing/build-billing-gateway";
@@ -199,8 +200,16 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const studios = new DrizzleStudioRepository(db);
   const subscriptions = new DrizzleSubscriptionRepository(db);
   const members = new DrizzleStudioMemberRepository(db);
+  const emailSender = buildEmailSender(env);
   const administration = new StudioAdministrationUseCase(studios, subscriptions, members);
-  const register = new RegisterUseCase(studios, subscriptions, members, env.JWT_SECRET);
+  const register = new RegisterUseCase(
+    studios,
+    subscriptions,
+    members,
+    env.JWT_SECRET,
+    new EmailConfirmationMailer(emailSender),
+    env.WEB_ORIGIN,
+  );
   const login = new LoginUseCase(members, env.JWT_SECRET);
   const quotaPolicy = new SubscriptionQuotaPolicy(subscriptions);
   const billing = new BillingUseCase(studios, subscriptions, buildBillingGateway(env), env.WEB_ORIGIN);
@@ -261,7 +270,6 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const editAlbum = new EditAlbumUseCase(albums);
   const suggestLayouts = new SuggestLayoutsUseCase(new PhotoIntelligenceDirectory(analyses));
 
-  const emailSender = buildEmailSender(env);
   const passwordReset = new PasswordResetUseCase(
     members,
     new PasswordResetMailer(emailSender),

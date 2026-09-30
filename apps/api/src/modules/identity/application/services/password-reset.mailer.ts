@@ -50,8 +50,23 @@ export class PasswordResetMailer {
 
   async send(message: PasswordResetEmail): Promise<void> {
     const copy = copyFor(message);
-    const text = [copy.greeting, "", copy.lead, "", message.url, "", copy.expiry, copy.ignore].join("\n");
-    const html = `<!doctype html>
+    const { text, html } = actionEmail(copy, message.url);
+    await this.email.send({ to: [message.to], subject: copy.subject, text, html });
+  }
+}
+
+export interface ActionEmailCopy {
+  greeting: string;
+  lead: string;
+  action: string;
+  expiry: string;
+  ignore: string;
+}
+
+/** One button, one link, two small print lines — the layout every account email shares. */
+export function actionEmail(copy: ActionEmailCopy, url: string): { text: string; html: string } {
+  const text = [copy.greeting, "", copy.lead, "", url, "", copy.expiry, copy.ignore].join("\n");
+  const html = `<!doctype html>
 <html><body style="margin:0;padding:0;background:${PAPER}">
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:${PAPER};padding:28px 12px">
   <tr><td align="center">
@@ -61,8 +76,8 @@ export class PasswordResetMailer {
         <p style="margin:0;font:16px/1.6 ${FONT};color:${SOFT}">${escapeHtml(copy.lead)}</p>
       </td></tr>
       <tr><td style="padding:24px 28px 6px" align="center">
-        <a href="${escapeHtml(message.url)}" style="display:inline-block;background:${ACCENT};color:#ffffff;text-decoration:none;font:600 16px/1 ${FONT};padding:15px 30px;border-radius:10px">${escapeHtml(copy.action)}</a>
-        <div style="padding-top:12px;font:13px/1.6 ${FONT};color:${FAINT};word-break:break-all">${escapeHtml(message.url)}</div>
+        <a href="${escapeHtml(url)}" style="display:inline-block;background:${ACCENT};color:#ffffff;text-decoration:none;font:600 16px/1 ${FONT};padding:15px 30px;border-radius:10px">${escapeHtml(copy.action)}</a>
+        <div style="padding-top:12px;font:13px/1.6 ${FONT};color:${FAINT};word-break:break-all">${escapeHtml(url)}</div>
       </td></tr>
       <tr><td style="padding:14px 28px 26px">
         <p style="margin:0 0 6px;font:14px/1.6 ${FONT};color:${FAINT}">${escapeHtml(copy.expiry)}</p>
@@ -73,7 +88,5 @@ export class PasswordResetMailer {
   </td></tr>
 </table>
 </body></html>`;
-
-    await this.email.send({ to: [message.to], subject: copy.subject, text, html });
-  }
+  return { text, html };
 }

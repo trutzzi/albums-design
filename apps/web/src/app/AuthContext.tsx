@@ -4,6 +4,7 @@ import {
   login as loginRequest,
   registerAccount as registerRequest,
   resetPassword as resetPasswordRequest,
+  verifyEmail as verifyEmailRequest,
 } from "../lib/api";
 import { clearSession, loadSession, saveSession, type StoredSession } from "../lib/auth-storage";
 
@@ -15,7 +16,10 @@ interface AuthContextValue {
   /** The logged-in person's own name, for a personal greeting — empty when not authenticated. */
   name: string;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  /** Creates the account and emails its confirmation link; it does not sign in. */
+  register: (name: string, email: string, password: string, extra?: { language?: "en" | "ro"; website?: string }) => Promise<void>;
+  /** Opens the account from the emailed link and signs straight in. */
+  verifyEmail: (token: string) => Promise<void>;
   /** Sets a new password from an emailed reset link and signs straight in. */
   resetPassword: (token: string, password: string) => Promise<void>;
   logout: () => void;
@@ -36,8 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         saveSession(result);
         setSession(result);
       },
-      register: async (name, email, password) => {
-        const result = await registerRequest({ name, email, password });
+      register: async (name, email, password, extra) => {
+        await registerRequest({ name, email, password, ...extra });
+      },
+      verifyEmail: async (token) => {
+        const result = await verifyEmailRequest(token);
         saveSession(result);
         setSession(result);
       },

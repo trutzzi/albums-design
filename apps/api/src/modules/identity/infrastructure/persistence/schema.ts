@@ -45,4 +45,6 @@ export const studioMembers = pgTable("studio_members", {
   /** scrypt hash, `salt:hash` hex-encoded. Unset for an invited member who has
    * never logged in — invitations don't carry credentials, signing up does. */
   passwordHash: varchar("password_hash", { length: 255 }),
+  /** Null until the member opens the confirmation link (or proves the mailbox by a reset). */
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
 });

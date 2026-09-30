@@ -1,18 +1,21 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { ApiError } from "../../lib/api";
+import { ApiError, resendConfirmation } from "../../lib/api";
 
 export function RegisterPage() {
   const auth = useAuth();
-  const { t } = useLanguage();
-  const navigate = useNavigate();
+  const { t, language } = useLanguage();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Bots fill in every field; people never see this one.
+  const [website, setWebsite] = useState("");
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
 
   return (
     <div className="page auth-page">
@@ -22,6 +25,24 @@ export function RegisterPage() {
         <div className="panel__head">
           <h1>{t("auth.register.title")}</h1>
         </div>
+        {sentTo ? (
+          <div className="auth-form">
+            <p className="notice notice--good" role="status">{t("auth.confirm.sent", { email: sentTo })}</p>
+            <p className="muted">{t("auth.confirm.spam")}</p>
+            <button
+              type="button"
+              className="button"
+              disabled={resent}
+              onClick={async () => {
+                await resendConfirmation(sentTo, language).catch(() => undefined);
+                setResent(true);
+              }}
+            >
+              {resent ? t("auth.confirm.resent") : t("auth.confirm.resend")}
+            </button>
+          </div>
+        ) : (
+        <>
         <p className="muted">{t("auth.register.subtitle")}</p>
         <form
           className="auth-form"
@@ -30,8 +51,8 @@ export function RegisterPage() {
             setError(null);
             setPending(true);
             try {
-              await auth.register(name, email, password);
-              navigate("/", { replace: true });
+              await auth.register(name, email, password, { language, website });
+              setSentTo(email.trim().toLowerCase());
             } catch (err) {
               setError(err instanceof ApiError ? err.message : t("auth.error.generic"));
             } finally {
@@ -72,11 +93,23 @@ export function RegisterPage() {
             />
             <span className="muted">{t("auth.register.passwordHint")}</span>
           </div>
+          <div className="auth-form__trap" aria-hidden="true">
+            <label htmlFor="register-website">Website</label>
+            <input
+              id="register-website"
+              tabIndex={-1}
+              autoComplete="off"
+              value={website}
+              onChange={(event) => setWebsite(event.target.value)}
+            />
+          </div>
           {error && <p className="error">{error}</p>}
           <button type="submit" className="button button--primary" disabled={pending}>
             {pending ? t("auth.register.submitting") : t("auth.register.submit")}
           </button>
         </form>
+        </>
+        )}
         <p className="muted">
           {t("auth.register.haveAccount")} <Link to="/login">{t("auth.register.login")}</Link>
         </p>
