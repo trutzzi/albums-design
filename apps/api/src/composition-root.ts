@@ -112,6 +112,7 @@ import {
   AdminAccess,
   AdminDashboardUseCase,
   FeedbackUseCase,
+  StudioPlansUseCase,
 } from "./modules/platform-admin/application/use-cases/admin.use-cases";
 
 export interface CompositionRoot {
@@ -164,6 +165,7 @@ export interface CompositionRoot {
   adminAccess: AdminAccess;
   feedback: FeedbackUseCase;
   adminDashboard: AdminDashboardUseCase;
+  studioPlans: StudioPlansUseCase;
   shutdown: () => Promise<void>;
 }
 
@@ -339,6 +341,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     clientAccess,
     invitations,
     clientContacts,
+    planFeatures,
   );
   const downloadPortal = new DownloadPortalUseCase(
     downloadSessions,
@@ -439,9 +442,10 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     },
     permanentStorage,
   );
+  const studioPlans = new StudioPlansUseCase(studios, subscriptions);
 
   const mediaIngestion: MediaIngestionDependencies = {
-    requestUpload: new RequestUploadUseCase(projects, photos, storage),
+    requestUpload: new RequestUploadUseCase(projects, photos, storage, planFeatures),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue, storeEverything),
     abandonUpload: new AbandonUploadUseCase(photos, storage),
     listStudioProjects: new ListStudioProjectsUseCase(projects, photos, albums, storage, permanentStorage),
@@ -496,6 +500,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     adminAccess,
     feedback,
     adminDashboard,
+    studioPlans,
     shutdown: async () => {
       await Promise.all([closeDb(), jobQueue.close()]);
     },

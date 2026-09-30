@@ -2,10 +2,9 @@ import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import {
   ConflictError,
   NotFoundError,
-  ValidationError,
   type ApplicationError,
 } from "../../../../shared-kernel/errors";
-import { PLANS, type PlanCode } from "../../domain/plan";
+import type { PlanCode } from "../../domain/plan";
 import type {
   StudioMemberRepository,
   StudioRepository,
@@ -49,7 +48,7 @@ export class StudioAdministrationUseCase {
   }): Promise<Result<{ studioId: string; apiKey: string }, ApplicationError>> {
     const { studio, apiKey } = Studio.create({ name: params.name, ownerEmail: params.ownerEmail });
     await this.studios.save(studio);
-    await this.subscriptions.save(Subscription.startTrial(studio.id));
+    await this.subscriptions.save(Subscription.startDefault(studio.id));
     await this.members.save(
       StudioMember.invite({
         studioId: studio.id,
@@ -151,19 +150,6 @@ export class StudioAdministrationUseCase {
     }
     await this.members.remove(member.id);
     return Result.success(null);
-  }
-
-  async changePlan(
-    studioId: string,
-    planCode: PlanCode,
-  ): Promise<Result<StudioOverview, ApplicationError>> {
-    if (!PLANS[planCode]) return Result.failure(new ValidationError(`Unknown plan ${planCode}.`));
-    const subscription = await this.subscriptions.findByStudioId(UniqueEntityId.create(studioId));
-    if (!subscription) return Result.failure(new NotFoundError("Subscription", studioId));
-
-    subscription.changePlan(planCode);
-    await this.subscriptions.save(subscription);
-    return this.overview(studioId);
   }
 }
 

@@ -12,6 +12,7 @@ import type { ClientAccessService } from "../services/client-access.service";
 import type { ClientContactDirectory } from "../ports/client-contact";
 import type { ClientLinkInvitations } from "../services/client-link-invitations";
 import type { InvitationLanguage } from "../services/client-invitation.mailer";
+import type { PlanFeatureDirectory } from "../../../../shared-kernel/plan-features";
 
 export interface DownloadSessionSummary {
   id: string;
@@ -40,6 +41,7 @@ export class DownloadSessionAdminUseCase {
     private readonly access?: ClientAccessService,
     private readonly invitations?: ClientLinkInvitations,
     private readonly contacts?: ClientContactDirectory,
+    private readonly planFeatures?: PlanFeatureDirectory,
   ) {}
 
   async open(command: {
@@ -67,6 +69,12 @@ export class DownloadSessionAdminUseCase {
     const project = await this.delivery.loadProject(command.projectId);
     if (!project) {
       return Result.failure(new NotFoundError("Project", command.projectId));
+    }
+    const features = await this.planFeatures?.forProject(command.projectId);
+    if (features && !features.clientDownloadLinks) {
+      return Result.failure(
+        new ConflictError("Client download links come with the Studio plan. Contact us to move to Studio."),
+      );
     }
     const known = await this.contacts?.forProject(command.projectId);
     const clientName = command.clientName.trim() || known?.name || "Client";

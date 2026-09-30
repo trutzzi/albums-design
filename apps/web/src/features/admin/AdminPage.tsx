@@ -6,8 +6,13 @@ import {
   getBusinessStats,
   getSystemStats,
   listAdminFeedback,
+  listAdminStudios,
+  listPlans,
+  setStudioPlan,
   triageFeedback,
   type AdminFeedback,
+  type AdminStudio,
+  type PlanDto,
   type FeedbackKind,
   type FeedbackStatus,
   type FunnelStep,
@@ -15,7 +20,7 @@ import {
 } from "../../lib/api";
 import { BarList, ColumnChart, StatTile } from "./charts";
 
-type Tab = "business" | "feedback" | "server";
+type Tab = "business" | "studios" | "feedback" | "server";
 
 const FUNNEL_LABELS: Record<FunnelStep, string> = {
   signedUp: "Signed up",
@@ -27,7 +32,7 @@ const FUNNEL_LABELS: Record<FunnelStep, string> = {
   exported: "Exported a print PDF",
 };
 
-const usd = (value: number) => `$${value.toLocaleString("en-GB")}`;
+const eur = (value: number) => `€${value.toLocaleString("en-GB")}`;
 const shortDay = (day: string) =>
   new Date(`${day}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
@@ -55,13 +60,14 @@ export function AdminPage() {
       <header className="page__header">
         <div>
           <h1>Admin</h1>
-          <p className="muted">How AlbumFlow is doing, what photographers are saying, and how the server is holding up.</p>
+          <p className="muted">How AlbumFlow is doing, who is on which plan, what photographers are saying, and how the server is holding up.</p>
         </div>
       </header>
       <div className="admin__tabs" role="tablist">
         {(
           [
             ["business", "Business"],
+            ["studios", "Studios"],
             ["feedback", "Feedback"],
             ["server", "Server"],
           ] as [Tab, string][]
@@ -79,6 +85,7 @@ export function AdminPage() {
         ))}
       </div>
       {tab === "business" && <BusinessTab />}
+      {tab === "studios" && <StudiosTab />}
       {tab === "feedback" && <FeedbackTab />}
       {tab === "server" && <ServerTab />}
     </div>
@@ -98,7 +105,7 @@ function BusinessTab() {
         <StatTile
           hero
           label="Monthly recurring revenue"
-          value={usd(data.revenue.mrrUsd)}
+          value={eur(data.revenue.mrrEur)}
           detail={`${data.revenue.payingStudios} paying studio${data.revenue.payingStudios === 1 ? "" : "s"}`}
         />
         <StatTile label="Trial → paid" value={`${data.revenue.trialToPaidPct}%`} detail="of every studio that signed up" />
@@ -222,6 +229,99 @@ function BusinessTab() {
 }
 
 const KIND_LABELS: Record<FeedbackKind, string> = { IDEA: "Idea", PROBLEM: "Problem", QUESTION: "Question", PRAISE: "Praise" };
+/** Every studio and its plan. Studios cannot change plans themselves — this is the only place. */
+function StudiosTab() {
+  const [search, setSearch] = useState("");
+  const studios = useQuery({ queryKey: ["admin-studios"], queryFn: listAdminStudios });
+  const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
+  const needle = search.trim().toLowerCase();
+  const shown = (studios.data ?? []).filter(
+    (studio) => !needle || studio.name.toLowerCase().includes(needle) || studio.ownerEmail.toLowerCase().includes(needle),
+  );
+
+  return (
+    <>
+      <div className="admin__filters">
+        <label>
+          Search{" "}
+          <input value={search} placeholder="Studio or email" onChange={(event) => setSearch(event.target.value)} />
+        </label>
+        {studios.data && <span className="muted">{studios.data.length} studios</span>}
+      </div>
+      {studios.isLoading && <p className="muted">Loading…</p>}
+      {studios.isError && <p className="error">{(studios.error as Error).message}</p>}
+      {studios.data && (
+        <section className="panel">
+          <table className="admin__table">
+            <thead>
+              <tr>
+                <th>Studio</th>
+                <th>Owner</th>
+                <th>Signed up</th>
+                <th>Albums this period</th>
+                <th>Status</th>
+                <th>Plan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((studio) => (
+                <StudioRow key={studio.studioId} studio={studio} plans={plans.data ?? []} />
+              ))}
+            </tbody>
+          </table>
+          {shown.length === 0 && <p className="muted">No studios match.</p>}
+        </section>
+      )}
+    </>
+  );
+}
+
+function StudioRow({ studio, plans }: { studio: AdminStudio; plans: PlanDto[] }) {
+  const queryClient = useQueryClient();
+  const change = useMutation({
+    mutationFn: (planCode: PlanDto["code"]) => setStudioPlan(studio.studioId, planCode),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-studios"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-business"] });
+    },
+  });
+
+  return (
+    <tr>
+      <td>
+        <strong>{studio.name}</strong>
+      </td>
+      <td>
+        <a href={`mailto:${studio.ownerEmail}`}>{studio.ownerEmail}</a>
+      </td>
+      <td>{new Date(studio.createdAt).toLocaleDateString("en-GB")}</td>
+      <td>
+        {studio.albumsUsed} / {studio.albumsIncluded ?? "∞"}
+      </td>
+      <td>{studio.status ? studio.status.toLowerCase().replace("_", " ") : "—"}</td>
+      <td>
+        <select
+          aria-label={`Plan for ${studio.name}`}
+          value={studio.planCode ?? ""}
+          disabled={change.isPending || !studio.planCode}
+          onChange={(event) => {
+            const planCode = event.target.value as PlanDto["code"];
+            const plan = plans.find((item) => item.code === planCode);
+            if (window.confirm(`Move ${studio.name} to ${plan?.name ?? planCode}?`)) change.mutate(planCode);
+          }}
+        >
+          {plans.map((plan) => (
+            <option key={plan.code} value={plan.code}>
+              {plan.name} · {eur(plan.monthlyPriceEur)}
+            </option>
+          ))}
+        </select>
+        {change.isError && <p className="error">{(change.error as Error).message}</p>}
+      </td>
+    </tr>
+  );
+}
+
 const STATUS_LABELS: Record<FeedbackStatus, string> = { NEW: "New", IN_PROGRESS: "In progress", RESOLVED: "Resolved" };
 
 function FeedbackTab() {

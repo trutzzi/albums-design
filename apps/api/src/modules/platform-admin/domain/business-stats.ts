@@ -22,7 +22,7 @@ export interface BusinessStats {
   /** Studios that made something — a shoot, an upload or an album — in the window. */
   activeStudios: { d7: number; d30: number };
   revenue: {
-    mrrUsd: number;
+    mrrEur: number;
     payingStudios: number;
     /** Paying studios as a share of every studio that ever signed up. */
     trialToPaidPct: number;
@@ -135,7 +135,7 @@ export function computeBusinessStats(input: StatsInput, now: Date = new Date()):
     },
     activeStudios: { d7: activeIn(7), d30: activeIn(30) },
     revenue: {
-      mrrUsd: paying.reduce((sum, sub) => sum + PLANS[sub.planCode].monthlyPriceUsd, 0),
+      mrrEur: paying.reduce((sum, sub) => sum + PLANS[sub.planCode].monthlyPriceEur, 0),
       payingStudios: paying.length,
       trialToPaidPct: total === 0 ? 0 : Math.round((paying.length / total) * 1000) / 10,
       pastDue: input.subscriptions.filter((sub) => sub.status === "PAST_DUE").length,

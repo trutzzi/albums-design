@@ -65,16 +65,31 @@ describe("plan features by shoot", () => {
     return new SubscriptionPlanFeatureDirectory(projects, subscriptions).forProject(project.id.toString());
   }
 
-  it("watermarks trial proofs and exports", async () => {
-    assert.deepEqual(await setup("TRIAL"), { watermarkDrafts: true, watermarkExports: true });
+  it("watermarks trial proofs and exports, with 80 photos a shoot and no download links", async () => {
+    assert.deepEqual(await setup("TRIAL"), {
+      watermarkDrafts: true,
+      watermarkExports: true,
+      maxPhotosPerShoot: 80,
+      clientDownloadLinks: false,
+    });
   });
 
   it("watermarks Starter proofs but never its exports", async () => {
-    assert.deepEqual(await setup("STARTER"), { watermarkDrafts: true, watermarkExports: false });
+    assert.deepEqual(await setup("STARTER"), {
+      watermarkDrafts: true,
+      watermarkExports: false,
+      maxPhotosPerShoot: 80,
+      clientDownloadLinks: false,
+    });
   });
 
-  it("leaves the Studio plan clean", async () => {
-    assert.deepEqual(await setup("STUDIO"), { watermarkDrafts: false, watermarkExports: false });
+  it("leaves the Studio plan clean and unlimited", async () => {
+    assert.deepEqual(await setup("STUDIO"), {
+      watermarkDrafts: false,
+      watermarkExports: false,
+      maxPhotosPerShoot: null,
+      clientDownloadLinks: true,
+    });
   });
 
   it("never watermarks when the shoot cannot be found", async () => {
@@ -85,6 +100,8 @@ describe("plan features by shoot", () => {
     assert.deepEqual(await directory.forProject(UniqueEntityId.create().toString()), {
       watermarkDrafts: false,
       watermarkExports: false,
+      maxPhotosPerShoot: null,
+      clientDownloadLinks: true,
     });
   });
 });

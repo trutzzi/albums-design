@@ -54,6 +54,7 @@ async function main() {
     access: root.adminAccess,
     feedback: root.feedback,
     dashboard: root.adminDashboard,
+    plans: root.studioPlans,
   });
   registerMediaIngestionRoutes(app, root.mediaIngestion);
   registerPhotoIntelligenceRoutes(app, {

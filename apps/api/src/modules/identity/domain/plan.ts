@@ -3,10 +3,14 @@ export type PlanCode = "TRIAL" | "STARTER" | "STUDIO" | "STUDIO_PRO";
 export interface Plan {
   code: PlanCode;
   name: string;
-  monthlyPriceUsd: number;
+  monthlyPriceEur: number;
   /** Albums that may be generated per billing period. Infinity for unlimited. */
   albumsPerPeriod: number;
   seats: number;
+  /** Photos one shoot may hold. Infinity for unlimited. */
+  maxPhotosPerShoot: number;
+  /** May send clients a link to download the full-resolution photos. */
+  clientDownloadLinks: boolean;
   /** Client review pages show a watermark: proofs are for choosing, not for keeping. */
   watermarkDrafts: boolean;
   /** Exported PDFs carry one too — only the free trial, so it cannot stand in for a paid plan. */
@@ -19,9 +23,11 @@ export const PLANS: Record<PlanCode, Plan> = {
   TRIAL: {
     code: "TRIAL",
     name: "Free trial",
-    monthlyPriceUsd: 0,
+    monthlyPriceEur: 0,
     albumsPerPeriod: 1,
     seats: 1,
+    maxPhotosPerShoot: 80,
+    clientDownloadLinks: false,
     watermarkDrafts: true,
     watermarkExports: true,
     whiteLabelReview: false,
@@ -30,9 +36,11 @@ export const PLANS: Record<PlanCode, Plan> = {
   STARTER: {
     code: "STARTER",
     name: "Starter",
-    monthlyPriceUsd: 39,
+    monthlyPriceEur: 3,
     albumsPerPeriod: 4,
     seats: 1,
+    maxPhotosPerShoot: 80,
+    clientDownloadLinks: false,
     watermarkDrafts: true,
     watermarkExports: false,
     whiteLabelReview: false,
@@ -41,9 +49,11 @@ export const PLANS: Record<PlanCode, Plan> = {
   STUDIO: {
     code: "STUDIO",
     name: "Studio",
-    monthlyPriceUsd: 129,
+    monthlyPriceEur: 5,
     albumsPerPeriod: 15,
     seats: 3,
+    maxPhotosPerShoot: Number.POSITIVE_INFINITY,
+    clientDownloadLinks: true,
     watermarkDrafts: false,
     watermarkExports: false,
     whiteLabelReview: false,
@@ -52,15 +62,20 @@ export const PLANS: Record<PlanCode, Plan> = {
   STUDIO_PRO: {
     code: "STUDIO_PRO",
     name: "Studio Pro",
-    monthlyPriceUsd: 349,
+    monthlyPriceEur: 10,
     albumsPerPeriod: Number.POSITIVE_INFINITY,
     seats: Number.POSITIVE_INFINITY,
+    maxPhotosPerShoot: Number.POSITIVE_INFINITY,
+    clientDownloadLinks: true,
     watermarkDrafts: false,
     watermarkExports: false,
     whiteLabelReview: true,
     priorityProcessing: true,
   },
 };
+
+/** Where every new studio starts; only a platform admin moves it after that. */
+export const DEFAULT_PLAN: PlanCode = "STUDIO";
 
 export function planFor(code: PlanCode): Plan {
   return PLANS[code];

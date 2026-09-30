@@ -34,9 +34,6 @@ const resetPasswordSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
-const planSchema = z.object({ planCode: z.enum(["TRIAL", "STARTER", "STUDIO", "STUDIO_PRO"]) });
-const upgradeSchema = z.object({ planCode: z.enum(["STARTER", "STUDIO", "STUDIO_PRO"]) });
-
 export interface IdentityDependencies {
   administration: StudioAdministrationUseCase;
   register: RegisterUseCase;
@@ -104,29 +101,11 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
     if (result.isFailure) return sendError(reply, result.getError());
     return reply.code(204).send();
   });
-
-  app.put("/studios/:studioId/plan", async (request, reply) => {
-    const { studioId } = studioParams.parse(request.params);
-    const { planCode } = planSchema.parse(request.body);
-    // With a payment provider, a plan only changes when the provider confirms payment.
-    if (deps.billing.provider !== "none") {
-      return reply.code(409).send({ code: "CONFLICT", message: "Change plans through billing." });
-    }
-    const result = await deps.administration.changePlan(studioId, planCode);
-    if (result.isFailure) return sendError(reply, result.getError());
-    return result.getValue();
-  });
 }
 
 export function registerBillingRoutes(app: FastifyInstance, billing: BillingUseCase): void {
-  app.post("/studios/:studioId/billing/upgrade", async (request, reply) => {
-    const { studioId } = studioParams.parse(request.params);
-    const { planCode } = upgradeSchema.parse(request.body);
-    const result = await billing.upgrade({ studioId, planCode, role: request.role });
-    if (result.isFailure) return sendError(reply, result.getError());
-    return result.getValue();
-  });
-
+  // Studios never pick their own plan: new ones start on Starter and a platform admin
+  // moves them (see the admin routes). The portal stays for card and invoice details.
   app.post("/studios/:studioId/billing/portal", async (request, reply) => {
     const { studioId } = studioParams.parse(request.params);
     const result = await billing.portal({ studioId, role: request.role });
@@ -161,6 +140,7 @@ function toPlanDto(plan: (typeof PLANS)[keyof typeof PLANS]) {
     ...plan,
     albumsPerPeriod: Number.isFinite(plan.albumsPerPeriod) ? plan.albumsPerPeriod : null,
     seats: Number.isFinite(plan.seats) ? plan.seats : null,
+    maxPhotosPerShoot: Number.isFinite(plan.maxPhotosPerShoot) ? plan.maxPhotosPerShoot : null,
   };
 }
 

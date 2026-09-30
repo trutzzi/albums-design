@@ -1,5 +1,6 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { NotFoundError, type ApplicationError } from "../../../../../shared-kernel/errors";
+import { ConflictError, NotFoundError, type ApplicationError } from "../../../../../shared-kernel/errors";
+import type { PlanFeatureDirectory } from "../../../../../shared-kernel/plan-features";
 import type { ProjectRepository } from "../../../domain/project-repository";
 import type { PhotoRepository } from "../../../domain/photo-repository";
 import { Photo } from "../../../domain/photo";
@@ -27,6 +28,7 @@ export class RequestUploadUseCase {
     private readonly projects: ProjectRepository,
     private readonly photos: PhotoRepository,
     private readonly storage: ObjectStorage,
+    private readonly planFeatures?: PlanFeatureDirectory,
   ) {}
 
   async execute(command: RequestUploadCommand): Promise<Result<RequestUploadResult, ApplicationError>> {
@@ -39,6 +41,18 @@ export class RequestUploadUseCase {
     const studioId = UniqueEntityId.create(command.studioId);
     if (!project.studioId.equals(studioId)) {
       return Result.failure(new NotFoundError("Project", command.projectId));
+    }
+
+    const limit = (await this.planFeatures?.forProject(command.projectId))?.maxPhotosPerShoot ?? null;
+    if (limit !== null) {
+      // Uploads still in flight count too, or one large drop would slip past the limit
+      // before any of it is confirmed. Only small plans have a limit, so the list is short.
+      const existing = await this.photos.findByProjectId(projectId);
+      if (existing.length >= limit) {
+        return Result.failure(
+          new ConflictError(`Your plan allows ${limit} photos per shoot. Contact us to move to the Studio plan for unlimited photos.`),
+        );
+      }
     }
 
     const photo = Photo.requestUpload({

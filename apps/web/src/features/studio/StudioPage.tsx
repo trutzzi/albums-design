@@ -1,14 +1,11 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  changePlan,
   getStudioOverview,
   inviteMember,
   listPlans,
   openBillingPortal,
   removeMember,
-  upgradePlan,
   type PlanDto,
 } from "../../lib/api";
 import { useAuth } from "../../app/AuthContext";
@@ -22,9 +19,6 @@ export function StudioPage() {
   const { t, language, setLanguage } = useLanguage();
   const queryClient = useQueryClient();
   const [invite, setInvite] = useState({ name: "", email: "", role: "EDITOR" as const });
-  // Stripe sends the browser back here with ?billing=success|cancelled.
-  const [params] = useSearchParams();
-  const billingReturn = params.get("billing");
   const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
 
   const overview = useQuery({
@@ -44,19 +38,6 @@ export function StudioPage() {
 
   const dropMember = useMutation({
     mutationFn: (memberId: string) => removeMember(studioId, memberId),
-    onSuccess: invalidate,
-  });
-
-  const switchPlan = useMutation({
-    mutationFn: async (planCode: string) => {
-      // The trial is never sold; switching back to it only exists without a payment provider.
-      if (planCode === "TRIAL") {
-        await changePlan(studioId, planCode);
-        return;
-      }
-      const outcome = await upgradePlan(studioId, planCode);
-      if (outcome.kind === "redirect") window.location.assign(outcome.url);
-    },
     onSuccess: invalidate,
   });
 
@@ -132,22 +113,12 @@ export function StudioPage() {
             </button>
           )}
         </div>
-        {billingReturn === "success" && <p className="notice notice--good">{t("studio.billing.success")}</p>}
-        {billingReturn === "cancelled" && <p className="notice">{t("studio.billing.cancelledCheckout")}</p>}
+        <p className="muted">{t("studio.plan.contact")}</p>
         <div className="plan-cards">
           {(plans.data ?? []).map((plan) => (
-            <PlanCard
-              key={plan.code}
-              plan={plan}
-              current={plan.code === subscription.planCode}
-              // With Stripe the trial is only ever where a studio starts, never something to buy.
-              choosable={!(selling && plan.code === "TRIAL")}
-              pending={switchPlan.isPending}
-              onChoose={() => switchPlan.mutate(plan.code)}
-            />
+            <PlanCard key={plan.code} plan={plan} current={plan.code === subscription.planCode} />
           ))}
         </div>
-        {switchPlan.isError && <p className="error">{(switchPlan.error as Error).message}</p>}
         {manageBilling.isError && <p className="error">{(manageBilling.error as Error).message}</p>}
       </section>
 
@@ -243,20 +214,14 @@ export function StudioPage() {
   );
 }
 
-function PlanCard(props: {
-  plan: PlanDto;
-  current: boolean;
-  choosable: boolean;
-  pending: boolean;
-  onChoose: () => void;
-}) {
+function PlanCard(props: { plan: PlanDto; current: boolean }) {
   const { t } = useLanguage();
   const { plan } = props;
   return (
     <article className={`plan-card ${props.current ? "plan-card--current" : ""}`}>
       <h3>{plan.name}</h3>
       <p className="plan-card__price">
-        {plan.monthlyPriceUsd === 0 ? t("studio.plan.free") : t("studio.plan.price", { price: plan.monthlyPriceUsd })}
+        {t("studio.plan.price", { price: plan.monthlyPriceEur })}
       </p>
       <ul>
         <li>
@@ -265,23 +230,16 @@ function PlanCard(props: {
             : t("studio.plan.albums", { count: plan.albumsPerPeriod })}
         </li>
         <li>{plan.seats === null ? t("studio.plan.seatsUnlimited") : t("studio.plan.seats", { count: plan.seats })}</li>
+        <li>
+          {plan.maxPhotosPerShoot === null
+            ? t("studio.plan.photosUnlimited")
+            : t("studio.plan.photos", { count: plan.maxPhotosPerShoot })}
+        </li>
+        {plan.clientDownloadLinks && <li>{t("studio.plan.downloadLinks")}</li>}
         <li>{plan.watermarkDrafts ? t("studio.plan.watermarked") : t("studio.plan.noWatermark")}</li>
+        {plan.watermarkExports && <li>{t("studio.plan.watermarkedExports")}</li>}
       </ul>
-      {props.current ? (
-        <span className="chip">{t("studio.plan.current")}</span>
-      ) : (
-        props.choosable && (
-          <button
-            type="button"
-            className="button button--primary"
-            disabled={props.pending}
-            onClick={props.onChoose}
-            {...tip(t("tip.choosePlan"))}
-          >
-            {t("studio.plan.choose")}
-          </button>
-        )
-      )}
+      {props.current && <span className="chip">{t("studio.plan.current")}</span>}
     </article>
   );
 }

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "../../../../db/client";
 import type {
@@ -39,6 +39,11 @@ export class DrizzleStudioRepository implements StudioRepository {
     const [row] = await this.db.select().from(studios).where(eq(studios.apiKeyHash, hash)).limit(1);
     return row ? toStudio(row) : undefined;
   }
+
+  async listAll(): Promise<Studio[]> {
+    const rows = await this.db.select().from(studios).orderBy(desc(studios.createdAt));
+    return rows.map(toStudio);
+  }
 }
 
 export class DrizzleSubscriptionRepository implements SubscriptionRepository {
@@ -78,6 +83,11 @@ export class DrizzleSubscriptionRepository implements SubscriptionRepository {
       .where(eq(subscriptions.externalSubscriptionId, externalId))
       .limit(1);
     return row ? toSubscription(row) : undefined;
+  }
+
+  async listAll(): Promise<Subscription[]> {
+    const rows = await this.db.select().from(subscriptions);
+    return rows.map(toSubscription);
   }
 }
 
