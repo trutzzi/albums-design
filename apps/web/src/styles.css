@@ -1606,8 +1606,8 @@ a:focus-visible,
 /* ---- frame resize & swap ---- */
 .slot-handle {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   background: var(--surface);
   border: 2px solid var(--accent);
   border-radius: 3px;
@@ -1615,23 +1615,23 @@ a:focus-visible,
   touch-action: none;
 }
 .slot-handle--nw {
-  top: -7px;
-  left: -7px;
+  top: -5px;
+  left: -5px;
   cursor: nwse-resize;
 }
 .slot-handle--ne {
-  top: -7px;
-  right: -7px;
+  top: -5px;
+  right: -5px;
   cursor: nesw-resize;
 }
 .slot-handle--sw {
-  bottom: -7px;
-  left: -7px;
+  bottom: -5px;
+  left: -5px;
   cursor: nesw-resize;
 }
 .slot-handle--se {
-  bottom: -7px;
-  right: -7px;
+  bottom: -5px;
+  right: -5px;
   cursor: nwse-resize;
 }
 .slot--drop-target {
@@ -3824,4 +3824,89 @@ body.is-previewing {
 
 .review__book {
   margin-top: 10px;
+}
+
+/* ---- the selected photo's toolbar, above the spread ---- */
+.spread-block__toolbar:empty {
+  display: none;
+}
+.photo-toolbar {
+  /* Stays in view just under the sticky page header while you scroll through the spread. */
+  position: sticky;
+  top: calc(var(--editor-header-h, 0px) + 8px);
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.photo-toolbar__zoom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.photo-toolbar__slider {
+  flex: 1;
+  min-width: 60px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.photo-toolbar__percent {
+  min-width: 3.2em;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.photo-toolbar__icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.photo-toolbar__icon:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.photo-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.photo-toolbar__close {
+  font-size: 0.8rem;
+}
+.photo-toolbar__hint {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+}
+/* The photo being framed stands out; the rest of the spread steps back. */
+.spread--focus .slot:not(.slot--selected) img {
+  filter: brightness(0.62) saturate(0.7);
+  transition: filter 0.15s;
+}
+
+/* A spread jumped to from the strip or the album check lands below the sticky header. */
+.page.editor .spread-block {
+  scroll-margin-top: calc(var(--editor-header-h, 0px) + 12px);
 }

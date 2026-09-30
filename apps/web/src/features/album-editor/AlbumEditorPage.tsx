@@ -923,6 +923,18 @@ export function AlbumEditorPage() {
     [],
   );
 
+  // Keeps the slot selected — the tray's click-to-replace then applies to it — and shows
+  // the photos that are not in the album yet.
+  const replacePhoto = useCallback((spreadIndex: number, slotId: string) => {
+    setAddingToSpread(null);
+    setSelectedText(null);
+    setSelected({ spreadIndex, slotId });
+    setSidebarTab("photos");
+    setTrayShow("unused");
+    setTrayCategory("");
+    setTraySearch("");
+  }, []);
+
   const moveAsNewPhotoRef = useRef(movePhotoAcrossSpreadsAsNewPhoto.mutate);
   moveAsNewPhotoRef.current = movePhotoAcrossSpreadsAsNewPhoto.mutate;
   // A photo dragged in from another spread and dropped on the margins, not
@@ -977,6 +989,21 @@ export function AlbumEditorPage() {
       setSelected({ spreadIndex, slotId });
     }
   }, []);
+
+  // The header is sticky and its height changes as its buttons wrap; what sits just under
+  // it (the photo toolbar, a spread jumped to) needs to know how tall it is right now.
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => root.style.setProperty("--editor-header-h", `${header.offsetHeight}px`));
+    observer.observe(header);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--editor-header-h");
+    };
+  }, [album.data !== undefined]);
 
   const spreadCount = current?.spreads.length ?? 0;
   // Follows the scroll: whichever spread fills most of the window is the current one.
@@ -1108,7 +1135,7 @@ export function AlbumEditorPage() {
   return (
     <div className="page editor editor--with-strip">
       <GuidedTour id="editor" steps={EDITOR_TOUR} ready={current.spreads.length > 0} />
-      <header className="page__header">
+      <header className="page__header" ref={headerRef}>
         <div>
           <Link to={projectId ? `/projects/${projectId}` : "/"} className="muted back-link">
             {t("album.back")}
@@ -1245,7 +1272,7 @@ export function AlbumEditorPage() {
           )}
           <button
             type="button"
-            className="button button--primary"
+            className="button button--small button--primary"
             onClick={() => setConfirmingDelete(true)}
             {...tip(t("tip.deleteAlbum"))}
           >
@@ -1325,6 +1352,7 @@ export function AlbumEditorPage() {
                 onPickTemplate={pickTemplate}
                 onAddPhotoDrop={addPhotoDrop}
                 onRemovePhoto={removePhoto}
+                onReplacePhoto={replacePhoto}
                 onCloseTools={closeTools}
                 albumStyle={current.style ?? DEFAULT_STYLE}
                 selectedTextId={selectedText?.spreadIndex === spreadIndex ? selectedText.blockId : null}

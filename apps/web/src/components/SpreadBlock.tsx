@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
 import type {
   AlbumDTO,
   AlbumStyleDTO,
@@ -77,6 +77,8 @@ export interface SpreadBlockProps {
   /** A tray photo dropped on the margins/gutter, not a specific slot — grows the spread. */
   onAddPhotoDrop: (spreadIndex: number, photoId: string) => void;
   onRemovePhoto: (spreadIndex: number, slotId: string) => void;
+  /** Opens the tray on unused photos; the next one clicked replaces this slot's photo. */
+  onReplacePhoto: (spreadIndex: number, slotId: string) => void;
   /** Deselects the photo, which closes its floating tools. */
   onCloseTools: () => void;
   albumStyle: AlbumStyleDTO;
@@ -135,6 +137,7 @@ export const SpreadBlock = memo(function SpreadBlock({
   onPickTemplate,
   onAddPhotoDrop,
   onRemovePhoto,
+  onReplacePhoto,
   onCloseTools,
   albumStyle,
   selectedTextId,
@@ -206,6 +209,13 @@ export const SpreadBlock = memo(function SpreadBlock({
     (slotId: string) => onRemovePhoto(spreadIndex, slotId),
     [onRemovePhoto, spreadIndex],
   );
+
+  const replacePhoto = useCallback(
+    (slotId: string) => onReplacePhoto(spreadIndex, slotId),
+    [onReplacePhoto, spreadIndex],
+  );
+  // The selected photo's tools render into this bar, above the spread, instead of over the photos.
+  const [toolsHost, setToolsHost] = useState<HTMLDivElement | null>(null);
 
   const textSelect = useCallback(
     (blockId: string) => onTextSelect(spreadIndex, blockId),
@@ -367,6 +377,7 @@ export const SpreadBlock = memo(function SpreadBlock({
         </div>
       </div>
 
+      <div ref={setToolsHost} className="spread-block__toolbar" />
       <div data-tour={spreadIndex === 0 ? "editor-spread" : undefined}>
       <SpreadCanvas
         spreadIndex={spreadIndex}
@@ -394,6 +405,8 @@ export const SpreadBlock = memo(function SpreadBlock({
         onAddPhotoDrop={layoutLocked ? undefined : addPhotoDrop}
         onRemovePhoto={layoutLocked ? undefined : removePhoto}
         onCloseTools={locked ? undefined : onCloseTools}
+        onReplacePhoto={locked ? undefined : replacePhoto}
+        toolsHost={toolsHost}
         albumStyle={albumStyle}
         texts={spread.texts}
         selectedTextId={selectedTextId}

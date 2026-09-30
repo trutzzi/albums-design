@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   DEFAULT_STYLE,
   focusedBaseCrop,
@@ -110,6 +111,13 @@ export interface SpreadCanvasProps {
   onRemovePhoto?: ((slotId: string) => void) | undefined;
   /** Closes the floating tools (deselects the photo). Drawn as the ✕ at the end of the tools bar. */
   onCloseTools?: (() => void) | undefined;
+  /**
+   * Where the selected photo's tools are drawn: a bar outside the spread (see SpreadBlock),
+   * so they never cover another photo or the line between two of them.
+   */
+  toolsHost?: HTMLElement | null | undefined;
+  /** Opens the tray on the photos not yet in the album, to pick one for this slot. */
+  onReplacePhoto?: ((slotId: string) => void) | undefined;
   /** Paper colour, spacing and keylines. Absent means the default style. */
   albumStyle?: AlbumStyleDTO | undefined;
   texts?: TextBlockDTO[] | undefined;
@@ -162,6 +170,8 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   onAddPhotoDrop,
   onRemovePhoto,
   onCloseTools,
+  toolsHost,
+  onReplacePhoto,
   albumStyle = DEFAULT_STYLE,
   texts,
   selectedTextId,
@@ -222,7 +232,11 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   }, [template, placements, albumStyle.spacing]);
 
   // Recomputed from what is on screen, so a divider follows the photos while it is dragged.
-  const dividers = useMemo(() => (onFramesChange ? findDividers(allRects) : []), [onFramesChange, allRects]);
+  // Hidden while a photo is being framed: its own handles and tools are what matter then.
+  const dividers = useMemo(
+    () => (onFramesChange && !selectedSlotId ? findDividers(allRects) : []),
+    [onFramesChange, selectedSlotId, allRects],
+  );
 
   if (!template) return <div className="spread spread--missing">{t("spread.unknownLayout")}</div>;
 
@@ -238,7 +252,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
     <div
       ref={spreadRef}
       className={`spread ${spreadDropActive ? "spread--drop-active" : ""} ${
-        toolsOpen ? "spread--tools-open" : ""
+        toolsOpen ? "spread--tools-open spread--focus" : ""
       }`}
       style={{ aspectRatio: String(aspectRatio), background: albumStyle.background }}
       onDragOver={
@@ -598,62 +612,82 @@ export const SpreadCanvas = memo(function SpreadCanvas({
           </div>
         );
 
-        if (editable && url) {
-          toolsOverlay = (
-            <div
-              key="slot-tools-overlay"
-              className="slot-tools-anchor"
-              style={{
-                left: `${rect.x * 100}%`,
-                top: `${rect.y * 100}%`,
-                width: `${rect.width * 100}%`,
-                height: `${rect.height * 100}%`,
-              }}
-            >
-              <div className="slot-tools" onClick={(event) => event.stopPropagation()}>
+        if (editable && url && toolsHost) {
+          const zoom = imageAspect !== undefined ? zoomOf(crop, imageAspect, slotAspect) : 1;
+          toolsOverlay = createPortal(
+            <div className="photo-toolbar" role="toolbar" aria-label={t("spread.tools.label")}>
+              <div className="photo-toolbar__zoom">
+                <button
+                  type="button"
+                  className="photo-toolbar__icon"
+                  aria-label={t("spread.zoomOut")}
+                  title={t("spread.zoomOut")}
+                  disabled={zoom <= MIN_ZOOM + 0.001}
+                  onClick={() => applyZoom(zoom / 1.15, true)}
+                >
+                  −
+                </button>
                 <input
                   id={`zoom-${slot.id}`}
-                  className="slot-tools__zoom"
+                  className="photo-toolbar__slider"
                   type="range"
                   min={MIN_ZOOM}
                   max={MAX_ZOOM}
                   step={0.02}
-                  value={imageAspect !== undefined ? zoomOf(crop, imageAspect, slotAspect) : 1}
+                  value={zoom}
                   aria-label={t("spread.zoom")}
                   onPointerDown={(event) => event.stopPropagation()}
                   onChange={(event) => applyZoom(Number(event.target.value), false)}
-                  onPointerUp={(event) =>
-                    applyZoom(Number((event.target as HTMLInputElement).value), true)
-                  }
+                  onPointerUp={(event) => applyZoom(Number((event.target as HTMLInputElement).value), true)}
+                  onKeyUp={(event) => applyZoom(Number((event.target as HTMLInputElement).value), true)}
                 />
                 <button
                   type="button"
-                  className={`slot-tools__button ${treatment === "BLACK_WHITE" ? "is-active" : ""}`}
-                  title={t("spread.bwToggle.title")}
-                  onClick={() =>
-                    onTreatmentChange?.(
-                      slot.id,
-                      treatment === "BLACK_WHITE" ? "COLOR" : "BLACK_WHITE",
-                    )
-                  }
+                  className="photo-toolbar__icon"
+                  aria-label={t("spread.zoomIn")}
+                  title={t("spread.zoomIn")}
+                  disabled={zoom >= MAX_ZOOM - 0.001}
+                  onClick={() => applyZoom(zoom * 1.15, true)}
                 >
-                  {t("spread.treatment.bw")}
+                  +
                 </button>
+                <span className="photo-toolbar__percent">{Math.round(zoom * 100)}%</span>
+              </div>
+              <div className="photo-toolbar__actions">
                 <button
                   type="button"
-                  className="slot-tools__button"
-                  title={t("spread.resetFraming.title")}
+                  className="button button--small"
+                  title={t("spread.fit.title")}
                   onClick={() =>
                     imageAspect !== undefined &&
                     onCropChange?.(slot.id, focusedBaseCrop(imageAspect, slotAspect, focus), true)
                   }
                 >
-                  {t("spread.resetFraming")}
+                  {t("spread.fit")}
                 </button>
+                <button
+                  type="button"
+                  className={`button button--small ${treatment === "BLACK_WHITE" ? "button--primary" : ""}`}
+                  title={t("spread.bwToggle.title")}
+                  aria-pressed={treatment === "BLACK_WHITE"}
+                  onClick={() => onTreatmentChange?.(slot.id, treatment === "BLACK_WHITE" ? "COLOR" : "BLACK_WHITE")}
+                >
+                  {t("spread.treatment.bw")}
+                </button>
+                {onReplacePhoto && (
+                  <button
+                    type="button"
+                    className="button button--small"
+                    title={t("spread.replace.title")}
+                    onClick={() => onReplacePhoto(slot.id)}
+                  >
+                    {t("spread.replace")}
+                  </button>
+                )}
                 {onRemovePhoto && (
                   <button
                     type="button"
-                    className="slot-tools__button slot-tools__button--danger"
+                    className="button button--small button--danger"
                     title={
                       placements.length > 1
                         ? t("spread.removePhoto.title.canRemove")
@@ -668,7 +702,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                 {onCloseTools && (
                   <button
                     type="button"
-                    className="slot-tools__button slot-tools__close"
+                    className="photo-toolbar__icon photo-toolbar__close"
                     title={t("spread.closeTools")}
                     aria-label={t("spread.closeTools")}
                     onClick={onCloseTools}
@@ -677,7 +711,9 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                   </button>
                 )}
               </div>
-            </div>
+              <p className="photo-toolbar__hint">{t("spread.tools.hint")}</p>
+            </div>,
+            toolsHost,
           );
         }
 
