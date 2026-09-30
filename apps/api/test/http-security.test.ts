@@ -67,6 +67,8 @@ describe("HTTP security boundary", () => {
     app.post("/albums/:albumId/comments/:commentId/resolve", async () => ({ ok: true }));
     app.get("/review/:token", async () => ({ ok: true }));
     app.get("/plans", async () => ({ ok: true }));
+    app.post("/auth/verify-email", async () => ({ ok: true }));
+    app.post("/auth/resend-confirmation", async () => ({ ok: true }));
     await app.ready();
   });
 
@@ -162,6 +164,14 @@ describe("HTTP security boundary", () => {
     assert.equal((await app.inject({ method: "POST", url: "/studios" })).statusCode, 200);
     assert.equal((await app.inject({ method: "GET", url: "/review/sometoken" })).statusCode, 200);
     assert.equal((await app.inject({ method: "GET", url: "/plans" })).statusCode, 200);
+  });
+
+  it("lets the emailed confirmation link and its resend in without a login", async () => {
+    // Opened from an inbox, before the account has any credential to send.
+    for (const url of ["/auth/verify-email", "/auth/resend-confirmation"]) {
+      const response = await app.inject({ method: "POST", url, payload: {} });
+      assert.equal(response.statusCode, 200, url);
+    }
   });
 
   it("returns 404 for a project that does not exist at all", async () => {

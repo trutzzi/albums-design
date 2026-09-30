@@ -12,7 +12,8 @@ import "./request-context";
 const PUBLIC_EXACT = ["/health", "/plans", "/layout-templates", "/print-profiles"];
 const PUBLIC_PREFIXES = ["/review/", "/pick/", "/download/", "/media/"];
 /**
- * Signing up, logging in and resetting a password are how a request earns a credential.
+ * Signing up, confirming the email, logging in and resetting a password are how a
+ * request earns a credential.
  * The billing webhook comes from the payment provider, which proves itself by signature.
  */
 const PUBLIC_AUTH_POSTS = [
@@ -20,6 +21,8 @@ const PUBLIC_AUTH_POSTS = [
   "/auth/login",
   "/auth/forgot-password",
   "/auth/reset-password",
+  "/auth/verify-email",
+  "/auth/resend-confirmation",
   "/billing/webhook",
 ];
 
