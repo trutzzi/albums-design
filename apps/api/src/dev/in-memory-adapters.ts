@@ -359,6 +359,9 @@ export class InMemoryStudioRepository implements StudioRepository {
   async findByApiKeyHash(hash: string) {
     return [...this.items.values()].find((studio) => studio.apiKeyHash === hash);
   }
+  async listAll() {
+    return [...this.items.values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
 }
 
 export class InMemorySubscriptionRepository implements SubscriptionRepository {
@@ -371,6 +374,9 @@ export class InMemorySubscriptionRepository implements SubscriptionRepository {
   }
   async findByExternalSubscriptionId(externalId: string) {
     return [...this.items.values()].find((item) => item.externalSubscriptionId === externalId);
+  }
+  async listAll() {
+    return [...this.items.values()];
   }
 }
 

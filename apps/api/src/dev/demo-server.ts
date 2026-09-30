@@ -19,6 +19,7 @@ import {
   AdminAccess,
   AdminDashboardUseCase,
   FeedbackUseCase,
+  StudioPlansUseCase,
 } from "../modules/platform-admin/application/use-cases/admin.use-cases";
 import { NoBillingGateway } from "../modules/identity/application/ports/billing-gateway";
 import { registerMediaIngestionRoutes } from "../modules/media-ingestion/interface/http/routes";
@@ -490,6 +491,7 @@ async function main() {
       },
       permanentStorage,
     ),
+    plans: new StudioPlansUseCase(studios, subscriptions),
   });
   const studioContacts = new IdentityStudioContacts(projects, members, studios);
   const clientContacts = new ProjectClientContactDirectory(projects, albums);

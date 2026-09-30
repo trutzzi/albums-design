@@ -3,7 +3,14 @@ import os from "node:os";
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import { NotFoundError, ValidationError, type ApplicationError } from "../../../../shared-kernel/errors";
 import type { EmailSender } from "../../../../shared-kernel/email";
-import type { StudioMemberRepository, StudioRepository } from "../../../identity/domain/repositories";
+import type {
+  StudioMemberRepository,
+  StudioRepository,
+  SubscriptionRepository,
+} from "../../../identity/domain/repositories";
+import { PLANS, type PlanCode } from "../../../identity/domain/plan";
+import type { Subscription } from "../../../identity/domain/subscription";
+import type { Studio } from "../../../identity/domain/studio";
 import { computeBusinessStats, type BusinessStats } from "../../domain/business-stats";
 import {
   Feedback,
@@ -177,6 +184,61 @@ function toView(item: Feedback, studioName: string | undefined): FeedbackView {
     adminNote: props.adminNote,
     createdAt: props.createdAt.toISOString(),
     updatedAt: props.updatedAt.toISOString(),
+  };
+}
+
+export interface StudioPlanView {
+  studioId: string;
+  name: string;
+  ownerEmail: string;
+  createdAt: string;
+  planCode: PlanCode | null;
+  status: string | null;
+  albumsUsed: number;
+  /** `null` means unlimited. */
+  albumsIncluded: number | null;
+  periodEnd: string | null;
+}
+
+/**
+ * Plans are an admin decision: every studio starts on Starter, and only the people who
+ * run AlbumFlow move a studio to another plan (after payment is arranged with them).
+ */
+export class StudioPlansUseCase {
+  constructor(
+    private readonly studios: StudioRepository,
+    private readonly subscriptions: SubscriptionRepository,
+  ) {}
+
+  async list(): Promise<StudioPlanView[]> {
+    const [studios, subscriptions] = await Promise.all([this.studios.listAll(), this.subscriptions.listAll()]);
+    const byStudio = new Map(subscriptions.map((sub) => [sub.studioId.toString(), sub]));
+    return studios.map((studio) => toStudioPlanView(studio, byStudio.get(studio.id.toString())));
+  }
+
+  async assign(studioId: string, planCode: PlanCode): Promise<Result<StudioPlanView, ApplicationError>> {
+    if (!PLANS[planCode]) return Result.failure(new ValidationError(`Unknown plan ${planCode}.`));
+    const id = UniqueEntityId.create(studioId);
+    const [studio, subscription] = await Promise.all([this.studios.findById(id), this.subscriptions.findByStudioId(id)]);
+    if (!studio || !subscription) return Result.failure(new NotFoundError("Studio", studioId));
+    subscription.assignPlan(planCode);
+    await this.subscriptions.save(subscription);
+    return Result.success(toStudioPlanView(studio, subscription));
+  }
+}
+
+function toStudioPlanView(studio: Studio, subscription: Subscription | undefined): StudioPlanView {
+  return {
+    studioId: studio.id.toString(),
+    name: studio.name,
+    ownerEmail: studio.ownerEmail,
+    createdAt: studio.createdAt.toISOString(),
+    planCode: subscription?.planCode ?? null,
+    status: subscription?.status ?? null,
+    albumsUsed: subscription?.albumsUsed ?? 0,
+    albumsIncluded:
+      subscription && Number.isFinite(subscription.plan.albumsPerPeriod) ? subscription.plan.albumsPerPeriod : null,
+    periodEnd: subscription?.periodEnd.toISOString() ?? null,
   };
 }
 

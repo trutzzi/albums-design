@@ -3,7 +3,7 @@ export type PlanCode = "TRIAL" | "STARTER" | "STUDIO" | "STUDIO_PRO";
 export interface Plan {
   code: PlanCode;
   name: string;
-  monthlyPriceUsd: number;
+  monthlyPriceEur: number;
   /** Albums that may be generated per billing period. Infinity for unlimited. */
   albumsPerPeriod: number;
   seats: number;
@@ -19,7 +19,7 @@ export const PLANS: Record<PlanCode, Plan> = {
   TRIAL: {
     code: "TRIAL",
     name: "Free trial",
-    monthlyPriceUsd: 0,
+    monthlyPriceEur: 0,
     albumsPerPeriod: 1,
     seats: 1,
     watermarkDrafts: true,
@@ -30,7 +30,7 @@ export const PLANS: Record<PlanCode, Plan> = {
   STARTER: {
     code: "STARTER",
     name: "Starter",
-    monthlyPriceUsd: 3,
+    monthlyPriceEur: 3,
     albumsPerPeriod: 4,
     seats: 1,
     watermarkDrafts: true,
@@ -41,7 +41,7 @@ export const PLANS: Record<PlanCode, Plan> = {
   STUDIO: {
     code: "STUDIO",
     name: "Studio",
-    monthlyPriceUsd: 5,
+    monthlyPriceEur: 5,
     albumsPerPeriod: 15,
     seats: 3,
     watermarkDrafts: false,
@@ -52,7 +52,7 @@ export const PLANS: Record<PlanCode, Plan> = {
   STUDIO_PRO: {
     code: "STUDIO_PRO",
     name: "Studio Pro",
-    monthlyPriceUsd: 10,
+    monthlyPriceEur: 10,
     albumsPerPeriod: Number.POSITIVE_INFINITY,
     seats: Number.POSITIVE_INFINITY,
     watermarkDrafts: false,

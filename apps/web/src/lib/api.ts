@@ -429,14 +429,14 @@ export interface StudioOverview {
     hasBillingAccount: boolean;
   };
   members: { id: string; name: string; email: string; role: string; accepted: boolean }[];
-  /** "none": plans switch freely (local, demo). "stripe": paid plans go through checkout. */
+  /** "stripe": the studio can open the payment provider's portal for its card and invoices. */
   billing: { provider: "none" | "stripe" };
 }
 
 export interface PlanDto {
   code: "TRIAL" | "STARTER" | "STUDIO" | "STUDIO_PRO";
   name: string;
-  monthlyPriceUsd: number;
+  monthlyPriceEur: number;
   /** `null` means unlimited. */
   albumsPerPeriod: number | null;
   seats: number | null;
@@ -446,13 +446,6 @@ export interface PlanDto {
 
 export function listPlans(): Promise<PlanDto[]> {
   return request("/plans");
-}
-
-export type UpgradeOutcome = { kind: "changed" } | { kind: "redirect"; url: string };
-
-/** Paid plans: straight switch without a payment provider, otherwise a Stripe page to go to. */
-export function upgradePlan(studioId: string, planCode: string): Promise<UpgradeOutcome> {
-  return request(`/studios/${studioId}/billing/upgrade`, { method: "POST", body: JSON.stringify({ planCode }) });
 }
 
 export function openBillingPortal(studioId: string): Promise<{ url: string }> {
@@ -472,13 +465,6 @@ export function inviteMember(
 
 export function removeMember(studioId: string, memberId: string): Promise<void> {
   return request(`/studios/${studioId}/members/${memberId}`, { method: "DELETE" });
-}
-
-export function changePlan(studioId: string, planCode: string): Promise<StudioOverview> {
-  return request(`/studios/${studioId}/plan`, {
-    method: "PUT",
-    body: JSON.stringify({ planCode }),
-  });
 }
 
 // --- AI status ---------------------------------------------------------
@@ -743,7 +729,7 @@ export interface BusinessStats {
   studios: { total: number; new7d: number; new30d: number };
   activeStudios: { d7: number; d30: number };
   revenue: {
-    mrrUsd: number;
+    mrrEur: number;
     payingStudios: number;
     trialToPaidPct: number;
     pastDue: number;
@@ -799,4 +785,26 @@ export interface SystemStats {
 
 export function getSystemStats(): Promise<SystemStats> {
   return request("/admin/stats/system");
+}
+
+export interface AdminStudio {
+  studioId: string;
+  name: string;
+  ownerEmail: string;
+  createdAt: string;
+  planCode: PlanDto["code"] | null;
+  status: string | null;
+  albumsUsed: number;
+  /** `null` means unlimited. */
+  albumsIncluded: number | null;
+  periodEnd: string | null;
+}
+
+export function listAdminStudios(): Promise<AdminStudio[]> {
+  return request("/admin/studios");
+}
+
+/** Plans are changed only here, by a platform admin. */
+export function setStudioPlan(studioId: string, planCode: PlanDto["code"]): Promise<AdminStudio> {
+  return request(`/admin/studios/${studioId}/plan`, { method: "PUT", body: JSON.stringify({ planCode }) });
 }

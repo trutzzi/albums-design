@@ -34,6 +34,7 @@ import { StudioAdministrationUseCase } from "../src/modules/identity/application
 import { SubscriptionQuotaPolicy } from "../src/modules/identity/application/subscription-quota-policy";
 import { MM_TO_POINTS } from "../src/modules/export-print/domain/print-profile";
 
+import { PLANS } from "../src/modules/identity/domain/plan";
 import {
   InMemoryAlbumRepository,
   InMemoryExportJobRepository,
@@ -344,13 +345,15 @@ describe("upload → analysis → album → review → export", () => {
       });
     }
 
-    // The trial plan covers exactly one album.
-    const first = await fresh.generateAlbum.execute({ projectId: project.id.toString() });
-    assert.ok(first.isSuccess, "the first album should be allowed on trial");
+    // New studios start on Starter, which covers a fixed number of albums a month.
+    for (let album = 1; album <= PLANS.STARTER.albumsPerPeriod; album++) {
+      const allowed = await fresh.generateAlbum.execute({ projectId: project.id.toString() });
+      assert.ok(allowed.isSuccess, `album ${album} should be allowed on Starter`);
+    }
 
-    const second = await fresh.generateAlbum.execute({ projectId: project.id.toString() });
-    assert.ok(second.isFailure, "the second album should hit the trial quota");
-    assert.equal(second.getError().code, "CONFLICT");
-    assert.match(second.getError().message, /albums per month|quota/i);
+    const over = await fresh.generateAlbum.execute({ projectId: project.id.toString() });
+    assert.ok(over.isFailure, "the next album should hit the Starter quota");
+    assert.equal(over.getError().code, "CONFLICT");
+    assert.match(over.getError().message, /albums per month|quota/i);
   });
 });

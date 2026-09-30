@@ -6,6 +6,7 @@ import type {
   AdminAccess,
   AdminDashboardUseCase,
   FeedbackUseCase,
+  StudioPlansUseCase,
 } from "../../application/use-cases/admin.use-cases";
 import "../../../../interface/request-context";
 
@@ -20,11 +21,13 @@ const submitSchema = z.object({
 });
 const listSchema = z.object({ status: statuses.optional(), kind: kinds.optional() });
 const triageSchema = z.object({ status: statuses.optional(), adminNote: z.string().max(4000).optional() });
+const planSchema = z.object({ planCode: z.enum(["TRIAL", "STARTER", "STUDIO", "STUDIO_PRO"]) });
 
 export interface PlatformAdminDependencies {
   access: AdminAccess;
   feedback: FeedbackUseCase;
   dashboard: AdminDashboardUseCase;
+  plans: StudioPlansUseCase;
 }
 
 export function registerPlatformAdminRoutes(app: FastifyInstance, deps: PlatformAdminDependencies): void {
@@ -63,6 +66,16 @@ export function registerPlatformAdminRoutes(app: FastifyInstance, deps: Platform
 
     admin.get("/admin/stats/business", async () => deps.dashboard.business());
     admin.get("/admin/stats/system", async () => deps.dashboard.system());
+
+    admin.get("/admin/studios", async () => deps.plans.list());
+
+    admin.put("/admin/studios/:studioId/plan", async (request, reply) => {
+      const { studioId } = z.object({ studioId: z.string().uuid() }).parse(request.params);
+      const { planCode } = planSchema.parse(request.body);
+      const result = await deps.plans.assign(studioId, planCode);
+      if (result.isFailure) return sendError(reply, result.getError());
+      return result.getValue();
+    });
   });
 }
 

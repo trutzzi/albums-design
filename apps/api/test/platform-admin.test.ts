@@ -11,11 +11,13 @@ import {
   AdminAccess,
   AdminDashboardUseCase,
   FeedbackUseCase,
+  StudioPlansUseCase,
 } from "../src/modules/platform-admin/application/use-cases/admin.use-cases";
 import { registerPlatformAdminRoutes } from "../src/modules/platform-admin/interface/http/routes";
 import { Studio } from "../src/modules/identity/domain/studio";
 import { StudioMember } from "../src/modules/identity/domain/studio-member";
 import { Subscription } from "../src/modules/identity/domain/subscription";
+import { PLANS } from "../src/modules/identity/domain/plan";
 import type { EmailMessage } from "../src/shared-kernel/email";
 import "../src/interface/request-context";
 import {
@@ -82,7 +84,7 @@ describe("business stats", () => {
   });
 
   it("sums monthly revenue from paying, active plans only", () => {
-    assert.equal(stats.revenue.mrrUsd, 129 + 39, "a past-due Starter is not revenue");
+    assert.equal(stats.revenue.mrrEur, PLANS.STUDIO.monthlyPriceEur + PLANS.STARTER.monthlyPriceEur, "a past-due Starter is not revenue");
     assert.equal(stats.revenue.payingStudios, 2);
     assert.equal(stats.revenue.trialToPaidPct, 50);
     assert.equal(stats.revenue.pastDue, 1);
@@ -143,7 +145,7 @@ describe("feedback and the admin area", () => {
     const subscriptions = new InMemorySubscriptionRepository();
     const { studio } = Studio.create({ name: "Golden Hour", ownerEmail: "owner@studio.test" });
     await studios.save(studio);
-    await subscriptions.save(Subscription.startTrial(studio.id));
+    await subscriptions.save(Subscription.startStarter(studio.id));
     const photographer = StudioMember.signUp({ studioId: studio.id, email: "owner@studio.test", name: "Ana", passwordHash: "x" });
     const admin = StudioMember.signUp({ studioId: studio.id, email: "Boss@AlbumFlow.test", name: "Boss", passwordHash: "x" });
     await members.save(photographer);
@@ -185,9 +187,17 @@ describe("feedback and the admin area", () => {
         new RequestMetrics(),
         { mode: "demo", storage: "none", email: "log", billing: "none", vision: "heuristic", errorMonitoring: false },
       ),
+      plans: new StudioPlansUseCase(studios, subscriptions),
     });
     await server.ready();
-    return { server, sent, photographerId: photographer.id.toString(), adminId: admin.id.toString() };
+    return {
+      server,
+      sent,
+      subscriptions,
+      studioId: studio.id.toString(),
+      photographerId: photographer.id.toString(),
+      adminId: admin.id.toString(),
+    };
   }
 
   it("takes feedback from a photographer and emails the admins", async () => {
@@ -245,5 +255,26 @@ describe("feedback and the admin area", () => {
 
     const system = await server.inject({ method: "GET", url: "/admin/stats/system", headers: { "x-member": adminId } });
     assert.equal(system.json().dependencies.database.ok, true);
+  });
+
+  it("lets only an admin move a studio to another plan", async () => {
+    const { server, subscriptions, studioId, photographerId, adminId } = await app();
+    const url = `/admin/studios/${studioId}/plan`;
+
+    const denied = await server.inject({ method: "PUT", url, headers: { "x-member": photographerId }, payload: { planCode: "STUDIO_PRO" } });
+    assert.equal(denied.statusCode, 404);
+
+    const list = await server.inject({ method: "GET", url: "/admin/studios", headers: { "x-member": adminId } });
+    assert.equal(list.json()[0].planCode, "STARTER", "new studios start on Starter");
+
+    const changed = await server.inject({ method: "PUT", url, headers: { "x-member": adminId }, payload: { planCode: "STUDIO_PRO" } });
+    assert.equal(changed.statusCode, 200);
+    assert.equal(changed.json().planCode, "STUDIO_PRO");
+    assert.equal(changed.json().albumsIncluded, null);
+    assert.equal(subscriptions.items.get(studioId)?.planCode, "STUDIO_PRO");
+    assert.equal(subscriptions.items.get(studioId)?.status, "ACTIVE");
+
+    const unknown = await server.inject({ method: "PUT", url, headers: { "x-member": adminId }, payload: { planCode: "GOLD" } });
+    assert.notEqual(unknown.statusCode, 200);
   });
 });

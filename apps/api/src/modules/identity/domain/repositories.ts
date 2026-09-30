@@ -7,6 +7,8 @@ export interface StudioRepository {
   save(studio: Studio): Promise<void>;
   findById(id: UniqueEntityId): Promise<Studio | undefined>;
   findByApiKeyHash(hash: string): Promise<Studio | undefined>;
+  /** Every studio, newest first — the platform admin's list. */
+  listAll(): Promise<Studio[]>;
 }
 
 export interface SubscriptionRepository {
@@ -14,6 +16,7 @@ export interface SubscriptionRepository {
   findByStudioId(studioId: UniqueEntityId): Promise<Subscription | undefined>;
   /** The payment provider's webhooks name its subscription, not our studio. */
   findByExternalSubscriptionId(externalId: string): Promise<Subscription | undefined>;
+  listAll(): Promise<Subscription[]>;
 }
 
 export interface StudioMemberRepository {

@@ -19,13 +19,27 @@ export class Subscription extends AggregateRoot<SubscriptionProps> {
     super(props, id);
   }
 
+  /** Every new studio starts here; after that only a platform admin moves it to another plan. */
+  static startStarter(studioId: UniqueEntityId, id?: UniqueEntityId): Subscription {
+    return Subscription.start(studioId, "STARTER", "ACTIVE", id);
+  }
+
   static startTrial(studioId: UniqueEntityId, id?: UniqueEntityId): Subscription {
+    return Subscription.start(studioId, "TRIAL", "TRIALING", id);
+  }
+
+  private static start(
+    studioId: UniqueEntityId,
+    planCode: PlanCode,
+    status: SubscriptionStatus,
+    id?: UniqueEntityId,
+  ): Subscription {
     const now = new Date();
     return new Subscription(
       {
         studioId,
-        planCode: "TRIAL",
-        status: "TRIALING",
+        planCode,
+        status,
         periodStart: now,
         periodEnd: addMonth(now),
         albumsUsed: 0,
@@ -103,7 +117,7 @@ export class Subscription extends AggregateRoot<SubscriptionProps> {
     if (this.props.albumsUsed >= this.plan.albumsPerPeriod) {
       return {
         allowed: false,
-        reason: `The ${this.plan.name} plan covers ${this.plan.albumsPerPeriod} albums per month. Upgrade or buy an overage pack.`,
+        reason: `The ${this.plan.name} plan covers ${this.plan.albumsPerPeriod} albums per month. Contact us to move to a bigger plan.`,
       };
     }
     return { allowed: true };
@@ -117,6 +131,15 @@ export class Subscription extends AggregateRoot<SubscriptionProps> {
   changePlan(planCode: PlanCode): void {
     this.props.planCode = planCode;
     if (this.props.status === "TRIALING") this.props.status = "ACTIVE";
+  }
+
+  /**
+   * A platform admin's decision stands on its own: the studio is on that plan and in good
+   * standing from now, whatever state billing had left it in.
+   */
+  assignPlan(planCode: PlanCode): void {
+    this.props.planCode = planCode;
+    this.props.status = planCode === "TRIAL" ? "TRIALING" : "ACTIVE";
   }
 
   linkExternal(params: { customerId: string; subscriptionId: string }): void {
