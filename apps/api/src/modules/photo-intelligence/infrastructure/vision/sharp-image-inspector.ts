@@ -24,10 +24,14 @@ export class SharpImageInspector implements ImageInspector {
       .toBuffer({ resolveWithObject: true });
 
     const energy = gradientMagnitude(grey, info.width, info.height);
+    // EXIF orientations 5–8 are stored on their side: the upright photo swaps the axes.
+    const sideways = (metadata.orientation ?? 1) >= 5;
+    const storedWidth = metadata.width ?? info.width;
+    const storedHeight = metadata.height ?? info.height;
 
     return {
-      width: metadata.width ?? info.width,
-      height: metadata.height ?? info.height,
+      width: sideways ? storedHeight : storedWidth,
+      height: sideways ? storedWidth : storedHeight,
       sharpness: scoreSharpness(laplacianVariance(grey, info.width, info.height)),
       exposure: scoreExposure(grey),
       composition: scoreComposition(energy, info.width, info.height),
@@ -35,8 +39,48 @@ export class SharpImageInspector implements ImageInspector {
       skinToneRatio: skinToneRatio(rgb),
       capturedAt: parseExifDate(metadata.exif),
       histogram: colorHistogram(rgb),
+      focus: await subjectFocus(image),
     };
   }
+}
+
+const FOCUS_EDGE = 160;
+
+/**
+ * sharp's "attention" strategy scores regions by skin tone, saturation and luminance
+ * contrast — faces and people win — and reports the winning point in the resized image
+ * before its crop. It runs on an already-decoded raw copy: straight from a JPEG, sharp
+ * decodes at a reduced size and reports the point in that frame instead.
+ */
+export async function subjectFocus(image: sharp.Sharp): Promise<{ x: number; y: number }> {
+  try {
+    const { data, info: raw } = await image
+      .clone()
+      .rotate()
+      .resize(FOCUS_EDGE * 2, FOCUS_EDGE * 2, { fit: "inside" })
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const { info } = await sharp(data, { raw: { width: raw.width, height: raw.height, channels: raw.channels } })
+      .resize(FOCUS_EDGE, FOCUS_EDGE, { fit: "cover", position: sharp.strategy.attention })
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const attention = info as typeof info & { attentionX?: number; attentionY?: number };
+    const preWidth = info.width - (info.cropOffsetLeft ?? 0);
+    const preHeight = info.height - (info.cropOffsetTop ?? 0);
+    if (attention.attentionX === undefined || attention.attentionY === undefined || !preWidth || !preHeight) {
+      return { x: 0.5, y: 0.5 };
+    }
+    return {
+      x: clampUnit(attention.attentionX / preWidth),
+      y: clampUnit(attention.attentionY / preHeight),
+    };
+  } catch {
+    return { x: 0.5, y: 0.5 };
+  }
+}
+
+function clampUnit(value: number): number {
+  return Math.round(Math.min(1, Math.max(0, value)) * 1000) / 1000;
 }
 
 const HISTOGRAM_BUCKETS_PER_CHANNEL = 8;

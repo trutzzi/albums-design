@@ -29,6 +29,8 @@ export class DrizzlePhotoAnalysisRepository implements PhotoAnalysisRepository {
       capturedAt: analysis.capturedAt ?? null,
       analyzedAt: analysis.analyzedAt,
       histogram: analysis.histogram ?? null,
+      focusX: analysis.focus?.x ?? null,
+      focusY: analysis.focus?.y ?? null,
     };
 
     await this.db
@@ -79,6 +81,7 @@ function toDomain(row: typeof photoAnalyses.$inferSelect): PhotoAnalysis {
       capturedAt: row.capturedAt ?? undefined,
       analyzedAt: row.analyzedAt,
       histogram: row.histogram ?? undefined,
+      focus: row.focusX !== null && row.focusY !== null ? { x: row.focusX, y: row.focusY } : undefined,
     },
     UniqueEntityId.create(row.id),
   );

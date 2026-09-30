@@ -30,4 +30,7 @@ export const photoAnalyses = pgTable("photo_analyses", {
   engineVersion: varchar("engine_version", { length: 32 }).notNull().default("v1"),
   // Nullable: analyses recorded before similarity grouping existed have none.
   histogram: jsonb("histogram").$type<number[]>(),
+  // Nullable: analyses recorded before subject detection existed have none (crops centre instead).
+  focusX: real("focus_x"),
+  focusY: real("focus_y"),
 });

@@ -1,3 +1,4 @@
+import { AnalysisPhotoFocusDirectory } from "./modules/photo-intelligence/infrastructure/gateways/photo-focus-directory";
 import { S3Client } from "@aws-sdk/client-s3";
 import { SubscriptionPlanFeatureDirectory } from "./modules/identity/infrastructure/gateways/subscription-plan-features";
 import type { ConnectionOptions } from "bullmq";
@@ -243,6 +244,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
 
   // Photo intelligence
   const analyses = new DrizzlePhotoAnalysisRepository(db);
+  const photoFocus = new AnalysisPhotoFocusDirectory(analyses);
   const byteSource = new S3PhotoByteSource(s3, env.S3_BUCKET);
   const visionClassifier = buildVisionClassifier({
     provider: env.VISION_PROVIDER,
@@ -295,6 +297,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     albums,
     new StoragePhotoPreviewResolver(photos, storage, permanentStorage),
     planFeatures,
+    photoFocus,
   );
   // Passwords for client links (album review and download): generated per link, checked
   // against a hash, and kept encrypted so the studio can look the link + password up again.
@@ -363,7 +366,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
 
   // Export & print
   const exportJobs = new DrizzleExportJobRepository(db);
-  const exportAlbumGateway = new AlbumCompositionExportGateway(albums, planFeatures);
+  const exportAlbumGateway = new AlbumCompositionExportGateway(albums, planFeatures, photoFocus);
   const exportStorage = new S3ExportStorage(s3, env.S3_BUCKET, presignS3);
   const requestExport = new RequestExportUseCase(exportJobs, exportAlbumGateway, jobQueue);
   const deleteExport = new DeleteExportUseCase(exportJobs, exportStorage);

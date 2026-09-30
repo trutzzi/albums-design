@@ -1,9 +1,10 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
 import type {
   AlbumDTO,
   AlbumStyleDTO,
   Crop,
   LayoutTemplateDTO,
+  PhotoFocus,
   PhotoTreatment,
   SlotFrame,
   TextBlockDTO,
@@ -49,6 +50,11 @@ export interface SpreadBlockProps {
   onCropChange: (spreadIndex: number, slotId: string, crop: Crop, commit: boolean) => void;
   onTreatmentChange: (spreadIndex: number, slotId: string, treatment: PhotoTreatment) => void;
   onFrameChange: (spreadIndex: number, slotId: string, frame: SlotFrame, commit: boolean) => void;
+  onFramesChange: (spreadIndex: number, frames: { slotId: string; frame: SlotFrame }[], commit: boolean) => void;
+  onMirror: (spreadIndex: number) => void;
+  onToggleLock: (spreadIndex: number, locked: boolean) => void;
+  /** The chapter this spread opens, shown above it; absent when it continues the one before. */
+  chapterLabel?: string | undefined;
   onReorderPlacement: (spreadIndex: number, fromSlotId: string, toSlotId: string) => void;
   onMoveToNeighbor: (spreadIndex: number, fromSlotId: string, toSlotId: string) => void;
   /** A photo dragged in from a different spread, dropped onto a slot here. */
@@ -71,6 +77,8 @@ export interface SpreadBlockProps {
   /** A tray photo dropped on the margins/gutter, not a specific slot — grows the spread. */
   onAddPhotoDrop: (spreadIndex: number, photoId: string) => void;
   onRemovePhoto: (spreadIndex: number, slotId: string) => void;
+  /** Opens the tray on unused photos; the next one clicked replaces this slot's photo. */
+  onReplacePhoto: (spreadIndex: number, slotId: string) => void;
   /** Deselects the photo, which closes its floating tools. */
   onCloseTools: () => void;
   albumStyle: AlbumStyleDTO;
@@ -79,6 +87,7 @@ export interface SpreadBlockProps {
   onTextSelect: (spreadIndex: number, blockId: string) => void;
   onTextChange: (spreadIndex: number, block: TextBlockDTO, commit: boolean) => void;
   onTextRemove: (spreadIndex: number, blockId: string) => void;
+  focusFor: (photoId: string) => PhotoFocus | null | undefined;
 }
 
 /**
@@ -117,6 +126,10 @@ export const SpreadBlock = memo(function SpreadBlock({
   onCropChange,
   onTreatmentChange,
   onFrameChange,
+  onFramesChange,
+  onMirror,
+  onToggleLock,
+  chapterLabel,
   onReorderPlacement,
   onMoveToNeighbor,
   onMovePlacementAcrossSpreads,
@@ -124,6 +137,7 @@ export const SpreadBlock = memo(function SpreadBlock({
   onPickTemplate,
   onAddPhotoDrop,
   onRemovePhoto,
+  onReplacePhoto,
   onCloseTools,
   albumStyle,
   selectedTextId,
@@ -131,6 +145,7 @@ export const SpreadBlock = memo(function SpreadBlock({
   onTextSelect,
   onTextChange,
   onTextRemove,
+  focusFor,
 }: SpreadBlockProps) {
   const { t } = useLanguage();
   // Each handler binds this spread's index once, so SpreadCanvas sees stable props.
@@ -156,6 +171,10 @@ export const SpreadBlock = memo(function SpreadBlock({
     (slotId: string, frame: SlotFrame, commit: boolean) =>
       onFrameChange(spreadIndex, slotId, frame, commit),
     [onFrameChange, spreadIndex],
+  );
+  const framesChange = useCallback(
+    (frames: { slotId: string; frame: SlotFrame }[], commit: boolean) => onFramesChange(spreadIndex, frames, commit),
+    [onFramesChange, spreadIndex],
   );
   const reorderPlacement = useCallback(
     (fromSlotId: string, toSlotId: string) =>
@@ -191,6 +210,13 @@ export const SpreadBlock = memo(function SpreadBlock({
     [onRemovePhoto, spreadIndex],
   );
 
+  const replacePhoto = useCallback(
+    (slotId: string) => onReplacePhoto(spreadIndex, slotId),
+    [onReplacePhoto, spreadIndex],
+  );
+  // The selected photo's tools render into this bar, above the spread, instead of over the photos.
+  const [toolsHost, setToolsHost] = useState<HTMLDivElement | null>(null);
+
   const textSelect = useCallback(
     (blockId: string) => onTextSelect(spreadIndex, blockId),
     [onTextSelect, spreadIndex],
@@ -205,6 +231,8 @@ export const SpreadBlock = memo(function SpreadBlock({
   );
 
   const mono = spreadIsMono(spread.placements);
+  // A locked spread keeps its layout: photos can still be framed, nothing else moves.
+  const layoutLocked = locked || Boolean(spread.locked);
   // The slot-tools bar now renders just below its slot rather than over it —
   // but `.spread-block` carries `content-visibility: auto` for scroll
   // performance, which unconditionally applies paint containment (it clips
@@ -225,10 +253,17 @@ export const SpreadBlock = memo(function SpreadBlock({
         toolsOpen ? "spread-block--tools-open" : ""
       }`}
       id={`spread-${spreadIndex}`}
+      data-spread-index={spreadIndex}
     >
+      {chapterLabel && <p className="spread-block__chapter">{chapterLabel}</p>}
       <div className="spread-block__head">
         <h2>
           {t("spread.heading", { number: spreadIndex + 1 })}
+          {spread.locked && (
+            <span className="spread-block__lock" title={t("spread.lock.badge")} aria-label={t("spread.lock.badge")}>
+              🔒
+            </span>
+          )}
           {openComments > 0 && (
             <span
               className="spread-block__comments"
@@ -263,7 +298,7 @@ export const SpreadBlock = memo(function SpreadBlock({
           <button
             type="button"
             className="button button--small"
-            disabled={locked || !spreadHasCustomFrames(spread.placements)}
+            disabled={layoutLocked || !spreadHasCustomFrames(spread.placements)}
             {...below(t("spread.resetLayout.title"))}
             onClick={() => onResetFrames(spreadIndex)}
           >
@@ -272,7 +307,7 @@ export const SpreadBlock = memo(function SpreadBlock({
           <button
             type="button"
             className="button button--small"
-            disabled={locked || shuffling}
+            disabled={layoutLocked || shuffling}
             {...below(t("spread.shuffle.title"))}
             onClick={() => onShuffle(spreadIndex)}
           >
@@ -281,7 +316,7 @@ export const SpreadBlock = memo(function SpreadBlock({
           <button
             type="button"
             className={`button button--small ${addingPhoto ? "button--primary" : ""}`}
-            disabled={locked || (addPhotoDisabled && !addingPhoto)}
+            disabled={layoutLocked || (addPhotoDisabled && !addingPhoto)}
             {...below(
               addingPhoto
                 ? t("spread.addPhoto.title.adding")
@@ -313,6 +348,25 @@ export const SpreadBlock = memo(function SpreadBlock({
           </button>
           <button
             type="button"
+            className="button button--small"
+            disabled={layoutLocked}
+            {...below(t("spread.mirror.title"))}
+            onClick={() => onMirror(spreadIndex)}
+          >
+            {t("spread.mirror")}
+          </button>
+          <button
+            type="button"
+            className={`button button--small ${spread.locked ? "button--primary" : ""}`}
+            disabled={locked}
+            aria-pressed={Boolean(spread.locked)}
+            {...below(spread.locked ? t("spread.unlock.title") : t("spread.lock.title"))}
+            onClick={() => onToggleLock(spreadIndex, !spread.locked)}
+          >
+            {spread.locked ? t("spread.unlock") : t("spread.lock")}
+          </button>
+          <button
+            type="button"
             className="button button--small button--danger"
             disabled={locked || spreadCount === 1}
             onClick={() => onRemove(spreadIndex)}
@@ -323,6 +377,7 @@ export const SpreadBlock = memo(function SpreadBlock({
         </div>
       </div>
 
+      <div ref={setToolsHost} className="spread-block__toolbar" />
       <div data-tour={spreadIndex === 0 ? "editor-spread" : undefined}>
       <SpreadCanvas
         spreadIndex={spreadIndex}
@@ -341,20 +396,24 @@ export const SpreadBlock = memo(function SpreadBlock({
         onSlotDrop={locked ? undefined : slotDrop}
         onCropChange={locked ? undefined : cropChange}
         onTreatmentChange={locked ? undefined : treatmentChange}
-        onFrameChange={locked ? undefined : frameChange}
+        onFrameChange={layoutLocked ? undefined : frameChange}
+        onFramesChange={layoutLocked ? undefined : framesChange}
         onReorderPlacement={locked ? undefined : reorderPlacement}
         onMoveToNeighbor={locked ? undefined : moveToNeighbor}
         onMovePlacementAcrossSpreads={locked ? undefined : movePlacementAcrossSpreads}
-        onMovePhotoAsNewPhoto={locked ? undefined : movePhotoAsNewPhoto}
-        onAddPhotoDrop={locked ? undefined : addPhotoDrop}
-        onRemovePhoto={locked ? undefined : removePhoto}
+        onMovePhotoAsNewPhoto={layoutLocked ? undefined : movePhotoAsNewPhoto}
+        onAddPhotoDrop={layoutLocked ? undefined : addPhotoDrop}
+        onRemovePhoto={layoutLocked ? undefined : removePhoto}
         onCloseTools={locked ? undefined : onCloseTools}
+        onReplacePhoto={locked ? undefined : replacePhoto}
+        toolsHost={toolsHost}
         albumStyle={albumStyle}
         texts={spread.texts}
         selectedTextId={selectedTextId}
         onTextSelect={locked ? undefined : textSelect}
         onTextChange={locked ? undefined : textChange}
         onTextRemove={locked ? undefined : textRemove}
+        focusFor={focusFor}
       />
       </div>
 
@@ -363,7 +422,7 @@ export const SpreadBlock = memo(function SpreadBlock({
         templates={templates}
         photoCount={spread.placements.length}
         currentTemplateId={spread.templateId}
-        disabled={locked}
+        disabled={layoutLocked}
         onPick={pickTemplate}
       />
       </div>

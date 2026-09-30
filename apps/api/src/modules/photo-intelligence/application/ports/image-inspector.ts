@@ -18,6 +18,11 @@ export interface ImageMetrics {
    * grouping compares between photos to find ones shot in the same setting.
    */
   histogram: number[];
+  /**
+   * Where the subject sits — the most salient region (skin tones, saturation, contrast),
+   * as fractions of the upright photo's width and height. Crops centre on it.
+   */
+  focus: { x: number; y: number };
 }
 
 export interface ImageInspector {

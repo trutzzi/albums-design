@@ -12,6 +12,7 @@ import {
   type Crop,
   type PhotoTreatment,
   type SlotFrame,
+  SpreadLockedError,
 } from "../../../domain/album";
 import type { AlbumRepository } from "../../../domain/album-repository";
 import { findTemplate } from "../../../domain/layout-template";
@@ -32,6 +33,9 @@ export type AlbumEditCommand =
     }
   | { type: "SET_FRAME"; spreadIndex: number; slotId: string; frame: SlotFrame }
   | { type: "RESET_FRAMES"; spreadIndex: number }
+  | { type: "SET_FRAMES"; spreadIndex: number; frames: { slotId: string; frame: SlotFrame }[] }
+  | { type: "MIRROR_SPREAD"; spreadIndex: number }
+  | { type: "SET_SPREAD_LOCK"; spreadIndex: number; locked: boolean }
   | { type: "RESTORE_SPREADS"; spreads: SpreadDTO[] }
   | { type: "SET_TREATMENT"; spreadIndex: number; slotId: string; treatment: PhotoTreatment }
   | { type: "SET_SPREAD_TREATMENT"; spreadIndex: number; treatment: PhotoTreatment }
@@ -58,7 +62,7 @@ export class EditAlbumUseCase {
     try {
       apply(album, command);
     } catch (error) {
-      if (error instanceof AlbumLockedError) {
+      if (error instanceof AlbumLockedError || error instanceof SpreadLockedError) {
         return Result.failure(new ConflictError(error.message));
       }
       if (error instanceof Error) {
@@ -106,6 +110,15 @@ function apply(album: Album, command: AlbumEditCommand): void {
     case "RESET_FRAMES":
       album.resetFrames(command.spreadIndex);
       return;
+    case "SET_FRAMES":
+      album.setFrames(command.spreadIndex, command.frames);
+      return;
+    case "MIRROR_SPREAD":
+      album.mirrorSpread(command.spreadIndex);
+      return;
+    case "SET_SPREAD_LOCK":
+      album.setSpreadLocked(command.spreadIndex, command.locked);
+      return;
     case "SET_TREATMENT":
       album.setTreatment(command.spreadIndex, command.slotId, command.treatment);
       return;
@@ -139,6 +152,7 @@ function apply(album: Album, command: AlbumEditCommand): void {
             ...(placement.frame ? { frame: placement.frame } : {}),
           })),
           ...(spread.texts ? { texts: spread.texts.map(withoutUndefinedFont) } : {}),
+          ...(spread.locked ? { locked: true } : {}),
         })),
       );
       return;

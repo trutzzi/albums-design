@@ -1,4 +1,4 @@
-import type { AlbumCoverDTO, AlbumStyleDTO, TextBlockDTO } from "@albumflow/contracts";
+import type { AlbumCoverDTO, AlbumStyleDTO, PhotoFocus, TextBlockDTO } from "@albumflow/contracts";
 
 export interface ReviewableAlbum {
   id: string;
@@ -9,7 +9,7 @@ export interface ReviewableAlbum {
   format: { pageWidthMm: number; pageHeightMm: number; bleedMm: number };
   style: AlbumStyleDTO;
   /** The cover the client will hold, with a loadable preview of its photo. */
-  cover: (AlbumCoverDTO & { previewUrl: string | null }) | null;
+  cover: (AlbumCoverDTO & { previewUrl: string | null; focus?: PhotoFocus | null }) | null;
   spreads: {
     templateId: string;
     texts?: TextBlockDTO[] | undefined;
@@ -20,6 +20,8 @@ export interface ReviewableAlbum {
       crop: { x: number; y: number; width: number; height: number };
       treatment: "COLOR" | "BLACK_WHITE";
       frame?: { x: number; y: number; width: number; height: number } | undefined;
+      /** Where the subject sits, so an untouched crop frames it like the editor does. */
+      focus?: PhotoFocus | null;
     }[];
   }[];
 }

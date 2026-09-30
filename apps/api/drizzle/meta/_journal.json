@@ -106,6 +106,13 @@
       "when": 1790779197044,
       "tag": "0014_email_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790780874200,
+      "tag": "0015_photo_focus_and_studio_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { textColorOn, type AlbumCoverDTO, type AlbumStyleDTO } from "@albumflow/contracts";
+import {
+  focusedBaseCrop,
+  isUntouchedCrop,
+  textColorOn,
+  type AlbumCoverDTO,
+  type AlbumStyleDTO,
+  type PhotoFocus,
+} from "@albumflow/contracts";
+import { cropToStyle } from "../lib/crop-geometry";
 import { textStyle } from "./SpreadTexts";
 import { useLanguage } from "../lib/i18n/LanguageContext";
 
@@ -14,6 +22,7 @@ export function CoverPreview({
   albumStyle,
   aspectRatio,
   previewUrl,
+  focus,
   onPhotoDrop,
 }: {
   cover: AlbumCoverDTO;
@@ -21,10 +30,19 @@ export function CoverPreview({
   /** One page's width ÷ height. */
   aspectRatio: number;
   previewUrl: string | null | undefined;
+  /** Where the cover photo's subject sits; an untouched crop centres on it, as the PDF does. */
+  focus?: PhotoFocus | null | undefined;
   onPhotoDrop?: ((photoId: string) => void) | undefined;
 }) {
   const { t } = useLanguage();
   const [dropActive, setDropActive] = useState(false);
+  const [imageAspect, setImageAspect] = useState<number | null>(null);
+  const crop =
+    imageAspect === null
+      ? null
+      : isUntouchedCrop(cover.crop)
+        ? focusedBaseCrop(imageAspect, aspectRatio, focus)
+        : cover.crop;
   const onPhoto = cover.layout === "photo" && cover.photoId !== null;
   const color = onPhoto ? "#ffffff" : textColorOn(albumStyle.background);
   const titleTop = onPhoto ? 0.72 : 0.36;
@@ -53,7 +71,18 @@ export function CoverPreview({
           : undefined
       }
     >
-      {onPhoto && previewUrl && <img src={previewUrl} alt="" className="cover-preview__photo" />}
+      {onPhoto && previewUrl && (
+        <img
+          src={previewUrl}
+          alt=""
+          className="cover-preview__photo"
+          style={crop && imageAspect ? { ...cropToStyle(crop, imageAspect, aspectRatio), inset: "auto", objectFit: "fill" } : undefined}
+          onLoad={(event) => {
+            const { naturalWidth, naturalHeight } = event.currentTarget;
+            if (naturalWidth && naturalHeight) setImageAspect(naturalWidth / naturalHeight);
+          }}
+        />
+      )}
       {onPhoto && <div className="cover-preview__band" />}
       {cover.layout === "photo" && cover.photoId === null && onPhotoDrop && (
         <span className="cover-preview__hint">{t("cover.dropPhoto")}</span>
@@ -84,6 +113,7 @@ export function CoverEditor({
   aspectRatio,
   albumTitle,
   previewUrlFor,
+  focusFor,
   locked,
   onChange,
 }: {
@@ -92,6 +122,7 @@ export function CoverEditor({
   aspectRatio: number;
   albumTitle: string;
   previewUrlFor: (photoId: string) => string | null | undefined;
+  focusFor?: ((photoId: string) => PhotoFocus | null | undefined) | undefined;
   locked: boolean;
   onChange: (cover: AlbumCoverDTO | null) => void;
 }) {
@@ -132,6 +163,7 @@ export function CoverEditor({
         albumStyle={albumStyle}
         aspectRatio={aspectRatio}
         previewUrl={cover.photoId ? previewUrlFor(cover.photoId) : null}
+        focus={cover.photoId ? focusFor?.(cover.photoId) : null}
         onPhotoDrop={locked ? undefined : (photoId) => onChange({ ...cover, layout: "photo", photoId, crop: FULL_CROP })}
       />
       <div className="cover-editor__fields">

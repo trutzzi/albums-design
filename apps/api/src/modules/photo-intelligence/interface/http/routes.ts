@@ -44,6 +44,10 @@ export function registerPhotoIntelligenceRoutes(
         faceCount: analysis.faceCount,
         albumWorthy: analysis.score.isAlbumWorthy,
         similarityGroup: groupByPhotoId.get(analysis.photoId.toString()) ?? 0,
+        width: analysis.width,
+        height: analysis.height,
+        capturedAt: analysis.capturedAt?.toISOString() ?? null,
+        focus: analysis.focus ?? null,
       }));
   });
 }

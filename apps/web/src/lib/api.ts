@@ -2,6 +2,7 @@ import type {
   AlbumCoverDTO,
   AlbumStyleDTO,
   Crop,
+  PhotoFocus,
   PhotoTreatment,
   SlotFrame,
   TextBlockDTO,
@@ -252,7 +253,7 @@ export interface ReviewView {
     watermark: boolean;
     format: { pageWidthMm: number; pageHeightMm: number; bleedMm: number };
     style: AlbumStyleDTO;
-    cover: (AlbumCoverDTO & { previewUrl: string | null }) | null;
+    cover: (AlbumCoverDTO & { previewUrl: string | null; focus?: PhotoFocus | null }) | null;
     spreads: {
       templateId: string;
       texts?: TextBlockDTO[];
@@ -263,6 +264,7 @@ export interface ReviewView {
         crop?: Crop;
         treatment?: PhotoTreatment;
         frame?: SlotFrame;
+        focus?: PhotoFocus | null;
       }[];
     }[];
   };

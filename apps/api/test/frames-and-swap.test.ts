@@ -285,3 +285,67 @@ describe("resized frames reach the printer", () => {
     assert.equal(templateSlot.id, placements[1]?.slotId);
   });
 });
+
+describe("resizing two photos at once", () => {
+  it("sets every frame in one edit", () => {
+    const album = albumWithPair();
+    album.setFrames(0, [
+      { slotId: "left", frame: { x: 0.06, y: 0.1, width: 0.5, height: 0.8 } },
+      { slotId: "right", frame: { x: 0.6, y: 0.1, width: 0.34, height: 0.8 } },
+    ]);
+    const [left, right] = album.spreads[0]!.placements;
+    assert.equal(left?.frame?.width, 0.5);
+    assert.equal(right?.frame?.x, 0.6);
+  });
+
+  it("changes nothing when one slot is unknown", () => {
+    const album = albumWithPair();
+    assert.throws(
+      () =>
+        album.setFrames(0, [
+          { slotId: "left", frame: { x: 0.06, y: 0.1, width: 0.5, height: 0.8 } },
+          { slotId: "nope", frame: FULL },
+        ]),
+      SlotNotFoundError,
+    );
+    assert.equal(album.spreads[0]!.placements[0]?.frame, undefined);
+  });
+});
+
+describe("mirroring a spread", () => {
+  it("moves each photo to the mirrored position without touching its crop", () => {
+    const album = albumWithPair();
+    album.setFrame(0, "left", { x: 0.1, y: 0.1, width: 0.3, height: 0.8 });
+    album.mirrorSpread(0);
+    const [left, right] = album.spreads[0]!.placements;
+    assert.ok(Math.abs((left?.frame?.x ?? 0) - 0.6) < 1e-9, "a frame at 0.1–0.4 lands at 0.6–0.9");
+    assert.ok(Math.abs((right?.frame?.x ?? 0) - (1 - 0.54 - 0.4)) < 1e-9, "template slots mirror too");
+    assert.deepEqual(right?.crop, { x: 0.1, y: 0.1, width: 0.5, height: 0.5 });
+  });
+
+  it("mirrors text blocks and their alignment", () => {
+    const album = albumWithPair();
+    album.setTextBlock(0, { id: "t", text: "Ana & Radu", x: 0.05, y: 0.8, width: 0.3, height: 0.1, size: "heading", align: "left" });
+    album.mirrorSpread(0);
+    const block = album.spreads[0]!.texts?.[0];
+    assert.ok(Math.abs((block?.x ?? 0) - 0.65) < 1e-9);
+    assert.equal(block?.align, "right");
+  });
+});
+
+describe("locking a spread", () => {
+  it("freezes its layout until unlocked", () => {
+    const album = albumWithPair();
+    album.setSpreadLocked(0, true);
+    assert.equal(album.spreads[0]!.locked, true);
+    assert.throws(() => album.changeTemplate(0, "hero-full-bleed"), /locked/);
+    assert.throws(() => album.mirrorSpread(0), /locked/);
+    assert.throws(() => album.setFrame(0, "left", { x: 0.1, y: 0.1, width: 0.3, height: 0.8 }), /locked/);
+    // Framing a photo is still fine: locking is about the layout.
+    album.setCrop(0, "left", { x: 0.1, y: 0, width: 0.8, height: 1 });
+
+    album.setSpreadLocked(0, false);
+    assert.equal(album.spreads[0]!.locked, undefined);
+    album.changeTemplate(0, "hero-full-bleed");
+  });
+});
