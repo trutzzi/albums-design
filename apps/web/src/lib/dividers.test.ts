@@ -79,3 +79,13 @@ describe("moveDivider", () => {
     assert.ok(close(right.x - 0.04, 5 / 6), `the gap's middle is on the guide, x=${right.x}`);
   });
 });
+
+describe("divider identity", () => {
+  it("keeps the same id while the line is dragged", () => {
+    const [divider] = findDividers(pair);
+    const moved = moveDivider(pair, divider!, 0.1, false).map((entry) => ({ slotId: entry.slotId, rect: entry.frame }));
+    const [after] = findDividers(moved);
+    assert.equal(after?.id, divider?.id);
+    assert.ok(Math.abs((after?.position ?? 0) - 0.6) < 1e-9, "while its position follows the drag");
+  });
+});

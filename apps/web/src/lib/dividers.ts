@@ -70,7 +70,15 @@ export function findDividers(rects: readonly SlotRect[]): Divider[] {
   }
   // A slot can't sit on both sides of the same line; such a group is a coincidence of
   // unrelated edges, and dragging it would tear the layout apart.
-  return [...groups.values()].filter((divider) => !divider.before.some((id) => divider.after.includes(id)));
+  return [...groups.values()]
+    .filter((divider) => !divider.before.some((id) => divider.after.includes(id)))
+    .map((divider) => ({
+      ...divider,
+      // Named after the photos it separates, never its position: the position changes with
+      // every step of a drag, and a changing id would make React replace the handle under
+      // the pointer and drop the drag after the first move.
+      id: `${divider.axis}:${[...divider.before].sort().join(",")}|${[...divider.after].sort().join(",")}`,
+    }));
 }
 
 /** Page halves and thirds (each page is half the spread), plus the gutter between pages. */
