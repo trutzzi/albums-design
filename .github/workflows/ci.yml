@@ -104,7 +104,9 @@ jobs:
           load: true
           tags: albumflow-${{ matrix.image }}:ci
           cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          # A cache that cannot be saved (another run holding the same key, or the
+          # repository's cache quota) only makes the next build slower — never fail on it.
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }},ignore-error=true
 
   smoke:
     name: End-to-end against the real stack

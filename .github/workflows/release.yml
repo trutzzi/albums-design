@@ -97,7 +97,9 @@ jobs:
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL }}
           cache-from: type=gha,scope=${{ matrix.image }}-release
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-release
+          # A cache that cannot be saved (another run holding the same key, or the
+          # repository's cache quota) only makes the next build slower — never fail on it.
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-release,ignore-error=true
 
   summary:
     name: Release summary
