@@ -1,14 +1,17 @@
 import { memo, useCallback } from "react";
 import type {
   AlbumDTO,
+  AlbumStyleDTO,
   Crop,
   LayoutTemplateDTO,
   PhotoTreatment,
   SlotFrame,
+  TextBlockDTO,
 } from "@albumflow/contracts";
 import { SpreadCanvas } from "./SpreadCanvas";
 import { LayoutPicker } from "./LayoutPicker";
 import { useLanguage } from "../lib/i18n/LanguageContext";
+import { tip } from "../lib/tip";
 
 type Spread = AlbumDTO["spreads"][number];
 
@@ -70,6 +73,12 @@ export interface SpreadBlockProps {
   onRemovePhoto: (spreadIndex: number, slotId: string) => void;
   /** Deselects the photo, which closes its floating tools. */
   onCloseTools: () => void;
+  albumStyle: AlbumStyleDTO;
+  selectedTextId: string | null;
+  onAddText: (spreadIndex: number) => void;
+  onTextSelect: (spreadIndex: number, blockId: string) => void;
+  onTextChange: (spreadIndex: number, block: TextBlockDTO, commit: boolean) => void;
+  onTextRemove: (spreadIndex: number, blockId: string) => void;
 }
 
 /**
@@ -116,6 +125,12 @@ export const SpreadBlock = memo(function SpreadBlock({
   onAddPhotoDrop,
   onRemovePhoto,
   onCloseTools,
+  albumStyle,
+  selectedTextId,
+  onAddText,
+  onTextSelect,
+  onTextChange,
+  onTextRemove,
 }: SpreadBlockProps) {
   const { t } = useLanguage();
   // Each handler binds this spread's index once, so SpreadCanvas sees stable props.
@@ -176,6 +191,19 @@ export const SpreadBlock = memo(function SpreadBlock({
     [onRemovePhoto, spreadIndex],
   );
 
+  const textSelect = useCallback(
+    (blockId: string) => onTextSelect(spreadIndex, blockId),
+    [onTextSelect, spreadIndex],
+  );
+  const textChange = useCallback(
+    (block: TextBlockDTO, commit: boolean) => onTextChange(spreadIndex, block, commit),
+    [onTextChange, spreadIndex],
+  );
+  const textRemove = useCallback(
+    (blockId: string) => onTextRemove(spreadIndex, blockId),
+    [onTextRemove, spreadIndex],
+  );
+
   const mono = spreadIsMono(spread.placements);
   // The slot-tools bar now renders just below its slot rather than over it —
   // but `.spread-block` carries `content-visibility: auto` for scroll
@@ -188,7 +216,8 @@ export const SpreadBlock = memo(function SpreadBlock({
   const selectedPlacement = spread.placements.find(
     (placement) => placement.slotId === selectedSlotId,
   );
-  const toolsOpen = !locked && Boolean(selectedPlacement && previewUrlFor(selectedPlacement.photoId));
+  const toolsOpen =
+    !locked && (Boolean(selectedPlacement && previewUrlFor(selectedPlacement.photoId)) || selectedTextId !== null);
 
   return (
     <section
@@ -212,12 +241,13 @@ export const SpreadBlock = memo(function SpreadBlock({
             </span>
           )}
         </h2>
-        <div className="spread-block__actions">
+        <div className="spread-block__actions" data-tour={spreadIndex === 0 ? "editor-spread-actions" : undefined}>
           <button
             type="button"
             className="button button--small"
             disabled={locked || spreadIndex === 0}
             onClick={() => onReorder(spreadIndex, spreadIndex - 1)}
+            {...below(t("tip.moveUp"))}
           >
             {t("spread.moveUp")}
           </button>
@@ -226,6 +256,7 @@ export const SpreadBlock = memo(function SpreadBlock({
             className="button button--small"
             disabled={locked || spreadIndex === spreadCount - 1}
             onClick={() => onReorder(spreadIndex, spreadIndex + 1)}
+            {...below(t("tip.moveDown"))}
           >
             {t("spread.moveDown")}
           </button>
@@ -233,7 +264,7 @@ export const SpreadBlock = memo(function SpreadBlock({
             type="button"
             className="button button--small"
             disabled={locked || !spreadHasCustomFrames(spread.placements)}
-            title={t("spread.resetLayout.title")}
+            {...below(t("spread.resetLayout.title"))}
             onClick={() => onResetFrames(spreadIndex)}
           >
             {t("spread.resetLayout")}
@@ -242,7 +273,7 @@ export const SpreadBlock = memo(function SpreadBlock({
             type="button"
             className="button button--small"
             disabled={locked || shuffling}
-            title={t("spread.shuffle.title")}
+            {...below(t("spread.shuffle.title"))}
             onClick={() => onShuffle(spreadIndex)}
           >
             {t("spread.shuffle")}
@@ -251,13 +282,13 @@ export const SpreadBlock = memo(function SpreadBlock({
             type="button"
             className={`button button--small ${addingPhoto ? "button--primary" : ""}`}
             disabled={locked || (addPhotoDisabled && !addingPhoto)}
-            title={
+            {...below(
               addingPhoto
                 ? t("spread.addPhoto.title.adding")
                 : addPhotoDisabled
                   ? t("spread.addPhoto.title.disabled")
-                  : t("spread.addPhoto.title.ready")
-            }
+                  : t("spread.addPhoto.title.ready"),
+            )}
             onClick={addPhoto}
           >
             {addingPhoto ? t("spread.addPhoto.clickPhoto") : t("spread.addPhoto")}
@@ -266,7 +297,16 @@ export const SpreadBlock = memo(function SpreadBlock({
             type="button"
             className="button button--small"
             disabled={locked}
-            title={t("spread.treatment.title")}
+            {...below(t("spread.addText.title"))}
+            onClick={() => onAddText(spreadIndex)}
+          >
+            {t("spread.addText")}
+          </button>
+          <button
+            type="button"
+            className="button button--small"
+            disabled={locked}
+            {...below(t("spread.treatment.title"))}
             onClick={() => onSpreadTreatment(spreadIndex, mono ? "COLOR" : "BLACK_WHITE")}
           >
             {mono ? t("spread.treatment.color") : t("spread.treatment.bw")}
@@ -276,12 +316,14 @@ export const SpreadBlock = memo(function SpreadBlock({
             className="button button--small button--danger"
             disabled={locked || spreadCount === 1}
             onClick={() => onRemove(spreadIndex)}
+            {...below(t("tip.removeSpread"))}
           >
             {t("spread.remove")}
           </button>
         </div>
       </div>
 
+      <div data-tour={spreadIndex === 0 ? "editor-spread" : undefined}>
       <SpreadCanvas
         spreadIndex={spreadIndex}
         template={template}
@@ -307,8 +349,16 @@ export const SpreadBlock = memo(function SpreadBlock({
         onAddPhotoDrop={locked ? undefined : addPhotoDrop}
         onRemovePhoto={locked ? undefined : removePhoto}
         onCloseTools={locked ? undefined : onCloseTools}
+        albumStyle={albumStyle}
+        texts={spread.texts}
+        selectedTextId={selectedTextId}
+        onTextSelect={locked ? undefined : textSelect}
+        onTextChange={locked ? undefined : textChange}
+        onTextRemove={locked ? undefined : textRemove}
       />
+      </div>
 
+      <div data-tour={spreadIndex === 0 ? "editor-layouts" : undefined}>
       <LayoutPicker
         templates={templates}
         photoCount={spread.placements.length}
@@ -316,6 +366,7 @@ export const SpreadBlock = memo(function SpreadBlock({
         disabled={locked}
         onPick={pickTemplate}
       />
+      </div>
     </section>
   );
 });
@@ -326,4 +377,12 @@ function spreadIsMono(placements: { treatment?: PhotoTreatment | undefined }[]):
 
 function spreadHasCustomFrames(placements: { frame?: unknown }[]): boolean {
   return placements.some((placement) => placement.frame !== undefined);
+}
+
+/**
+ * A hint shown under the control rather than over it: `.spread-block` uses paint
+ * containment (for scroll performance), which would clip a hint above its top edge.
+ */
+function below(text: string): Record<string, string> {
+  return { ...tip(text), "data-tip-pos": "below" };
 }

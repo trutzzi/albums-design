@@ -369,6 +369,9 @@ export class InMemorySubscriptionRepository implements SubscriptionRepository {
   async findByStudioId(studioId: UniqueEntityId) {
     return this.items.get(studioId.toString());
   }
+  async findByExternalSubscriptionId(externalId: string) {
+    return [...this.items.values()].find((item) => item.externalSubscriptionId === externalId);
+  }
 }
 
 export class InMemoryStudioMemberRepository implements StudioMemberRepository {

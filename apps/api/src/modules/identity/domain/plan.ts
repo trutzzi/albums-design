@@ -7,7 +7,10 @@ export interface Plan {
   /** Albums that may be generated per billing period. Infinity for unlimited. */
   albumsPerPeriod: number;
   seats: number;
+  /** Client review pages show a watermark: proofs are for choosing, not for keeping. */
   watermarkDrafts: boolean;
+  /** Exported PDFs carry one too — only the free trial, so it cannot stand in for a paid plan. */
+  watermarkExports: boolean;
   whiteLabelReview: boolean;
   priorityProcessing: boolean;
 }
@@ -20,6 +23,7 @@ export const PLANS: Record<PlanCode, Plan> = {
     albumsPerPeriod: 1,
     seats: 1,
     watermarkDrafts: true,
+    watermarkExports: true,
     whiteLabelReview: false,
     priorityProcessing: false,
   },
@@ -30,6 +34,7 @@ export const PLANS: Record<PlanCode, Plan> = {
     albumsPerPeriod: 4,
     seats: 1,
     watermarkDrafts: true,
+    watermarkExports: false,
     whiteLabelReview: false,
     priorityProcessing: false,
   },
@@ -40,6 +45,7 @@ export const PLANS: Record<PlanCode, Plan> = {
     albumsPerPeriod: 15,
     seats: 3,
     watermarkDrafts: false,
+    watermarkExports: false,
     whiteLabelReview: false,
     priorityProcessing: true,
   },
@@ -50,6 +56,7 @@ export const PLANS: Record<PlanCode, Plan> = {
     albumsPerPeriod: Number.POSITIVE_INFINITY,
     seats: Number.POSITIVE_INFINITY,
     watermarkDrafts: false,
+    watermarkExports: false,
     whiteLabelReview: true,
     priorityProcessing: true,
   },

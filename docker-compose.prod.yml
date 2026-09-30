@@ -62,6 +62,9 @@ services:
       VISION_PROVIDER: ${VISION_PROVIDER:-heuristic}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       JWT_SECRET: ${JWT_SECRET}
+      # Caddy is the only way in (the port mapping above is removed), so the client's
+      # address in X-Forwarded-For can be trusted — the login lockout counts per address.
+      TRUST_PROXY: "true"
     restart: unless-stopped
 
   worker:
@@ -78,6 +81,28 @@ services:
       VISION_PROVIDER: ${VISION_PROVIDER:-heuristic}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       JWT_SECRET: ${JWT_SECRET}
+      # Nightly database dumps from `db-backup` below, copied to DigiStorage when
+      # STORAGE_PROVIDER=digistorage. Mounted read-only: the worker never changes them.
+      BACKUP_DIR: /backups
+    volumes:
+      - db-backups:/backups:ro
+    restart: unless-stopped
+
+  # A pg_dump when it starts and then daily, kept locally for BACKUP_KEEP_DAYS. See
+  # docs/backups.md for restoring. Same image as the database, so pg_dump always
+  # matches the server version.
+  db-backup:
+    image: postgres:16-alpine
+    entrypoint: ["/bin/sh", "/usr/local/bin/db-backup.sh"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./infra/backup/db-backup.sh:/usr/local/bin/db-backup.sh:ro
+      - db-backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   # The web app is not deployed here at all — it's static, and it lives on
@@ -101,3 +126,4 @@ services:
 volumes:
   caddy-data:
   caddy-config:
+  db-backups:

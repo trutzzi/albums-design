@@ -9,7 +9,13 @@ import type {
   PhotoTreatment,
   SlotFrame,
 } from "@albumflow/contracts";
-import { MAX_PHOTOS_PER_SPREAD } from "@albumflow/contracts";
+import {
+  DEFAULT_STYLE,
+  MAX_PHOTOS_PER_SPREAD,
+  type AlbumCoverDTO,
+  type AlbumStyleDTO,
+  type TextBlockDTO,
+} from "@albumflow/contracts";
 import {
   editAlbum,
   deleteAlbum,
@@ -32,6 +38,20 @@ import {
   suggestSpreadLayouts,
 } from "../../lib/api";
 import { SpreadBlock } from "../../components/SpreadBlock";
+import { StylePanel } from "../../components/StylePanel";
+import { CoverEditor } from "../../components/CoverEditor";
+import { GuidedTour, type TourStep } from "../../components/GuidedTour";
+import { tip } from "../../lib/tip";
+
+const EDITOR_TOUR: TourStep[] = [
+  { target: '[data-tour="editor-cover"]', titleKey: "tour.editor.cover.title", bodyKey: "tour.editor.cover.body" },
+  { target: '[data-tour="editor-spread"]', titleKey: "tour.editor.spread.title", bodyKey: "tour.editor.spread.body" },
+  { target: '[data-tour="editor-spread-actions"]', titleKey: "tour.editor.actions.title", bodyKey: "tour.editor.actions.body" },
+  { target: '[data-tour="editor-layouts"]', titleKey: "tour.editor.layouts.title", bodyKey: "tour.editor.layouts.body" },
+  { target: '[data-tour="editor-sidebar"]', titleKey: "tour.editor.sidebar.title", bodyKey: "tour.editor.sidebar.body" },
+  { target: '[data-tour="editor-tools"]', titleKey: "tour.editor.tools.title", bodyKey: "tour.editor.tools.body" },
+  { target: '[data-tour="editor-ready"]', titleKey: "tour.editor.ready.title", bodyKey: "tour.editor.ready.body" },
+];
 import { AccessDetailsModal } from "../../components/AccessDetailsModal";
 import { LayoutPicker } from "../../components/LayoutPicker";
 import { PhotoTray } from "../../components/PhotoTray";
@@ -59,6 +79,8 @@ export function AlbumEditorPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<{ spreadIndex: number; slotId: string } | null>(null);
+  // A photo and a text block are never both selected: each one's tools sit in the same place.
+  const [selectedText, setSelectedText] = useState<{ spreadIndex: number; blockId: string } | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // Armed by "+ Add photo" on a spread: the next tray click grows that spread
   // instead of replacing a slot or building a new one. Mutually exclusive with
@@ -80,7 +102,7 @@ export function AlbumEditorPage() {
   const [traySort, setTraySort] = useState<TraySort>("score");
   // Filters for the tray; they combine, so "client picks" + "portrait" narrows to both.
   // The sidebar shows one section at a time, so the photo tray can use the whole height of the window.
-  const [sidebarTab, setSidebarTab] = useState<"photos" | "review" | "export">("photos");
+  const [sidebarTab, setSidebarTab] = useState<"photos" | "design" | "review" | "export">("photos");
   const [trayShow, setTrayShow] = useState<TrayShow>("all");
   const [trayCategory, setTrayCategory] = useState("");
   const [traySearch, setTraySearch] = useState("");
@@ -642,11 +664,72 @@ export function AlbumEditorPage() {
     (photoId: string) => previewByPhoto.get(photoId),
     [previewByPhoto],
   );
-  const closeTools = useCallback(() => setSelected(null), []);
+  const closeTools = useCallback(() => {
+    setSelected(null);
+    setSelectedText(null);
+  }, []);
   const selectSlot = useCallback((spreadIndex: number, slotId: string) => {
     setAddingToSpread(null);
+    setSelectedText(null);
     setSelected({ spreadIndex, slotId });
   }, []);
+
+  const addText = useCallback(
+    (spreadIndex: number) => {
+      const block: TextBlockDTO = {
+        id: crypto.randomUUID().slice(0, 12),
+        text: "",
+        x: 0.3,
+        y: 0.42,
+        width: 0.4,
+        height: 0.14,
+        size: "heading",
+        align: "center",
+      };
+      runEdit({ type: "SET_TEXT_BLOCK", spreadIndex, block });
+      setSelected(null);
+      setSelectedText({ spreadIndex, blockId: block.id });
+    },
+    [runEdit],
+  );
+  const selectText = useCallback((spreadIndex: number, blockId: string) => {
+    setSelected(null);
+    setAddingToSpread(null);
+    setSelectedText({ spreadIndex, blockId });
+  }, []);
+  const pendingText = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Like crops and frames: the draft follows every keystroke and drag frame, the server
+  // gets the block once it settles.
+  const handleTextChange = useCallback(
+    (spreadIndex: number, block: TextBlockDTO, commit: boolean) => {
+      setDraft((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          spreads: current.spreads.map((spread, index) =>
+            index !== spreadIndex
+              ? spread
+              : { ...spread, texts: (spread.texts ?? []).map((item) => (item.id === block.id ? block : item)) },
+          ),
+        };
+      });
+      if (pendingText.current) clearTimeout(pendingText.current);
+      const send = () => runEdit({ type: "SET_TEXT_BLOCK", spreadIndex, block });
+      if (commit) send();
+      else pendingText.current = setTimeout(send, 600);
+    },
+    [runEdit],
+  );
+  const removeText = useCallback(
+    (spreadIndex: number, blockId: string) => {
+      if (pendingText.current) clearTimeout(pendingText.current);
+      runEdit({ type: "REMOVE_TEXT_BLOCK", spreadIndex, blockId });
+      setSelectedText(null);
+    },
+    [runEdit],
+  );
+  const setStyle = useCallback((style: AlbumStyleDTO) => runEdit({ type: "SET_STYLE", style }), [runEdit]);
+  const setCover = useCallback((cover: AlbumCoverDTO | null) => runEdit({ type: "SET_COVER", cover }), [runEdit]);
   const reorderSpread = useCallback(
     (fromIndex: number, toIndex: number) =>
       runEdit({ type: "REORDER_SPREAD", fromIndex, toIndex }),
@@ -708,6 +791,17 @@ export function AlbumEditorPage() {
       setInsertAt(null);
     },
     [insertAt, runEdit],
+  );
+
+  const spreadsRef = useRef(current?.spreads);
+  spreadsRef.current = current?.spreads;
+  const feedbackPhotoNumber = useCallback(
+    (spreadIndex: number, slotId: string) => {
+      const spread = spreadsRef.current?.[spreadIndex];
+      const index = spread ? (templateById.get(spread.templateId)?.slots.findIndex((slot) => slot.id === slotId) ?? -1) : -1;
+      return index === -1 ? undefined : index + 1;
+    },
+    [templateById],
   );
 
   const jumpToComment = useCallback((comment: FeedbackComment) => {
@@ -804,6 +898,7 @@ export function AlbumEditorPage() {
 
   return (
     <div className="page editor">
+      <GuidedTour id="editor" steps={EDITOR_TOUR} ready={current.spreads.length > 0} />
       <header className="page__header">
         <div>
           <Link to={projectId ? `/projects/${projectId}` : "/"} className="muted back-link">
@@ -824,12 +919,13 @@ export function AlbumEditorPage() {
             })}
           </p>
         </div>
-        <div className="page__header-actions">
+        <div className="page__header-actions" data-tour="editor-tools">
           <button
             type="button"
             className="button button--small"
             disabled={locked || past.length === 0 || restoreSpreads.isPending}
             onClick={undo}
+            {...tip(t("tip.undo"))}
           >
             {t("album.undo")}
           </button>
@@ -838,10 +934,11 @@ export function AlbumEditorPage() {
             className="button button--small"
             disabled={locked || future.length === 0 || restoreSpreads.isPending}
             onClick={redo}
+            {...tip(t("tip.redo"))}
           >
             {t("album.redo")}
           </button>
-          <label className="ruler-toggle">
+          <label className="ruler-toggle" {...tip(t("tip.ruler"))}>
             <input
               type="checkbox"
               className="ruler-toggle__input"
@@ -853,7 +950,7 @@ export function AlbumEditorPage() {
             </span>
             {t("album.ruler")}
           </label>
-          <label className="ruler-toggle">
+          <label className="ruler-toggle" {...tip(t("tip.snap"))}>
             <input
               type="checkbox"
               className="ruler-toggle__input"
@@ -865,7 +962,7 @@ export function AlbumEditorPage() {
             </span>
             {t("album.snap")}
           </label>
-          <label className="ruler-toggle">
+          <label className="ruler-toggle" {...tip(t("tip.guides"))}>
             <input
               type="checkbox"
               className="ruler-toggle__input"
@@ -896,6 +993,8 @@ export function AlbumEditorPage() {
               type="button"
               className="button"
               onClick={() => edit.mutate({ type: "REOPEN" })}
+              data-tour="editor-ready"
+              {...tip(t("tip.reopen"))}
             >
               {t("album.reopen")}
             </button>
@@ -904,6 +1003,8 @@ export function AlbumEditorPage() {
               type="button"
               className="button"
               onClick={() => edit.mutate({ type: "SUBMIT_FOR_REVIEW" })}
+              data-tour="editor-ready"
+              {...tip(t("tip.markReady"))}
             >
               {t("album.markReady")}
             </button>
@@ -912,6 +1013,7 @@ export function AlbumEditorPage() {
             type="button"
             className="button button--primary"
             onClick={() => setConfirmingDelete(true)}
+            {...tip(t("tip.deleteAlbum"))}
           >
             {t("album.deleteAlbum")}
           </button>
@@ -930,6 +1032,15 @@ export function AlbumEditorPage() {
 
       <div className={`editor__layout ${trayPrefs.wide ? "editor__layout--wide" : ""}`}>
         <main className="spreads">
+          <CoverEditor
+            cover={current.cover ?? null}
+            albumStyle={current.style ?? DEFAULT_STYLE}
+            aspectRatio={current.format.pageWidthMm / current.format.pageHeightMm}
+            albumTitle={current.title}
+            previewUrlFor={previewUrlFor}
+            locked={locked}
+            onChange={setCover}
+          />
           {current.spreads.map((spread, spreadIndex) => (
             <div key={spreadIndex} className="spread-slot-group">
               <SpreadBlock
@@ -976,6 +1087,12 @@ export function AlbumEditorPage() {
                 onAddPhotoDrop={addPhotoDrop}
                 onRemovePhoto={removePhoto}
                 onCloseTools={closeTools}
+                albumStyle={current.style ?? DEFAULT_STYLE}
+                selectedTextId={selectedText?.spreadIndex === spreadIndex ? selectedText.blockId : null}
+                onAddText={addText}
+                onTextSelect={selectText}
+                onTextChange={handleTextChange}
+                onTextRemove={removeText}
               />
 
               {!locked && (
@@ -1004,13 +1121,14 @@ export function AlbumEditorPage() {
         </main>
 
         <aside className="sidebar">
-          <div className="sidebar__tabs" role="tablist" aria-label={t("album.sidebar.label")}>
+          <div className="sidebar__tabs" role="tablist" aria-label={t("album.sidebar.label")} data-tour="editor-sidebar">
             {(
               [
                 ["photos", t("album.sidebar.photos"), 0],
+                ["design", t("album.sidebar.design"), 0],
                 ["review", t("album.sidebar.review"), feedback.data?.openCount ?? 0],
                 ["export", t("album.sidebar.export"), 0],
-              ] as ["photos" | "review" | "export", string, number][]
+              ] as ["photos" | "design" | "review" | "export", string, number][]
             ).map(([tab, label, badge]) => (
               <button
                 key={tab}
@@ -1025,6 +1143,12 @@ export function AlbumEditorPage() {
               </button>
             ))}
           </div>
+          <section className={`panel ${sidebarTab === "design" ? "" : "is-hidden"}`}>
+            <div className="panel__head">
+              <h2>{t("style.title")}</h2>
+            </div>
+            <StylePanel style={current.style ?? DEFAULT_STYLE} locked={locked} onChange={setStyle} />
+          </section>
           <section className={`panel panel--tray ${sidebarTab === "photos" ? "" : "is-hidden"}`}>
             <div className="panel__head">
               <h2>{t("album.photoTray.title")}</h2>
@@ -1326,6 +1450,7 @@ export function AlbumEditorPage() {
               resolvingId={resolveFeedback.isPending ? (resolveFeedback.variables ?? null) : null}
               onJumpTo={jumpToComment}
               onResolve={markCommentDone}
+              photoNumber={feedbackPhotoNumber}
             />
           </section>
 

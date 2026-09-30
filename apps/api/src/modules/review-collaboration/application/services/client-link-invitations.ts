@@ -58,7 +58,8 @@ export class ClientLinkInvitations {
         to: command.to,
         clientName: command.clientName,
         projectName: command.projectName,
-        url: this.urlFor(command.kind, command.token),
+        // The page opens in the language the photographer wrote the email in.
+        url: `${this.urlFor(command.kind, command.token)}?lang=${command.language}`,
         logoUrl: this.logoUrl(),
         password: command.password,
         language: command.language,

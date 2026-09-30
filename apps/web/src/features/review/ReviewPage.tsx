@@ -3,18 +3,25 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { addReviewComment, getReview, listLayoutTemplates, submitReviewDecision } from "../../lib/api";
 import { SpreadCanvas } from "../../components/SpreadCanvas";
+import { CoverPreview } from "../../components/CoverEditor";
 import { PasswordGate, needsPassword } from "../../components/PasswordGate";
+import { ThemeToggle } from "../../components/ThemeToggle";
+import { useLanguage } from "../../lib/i18n/LanguageContext";
+import { LANGUAGES } from "../../lib/i18n/translations";
 
 export function ReviewPage() {
   const { token = "" } = useParams();
   const queryClient = useQueryClient();
+  const { t, language, setLanguage } = useLanguage();
   const [draft, setDraft] = useState<Record<number, string>>({});
+  // The photo a client tapped, so their next note on that spread is pinned to it.
+  const [pinned, setPinned] = useState<{ spreadIndex: number; slotId: string } | null>(null);
 
   const review = useQuery({ queryKey: ["review", token], queryFn: () => getReview(token), retry: false });
   const templates = useQuery({ queryKey: ["templates"], queryFn: listLayoutTemplates });
 
   const comment = useMutation({
-    mutationFn: (input: { spreadIndex: number; body: string }) => addReviewComment(token, input),
+    mutationFn: (input: { spreadIndex: number; slotId?: string; body: string }) => addReviewComment(token, input),
     onSuccess: (updated) => queryClient.setQueryData(["review", token], updated),
   });
 
@@ -29,7 +36,7 @@ export function ReviewPage() {
     [templates.data],
   );
 
-  if (review.isLoading) return <p className="page muted">Opening your album…</p>;
+  if (review.isLoading) return <p className="page muted">{t("review.opening")}</p>;
   if (needsPassword(review.error)) {
     return (
       <PasswordGate
@@ -42,9 +49,9 @@ export function ReviewPage() {
   if (review.isError) {
     return (
       <div className="page">
-        <h1>This link isn&apos;t working</h1>
+        <h1>{t("review.broken.title")}</h1>
         <p className="error">{(review.error as Error).message}</p>
-        <p className="muted">Ask your photographer for a fresh link.</p>
+        <p className="muted">{t("review.broken.body")}</p>
       </div>
     );
   }
@@ -58,23 +65,54 @@ export function ReviewPage() {
     <div className="page review">
       <header className="page__header">
         <div>
-          <p className="muted">Album proof for {session.clientName}</p>
+          <p className="muted">{t("review.eyebrow", { name: session.clientName })}</p>
           <h1>{album.title}</h1>
-          <p className="muted">
-            {album.spreads.length} spreads · your notes go straight to your photographer
-          </p>
+          <p className="muted">{t("review.subtitle", { count: album.spreads.length })}</p>
         </div>
-        <span className={`chip chip--${session.status.toLowerCase()}`}>{session.status}</span>
+        <div className="pick__lang" role="group" aria-label={t("pick.language")}>
+          <span className={`chip chip--${session.status.toLowerCase()}`}>{t(`review.status.${session.status}`)}</span>
+          <ThemeToggle />
+          {LANGUAGES.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`link-button ${language === option.value ? "pick__lang--on" : ""}`}
+              onClick={() => setLanguage(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </header>
+
+      {album.cover && (
+        <section className="review-cover">
+          <h2>{t("review.cover")}</h2>
+          <div className={album.watermark ? "proof-watermark" : undefined}>
+            <CoverPreview
+              cover={album.cover}
+              albumStyle={album.style}
+              aspectRatio={album.format.pageWidthMm / album.format.pageHeightMm}
+              previewUrl={album.cover.previewUrl}
+            />
+          </div>
+        </section>
+      )}
+
+      {!closed && (
+        <p className="muted review__hint">
+          {t("review.hint")}
+        </p>
+      )}
 
       {session.status === "APPROVED" && (
         <p className="notice notice--good">
-          You approved this album. Your photographer has been notified.
+          {t("review.approved")}
         </p>
       )}
       {session.status === "CHANGES_REQUESTED" && (
         <p className="notice">
-          Your change requests were sent. You&apos;ll get a new link when the album is updated.
+          {t("review.changesSent")}
         </p>
       )}
 
@@ -83,27 +121,51 @@ export function ReviewPage() {
           const spreadComments = session.comments.filter(
             (item) => item.spreadIndex === spreadIndex,
           );
+          const template = templateById.get(spread.templateId);
+          // Photos are numbered in the layout's reading order — the numbers on the badges.
+          const photoNumber = (slotId: string) => (template?.slots.findIndex((slot) => slot.id === slotId) ?? -1) + 1;
+          const slotBadges = Object.fromEntries(
+            spreadComments.filter((item) => item.slotId).map((item) => [item.slotId!, photoNumber(item.slotId!)]),
+          );
+          const pinnedSlot = pinned?.spreadIndex === spreadIndex ? pinned.slotId : null;
           return (
             <section key={spreadIndex} className="spread-block">
               <div className="spread-block__head">
-                <h2>Spread {spreadIndex + 1}</h2>
+                <h2>{t("review.spread", { number: spreadIndex + 1 })}</h2>
               </div>
 
-              <SpreadCanvas
-                spreadIndex={spreadIndex}
-                template={templateById.get(spread.templateId)}
-                placements={spread.placements}
-                previewUrlFor={(photoId) =>
-                  spread.placements.find((placement) => placement.photoId === photoId)?.previewUrl
-                }
-                aspectRatio={aspectRatio}
-                pageWidthMm={album.format.pageWidthMm}
-                pageHeightMm={album.format.pageHeightMm}
-              />
+              <div className={album.watermark ? "proof-watermark" : undefined}>
+                <SpreadCanvas
+                  spreadIndex={spreadIndex}
+                  template={template}
+                  placements={spread.placements}
+                  albumStyle={album.style}
+                  texts={spread.texts}
+                  slotBadges={slotBadges}
+                  selectedSlotId={pinnedSlot}
+                  onSlotClick={
+                    closed
+                      ? undefined
+                      : (slotId) =>
+                          setPinned((current) =>
+                            current?.spreadIndex === spreadIndex && current.slotId === slotId
+                              ? null
+                              : { spreadIndex, slotId },
+                          )
+                  }
+                  previewUrlFor={(photoId) =>
+                    spread.placements.find((placement) => placement.photoId === photoId)?.previewUrl
+                  }
+                  aspectRatio={aspectRatio}
+                  pageWidthMm={album.format.pageWidthMm}
+                  pageHeightMm={album.format.pageHeightMm}
+                />
+              </div>
 
               <div className="comments">
                 {spreadComments.map((item) => (
                   <p key={item.id} className={item.resolved ? "comment comment--resolved" : "comment"}>
+                    {item.slotId && <span className="comment__pin">{t("review.photo", { number: photoNumber(item.slotId) })}</span>}
                     <strong>{item.authorName}:</strong> {item.body}
                   </p>
                 ))}
@@ -114,20 +176,31 @@ export function ReviewPage() {
                       event.preventDefault();
                       const body = (draft[spreadIndex] ?? "").trim();
                       if (!body) return;
-                      comment.mutate({ spreadIndex, body });
+                      comment.mutate({ spreadIndex, body, ...(pinnedSlot ? { slotId: pinnedSlot } : {}) });
                       setDraft((prev) => ({ ...prev, [spreadIndex]: "" }));
+                      setPinned(null);
                     }}
                   >
+                    {pinnedSlot && (
+                      <button
+                        type="button"
+                        className="comment__pin comment__pin--active"
+                        title={t("review.unpin")}
+                        onClick={() => setPinned(null)}
+                      >
+                        {t("review.photo", { number: photoNumber(pinnedSlot) })} ✕
+                      </button>
+                    )}
                     <input
                       id={`comment-${spreadIndex}`}
                       value={draft[spreadIndex] ?? ""}
-                      placeholder="Ask for a swap, a crop, a different moment…"
+                      placeholder={pinnedSlot ? t("review.placeholder.photo") : t("review.placeholder")}
                       onChange={(event) =>
                         setDraft((prev) => ({ ...prev, [spreadIndex]: event.target.value }))
                       }
                     />
                     <button type="submit" className="button button--small">
-                      Add note
+                      {t("review.addNote")}
                     </button>
                   </form>
                 )}
@@ -146,7 +219,7 @@ export function ReviewPage() {
             disabled={decide.isPending}
             onClick={() => decide.mutate("CHANGES_REQUESTED")}
           >
-            Request changes
+            {t("review.requestChanges")}
           </button>
           <button
             type="button"
@@ -154,7 +227,7 @@ export function ReviewPage() {
             disabled={decide.isPending}
             onClick={() => decide.mutate("APPROVED")}
           >
-            Approve album
+            {t("review.approve")}
           </button>
         </footer>
       )}

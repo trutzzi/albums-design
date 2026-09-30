@@ -1,10 +1,18 @@
+import type { AlbumCoverDTO, AlbumStyleDTO, TextBlockDTO } from "@albumflow/contracts";
+
 export interface ReviewableAlbum {
   id: string;
   title: string;
   status: string;
+  /** The studio's plan puts a watermark over client proofs. */
+  watermark: boolean;
   format: { pageWidthMm: number; pageHeightMm: number; bleedMm: number };
+  style: AlbumStyleDTO;
+  /** The cover the client will hold, with a loadable preview of its photo. */
+  cover: (AlbumCoverDTO & { previewUrl: string | null }) | null;
   spreads: {
     templateId: string;
+    texts?: TextBlockDTO[] | undefined;
     placements: {
       slotId: string;
       photoId: string;

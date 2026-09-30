@@ -1,4 +1,5 @@
 import { AggregateRoot, UniqueEntityId } from "@albumflow/domain-kernel";
+import { DEFAULT_STYLE, type AlbumCoverDTO, type AlbumStyleDTO, type TextBlockDTO } from "@albumflow/contracts";
 import { findTemplate, type LayoutTemplate } from "./layout-template";
 
 export type AlbumStatus = "DRAFT" | "IN_REVIEW" | "CHANGES_REQUESTED" | "APPROVED" | "EXPORTED";
@@ -37,9 +38,17 @@ export interface Placement {
   frame?: SlotFrame;
 }
 
+export type TextBlock = TextBlockDTO;
+export type AlbumStyle = AlbumStyleDTO;
+export type AlbumCover = AlbumCoverDTO;
+
+/** Enough for a title page and a few captions; beyond that the page stops being a photo album. */
+export const MAX_TEXT_BLOCKS_PER_SPREAD = 8;
+
 export interface Spread {
   templateId: string;
   placements: Placement[];
+  texts?: TextBlock[];
 }
 
 export interface AlbumFormat {
@@ -56,6 +65,8 @@ export interface AlbumProps {
   status: AlbumStatus;
   format: AlbumFormat;
   spreads: Spread[];
+  style: AlbumStyle;
+  cover: AlbumCover | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -103,6 +114,8 @@ export class Album extends AggregateRoot<AlbumProps> {
         status: "DRAFT",
         format: params.format ?? DEFAULT_FORMAT,
         spreads: params.spreads,
+        style: DEFAULT_STYLE,
+        cover: null,
         createdAt: now,
         updatedAt: now,
       },
@@ -132,6 +145,14 @@ export class Album extends AggregateRoot<AlbumProps> {
 
   get spreads(): readonly Spread[] {
     return this.props.spreads;
+  }
+
+  get style(): AlbumStyle {
+    return this.props.style;
+  }
+
+  get cover(): AlbumCover | null {
+    return this.props.cover;
   }
 
   get spreadCount(): number {
@@ -378,6 +399,39 @@ export class Album extends AggregateRoot<AlbumProps> {
     this.assertEditable();
     if (spreads.length === 0) throw new Error("An album must keep at least one spread.");
     this.props.spreads = spreads;
+    this.touch();
+  }
+
+  /** Adds the block, or replaces the one with the same id — how typing and dragging both land. */
+  setTextBlock(spreadIndex: number, block: TextBlock): void {
+    this.assertEditable();
+    const spread = this.spreadAt(spreadIndex);
+    const texts = spread.texts ?? [];
+    const existing = texts.findIndex((candidate) => candidate.id === block.id);
+    if (existing === -1 && texts.length >= MAX_TEXT_BLOCKS_PER_SPREAD) {
+      throw new Error(`A spread holds at most ${MAX_TEXT_BLOCKS_PER_SPREAD} text blocks.`);
+    }
+    const placed = { ...block, ...normaliseFrame(block) };
+    spread.texts = existing === -1 ? [...texts, placed] : texts.map((candidate, index) => (index === existing ? placed : candidate));
+    this.touch();
+  }
+
+  removeTextBlock(spreadIndex: number, blockId: string): void {
+    this.assertEditable();
+    const spread = this.spreadAt(spreadIndex);
+    spread.texts = (spread.texts ?? []).filter((candidate) => candidate.id !== blockId);
+    this.touch();
+  }
+
+  setStyle(style: AlbumStyle): void {
+    this.assertEditable();
+    this.props.style = { ...style };
+    this.touch();
+  }
+
+  setCover(cover: AlbumCover | null): void {
+    this.assertEditable();
+    this.props.cover = cover ? { ...cover, crop: normaliseCrop(cover.crop) } : null;
     this.touch();
   }
 

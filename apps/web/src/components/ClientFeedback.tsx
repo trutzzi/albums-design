@@ -10,6 +10,8 @@ export interface ClientFeedbackProps {
   /** Scrolls the editor to the spread the client was looking at. */
   onJumpTo: (comment: FeedbackComment) => void;
   onResolve: (commentId: string) => void;
+  /** 1-based number of the photo a pinned note points at, in the layout's reading order. */
+  photoNumber?: ((spreadIndex: number, slotId: string) => number | undefined) | undefined;
 }
 
 /**
@@ -24,6 +26,7 @@ export const ClientFeedback = memo(function ClientFeedback({
   resolvingId,
   onJumpTo,
   onResolve,
+  photoNumber,
 }: ClientFeedbackProps) {
   if (loading) return <p className="muted">Loading feedback…</p>;
 
@@ -77,7 +80,11 @@ export const ClientFeedback = memo(function ClientFeedback({
                 onClick={() => onJumpTo(comment)}
               >
                 Spread {comment.spreadIndex + 1}
-                {comment.slotId && <span className="feedback__slot">· {comment.slotId}</span>}
+                {comment.slotId && (
+                  <span className="feedback__slot">
+                    · photo {photoNumber?.(comment.spreadIndex, comment.slotId) ?? "?"}
+                  </span>
+                )}
               </button>
               <span className="muted feedback__who">{comment.clientName}</span>
             </div>

@@ -2,6 +2,7 @@ import { Queue, Worker } from "bullmq";
 import type { ConnectionOptions, Job } from "bullmq";
 import { buildCompositionRoot } from "@albumflow/api";
 import { QUEUES } from "@albumflow/api/shared-kernel/job-queue";
+import { flushErrorReports, reportError, startErrorMonitoring } from "@albumflow/api/monitoring";
 
 interface AnalyzePhotoJob {
   photoId: string;
@@ -55,6 +56,7 @@ async function main() {
   // The worker is a second entrypoint into the same application core, not a
   // parallel implementation — it shares every use case and adapter with the API.
   const root = buildCompositionRoot();
+  startErrorMonitoring({ dsn: root.env.SENTRY_DSN, environment: root.env.NODE_ENV, service: "worker" });
   const connection = redisConnectionFrom(root.env.REDIS_URL);
 
   const analysisWorker = new Worker(
@@ -138,6 +140,13 @@ async function main() {
             if (result.isFailure) throw new Error(result.getError().message);
             const { promoted, alreadyStored } = result.getValue();
             log(`[storage] album ${(job.data as PromoteSelectedJob).albumId}: ${promoted} promoted, ${alreadyStored} already stored`);
+          } else if (job.name === "offsite-backup") {
+            const summary = await root.offsiteBackups!.run();
+            log(
+              `[backup] off-site database copies: ${summary.uploaded.length} uploaded` +
+                (summary.uploaded.length ? ` (${summary.uploaded.join(", ")})` : "") +
+                `, ${summary.alreadyThere} already there, ${summary.pruned} old copies removed`,
+            );
           } else if (job.name === "purge-expired") {
             const summary = await root.purgeExpiredOriginals!.execute();
             log(
@@ -159,6 +168,17 @@ async function main() {
     { name: "purge-expired", data: {} },
   );
 
+  // The nightly database dump lands around 03:00 UTC on a fresh deploy's schedule; copying at
+  // 04:00, and once at startup, gets every dump off the server within a day of being written.
+  if (storageQueue && root.offsiteBackups) {
+    await storageQueue.upsertJobScheduler(
+      "offsite-database-backup",
+      { pattern: "0 4 * * *" },
+      { name: "offsite-backup", data: {} },
+    );
+    await storageQueue.add("offsite-backup", {}, { removeOnComplete: 20, removeOnFail: 20 });
+  }
+
   // Every original goes to long-term storage (LONG_TERM_ORIGINALS=all): a sweep every 5
   // minutes stores whatever is not there yet — the backfill for photos uploaded earlier and
   // the retry for any copy that failed — and one runs right away at startup.
@@ -175,12 +195,17 @@ async function main() {
   for (const worker of workers) {
     worker.on("failed", (job, error) => {
       log(`[${worker.name}] job ${job?.id} failed: ${error.message}`);
+      // Only the last attempt: a retry that later succeeds is noise, not an incident.
+      if (!job || job.attemptsMade >= (job.opts.attempts ?? 1)) {
+        reportError(error, { queue: worker.name, job: job?.name, jobId: job?.id });
+      }
     });
   }
 
   const shutdown = async () => {
     await Promise.all([...workers.map((worker) => worker.close()), storageQueue?.close()]);
     await root.shutdown();
+    await flushErrorReports();
     process.exit(0);
   };
   process.on("SIGINT", () => void shutdown());
@@ -188,7 +213,8 @@ async function main() {
 
   log(
     `Worker listening on: ${QUEUES.mediaIngestion}, ${QUEUES.photoIntelligence}, ${QUEUES.albumExport}` +
-      (storageWorker ? `, ${QUEUES.storage} (long-term storage: ${root.permanentStorage?.id})` : ""),
+      (storageWorker ? `, ${QUEUES.storage} (long-term storage: ${root.permanentStorage?.id})` : "") +
+      (root.offsiteBackups ? " — off-site database backups on" : ""),
   );
 }
 

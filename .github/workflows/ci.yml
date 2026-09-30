@@ -271,6 +271,14 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+          BILLING_PROVIDER: ${{ secrets.BILLING_PROVIDER }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_STARTER: ${{ secrets.STRIPE_PRICE_STARTER }}
+          STRIPE_PRICE_STUDIO: ${{ secrets.STRIPE_PRICE_STUDIO }}
+          STRIPE_PRICE_STUDIO_PRO: ${{ secrets.STRIPE_PRICE_STUDIO_PRO }}
         run: |
           set -euo pipefail
           : > .env.deploy
@@ -297,6 +305,14 @@ jobs:
           add SMTP_USER "${SMTP_USER:-}"
           add SMTP_PASSWORD "${SMTP_PASSWORD:-}"
           add MAIL_FROM "${MAIL_FROM:-}"
+          add SENTRY_DSN "${SENTRY_DSN:-}"
+          add ADMIN_EMAILS "${ADMIN_EMAILS:-}"
+          add BILLING_PROVIDER "${BILLING_PROVIDER:-}"
+          add STRIPE_SECRET_KEY "${STRIPE_SECRET_KEY:-}"
+          add STRIPE_WEBHOOK_SECRET "${STRIPE_WEBHOOK_SECRET:-}"
+          add STRIPE_PRICE_STARTER "${STRIPE_PRICE_STARTER:-}"
+          add STRIPE_PRICE_STUDIO "${STRIPE_PRICE_STUDIO:-}"
+          add STRIPE_PRICE_STUDIO_PRO "${STRIPE_PRICE_STUDIO_PRO:-}"
           # Not a secret, and only meaningful alongside DigiStorage: the public origin the
           # signed preview links point at.
           add PUBLIC_API_URL "https://api.valentintruta.ro"
@@ -353,7 +369,7 @@ jobs:
 
             $COMPOSE build api worker
             $COMPOSE run --rm api pnpm --filter @albumflow/api exec tsx src/db/migrate.ts
-            $COMPOSE up -d postgres redis minio minio-init api worker caddy
+            $COMPOSE up -d postgres redis minio minio-init api worker db-backup caddy
             docker image prune -f
 
             # A wrong value in a secret (a port that is not a number, say) makes the API refuse
@@ -428,6 +444,7 @@ jobs:
           VITE_API_URL: https://api.valentintruta.ro
           VITE_STUDIO_ID: ${{ secrets.VITE_STUDIO_ID }}
           VITE_STUDIO_API_KEY: ${{ secrets.VITE_STUDIO_API_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
 
       # cPanel here has no SSH (confirmed: Security has no "SSH Access" icon),
       # so FTP is the deploy path. FTP_USERNAME should be a dedicated account

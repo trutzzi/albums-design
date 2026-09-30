@@ -176,6 +176,34 @@ export function moveFrame(frame: SlotFrame, dx: number, dy: number): SlotFrame {
   };
 }
 
+/**
+ * `moveFrame`, then pulls the frame onto the nearest alignment line: its left edge,
+ * right edge or centre, whichever lands closest to a page edge, the page centre or
+ * another photo's edge — each axis on its own. The size never changes; the frame is
+ * only translated, and stays on the page.
+ */
+export function moveFrameSnapped(frame: SlotFrame, dx: number, dy: number, targets: SnapTargets): SlotFrame {
+  const moved = moveFrame(frame, dx, dy);
+  const shift = (start: number, size: number, lines: readonly number[]) => {
+    let best = 0;
+    let bestDistance = SNAP_THRESHOLD;
+    for (const anchor of [start, start + size / 2, start + size]) {
+      const snapped = nearestTarget(anchor, lines, SNAP_THRESHOLD);
+      const distance = Math.abs(snapped - anchor);
+      if (snapped !== anchor && distance < bestDistance) {
+        best = snapped - anchor;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  };
+  return {
+    ...moved,
+    x: clamp(moved.x + shift(moved.x, moved.width, targets.x), 0, 1 - moved.width),
+    y: clamp(moved.y + shift(moved.y, moved.height, targets.y), 0, 1 - moved.height),
+  };
+}
+
 export function framesEqual(a: SlotFrame, b: SlotFrame): boolean {
   const close = (x: number, y: number) => Math.abs(x - y) < 1e-6;
   return close(a.x, b.x) && close(a.y, b.y) && close(a.width, b.width) && close(a.height, b.height);

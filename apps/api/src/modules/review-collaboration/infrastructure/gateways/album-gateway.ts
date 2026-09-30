@@ -1,5 +1,6 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { AlbumRepository } from "../../../album-composition/domain/album-repository";
+import type { PlanFeatureDirectory } from "../../../../shared-kernel/plan-features";
 import type {
   AlbumGateway,
   PhotoPreviewResolver,
@@ -11,6 +12,7 @@ export class AlbumCompositionGateway implements AlbumGateway {
   constructor(
     private readonly albums: AlbumRepository,
     private readonly previews?: PhotoPreviewResolver,
+    private readonly features?: PlanFeatureDirectory,
   ) {}
 
   async load(albumId: string): Promise<ReviewableAlbum | undefined> {
@@ -20,10 +22,19 @@ export class AlbumCompositionGateway implements AlbumGateway {
       id: album.id.toString(),
       title: album.title,
       status: album.status,
+      watermark: (await this.features?.forProject(album.projectId.toString()))?.watermarkDrafts ?? false,
       format: album.format,
+      style: album.style,
+      cover: album.cover
+        ? {
+            ...album.cover,
+            previewUrl: album.cover.photoId ? ((await this.previews?.previewUrl(album.cover.photoId)) ?? null) : null,
+          }
+        : null,
       spreads: await Promise.all(
         album.spreads.map(async (spread) => ({
           templateId: spread.templateId,
+          texts: spread.texts,
           placements: await Promise.all(
             spread.placements.map(async (placement) => ({
               slotId: placement.slotId,

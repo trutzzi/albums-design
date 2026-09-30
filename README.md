@@ -100,4 +100,11 @@ Auth is a studio-scoped API key (`Authorization: Bearer af_…`); only the hash 
 
 ## Not built yet
 
-Real payment processing (the `BillingGateway` port exists; no Stripe adapter behind it), email/push notification delivery (`LoggingReviewNotifier` writes to the log), an ESLint config, and Terraform for cloud deploy.
+An ESLint config, Terraform for cloud deploy, and a bundled sample shoot for first-time users (the onboarding checklist is there; the sample photos are not).
+
+## Operating it
+
+- **Payments:** `BILLING_PROVIDER=stripe` sells the paid plans through Stripe Checkout and the Customer Portal; see `.env.production.example` for the dashboard setup. Without it, plans switch freely (local and demo).
+- **Admin dashboard:** members whose email is in `ADMIN_EMAILS` get `/admin` — the in-app feedback inbox, business metrics (MRR, trial→paid, activation funnel, 30-day activity) and server health (database, queues, request rate, p95 latency, recent errors).
+- **Backups:** nightly Postgres dumps with an off-site copy on DigiStorage — see [docs/backups.md](docs/backups.md).
+- **Error monitoring:** set `SENTRY_DSN` (API and worker) and the `VITE_SENTRY_DSN` build secret (web).

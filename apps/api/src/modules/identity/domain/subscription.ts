@@ -136,6 +136,16 @@ export class Subscription extends AggregateRoot<SubscriptionProps> {
     this.props.status = "CANCELLED";
   }
 
+  /**
+   * Takes the billing period from the payment provider once a studio pays, so the
+   * album allowance renews on the day the card is charged. A new period resets usage.
+   */
+  syncPeriod(periodStart: Date, periodEnd: Date): void {
+    if (periodStart.getTime() !== this.props.periodStart.getTime()) this.props.albumsUsed = 0;
+    this.props.periodStart = periodStart;
+    this.props.periodEnd = periodEnd;
+  }
+
   seatsRemaining(currentMembers: number): number {
     return Math.max(0, this.plan.seats - currentMembers);
   }

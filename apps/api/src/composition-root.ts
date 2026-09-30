@@ -1,4 +1,5 @@
 import { S3Client } from "@aws-sdk/client-s3";
+import { SubscriptionPlanFeatureDirectory } from "./modules/identity/infrastructure/gateways/subscription-plan-features";
 import type { ConnectionOptions } from "bullmq";
 import { loadEnv, type Env } from "./shared-kernel/env";
 import { createDatabase, type Database } from "./db/client";
@@ -11,6 +12,10 @@ import {
 import { StudioAdministrationUseCase } from "./modules/identity/application/use-cases/studio-administration.use-case";
 import { RegisterUseCase } from "./modules/identity/application/use-cases/register.use-case";
 import { LoginUseCase } from "./modules/identity/application/use-cases/login.use-case";
+import { PasswordResetUseCase } from "./modules/identity/application/use-cases/password-reset.use-case";
+import { PasswordResetMailer } from "./modules/identity/application/services/password-reset.mailer";
+import { BillingUseCase } from "./modules/identity/application/use-cases/billing.use-case";
+import { buildBillingGateway } from "./infrastructure/billing/build-billing-gateway";
 import { SubscriptionQuotaPolicy } from "./modules/identity/application/subscription-quota-policy";
 
 import { DrizzleProjectRepository } from "./modules/media-ingestion/infrastructure/persistence/drizzle-project-repository";
@@ -97,6 +102,17 @@ import { S3ExportStorage } from "./modules/export-print/infrastructure/storage/s
 import { RequestExportUseCase } from "./modules/export-print/application/use-cases/request-export.use-case";
 import { DeleteExportUseCase } from "./modules/export-print/application/use-cases/delete-export.use-case";
 import { RunExportUseCase } from "./modules/export-print/application/use-cases/run-export.use-case";
+import { OffsiteDatabaseBackups } from "./infrastructure/backup/offsite-database-backups";
+import { QUEUES } from "./shared-kernel/job-queue";
+import { RequestMetrics } from "./interface/request-metrics";
+import { DrizzleFeedbackRepository } from "./modules/platform-admin/infrastructure/feedback-repositories";
+import { DrizzleStatsSource } from "./modules/platform-admin/infrastructure/stats-sources";
+import { LiveDependencyProbe } from "./modules/platform-admin/infrastructure/dependency-probes";
+import {
+  AdminAccess,
+  AdminDashboardUseCase,
+  FeedbackUseCase,
+} from "./modules/platform-admin/application/use-cases/admin.use-cases";
 
 export interface CompositionRoot {
   env: Env;
@@ -107,6 +123,8 @@ export interface CompositionRoot {
   administration: StudioAdministrationUseCase;
   register: RegisterUseCase;
   login: LoginUseCase;
+  passwordReset: PasswordResetUseCase;
+  billing: BillingUseCase;
   mediaIngestion: MediaIngestionDependencies;
   generateDerivatives: GenerateDerivativesUseCase;
   /** Long-term storage; `undefined` unless STORAGE_PROVIDER is configured. */
@@ -118,6 +136,8 @@ export interface CompositionRoot {
   /** The sweep that stores every original not yet stored. Present only with LONG_TERM_ORIGINALS=all. */
   storePending: StorePendingOriginalsUseCase | undefined;
   purgeExpiredOriginals: PurgeExpiredOriginalsUseCase | undefined;
+  /** Copies database dumps off the server. Needs both BACKUP_DIR and a long-term provider. */
+  offsiteBackups: OffsiteDatabaseBackups | undefined;
   analyses: DrizzlePhotoAnalysisRepository;
   analyzePhoto: AnalyzePhotoUseCase;
   visionClassifier: VisionClassifier;
@@ -140,6 +160,10 @@ export interface CompositionRoot {
   deleteExport: DeleteExportUseCase;
   runExport: RunExportUseCase;
   exportStorage: S3ExportStorage;
+  requestMetrics: RequestMetrics;
+  adminAccess: AdminAccess;
+  feedback: FeedbackUseCase;
+  adminDashboard: AdminDashboardUseCase;
   shutdown: () => Promise<void>;
 }
 
@@ -177,9 +201,11 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const register = new RegisterUseCase(studios, subscriptions, members, env.JWT_SECRET);
   const login = new LoginUseCase(members, env.JWT_SECRET);
   const quotaPolicy = new SubscriptionQuotaPolicy(subscriptions);
+  const billing = new BillingUseCase(studios, subscriptions, buildBillingGateway(env), env.WEB_ORIGIN);
 
   // Media ingestion
   const projects = new DrizzleProjectRepository(db);
+  const planFeatures = new SubscriptionPlanFeatureDirectory(projects, subscriptions);
   const photos = new DrizzlePhotoRepository(db);
   const storage = new S3ObjectStorage({
     bucket: env.S3_BUCKET,
@@ -233,8 +259,15 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const editAlbum = new EditAlbumUseCase(albums);
   const suggestLayouts = new SuggestLayoutsUseCase(new PhotoIntelligenceDirectory(analyses));
 
-  // Review & collaboration
   const emailSender = buildEmailSender(env);
+  const passwordReset = new PasswordResetUseCase(
+    members,
+    new PasswordResetMailer(emailSender),
+    env.JWT_SECRET,
+    env.WEB_ORIGIN,
+  );
+
+  // Review & collaboration
   const studioContacts = new IdentityStudioContacts(projects, members, studios);
   // Client invitations: the photographer's own "here is your link" email, for all three
   // link kinds, plus the shoot's client contact they prefill from.
@@ -251,6 +284,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const reviewAlbumGateway = new AlbumCompositionGateway(
     albums,
     new StoragePhotoPreviewResolver(photos, storage, permanentStorage),
+    planFeatures,
   );
   // Passwords for client links (album review and download): generated per link, checked
   // against a hash, and kept encrypted so the studio can look the link + password up again.
@@ -318,7 +352,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
 
   // Export & print
   const exportJobs = new DrizzleExportJobRepository(db);
-  const exportAlbumGateway = new AlbumCompositionExportGateway(albums);
+  const exportAlbumGateway = new AlbumCompositionExportGateway(albums, planFeatures);
   const exportStorage = new S3ExportStorage(s3, env.S3_BUCKET, presignS3);
   const requestExport = new RequestExportUseCase(exportJobs, exportAlbumGateway, jobQueue);
   const deleteExport = new DeleteExportUseCase(exportJobs, exportStorage);
@@ -380,6 +414,32 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
       )
     : undefined;
 
+  const offsiteBackups =
+    permanentStorage && env.BACKUP_DIR
+      ? new OffsiteDatabaseBackups(permanentStorage, env.BACKUP_DIR, env.BACKUP_KEEP)
+      : undefined;
+
+  // Platform admin: in-app feedback and the operator dashboard.
+  const requestMetrics = new RequestMetrics();
+  const adminAccess = new AdminAccess(members, env.ADMIN_EMAILS);
+  const feedbackRepository = new DrizzleFeedbackRepository(db);
+  const feedback = new FeedbackUseCase(feedbackRepository, members, studios, adminAccess, emailSender, env.WEB_ORIGIN);
+  const adminDashboard = new AdminDashboardUseCase(
+    new DrizzleStatsSource(db),
+    feedbackRepository,
+    new LiveDependencyProbe(db, () => jobQueue.counts(Object.values(QUEUES))),
+    requestMetrics,
+    {
+      mode: "production",
+      storage: env.STORAGE_PROVIDER,
+      email: env.EMAIL_PROVIDER,
+      billing: env.BILLING_PROVIDER,
+      vision: env.VISION_PROVIDER,
+      errorMonitoring: Boolean(env.SENTRY_DSN),
+    },
+    permanentStorage,
+  );
+
   const mediaIngestion: MediaIngestionDependencies = {
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue, storeEverything),
@@ -399,6 +459,8 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     administration,
     register,
     login,
+    passwordReset,
+    billing,
     mediaIngestion,
     generateDerivatives,
     permanentStorage,
@@ -407,6 +469,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     storeOriginal,
     storePending,
     purgeExpiredOriginals,
+    offsiteBackups,
     analyses,
     analyzePhoto,
     visionClassifier,
@@ -429,6 +492,10 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     deleteExport,
     runExport,
     exportStorage,
+    requestMetrics,
+    adminAccess,
+    feedback,
+    adminDashboard,
     shutdown: async () => {
       await Promise.all([closeDb(), jobQueue.close()]);
     },

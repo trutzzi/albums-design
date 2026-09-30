@@ -5,6 +5,7 @@ import {
   assertSafeKey,
   normalizePrefix,
   type StorageProvider,
+  type StorageUsage,
   type StoredObjectInfo,
 } from "../../shared-kernel/storage-provider";
 import type { MediaUrlSigner } from "./media-url-signer";
@@ -43,6 +44,7 @@ export class DigiStorageProvider implements StorageProvider {
   readonly id = "digistorage";
 
   private readonly client: WebDAVClient;
+  private readonly config: DigiStorageConfig;
   private readonly root: string;
   private readonly urlSigner: MediaUrlSigner;
   private readonly uploadTimeoutMs: number;
@@ -52,6 +54,7 @@ export class DigiStorageProvider implements StorageProvider {
   private readonly pendingDirectories = new Map<string, Promise<void>>();
 
   constructor(config: DigiStorageConfig) {
+    this.config = config;
     this.client = createClient(config.webdavUrl, {
       username: config.username,
       password: config.appPassword,
@@ -156,6 +159,37 @@ export class DigiStorageProvider implements StorageProvider {
   async getUrl(key: string, options: { expiresInSeconds: number }): Promise<string> {
     assertSafeKey(key);
     return this.urlSigner.sign(key, options.expiresInSeconds);
+  }
+
+  /**
+   * DigiStorage runs on Koofr, whose WebDAV answers no quota query (RFC 4331 properties
+   * come back empty), but whose REST API reports each storage area's size — and accepts
+   * the same app password. The WebDAV URL names the area (`/dav/Digi%20Cloud`), so that
+   * is the one reported; the account's primary area is the fallback.
+   */
+  async usage(): Promise<StorageUsage> {
+    const url = new URL(this.config.webdavUrl);
+    const response = await fetch(`${url.origin}/api/v2/mounts`, {
+      headers: {
+        authorization: `Basic ${Buffer.from(`${this.config.username}:${this.config.appPassword}`).toString("base64")}`,
+        accept: "application/json",
+      },
+      signal: AbortSignal.timeout(this.requestTimeoutMs),
+    });
+    if (!response.ok) throw new Error(`DigiStorage answered ${response.status} when asked for its space.`);
+    const body = (await response.json()) as {
+      mounts?: { name?: string; isPrimary?: boolean; spaceTotal?: number; spaceUsed?: number }[];
+    };
+    const mounts = body.mounts ?? [];
+    const areaName = decodeURIComponent(url.pathname.split("/").filter(Boolean)[1] ?? "");
+    const mount = mounts.find((candidate) => candidate.name === areaName) ?? mounts.find((candidate) => candidate.isPrimary);
+    if (!mount || typeof mount.spaceUsed !== "number") throw new Error("DigiStorage did not report its space.");
+    // Koofr reports space in mebibytes.
+    const MIB = 1024 * 1024;
+    return {
+      usedBytes: mount.spaceUsed * MIB,
+      totalBytes: typeof mount.spaceTotal === "number" && mount.spaceTotal > 0 ? mount.spaceTotal * MIB : null,
+    };
   }
 
   private pathFor(key: string): string {

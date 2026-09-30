@@ -1,11 +1,14 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { z } from "zod";
 import { loginInputSchema, registerInputSchema } from "@albumflow/contracts";
-import { ApplicationError, NotFoundError } from "../../../../shared-kernel/errors";
+import { ApplicationError, NotFoundError, TooManyAttemptsError } from "../../../../shared-kernel/errors";
 import { PLANS } from "../../domain/plan";
 import type { StudioAdministrationUseCase } from "../../application/use-cases/studio-administration.use-case";
 import type { RegisterUseCase } from "../../application/use-cases/register.use-case";
 import type { LoginUseCase } from "../../application/use-cases/login.use-case";
+import type { PasswordResetUseCase } from "../../application/use-cases/password-reset.use-case";
+import type { BillingUseCase } from "../../application/use-cases/billing.use-case";
+import "../../../../interface/request-context";
 
 const studioParams = z.object({ studioId: z.string().uuid() });
 const memberParams = studioParams.extend({ memberId: z.string().uuid() });
@@ -21,12 +24,25 @@ const inviteSchema = z.object({
   role: z.enum(["OWNER", "EDITOR", "VIEWER"]),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+  language: z.enum(["en", "ro"]).default("en"),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1).max(2048),
+  password: z.string().min(1).max(200),
+});
+
 const planSchema = z.object({ planCode: z.enum(["TRIAL", "STARTER", "STUDIO", "STUDIO_PRO"]) });
+const upgradeSchema = z.object({ planCode: z.enum(["STARTER", "STUDIO", "STUDIO_PRO"]) });
 
 export interface IdentityDependencies {
   administration: StudioAdministrationUseCase;
   register: RegisterUseCase;
   login: LoginUseCase;
+  passwordReset: PasswordResetUseCase;
+  billing: BillingUseCase;
 }
 
 export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDependencies): void {
@@ -41,7 +57,21 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
 
   app.post("/auth/login", async (request, reply) => {
     const body = loginInputSchema.parse(request.body);
-    const result = await deps.login.execute(body);
+    const result = await deps.login.execute({ ...body, ip: request.ip });
+    if (result.isFailure) return sendError(reply, result.getError());
+    return result.getValue();
+  });
+
+  // 202 whether or not the address has an account, so the form reveals nothing.
+  app.post("/auth/forgot-password", async (request, reply) => {
+    const body = forgotPasswordSchema.parse(request.body);
+    await deps.passwordReset.request(body);
+    return reply.code(202).send({ ok: true });
+  });
+
+  app.post("/auth/reset-password", async (request, reply) => {
+    const body = resetPasswordSchema.parse(request.body);
+    const result = await deps.passwordReset.reset(body);
     if (result.isFailure) return sendError(reply, result.getError());
     return result.getValue();
   });
@@ -57,7 +87,7 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
     const { studioId } = studioParams.parse(request.params);
     const result = await deps.administration.overview(studioId);
     if (result.isFailure) return sendError(reply, result.getError());
-    return result.getValue();
+    return { ...result.getValue(), billing: { provider: deps.billing.provider } };
   });
 
   app.post("/studios/:studioId/members", async (request, reply) => {
@@ -78,9 +108,51 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
   app.put("/studios/:studioId/plan", async (request, reply) => {
     const { studioId } = studioParams.parse(request.params);
     const { planCode } = planSchema.parse(request.body);
+    // With a payment provider, a plan only changes when the provider confirms payment.
+    if (deps.billing.provider !== "none") {
+      return reply.code(409).send({ code: "CONFLICT", message: "Change plans through billing." });
+    }
     const result = await deps.administration.changePlan(studioId, planCode);
     if (result.isFailure) return sendError(reply, result.getError());
     return result.getValue();
+  });
+}
+
+export function registerBillingRoutes(app: FastifyInstance, billing: BillingUseCase): void {
+  app.post("/studios/:studioId/billing/upgrade", async (request, reply) => {
+    const { studioId } = studioParams.parse(request.params);
+    const { planCode } = upgradeSchema.parse(request.body);
+    const result = await billing.upgrade({ studioId, planCode, role: request.role });
+    if (result.isFailure) return sendError(reply, result.getError());
+    return result.getValue();
+  });
+
+  app.post("/studios/:studioId/billing/portal", async (request, reply) => {
+    const { studioId } = studioParams.parse(request.params);
+    const result = await billing.portal({ studioId, role: request.role });
+    if (result.isFailure) return sendError(reply, result.getError());
+    return result.getValue();
+  });
+
+  // The signature covers the exact bytes Stripe sent, so this one route reads the body
+  // raw instead of through the app-wide JSON parser (hence its own encapsulated scope).
+  void app.register(async (scope) => {
+    scope.removeContentTypeParser("application/json");
+    scope.addContentTypeParser("application/json", { parseAs: "buffer" }, (_request, body, done) => done(null, body));
+    scope.post("/billing/webhook", async (request, reply) => {
+      const signature = request.headers["stripe-signature"];
+      if (billing.provider === "none" || typeof signature !== "string" || !Buffer.isBuffer(request.body)) {
+        return reply.code(400).send({ code: "BAD_REQUEST", message: "Not a billing webhook." });
+      }
+      try {
+        await billing.handleWebhook(request.body, signature);
+      } catch (error) {
+        request.log.warn({ err: error }, "billing webhook rejected");
+        // Stripe retries anything that is not 2xx, which is what an out-of-order event needs.
+        return reply.code(400).send({ code: "BAD_REQUEST", message: "Webhook could not be applied." });
+      }
+      return { received: true };
+    });
   });
 }
 
@@ -93,6 +165,7 @@ function toPlanDto(plan: (typeof PLANS)[keyof typeof PLANS]) {
 }
 
 function sendError(reply: FastifyReply, error: ApplicationError) {
+  if (error instanceof TooManyAttemptsError) reply.header("Retry-After", String(error.retryAfterSeconds));
   const status =
     error instanceof NotFoundError
       ? 404
@@ -100,6 +173,10 @@ function sendError(reply: FastifyReply, error: ApplicationError) {
         ? 409
         : error.code === "UNAUTHORIZED"
           ? 401
-          : 422;
+          : error.code === "FORBIDDEN"
+            ? 403
+            : error.code === "TOO_MANY_ATTEMPTS"
+              ? 429
+              : 422;
   return reply.code(status).send({ code: error.code, message: error.message });
 }
