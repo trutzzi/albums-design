@@ -30,7 +30,7 @@ export const PLANS: Record<PlanCode, Plan> = {
   STARTER: {
     code: "STARTER",
     name: "Starter",
-    monthlyPriceUsd: 39,
+    monthlyPriceUsd: 3,
     albumsPerPeriod: 4,
     seats: 1,
     watermarkDrafts: true,
@@ -41,7 +41,7 @@ export const PLANS: Record<PlanCode, Plan> = {
   STUDIO: {
     code: "STUDIO",
     name: "Studio",
-    monthlyPriceUsd: 129,
+    monthlyPriceUsd: 5,
     albumsPerPeriod: 15,
     seats: 3,
     watermarkDrafts: false,
@@ -52,7 +52,7 @@ export const PLANS: Record<PlanCode, Plan> = {
   STUDIO_PRO: {
     code: "STUDIO_PRO",
     name: "Studio Pro",
-    monthlyPriceUsd: 349,
+    monthlyPriceUsd: 10,
     albumsPerPeriod: Number.POSITIVE_INFINITY,
     seats: Number.POSITIVE_INFINITY,
     watermarkDrafts: false,
