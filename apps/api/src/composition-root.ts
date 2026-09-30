@@ -341,6 +341,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
     clientAccess,
     invitations,
     clientContacts,
+    planFeatures,
   );
   const downloadPortal = new DownloadPortalUseCase(
     downloadSessions,
@@ -444,7 +445,7 @@ export function buildCompositionRoot(env: Env = loadEnv()): CompositionRoot {
   const studioPlans = new StudioPlansUseCase(studios, subscriptions);
 
   const mediaIngestion: MediaIngestionDependencies = {
-    requestUpload: new RequestUploadUseCase(projects, photos, storage),
+    requestUpload: new RequestUploadUseCase(projects, photos, storage, planFeatures),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue, storeEverything),
     abandonUpload: new AbandonUploadUseCase(photos, storage),
     listStudioProjects: new ListStudioProjectsUseCase(projects, photos, albums, storage, permanentStorage),

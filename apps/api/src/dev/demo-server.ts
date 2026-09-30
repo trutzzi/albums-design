@@ -391,7 +391,7 @@ async function main() {
   if (permanentStorage) registerMediaRoutes(app, { signer: mediaUrlSigner, provider: permanentStorage });
 
   registerMediaIngestionRoutes(app, {
-    requestUpload: new RequestUploadUseCase(projects, photos, storage),
+    requestUpload: new RequestUploadUseCase(projects, photos, storage, planFeatures),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, queue, storeEverything),
     abandonUpload: new AbandonUploadUseCase(photos, storage),
     listStudioProjects: new ListStudioProjectsUseCase(projects, photos, albums, storage, permanentStorage),
@@ -551,6 +551,7 @@ async function main() {
       clientAccess,
       invitations,
       clientContacts,
+      planFeatures,
     ),
     downloadPortal: new DownloadPortalUseCase(
       downloadSessions,

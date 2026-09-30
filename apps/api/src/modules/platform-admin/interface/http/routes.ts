@@ -69,10 +69,12 @@ export function registerPlatformAdminRoutes(app: FastifyInstance, deps: Platform
 
     admin.get("/admin/studios", async () => deps.plans.list());
 
-    admin.put("/admin/studios/:studioId/plan", async (request, reply) => {
-      const { studioId } = z.object({ studioId: z.string().uuid() }).parse(request.params);
+    // `:targetStudioId`, not `:studioId`: the tenancy guard reads a `studioId` param as
+    // "must be the caller's own studio", and an admin changes other people's.
+    admin.put("/admin/studios/:targetStudioId/plan", async (request, reply) => {
+      const { targetStudioId } = z.object({ targetStudioId: z.string().uuid() }).parse(request.params);
       const { planCode } = planSchema.parse(request.body);
-      const result = await deps.plans.assign(studioId, planCode);
+      const result = await deps.plans.assign(targetStudioId, planCode);
       if (result.isFailure) return sendError(reply, result.getError());
       return result.getValue();
     });

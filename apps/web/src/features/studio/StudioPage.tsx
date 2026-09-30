@@ -115,12 +115,9 @@ export function StudioPage() {
         </div>
         <p className="muted">{t("studio.plan.contact")}</p>
         <div className="plan-cards">
-          {/* The trial is no longer offered; it only shows for a studio still on it. */}
-          {(plans.data ?? [])
-            .filter((plan) => plan.code !== "TRIAL" || plan.code === subscription.planCode)
-            .map((plan) => (
-              <PlanCard key={plan.code} plan={plan} current={plan.code === subscription.planCode} />
-            ))}
+          {(plans.data ?? []).map((plan) => (
+            <PlanCard key={plan.code} plan={plan} current={plan.code === subscription.planCode} />
+          ))}
         </div>
         {manageBilling.isError && <p className="error">{(manageBilling.error as Error).message}</p>}
       </section>
@@ -224,7 +221,7 @@ function PlanCard(props: { plan: PlanDto; current: boolean }) {
     <article className={`plan-card ${props.current ? "plan-card--current" : ""}`}>
       <h3>{plan.name}</h3>
       <p className="plan-card__price">
-        {plan.monthlyPriceEur === 0 ? t("studio.plan.free") : t("studio.plan.price", { price: plan.monthlyPriceEur })}
+        {t("studio.plan.price", { price: plan.monthlyPriceEur })}
       </p>
       <ul>
         <li>
@@ -233,7 +230,14 @@ function PlanCard(props: { plan: PlanDto; current: boolean }) {
             : t("studio.plan.albums", { count: plan.albumsPerPeriod })}
         </li>
         <li>{plan.seats === null ? t("studio.plan.seatsUnlimited") : t("studio.plan.seats", { count: plan.seats })}</li>
+        <li>
+          {plan.maxPhotosPerShoot === null
+            ? t("studio.plan.photosUnlimited")
+            : t("studio.plan.photos", { count: plan.maxPhotosPerShoot })}
+        </li>
+        {plan.clientDownloadLinks && <li>{t("studio.plan.downloadLinks")}</li>}
         <li>{plan.watermarkDrafts ? t("studio.plan.watermarked") : t("studio.plan.noWatermark")}</li>
+        {plan.watermarkExports && <li>{t("studio.plan.watermarkedExports")}</li>}
       </ul>
       {props.current && <span className="chip">{t("studio.plan.current")}</span>}
     </article>

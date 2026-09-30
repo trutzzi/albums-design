@@ -68,7 +68,7 @@ function fixtures() {
 }
 
 describe("registering a personal account", () => {
-  it("creates a studio, a Starter subscription, and a login-capable owner", async () => {
+  it("creates a studio, a Studio subscription, and a login-capable owner", async () => {
     const { studios, subscriptions, members } = fixtures();
     const register = new RegisterUseCase(studios, subscriptions, members, SECRET);
 
@@ -82,7 +82,7 @@ describe("registering a personal account", () => {
     const { token, studioId } = result.getValue();
     assert.ok(token);
     assert.equal(studios.items.size, 1);
-    assert.equal(subscriptions.items.get(studioId)?.planCode, "STARTER");
+    assert.equal(subscriptions.items.get(studioId)?.planCode, "STUDIO");
     assert.equal(subscriptions.items.get(studioId)?.status, "ACTIVE");
 
     const member = [...members.items.values()][0];

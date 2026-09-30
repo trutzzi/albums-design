@@ -16,7 +16,7 @@ const MIN_PASSWORD_LENGTH = 8;
 
 /**
  * Self-serve signup: one person, one personal studio. It's the existing
- * onboarding flow (create a Studio, start a STARTER Subscription, seat an OWNER
+ * onboarding flow (create a Studio, start a Subscription on the default plan, seat an OWNER
  * member) plus a password the person actually chose, rather than a bearer API
  * key handed to them once. The studio the account gets is exactly the
  * tenancy boundary `registerTenancyGuard` already enforces everywhere else,
@@ -58,7 +58,7 @@ export class RegisterUseCase {
     });
 
     await this.studios.save(studio);
-    await this.subscriptions.save(Subscription.startStarter(studio.id));
+    await this.subscriptions.save(Subscription.startDefault(studio.id));
     await this.members.save(member);
 
     const token = signJwt(

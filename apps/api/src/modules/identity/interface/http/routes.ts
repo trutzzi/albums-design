@@ -140,6 +140,7 @@ function toPlanDto(plan: (typeof PLANS)[keyof typeof PLANS]) {
     ...plan,
     albumsPerPeriod: Number.isFinite(plan.albumsPerPeriod) ? plan.albumsPerPeriod : null,
     seats: Number.isFinite(plan.seats) ? plan.seats : null,
+    maxPhotosPerShoot: Number.isFinite(plan.maxPhotosPerShoot) ? plan.maxPhotosPerShoot : null,
   };
 }
 

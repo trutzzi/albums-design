@@ -8,6 +8,8 @@ import {
   deleteProject,
   getAiStatus,
   getProject,
+  getStudioOverview,
+  listPlans,
   generateAlbum,
   getDownloadAccess,
   getPickAccess,
@@ -123,6 +125,14 @@ export function ProjectPage() {
     queryKey: ["project", projectId],
     queryFn: () => getProject(projectId),
   });
+
+  // What the studio's plan allows here: photos per shoot, and client download links.
+  const studio = useQuery({ queryKey: ["studio", studioId], queryFn: () => getStudioOverview(studioId) });
+  const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
+  const plan = plans.data?.find((item) => item.code === studio.data?.subscription.planCode);
+  const photoLimit = plan?.maxPhotosPerShoot ?? null;
+  const canSendDownloadLinks = plan?.clientDownloadLinks ?? true;
+  const [limitNotice, setLimitNotice] = useState<string | null>(null);
 
   const photos = useQuery({
     queryKey: ["photos", projectId],
@@ -330,7 +340,16 @@ export function ProjectPage() {
       if (!fileList || fileList.length === 0) return;
       // In file-name order, a few at a time — not all at once — so the shoot fills up in
       // order and a thousand photos do not open a thousand connections.
-      const files = sortFilesByName(Array.from(fileList));
+      let files = sortFilesByName(Array.from(fileList));
+      setLimitNotice(null);
+      if (photoLimit !== null) {
+        const room = Math.max(0, photoLimit - (photos.data?.length ?? 0));
+        if (files.length > room) {
+          setLimitNotice(t("project.limit.reached", { limit: photoLimit, skipped: files.length - room }));
+          files = files.slice(0, room);
+        }
+        if (files.length === 0) return;
+      }
       const controller = new AbortController();
       uploadAbort.current = controller;
       unconfirmed.current = new Set();
@@ -353,7 +372,7 @@ export function ProjectPage() {
           void queryClient.invalidateQueries({ queryKey: ["photos", projectId] });
         });
     },
-    [uploadOne, queryClient, projectId],
+    [uploadOne, queryClient, projectId, photoLimit, photos.data, t],
   );
 
   const cancelUpload = useCallback(() => {
@@ -460,6 +479,9 @@ export function ProjectPage() {
       >
         <p className="dropzone__title">{t("project.dropzone.title")}</p>
         <p className="muted">{t("project.dropzone.subtitle")}</p>
+        {photoLimit !== null && (
+          <p className="muted">{t("project.limit.count", { count: photos.data?.length ?? 0, limit: photoLimit })}</p>
+        )}
         <input
           id="photo-input"
           ref={inputRef}
@@ -471,6 +493,7 @@ export function ProjectPage() {
         />
       </section>
 
+      {limitNotice && <p className="notice">{limitNotice}</p>}
       {inFlight.length > 0 && (
         <p className="muted upload-status">
           {t("project.uploading", { count: inFlight.length, plural: inFlight.length === 1 ? "" : "s" })}
@@ -729,6 +752,9 @@ export function ProjectPage() {
           <h2>{t("project.delivery.title")}</h2>
         </div>
         <p className="muted">{t("project.delivery.intro")}</p>
+        {!canSendDownloadLinks && <p className="notice">{t("project.delivery.needsStudio")}</p>}
+        {canSendDownloadLinks && (
+        <>
         <div className="pick-create">
           <div className="field">
             <label htmlFor="delivery-client-name">{t("project.delivery.clientName")}</label>
@@ -788,6 +814,8 @@ export function ProjectPage() {
                 <option value="ro">Română</option>
               </select>
             </div>
+        </>
+        )}
         {deliveryEmailNote?.sentTo && (
           <p className="notice notice--good" role="status">
             {t("client.send.done", { email: deliveryEmailNote.sentTo })}

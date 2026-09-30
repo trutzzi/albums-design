@@ -1,5 +1,5 @@
 import { AggregateRoot, UniqueEntityId } from "@albumflow/domain-kernel";
-import { planFor, type Plan, type PlanCode } from "./plan";
+import { DEFAULT_PLAN, planFor, type Plan, type PlanCode } from "./plan";
 
 export type SubscriptionStatus = "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELLED";
 
@@ -19,9 +19,9 @@ export class Subscription extends AggregateRoot<SubscriptionProps> {
     super(props, id);
   }
 
-  /** Every new studio starts here; after that only a platform admin moves it to another plan. */
-  static startStarter(studioId: UniqueEntityId, id?: UniqueEntityId): Subscription {
-    return Subscription.start(studioId, "STARTER", "ACTIVE", id);
+  /** Every new studio starts on DEFAULT_PLAN; after that only a platform admin moves it to another plan. */
+  static startDefault(studioId: UniqueEntityId, id?: UniqueEntityId): Subscription {
+    return Subscription.start(studioId, DEFAULT_PLAN, "ACTIVE", id);
   }
 
   static startTrial(studioId: UniqueEntityId, id?: UniqueEntityId): Subscription {

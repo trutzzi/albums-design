@@ -48,7 +48,7 @@ export class StudioAdministrationUseCase {
   }): Promise<Result<{ studioId: string; apiKey: string }, ApplicationError>> {
     const { studio, apiKey } = Studio.create({ name: params.name, ownerEmail: params.ownerEmail });
     await this.studios.save(studio);
-    await this.subscriptions.save(Subscription.startStarter(studio.id));
+    await this.subscriptions.save(Subscription.startDefault(studio.id));
     await this.members.save(
       StudioMember.invite({
         studioId: studio.id,

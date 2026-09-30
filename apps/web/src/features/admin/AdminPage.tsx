@@ -312,7 +312,7 @@ function StudioRow({ studio, plans }: { studio: AdminStudio; plans: PlanDto[] })
         >
           {plans.map((plan) => (
             <option key={plan.code} value={plan.code}>
-              {plan.name} · {plan.monthlyPriceEur === 0 ? "free" : eur(plan.monthlyPriceEur)}
+              {plan.name} · {eur(plan.monthlyPriceEur)}
             </option>
           ))}
         </select>

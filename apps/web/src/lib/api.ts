@@ -442,6 +442,9 @@ export interface PlanDto {
   seats: number | null;
   watermarkDrafts: boolean;
   watermarkExports: boolean;
+  /** `null` means unlimited. */
+  maxPhotosPerShoot: number | null;
+  clientDownloadLinks: boolean;
 }
 
 export function listPlans(): Promise<PlanDto[]> {

@@ -14,6 +14,7 @@ import {
   StudioPlansUseCase,
 } from "../src/modules/platform-admin/application/use-cases/admin.use-cases";
 import { registerPlatformAdminRoutes } from "../src/modules/platform-admin/interface/http/routes";
+import { registerTenancyGuard } from "../src/interface/tenancy";
 import { Studio } from "../src/modules/identity/domain/studio";
 import { StudioMember } from "../src/modules/identity/domain/studio-member";
 import { Subscription } from "../src/modules/identity/domain/subscription";
@@ -145,7 +146,7 @@ describe("feedback and the admin area", () => {
     const subscriptions = new InMemorySubscriptionRepository();
     const { studio } = Studio.create({ name: "Golden Hour", ownerEmail: "owner@studio.test" });
     await studios.save(studio);
-    await subscriptions.save(Subscription.startStarter(studio.id));
+    await subscriptions.save(Subscription.startDefault(studio.id));
     const photographer = StudioMember.signUp({ studioId: studio.id, email: "owner@studio.test", name: "Ana", passwordHash: "x" });
     const admin = StudioMember.signUp({ studioId: studio.id, email: "Boss@AlbumFlow.test", name: "Boss", passwordHash: "x" });
     await members.save(photographer);
@@ -160,6 +161,12 @@ describe("feedback and the admin area", () => {
       request.studioId = studio.id.toString();
       const member = request.headers["x-member"];
       if (typeof member === "string") request.memberId = member;
+    });
+    registerTenancyGuard(server, {
+      projects: new InMemoryProjectRepository(),
+      photos: new InMemoryPhotoRepository(),
+      albums: new InMemoryAlbumRepository(),
+      exportJobs: new InMemoryExportJobRepository(),
     });
     registerPlatformAdminRoutes(server, {
       access,
@@ -193,6 +200,7 @@ describe("feedback and the admin area", () => {
     return {
       server,
       sent,
+      studios,
       subscriptions,
       studioId: studio.id.toString(),
       photographerId: photographer.id.toString(),
@@ -258,17 +266,22 @@ describe("feedback and the admin area", () => {
   });
 
   it("lets only an admin move a studio to another plan", async () => {
-    const { server, subscriptions, studioId, photographerId, adminId } = await app();
+    const { server, studios, subscriptions, photographerId, adminId } = await app();
+    // Someone else's studio: the admin is signed in to their own.
+    const { studio: other } = Studio.create({ name: "Other Studio", ownerEmail: "other@studio.test" });
+    await studios.save(other);
+    await subscriptions.save(Subscription.startDefault(other.id));
+    const studioId = other.id.toString();
     const url = `/admin/studios/${studioId}/plan`;
 
     const denied = await server.inject({ method: "PUT", url, headers: { "x-member": photographerId }, payload: { planCode: "STUDIO_PRO" } });
     assert.equal(denied.statusCode, 404);
 
     const list = await server.inject({ method: "GET", url: "/admin/studios", headers: { "x-member": adminId } });
-    assert.equal(list.json()[0].planCode, "STARTER", "new studios start on Starter");
+    assert.ok(list.json().every((studio: { planCode: string }) => studio.planCode === "STUDIO"), "new studios start on Studio");
 
     const changed = await server.inject({ method: "PUT", url, headers: { "x-member": adminId }, payload: { planCode: "STUDIO_PRO" } });
-    assert.equal(changed.statusCode, 200);
+    assert.equal(changed.statusCode, 200, changed.body);
     assert.equal(changed.json().planCode, "STUDIO_PRO");
     assert.equal(changed.json().albumsIncluded, null);
     assert.equal(subscriptions.items.get(studioId)?.planCode, "STUDIO_PRO");
