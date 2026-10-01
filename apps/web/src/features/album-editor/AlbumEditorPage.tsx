@@ -1,14 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import type {
-  AlbumDTO,
-  AlbumEditInput,
-  Crop,
-  LayoutSuggestionDTO,
-  PhotoTreatment,
-  SlotFrame,
-} from "@albumflow/contracts";
+import type { PhotoTreatment } from "@albumflow/contracts";
 import {
   DEFAULT_STYLE,
   MAX_PHOTOS_PER_SPREAD,
@@ -17,37 +10,40 @@ import {
   type TextBlockDTO,
 } from "@albumflow/contracts";
 import {
-  editAlbum,
   deleteAlbum,
   getAlbum,
-  deleteExport,
-  getExportDownload,
-  listExports,
+  getAlbumFeedback,
   listLayoutTemplates,
-  listPrintProfiles,
   listPickSessions,
   listProjectAnalyses,
   listProjectPhotos,
-  getAlbumFeedback,
-  getReviewAccess,
-  sendReviewInvitation,
-  listReviewSessions,
-  openReviewSession,
-  resolveComment,
-  requestExport,
-  suggestSpreadLayouts,
+  type FeedbackComment,
 } from "@/shared/api";
-import { SpreadBlock } from "@/features/album-editor/components/SpreadBlock";
-import { StylePanel } from "@/features/album-editor/components/StylePanel";
-import { CoverEditor } from "@/shared/album/CoverEditor";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { GuidedTour, type TourStep } from "@/shared/ui/GuidedTour";
-import { PageStrip } from "@/features/album-editor/components/PageStrip";
-import { AlbumCheckPanel } from "@/features/album-editor/components/AlbumCheckPanel";
+import { CoverEditor } from "@/shared/album/CoverEditor";
 import { BookPreview } from "@/shared/album/BookPreview";
-import { ShortcutsHelp } from "@/features/album-editor/components/ShortcutsHelp";
 import { checkAlbum, issuesBySpread } from "@/features/album-editor/lib/album-check";
 import { chapterStarts } from "@/features/album-editor/lib/chapters";
-import { tip } from "@/shared/lib/tip";
+import { useAlbumDraft } from "@/features/album-editor/hooks/useAlbumDraft";
+import { useSpreadLayouts } from "@/features/album-editor/hooks/useSpreadLayouts";
+import { usePhotoTray } from "@/features/album-editor/hooks/usePhotoTray";
+import { usePrintGuides } from "@/features/album-editor/hooks/usePrintGuides";
+import { useEditorShortcuts } from "@/features/album-editor/hooks/useEditorShortcuts";
+import { useCurrentSpread, useHeaderHeightVariable } from "@/features/album-editor/hooks/useEditorLayout";
+import { SpreadBlock } from "@/features/album-editor/components/SpreadBlock";
+import { StylePanel } from "@/features/album-editor/components/StylePanel";
+import { PageStrip } from "@/features/album-editor/components/PageStrip";
+import { AlbumCheckPanel } from "@/features/album-editor/components/AlbumCheckPanel";
+import { ShortcutsHelp } from "@/features/album-editor/components/ShortcutsHelp";
+import { openCommentsBySpread } from "@/features/album-editor/components/ClientFeedback";
+import { EditorToolbar } from "@/features/album-editor/components/EditorToolbar";
+import { TrayPanel } from "@/features/album-editor/components/TrayPanel";
+import { ReviewPanel } from "@/features/album-editor/components/ReviewPanel";
+import { FeedbackPanel } from "@/features/album-editor/components/FeedbackPanel";
+import { ExportPanel } from "@/features/album-editor/components/ExportPanel";
+import { PrintGuidesModal } from "@/features/album-editor/components/PrintGuidesModal";
+import { InsertSpreadModal } from "@/features/album-editor/components/InsertSpreadModal";
 
 const EDITOR_TOUR: TourStep[] = [
   { target: '[data-tour="editor-cover"]', titleKey: "tour.editor.cover.title", bodyKey: "tour.editor.cover.body" },
@@ -60,36 +56,17 @@ const EDITOR_TOUR: TourStep[] = [
   { target: '[data-tour="editor-check"]', titleKey: "tour.editor.check.title", bodyKey: "tour.editor.check.body" },
   { target: '[data-tour="editor-ready"]', titleKey: "tour.editor.ready.title", bodyKey: "tour.editor.ready.body" },
 ];
-import { AccessDetailsModal } from "@/shared/ui/AccessDetailsModal";
-import { LayoutPicker } from "@/features/album-editor/components/LayoutPicker";
-import { PhotoTray } from "@/features/album-editor/components/PhotoTray";
-import { PlanUpsell } from "@/shared/ui/PlanUpsell";
-import { loadTrayPrefs, saveTrayPrefs, type TrayPrefs } from "@/features/album-editor/lib/tray-prefs";
-import type { TrayDensity } from "@/features/album-editor/lib/tray-grid";
-import { countTrayPhotos, filterTrayPhotos, isFiltering, type TrayContext, type TrayShow } from "@/features/album-editor/lib/tray-filter";
-import { ClientFeedback, openCommentsBySpread } from "@/features/album-editor/components/ClientFeedback";
-import type { FeedbackComment } from "@/shared/api";
-import { useLanguage } from "@/shared/i18n/LanguageContext";
 
-type Spread = AlbumDTO["spreads"][number];
-type TraySort = "score" | "category" | "filename" | "similarity";
+type SidebarTab = "photos" | "design" | "review" | "export";
 
-/** "Lab standard (300 dpi, 3mm bleed)" → "Lab standard" — the parenthetical is print-shop detail, not something the toolbar chip has room for. */
-function shortenProfileName(name: string): string {
-  return name.split(" (")[0] ?? name;
-}
-
-/** Never a real print profile's id — those come from the server's PRINT_PROFILES list. */
-const CUSTOM_PROFILE_ID = "custom";
-
-/** The same photos in any order are the same set, and share one ranking of layouts. */
-function photoSetKey(photoIds: string[]): string {
-  return [...photoIds].sort().join("|");
-}
-
+/**
+ * The album editor: the cover and every spread down the middle, a sidebar of photos,
+ * design, review and export, and a page strip along the bottom. Editing state lives in
+ * hooks (useAlbumDraft, useSpreadLayouts, usePhotoTray); this page wires them together.
+ */
 export function AlbumEditorPage() {
   const { albumId = "" } = useParams();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<{ spreadIndex: number; slotId: string } | null>(null);
@@ -102,63 +79,21 @@ export function AlbumEditorPage() {
   const [addingToSpread, setAddingToSpread] = useState<number | null>(null);
   // Set to the position a new spread should land at when the "+" between two
   // spreads (or "+ Add spread" at the end) is clicked — non-null shows the
-  // layout-choice modal, since a brand-new spread has no photos yet to narrow
-  // the choice down to a single fitting size.
+  // layout-choice modal.
   const [insertAt, setInsertAt] = useState<number | null>(null);
   const [showRuler, setShowRuler] = useState(false);
-  const [showGuides, setShowGuides] = useState(false);
-  const [guidesModalOpen, setGuidesModalOpen] = useState(false);
-  const [printProfileId, setPrintProfileId] = useState<string | null>(null);
-  const [customBleedMm, setCustomBleedMm] = useState(3);
-  const [customSafeMarginMm, setCustomSafeMarginMm] = useState(5);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [picked, setPicked] = useState<string[]>([]);
-  const [traySort, setTraySort] = useState<TraySort>("score");
-  // Filters for the tray; they combine, so "client picks" + "portrait" narrows to both.
   // The sidebar shows one section at a time, so the photo tray can use the whole height of the window.
-  const [sidebarTab, setSidebarTab] = useState<"photos" | "design" | "review" | "export">("photos");
-  const [trayShow, setTrayShow] = useState<TrayShow>("all");
-  const [trayCategory, setTrayCategory] = useState("");
-  const [traySearch, setTraySearch] = useState("");
-  // How big the thumbnails are and how wide the sidebar is — remembered between visits.
-  const [trayPrefs, setTrayPrefs] = useState<TrayPrefs>(loadTrayPrefs);
-  const updateTrayPrefs = (patch: Partial<TrayPrefs>) =>
-    setTrayPrefs((current) => {
-      const next = { ...current, ...patch };
-      saveTrayPrefs(next);
-      return next;
-    });
-  const [clientName, setClientName] = useState("");
-  const [shareLink, setShareLink] = useState<string | null>(null);
-  const [sharePassword, setSharePassword] = useState<string | null>(null);
-  const [reviewClientEmail, setReviewClientEmail] = useState("");
-  const [reviewSendEmail, setReviewSendEmail] = useState(false);
-  const [reviewEmailLanguage, setReviewEmailLanguage] = useState<"en" | "ro">(language);
-  const [reviewEmailNote, setReviewEmailNote] = useState<{ sentTo?: string; error?: string } | null>(null);
-  const [reviewDetailsFor, setReviewDetailsFor] = useState<string | null>(null);
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("photos");
   const [checkOpen, setCheckOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  // The spread most in view — what the strip highlights and the keyboard acts on.
-  const [currentSpread, setCurrentSpread] = useState(0);
   const saving = useIsMutating() > 0;
+  const guides = usePrintGuides();
 
   const album = useQuery({ queryKey: ["album", albumId], queryFn: () => getAlbum(albumId) });
   const templates = useQuery({ queryKey: ["templates"], queryFn: listLayoutTemplates });
-  const printProfiles = useQuery({ queryKey: ["print-profiles"], queryFn: listPrintProfiles });
-  const customPrintProfile = {
-    id: CUSTOM_PROFILE_ID,
-    name: "Custom",
-    dpi: 300,
-    bleedMm: customBleedMm,
-    safeMarginMm: customSafeMarginMm,
-    drawTrimMarks: true,
-  };
-  const selectedPrintProfile =
-    printProfileId === CUSTOM_PROFILE_ID
-      ? customPrintProfile
-      : (printProfiles.data?.find((profile) => profile.id === printProfileId) ??
-        printProfiles.data?.[0]);
   const projectId = album.data?.projectId ?? "";
   const photos = useQuery({
     queryKey: ["photos", projectId],
@@ -176,10 +111,6 @@ export function AlbumEditorPage() {
     queryFn: () => listPickSessions(projectId),
     enabled: projectId !== "",
   });
-  const reviews = useQuery({
-    queryKey: ["reviews", albumId],
-    queryFn: () => listReviewSessions(albumId),
-  });
   const feedback = useQuery({
     queryKey: ["feedback", albumId],
     queryFn: () => getAlbumFeedback(albumId),
@@ -188,426 +119,11 @@ export function AlbumEditorPage() {
     refetchInterval: 30000,
   });
 
-  const exports = useQuery({
-    queryKey: ["exports", albumId],
-    queryFn: () => listExports(albumId),
-    refetchInterval: (query) =>
-      query.state.data?.some((job) => job.status === "QUEUED" || job.status === "RENDERING")
-        ? 3000
-        : false,
-  });
-
-  // Dragging updates 60x a second; the server only needs the frame you settle on.
-  const [draft, setDraft] = useState<AlbumDTO | null>(null);
-  const pendingCrop = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Undo/redo history: every spreads snapshot the server has confirmed, so
-  // stepping back or forward replays a real prior state rather than a local
-  // guess — kept as a ref (not state) because it must be read at the moment a
-  // new edit lands, not at whatever point the closure that captured it was
-  // created.
-  const draftRef = useRef<AlbumDTO | null>(null);
-  const [past, setPast] = useState<Spread[][]>([]);
-  const [future, setFuture] = useState<Spread[][]>([]);
-
-  useEffect(() => {
-    if (album.data) {
-      draftRef.current = album.data;
-      setDraft(album.data);
-    }
-  }, [album.data]);
-
-  // Switching to a different album entirely starts its history fresh.
-  useEffect(() => {
-    draftRef.current = null;
-    setPast([]);
-    setFuture([]);
-  }, [albumId]);
-
-  const edit = useMutation({
-    mutationFn: (command: AlbumEditInput) => editAlbum(albumId, command),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["album", albumId], updated);
-      applyUpdate(updated);
-      void queryClient.invalidateQueries({ queryKey: ["albums", projectId] });
-    },
-  });
-
-  // Every memoised child takes callbacks from here, so they must keep the same
-  // identity across renders. The mutation object does not, so route through a ref.
-  const editRef = useRef(edit.mutate);
-  editRef.current = edit.mutate;
-  const runEdit = useCallback((command: AlbumEditInput) => editRef.current(command), []);
-
-  // Records a server-confirmed edit: pushes the state it replaced onto the
-  // undo stack and clears redo, since a fresh edit invalidates whatever could
-  // have been replayed forward. Undo/redo themselves bypass this — they
-  // manage the stacks directly so replaying history doesn't get recorded
-  // as a new entry in it.
-  const applyUpdate = useCallback((updated: AlbumDTO) => {
-    const previous = draftRef.current;
-    if (previous) setPast((stack) => [...stack, previous.spreads]);
-    setFuture([]);
-    draftRef.current = updated;
-    setDraft(updated);
-  }, []);
-
-  const historyMove = useRef<{ direction: "undo" | "redo"; leaving: Spread[] } | null>(null);
-  const restoreSpreads = useMutation({
-    mutationFn: (spreads: Spread[]) => editAlbum(albumId, { type: "RESTORE_SPREADS", spreads }),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["album", albumId], updated);
-      draftRef.current = updated;
-      setDraft(updated);
-      const pending = historyMove.current;
-      historyMove.current = null;
-      if (!pending) return;
-      if (pending.direction === "undo") {
-        setPast((stack) => stack.slice(0, -1));
-        setFuture((stack) => [...stack, pending.leaving]);
-      } else {
-        setFuture((stack) => stack.slice(0, -1));
-        setPast((stack) => [...stack, pending.leaving]);
-      }
-    },
-  });
-
-  const undo = useCallback(() => {
-    const previous = past[past.length - 1];
-    const leaving = draftRef.current;
-    if (!previous || !leaving || restoreSpreads.isPending) return;
-    historyMove.current = { direction: "undo", leaving: leaving.spreads };
-    restoreSpreads.mutate(previous);
-  }, [past, restoreSpreads]);
-
-  const redo = useCallback(() => {
-    const next = future[future.length - 1];
-    const leaving = draftRef.current;
-    if (!next || !leaving || restoreSpreads.isPending) return;
-    historyMove.current = { direction: "redo", leaving: leaving.spreads };
-    restoreSpreads.mutate(next);
-  }, [future, restoreSpreads]);
-
-  const handleCropChange = useCallback(
-    (spreadIndex: number, slotId: string, crop: Crop, commit: boolean) => {
-      setDraft((current) => {
-        if (!current) return current;
-        const spreads = current.spreads.map((spread, index) =>
-          index !== spreadIndex
-            ? spread
-            : {
-                ...spread,
-                placements: spread.placements.map((placement) =>
-                  placement.slotId === slotId ? { ...placement, crop } : placement,
-                ),
-              },
-        );
-        return { ...current, spreads };
-      });
-
-      if (pendingCrop.current) clearTimeout(pendingCrop.current);
-      const send = () => runEdit({ type: "SET_CROP", spreadIndex, slotId, crop });
-      if (commit) send();
-      else pendingCrop.current = setTimeout(send, 400);
-    },
-    [runEdit],
-  );
-
-  const pendingFrame = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleFrameChange = useCallback(
-    (spreadIndex: number, slotId: string, frame: SlotFrame, commit: boolean) => {
-      setDraft((current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          spreads: current.spreads.map((spread, index) =>
-            index !== spreadIndex
-              ? spread
-              : {
-                  ...spread,
-                  placements: spread.placements.map((placement) =>
-                    placement.slotId === slotId ? { ...placement, frame } : placement,
-                  ),
-                },
-          ),
-        };
-      });
-
-      if (pendingFrame.current) clearTimeout(pendingFrame.current);
-      const send = () => runEdit({ type: "SET_FRAME", spreadIndex, slotId, frame });
-      if (commit) send();
-      else pendingFrame.current = setTimeout(send, 400);
-    },
-    [runEdit],
-  );
-
-  const pendingFrames = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleFramesChange = useCallback(
-    (spreadIndex: number, frames: { slotId: string; frame: SlotFrame }[], commit: boolean) => {
-      const bySlot = new Map(frames.map((entry) => [entry.slotId, entry.frame]));
-      setDraft((current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          spreads: current.spreads.map((spread, index) =>
-            index !== spreadIndex
-              ? spread
-              : {
-                  ...spread,
-                  placements: spread.placements.map((placement) => {
-                    const frame = bySlot.get(placement.slotId);
-                    return frame ? { ...placement, frame } : placement;
-                  }),
-                },
-          ),
-        };
-      });
-
-      if (pendingFrames.current) clearTimeout(pendingFrames.current);
-      const send = () => runEdit({ type: "SET_FRAMES", spreadIndex, frames });
-      if (commit) send();
-      else pendingFrames.current = setTimeout(send, 400);
-    },
-    [runEdit],
-  );
-  const mirrorSpread = useCallback((spreadIndex: number) => runEdit({ type: "MIRROR_SPREAD", spreadIndex }), [runEdit]);
-  const toggleSpreadLock = useCallback(
-    (spreadIndex: number, locked: boolean) => runEdit({ type: "SET_SPREAD_LOCK", spreadIndex, locked }),
-    [runEdit],
-  );
-
-  // Declared before the mutations that close over it, so those closures can never
-  // observe it uninitialised on a render that bails out early.
-  const current = draft ?? album.data;
-
-  // Suggestions are keyed by the photo set, so stepping through a spread's designs never refetches.
-  const suggestionCache = useRef<Map<string, LayoutSuggestionDTO[]>>(new Map());
-  // Bumped when a ranking arrives, so the "Design 3 of 12" counters redraw with it.
-  const [, setSuggestionsLoaded] = useState(0);
-
-  const suggestionsFor = useCallback(
-    async (photoIds: string[]): Promise<LayoutSuggestionDTO[]> => {
-      const key = photoSetKey(photoIds);
-      const cached = suggestionCache.current.get(key);
-      if (cached) return cached;
-      const fresh = await suggestSpreadLayouts(projectId, photoIds);
-      suggestionCache.current.set(key, fresh);
-      setSuggestionsLoaded((count) => count + 1);
-      return fresh;
-    },
-    [projectId],
-  );
-
-  const addPickedAsSpread = useMutation({
-    mutationFn: async () => {
-      const ranked = await suggestionsFor(picked);
-      const best = ranked[0];
-      if (!best) throw new Error("No layout fits that many photos.");
-      return editAlbum(albumId, {
-        type: "ADD_SPREAD",
-        atIndex: current?.spreads.length ?? 0,
-        templateId: best.templateId,
-        photoIds: best.photoIds,
-      });
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["album", albumId], updated);
-      applyUpdate(updated);
-      setPicked([]);
-    },
-  });
-
-  const shuffle = useMutation({
-    mutationFn: async ({ spreadIndex, step }: { spreadIndex: number; step: 1 | -1 }) => {
-      const spread = current?.spreads[spreadIndex];
-      if (!spread) throw new Error("That spread is gone.");
-      const photoIds = spread.placements.map((placement) => placement.photoId).filter(Boolean);
-      const ranked = await suggestionsFor(photoIds);
-      if (ranked.length < 2) throw new Error("No other layout holds this many photos.");
-
-      // A layout outside the ranking (a hand-picked one) steps to either end of it.
-      const currentIndex = ranked.findIndex((entry) => entry.templateId === spread.templateId);
-      const nextIndex =
-        currentIndex < 0 ? (step === 1 ? 0 : ranked.length - 1) : (currentIndex + step + ranked.length) % ranked.length;
-      const next = ranked[nextIndex];
-      if (!next) throw new Error("No alternative layout found.");
-      return editAlbum(albumId, {
-        type: "CHANGE_TEMPLATE",
-        spreadIndex,
-        templateId: next.templateId,
-        photoIds: next.photoIds,
-      });
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["album", albumId], updated);
-      applyUpdate(updated);
-    },
-  });
-
-  // Growing a spread past its template's own slot count: no new endpoint —
-  // this is exactly what "shuffle design" already does (suggest layouts for a
-  // photo set, apply the best-ranked one), just for the existing photos plus
-  // one more, rather than for a shuffle among templates of the same size.
-  const addPhotoToSpread = useMutation({
-    mutationFn: async ({ spreadIndex, photoId }: { spreadIndex: number; photoId: string }) => {
-      const spread = current?.spreads[spreadIndex];
-      if (!spread) throw new Error("That spread is gone.");
-      const existingPhotoIds = spread.placements
-        .map((placement) => placement.photoId)
-        .filter(Boolean);
-      if (existingPhotoIds.includes(photoId)) {
-        throw new Error("That photo is already on this spread.");
-      }
-      const grown = [...existingPhotoIds, photoId];
-      if (grown.length > MAX_PHOTOS_PER_SPREAD) {
-        throw new Error(`A spread holds at most ${MAX_PHOTOS_PER_SPREAD} photos.`);
-      }
-      const ranked = await suggestionsFor(grown);
-      const best = ranked[0];
-      if (!best) throw new Error(`No layout holds ${grown.length} photos.`);
-      return editAlbum(albumId, {
-        type: "CHANGE_TEMPLATE",
-        spreadIndex,
-        templateId: best.templateId,
-        photoIds: best.photoIds,
-      });
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["album", albumId], updated);
-      applyUpdate(updated);
-    },
-  });
-
-  // The inverse of addPhotoToSpread: shrink instead of grow, same re-suggest
-  // step either way. Refuses to go to zero — a spread with no photos has
-  // nothing for any template to hold; "Remove" (the whole spread) is the
-  // right action there instead, not a photo count of zero.
-  const removePhotoFromSpread = useMutation({
-    mutationFn: async ({ spreadIndex, slotId }: { spreadIndex: number; slotId: string }) => {
-      const spread = current?.spreads[spreadIndex];
-      if (!spread) throw new Error("That spread is gone.");
-      const shrunk = spread.placements
-        .filter((placement) => placement.slotId !== slotId)
-        .map((placement) => placement.photoId)
-        .filter(Boolean);
-      if (shrunk.length === 0) {
-        throw new Error("A spread needs at least one photo — remove the whole spread instead.");
-      }
-      const ranked = await suggestionsFor(shrunk);
-      const best = ranked[0];
-      if (!best) throw new Error(`No layout holds ${shrunk.length} photos.`);
-      return editAlbum(albumId, {
-        type: "CHANGE_TEMPLATE",
-        spreadIndex,
-        templateId: best.templateId,
-        photoIds: best.photoIds,
-      });
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["album", albumId], updated);
-      applyUpdate(updated);
-    },
-  });
-
-  // Dragging a photo across spreads and dropping it on the margins — not onto
-  // another slot — moves it outright rather than trading it for whatever's
-  // there: the source spread shrinks by one and re-suggests its layout, the
-  // destination grows by one and does the same, exactly like
-  // removePhotoFromSpread + addPhotoToSpread run back to back.
-  const movePhotoAcrossSpreadsAsNewPhoto = useMutation({
-    mutationFn: async ({
-      fromSpreadIndex,
-      fromSlotId,
-      toSpreadIndex,
-    }: {
-      fromSpreadIndex: number;
-      fromSlotId: string;
-      toSpreadIndex: number;
-    }) => {
-      const fromSpread = current?.spreads[fromSpreadIndex];
-      const toSpread = current?.spreads[toSpreadIndex];
-      if (!fromSpread || !toSpread) throw new Error("That spread is gone.");
-      const moving = fromSpread.placements.find((placement) => placement.slotId === fromSlotId);
-      if (!moving?.photoId) throw new Error("There's no photo there to move.");
-
-      const remaining = fromSpread.placements
-        .filter((placement) => placement.slotId !== fromSlotId)
-        .map((placement) => placement.photoId)
-        .filter(Boolean);
-      if (remaining.length === 0) {
-        throw new Error("A spread needs at least one photo — remove the whole spread instead.");
-      }
-      const grown = [
-        ...toSpread.placements.map((placement) => placement.photoId).filter(Boolean),
-        moving.photoId,
-      ];
-      if (grown.length > MAX_PHOTOS_PER_SPREAD) {
-        throw new Error(`A spread holds at most ${MAX_PHOTOS_PER_SPREAD} photos.`);
-      }
-
-      const [shrunkRanked, grownRanked] = await Promise.all([
-        suggestionsFor(remaining),
-        suggestionsFor(grown),
-      ]);
-      const shrunkBest = shrunkRanked[0];
-      const grownBest = grownRanked[0];
-      if (!shrunkBest) throw new Error(`No layout holds ${remaining.length} photos.`);
-      if (!grownBest) throw new Error(`No layout holds ${grown.length} photos.`);
-
-      // Sequential, not parallel: both edits land on the same album, and the
-      // second must build on the first's persisted state, not race it.
-      await editAlbum(albumId, {
-        type: "CHANGE_TEMPLATE",
-        spreadIndex: fromSpreadIndex,
-        templateId: shrunkBest.templateId,
-        photoIds: shrunkBest.photoIds,
-      });
-      return editAlbum(albumId, {
-        type: "CHANGE_TEMPLATE",
-        spreadIndex: toSpreadIndex,
-        templateId: grownBest.templateId,
-        photoIds: grownBest.photoIds,
-      });
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["album", albumId], updated);
-      applyUpdate(updated);
-    },
-  });
-
-  const resolveFeedback = useMutation({
-    mutationFn: (commentId: string) => resolveComment(albumId, commentId),
-    onSuccess: (updated) => queryClient.setQueryData(["feedback", albumId], updated),
-  });
-
-  const share = useMutation({
-    mutationFn: () =>
-      openReviewSession(albumId, clientName || "Client", {
-        ...(reviewClientEmail.trim() ? { clientEmail: reviewClientEmail.trim() } : {}),
-        ...(reviewSendEmail ? { sendEmail: true, language: reviewEmailLanguage } : {}),
-      }),
-    onSuccess: (session) => {
-      setShareLink(`${window.location.origin}/review/${session.token}`);
-      setSharePassword(session.password ?? null);
-      setReviewEmailNote(
-        session.emailSentTo ? { sentTo: session.emailSentTo } : session.emailError ? { error: session.emailError } : null,
-      );
-      void queryClient.invalidateQueries({ queryKey: ["reviews", albumId] });
-      void queryClient.invalidateQueries({ queryKey: ["album", albumId] });
-    },
-  });
-
-  const startExport = useMutation({
-    mutationFn: () => requestExport(albumId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["exports", albumId] }),
-  });
-
-  const removeExport = useMutation({
-    mutationFn: (exportJobId: string) => deleteExport(exportJobId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["exports", albumId] }),
-  });
+  const draft = useAlbumDraft(albumId, album.data);
+  const { current, runEdit } = draft;
+  const spreadCount = current?.spreads.length ?? 0;
+  const [currentSpread, setCurrentSpread] = useCurrentSpread(spreadCount);
+  const layouts = useSpreadLayouts({ albumId, projectId, album: current, currentSpread, commit: draft.commit });
 
   const removeAlbum = useMutation({
     mutationFn: () => deleteAlbum(albumId),
@@ -621,69 +137,37 @@ export function AlbumEditorPage() {
     () => new Map((photos.data ?? []).map((photo) => [photo.id, photo.previewUrl])),
     [photos.data],
   );
+  const thumbnailByPhoto = useMemo(
+    () => new Map((photos.data ?? []).map((photo) => [photo.id, photo.thumbnailUrl ?? photo.previewUrl])),
+    [photos.data],
+  );
   const templateById = useMemo(
     () => new Map((templates.data ?? []).map((template) => [template.id, template])),
     [templates.data],
   );
   const templateList = useMemo(() => templates.data ?? [], [templates.data]);
-  const commentsBySpread = useMemo(
-    () => openCommentsBySpread(feedback.data?.comments ?? []),
-    [feedback.data],
-  );
+  const commentsBySpread = useMemo(() => openCommentsBySpread(feedback.data?.comments ?? []), [feedback.data]);
   const analysisByPhoto = useMemo(
     () => new Map((analyses.data ?? []).map((analysis) => [analysis.photoId, analysis])),
     [analyses.data],
   );
-  // The order the system ranked each photo when scoring the shoot: best
-  // overall score first. Shown in the tray, and also what the tray is sorted
-  // by, so a photographer sees the generator's best picks first.
-  const rankByPhoto = useMemo(() => {
-    const ranked = [...(analyses.data ?? [])].sort((a, b) => b.overall - a.overall);
-    return new Map(ranked.map((analysis, index) => [analysis.photoId, index + 1]));
-  }, [analyses.data]);
-  const trayPhotos = useMemo(() => {
-    const withThumbnails = (photos.data ?? []).filter(
-      (photo) => photo.thumbnailUrl ?? photo.previewUrl,
-    );
-    // Every mode is a stable sort: whatever the chosen key doesn't decide
-    // (no analysis yet, a tie), the photo keeps its original order rather
-    // than jumping around unpredictably.
-    return [...withThumbnails].sort((a, b) => {
-      switch (traySort) {
-        case "filename":
-          return a.fileName.localeCompare(b.fileName);
-        case "category": {
-          const categoryA = analysisByPhoto.get(a.id)?.category ?? "";
-          const categoryB = analysisByPhoto.get(b.id)?.category ?? "";
-          return categoryA.localeCompare(categoryB) || a.fileName.localeCompare(b.fileName);
-        }
-        case "similarity": {
-          const groupA = analysisByPhoto.get(a.id)?.similarityGroup ?? Infinity;
-          const groupB = analysisByPhoto.get(b.id)?.similarityGroup ?? Infinity;
-          return groupA - groupB || (rankByPhoto.get(a.id) ?? Infinity) - (rankByPhoto.get(b.id) ?? Infinity);
-        }
-        case "score":
-        default:
-          return (rankByPhoto.get(a.id) ?? Infinity) - (rankByPhoto.get(b.id) ?? Infinity);
-      }
-    });
-  }, [photos.data, rankByPhoto, analysisByPhoto, traySort]);
   // Every photo id placed on any spread, so the tray can flag a photo that's
   // already in the album rather than let it be added a second time by mistake.
   const usedPhotoIds = useMemo(
-    () =>
-      new Set(
-        (current?.spreads ?? []).flatMap((spread) =>
-          spread.placements.map((placement) => placement.photoId),
-        ),
-      ),
+    () => new Set((current?.spreads ?? []).flatMap((spread) => spread.placements.map((placement) => placement.photoId))),
     [current],
   );
-  const thumbnailByPhoto = useMemo(
-    () => new Map((photos.data ?? []).map((photo) => [photo.id, photo.thumbnailUrl ?? photo.previewUrl])),
-    [photos.data],
+  const clientPickedIds = useMemo(
+    () =>
+      new Set(
+        (pickSessions.data ?? [])
+          .filter((session) => session.status === "SUBMITTED")
+          .flatMap((session) => session.pickedPhotoIds),
+      ),
+    [pickSessions.data],
   );
-  const thumbnailUrlFor = useCallback((photoId: string) => thumbnailByPhoto.get(photoId), [thumbnailByPhoto]);
+  const tray = usePhotoTray({ photos: photos.data, analyses: analyses.data, analysisByPhoto, clientPickedIds, usedPhotoIds });
+
   const issues = useMemo(
     () =>
       current && photos.data
@@ -698,62 +182,13 @@ export function AlbumEditorPage() {
   );
   const issueCounts = useMemo(() => issuesBySpread(issues), [issues]);
   const needsAttention = issues.filter((issue) => issue.severity !== "info").length;
-  const chapters = useMemo(
-    () => chapterStarts(current?.spreads ?? [], analysisByPhoto),
-    [current?.spreads, analysisByPhoto],
-  );
-
-  const clientPickedIds = useMemo(
-    () =>
-      new Set(
-        (pickSessions.data ?? [])
-          .filter((session) => session.status === "SUBMITTED")
-          .flatMap((session) => session.pickedPhotoIds),
-      ),
-    [pickSessions.data],
-  );
-  // Categories that actually occur in this shoot, so the menu never offers an empty choice.
-  const trayCategories = useMemo(
-    () => [...new Set((analyses.data ?? []).map((analysis) => analysis.category))].sort(),
-    [analyses.data],
-  );
-  const trayContext = useMemo<TrayContext>(
-    () => ({
-      clientPickedIds,
-      usedPhotoIds,
-      categoryOf: (id) => analysisByPhoto.get(id)?.category,
-      isAlbumWorthy: (id) => analysisByPhoto.get(id)?.albumWorthy === true,
-    }),
-    [clientPickedIds, usedPhotoIds, analysisByPhoto],
-  );
-  const trayFilter = useMemo(
-    () => ({ show: trayShow, category: trayCategory, search: traySearch }),
-    [trayShow, trayCategory, traySearch],
-  );
-  const trayCounts = useMemo(() => countTrayPhotos(trayPhotos, trayContext), [trayPhotos, trayContext]);
-  const trayFilterActive = isFiltering(trayFilter);
-  const visibleTrayPhotos = useMemo(
-    () => filterTrayPhotos(trayPhotos, trayFilter, trayContext),
-    [trayPhotos, trayFilter, trayContext],
-  );
-  const formatCount = (value: number) => value.toLocaleString(language === "ro" ? "ro-RO" : "en-GB");
-  const categoryLabel = (category: string) => {
-    const key = `album.photoTray.category.${category}`;
-    const label = t(key);
-    return label === key ? category.toLowerCase() : label;
-  };
-
+  const chapters = useMemo(() => chapterStarts(current?.spreads ?? [], analysisByPhoto), [current?.spreads, analysisByPhoto]);
 
   // Every callback below is passed to a memoised child, so each one must keep its
   // identity across renders or the memo boundary buys nothing.
-  const previewUrlFor = useCallback(
-    (photoId: string) => previewByPhoto.get(photoId),
-    [previewByPhoto],
-  );
-  const focusFor = useCallback(
-    (photoId: string) => analysisByPhoto.get(photoId)?.focus,
-    [analysisByPhoto],
-  );
+  const previewUrlFor = useCallback((photoId: string) => previewByPhoto.get(photoId), [previewByPhoto]);
+  const thumbnailUrlFor = useCallback((photoId: string) => thumbnailByPhoto.get(photoId), [thumbnailByPhoto]);
+  const focusFor = useCallback((photoId: string) => analysisByPhoto.get(photoId)?.focus, [analysisByPhoto]);
   const closeTools = useCallback(() => {
     setSelected(null);
     setSelectedText(null);
@@ -787,60 +222,28 @@ export function AlbumEditorPage() {
     setAddingToSpread(null);
     setSelectedText({ spreadIndex, blockId });
   }, []);
-  const pendingText = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Like crops and frames: the draft follows every keystroke and drag frame, the server
-  // gets the block once it settles.
-  const handleTextChange = useCallback(
-    (spreadIndex: number, block: TextBlockDTO, commit: boolean) => {
-      setDraft((current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          spreads: current.spreads.map((spread, index) =>
-            index !== spreadIndex
-              ? spread
-              : { ...spread, texts: (spread.texts ?? []).map((item) => (item.id === block.id ? block : item)) },
-          ),
-        };
-      });
-      if (pendingText.current) clearTimeout(pendingText.current);
-      const send = () => runEdit({ type: "SET_TEXT_BLOCK", spreadIndex, block });
-      if (commit) send();
-      else pendingText.current = setTimeout(send, 600);
-    },
-    [runEdit],
-  );
+  const { removeText: removeTextBlock } = draft;
   const removeText = useCallback(
     (spreadIndex: number, blockId: string) => {
-      if (pendingText.current) clearTimeout(pendingText.current);
-      runEdit({ type: "REMOVE_TEXT_BLOCK", spreadIndex, blockId });
+      removeTextBlock(spreadIndex, blockId);
       setSelectedText(null);
     },
-    [runEdit],
+    [removeTextBlock],
   );
   const setStyle = useCallback((style: AlbumStyleDTO) => runEdit({ type: "SET_STYLE", style }), [runEdit]);
   const setCover = useCallback((cover: AlbumCoverDTO | null) => runEdit({ type: "SET_COVER", cover }), [runEdit]);
   const reorderSpread = useCallback(
-    (fromIndex: number, toIndex: number) =>
-      runEdit({ type: "REORDER_SPREAD", fromIndex, toIndex }),
+    (fromIndex: number, toIndex: number) => runEdit({ type: "REORDER_SPREAD", fromIndex, toIndex }),
     [runEdit],
   );
-  const resetFrames = useCallback(
-    (spreadIndex: number) => runEdit({ type: "RESET_FRAMES", spreadIndex }),
-    [runEdit],
-  );
+  const resetFrames = useCallback((spreadIndex: number) => runEdit({ type: "RESET_FRAMES", spreadIndex }), [runEdit]);
   const setSpreadTreatment = useCallback(
-    (spreadIndex: number, treatment: PhotoTreatment) =>
-      runEdit({ type: "SET_SPREAD_TREATMENT", spreadIndex, treatment }),
+    (spreadIndex: number, treatment: PhotoTreatment) => runEdit({ type: "SET_SPREAD_TREATMENT", spreadIndex, treatment }),
     [runEdit],
   );
-  const removeSpread = useCallback(
-    (index: number) => runEdit({ type: "REMOVE_SPREAD", index }),
-    [runEdit],
-  );
+  const removeSpread = useCallback((index: number) => runEdit({ type: "REMOVE_SPREAD", index }), [runEdit]);
   const dropPhotoInSlot = useCallback(
-    (spreadIndex: number, slotId: string, photoId: string) =>
-      runEdit({ type: "SWAP_PHOTO", spreadIndex, slotId, photoId }),
+    (spreadIndex: number, slotId: string, photoId: string) => runEdit({ type: "SWAP_PHOTO", spreadIndex, slotId, photoId }),
     [runEdit],
   );
   const setSlotTreatment = useCallback(
@@ -860,18 +263,16 @@ export function AlbumEditorPage() {
   );
   const movePlacementAcrossSpreads = useCallback(
     (fromSpreadIndex: number, fromSlotId: string, toSpreadIndex: number, toSlotId: string) =>
-      runEdit({
-        type: "MOVE_PLACEMENT_ACROSS_SPREADS",
-        fromSpreadIndex,
-        fromSlotId,
-        toSpreadIndex,
-        toSlotId,
-      }),
+      runEdit({ type: "MOVE_PLACEMENT_ACROSS_SPREADS", fromSpreadIndex, fromSlotId, toSpreadIndex, toSlotId }),
     [runEdit],
   );
   const pickTemplate = useCallback(
-    (spreadIndex: number, templateId: string) =>
-      runEdit({ type: "CHANGE_TEMPLATE", spreadIndex, templateId }),
+    (spreadIndex: number, templateId: string) => runEdit({ type: "CHANGE_TEMPLATE", spreadIndex, templateId }),
+    [runEdit],
+  );
+  const mirrorSpread = useCallback((spreadIndex: number) => runEdit({ type: "MIRROR_SPREAD", spreadIndex }), [runEdit]);
+  const toggleSpreadLock = useCallback(
+    (spreadIndex: number, locked: boolean) => runEdit({ type: "SET_SPREAD_LOCK", spreadIndex, locked }),
     [runEdit],
   );
   const insertSpread = useCallback(
@@ -904,94 +305,58 @@ export function AlbumEditorPage() {
     }
   }, []);
 
-  const resolveRef = useRef(resolveFeedback.mutate);
-  resolveRef.current = resolveFeedback.mutate;
-  const markCommentDone = useCallback((commentId: string) => resolveRef.current(commentId), []);
-
-  const shuffleRef = useRef(shuffle.mutate);
-  shuffleRef.current = shuffle.mutate;
-  // One step at a time: a held arrow key must not send edits computed from a stale layout.
-  const cycling = useRef(false);
-  const cycleDesign = useCallback((spreadIndex: number, step: 1 | -1) => {
-    if (cycling.current) return;
-    cycling.current = true;
-    shuffleRef.current({ spreadIndex, step }, { onSettled: () => void (cycling.current = false) });
-  }, []);
+  const { cycleDesign } = layouts;
   const runShuffle = useCallback((spreadIndex: number) => cycleDesign(spreadIndex, 1), [cycleDesign]);
 
-  /** Where a spread's layout sits among those ranked for its photos, once that ranking is known. */
-  const designPositionOf = (spread: { templateId: string; placements: { photoId: string }[] }) => {
-    const ranked = suggestionCache.current.get(
-      photoSetKey(spread.placements.map((placement) => placement.photoId).filter(Boolean)),
-    );
-    if (!ranked) return { index: null, total: null };
-    const index = ranked.findIndex((entry) => entry.templateId === spread.templateId);
-    return { index: index < 0 ? null : index, total: ranked.length };
-  };
-
-  // The spread in view gets its ranking early, so its counter reads "Design 3 of 12"
-  // before the first click; the others load when someone steps through them.
-  const photosInView = (current?.spreads[currentSpread]?.placements ?? [])
-    .map((placement) => placement.photoId)
-    .filter(Boolean);
-  const photosInViewKey = photoSetKey(photosInView);
-  useEffect(() => {
-    if (photosInView.length === 0 || suggestionCache.current.has(photosInViewKey)) return;
-    // Only a head start: if it fails, the first arrow press asks again and shows the error.
-    void suggestionsFor(photosInView).catch(() => undefined);
-    // Keyed by the photo set rather than the array, which is a new object every render.
-  }, [photosInViewKey, suggestionsFor]);
-
-  const addPhotoRef = useRef(addPhotoToSpread.mutate);
-  addPhotoRef.current = addPhotoToSpread.mutate;
+  // The layout mutations change identity every render; memoised children get stable wrappers.
+  const addPhotoRef = useRef(layouts.addPhoto.mutate);
+  addPhotoRef.current = layouts.addPhoto.mutate;
+  const removePhotoRef = useRef(layouts.removePhoto.mutate);
+  removePhotoRef.current = layouts.removePhoto.mutate;
+  const movePhotoRef = useRef(layouts.movePhoto.mutate);
+  movePhotoRef.current = layouts.movePhoto.mutate;
 
   const armAddToSpread = useCallback((spreadIndex: number) => {
     setSelected(null);
     setAddingToSpread((current) => (current === spreadIndex ? null : spreadIndex));
   }, []);
-
   // Dragging a tray photo straight onto a spread's margins goes through the
-  // exact same mutation as the click-to-add flow above — just a second,
-  // more direct way to reach it, with no arming step required first.
+  // exact same mutation as the click-to-add flow — just a second, more direct
+  // way to reach it, with no arming step required first.
   const addPhotoDrop = useCallback(
     (spreadIndex: number, photoId: string) => addPhotoRef.current({ spreadIndex, photoId }),
     [],
   );
-
-  const removePhotoRef = useRef(removePhotoFromSpread.mutate);
-  removePhotoRef.current = removePhotoFromSpread.mutate;
   const removePhoto = useCallback(
     (spreadIndex: number, slotId: string) => removePhotoRef.current({ spreadIndex, slotId }),
+    [],
+  );
+  // A photo dragged in from another spread and dropped on the margins, not
+  // onto a slot — grows this spread instead of swapping with anything.
+  const movePhotoAsNewPhotoDrop = useCallback(
+    (fromSpreadIndex: number, fromSlotId: string, toSpreadIndex: number) =>
+      movePhotoRef.current({ fromSpreadIndex, fromSlotId, toSpreadIndex }),
     [],
   );
 
   // Keeps the slot selected — the tray's click-to-replace then applies to it — and shows
   // the photos that are not in the album yet.
-  const replacePhoto = useCallback((spreadIndex: number, slotId: string) => {
-    setAddingToSpread(null);
-    setSelectedText(null);
-    setSelected({ spreadIndex, slotId });
-    setSidebarTab("photos");
-    setTrayShow("unused");
-    setTrayCategory("");
-    setTraySearch("");
-  }, []);
-
-  const moveAsNewPhotoRef = useRef(movePhotoAcrossSpreadsAsNewPhoto.mutate);
-  moveAsNewPhotoRef.current = movePhotoAcrossSpreadsAsNewPhoto.mutate;
-  // A photo dragged in from another spread and dropped on the margins, not
-  // onto a slot — grows this spread instead of swapping with anything.
-  const movePhotoAsNewPhotoDrop = useCallback(
-    (fromSpreadIndex: number, fromSlotId: string, toSpreadIndex: number) =>
-      moveAsNewPhotoRef.current({ fromSpreadIndex, fromSlotId, toSpreadIndex }),
-    [],
+  const { clearFilters } = tray;
+  const replacePhoto = useCallback(
+    (spreadIndex: number, slotId: string) => {
+      setAddingToSpread(null);
+      setSelectedText(null);
+      setSelected({ spreadIndex, slotId });
+      setSidebarTab("photos");
+      clearFilters("unused");
+    },
+    [clearFilters],
   );
 
   // Read through refs rather than closing over state, so the tray's click
   // handler keeps one identity for the life of the page.
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
-
   const addingToSpreadRef = useRef(addingToSpread);
   addingToSpreadRef.current = addingToSpread;
 
@@ -1006,181 +371,70 @@ export function AlbumEditorPage() {
       const slot = selectedRef.current;
       // A selected slot means "replace this"; otherwise build a set for a new spread.
       if (slot) {
-        runEdit({
-          type: "SWAP_PHOTO",
-          spreadIndex: slot.spreadIndex,
-          slotId: slot.slotId,
-          photoId,
-        });
+        runEdit({ type: "SWAP_PHOTO", spreadIndex: slot.spreadIndex, slotId: slot.slotId, photoId });
         setSelected(null);
         return;
       }
-      setPicked((prev) =>
-        prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId],
-      );
+      setPicked((prev) => (prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId]));
     },
     [runEdit],
   );
 
-  const jumpToSpread = useCallback((spreadIndex: number, slotId?: string) => {
-    document.getElementById(`spread-${spreadIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    setCurrentSpread(spreadIndex);
-    if (slotId) {
-      setAddingToSpread(null);
-      setSelectedText(null);
-      setSelected({ spreadIndex, slotId });
-    }
-  }, []);
+  const jumpToSpread = useCallback(
+    (spreadIndex: number, slotId?: string) => {
+      document.getElementById(`spread-${spreadIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setCurrentSpread(spreadIndex);
+      if (slotId) {
+        setAddingToSpread(null);
+        setSelectedText(null);
+        setSelected({ spreadIndex, slotId });
+      }
+    },
+    [setCurrentSpread],
+  );
 
-  // The header is sticky and its height changes as its buttons wrap; what sits just under
-  // it (the photo toolbar, a spread jumped to) needs to know how tall it is right now.
   const headerRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const header = headerRef.current;
-    if (!header) return;
-    const root = document.documentElement;
-    const observer = new ResizeObserver(() => root.style.setProperty("--editor-header-h", `${header.offsetHeight}px`));
-    observer.observe(header);
-    return () => {
-      observer.disconnect();
-      root.style.removeProperty("--editor-header-h");
-    };
-  }, [album.data !== undefined]);
+  useHeaderHeightVariable(headerRef, album.data !== undefined);
 
-  const spreadCount = current?.spreads.length ?? 0;
-  // Follows the scroll: whichever spread fills most of the window is the current one.
-  useEffect(() => {
-    if (spreadCount === 0) return;
-    const ratios = new Map<number, number>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          ratios.set(Number((entry.target as HTMLElement).dataset.spreadIndex), entry.intersectionRatio);
-        }
-        let best = -1;
-        let bestRatio = 0;
-        for (const [index, ratio] of ratios) {
-          if (ratio > bestRatio) {
-            best = index;
-            bestRatio = ratio;
-          }
-        }
-        if (best >= 0) setCurrentSpread(best);
+  useEditorShortcuts(
+    {
+      currentSpread,
+      spreadCount,
+      spreads: current?.spreads ?? [],
+      selected,
+      locked: current?.status === "APPROVED",
+      modalOpen: checkOpen || previewOpen || shortcutsOpen || confirmingDelete || insertAt !== null || guides.modalOpen,
+    },
+    {
+      undo: draft.undo,
+      redo: draft.redo,
+      showShortcuts: () => setShortcutsOpen(true),
+      showPreview: () => setPreviewOpen(true),
+      showCheck: () => setCheckOpen(true),
+      clearSelection: () => {
+        setSelected(null);
+        setSelectedText(null);
+        setAddingToSpread(null);
       },
-      { threshold: [0, 0.25, 0.5, 0.75, 1] },
-    );
-    document.querySelectorAll<HTMLElement>("[data-spread-index]").forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
-  }, [spreadCount]);
-
-  // Keyboard shortcuts (listed in ShortcutsHelp). Read through a ref so the listener is
-  // installed once and always sees the latest state.
-  const keyState = useRef({ currentSpread, selected, spreadCount, undo, redo, locked: false, modalOpen: false });
-  keyState.current = {
-    currentSpread,
-    selected,
-    spreadCount,
-    undo,
-    redo,
-    locked: current?.status === "APPROVED",
-    modalOpen: checkOpen || previewOpen || shortcutsOpen || confirmingDelete || insertAt !== null || guidesModalOpen,
-  };
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      const state = keyState.current;
-      const target = event.target as HTMLElement | null;
-      const typing =
-        target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
-      if (typing || state.modalOpen) return;
-      const mod = event.metaKey || event.ctrlKey;
-      const spreads = spreadsRef.current ?? [];
-      const here = state.currentSpread;
-
-      if (mod && event.key.toLowerCase() === "z") {
-        event.preventDefault();
-        if (state.locked) return;
-        if (event.shiftKey) state.redo();
-        else state.undo();
-        return;
-      }
-      if (mod && event.key.toLowerCase() === "y") {
-        event.preventDefault();
-        if (!state.locked) state.redo();
-        return;
-      }
-      if (mod || event.altKey) return;
-
-      switch (event.key) {
-        case "?":
-          setShortcutsOpen(true);
-          return;
-        case "Escape":
-          setSelected(null);
-          setSelectedText(null);
-          setAddingToSpread(null);
-          return;
-        case "p":
-        case "P":
-          setPreviewOpen(true);
-          return;
-        case "c":
-        case "C":
-          setCheckOpen(true);
-          return;
-      }
-      // Arrow keys belong to the selected photo (they nudge it). Without one, up and down
-      // turn pages and left and right step through the current spread's designs.
-      if (!state.selected && (event.key === "ArrowDown" || event.key === "PageDown")) {
-        event.preventDefault();
-        jumpToSpread(Math.min(state.spreadCount - 1, here + 1));
-        return;
-      }
-      if (!state.selected && (event.key === "ArrowUp" || event.key === "PageUp")) {
-        event.preventDefault();
-        jumpToSpread(Math.max(0, here - 1));
-        return;
-      }
-      if (state.locked) return;
-      const spread = spreads[here];
-      switch (event.key) {
-        case "ArrowLeft":
-        case "ArrowRight":
-          if (!state.selected && spread && !spread.locked) {
-            event.preventDefault();
-            cycleDesign(here, event.key === "ArrowRight" ? 1 : -1);
-          }
-          return;
-        case "s":
-        case "S":
-          if (spread && !spread.locked) runShuffle(here);
-          return;
-        case "m":
-        case "M":
-          if (spread && !spread.locked) mirrorSpread(here);
-          return;
-        case "l":
-        case "L":
-          if (spread) toggleSpreadLock(here, !spread.locked);
-          return;
-        case "Delete":
-        case "Backspace":
-          if (state.selected && !spreads[state.selected.spreadIndex]?.locked) {
-            event.preventDefault();
-            removePhoto(state.selected.spreadIndex, state.selected.slotId);
-            setSelected(null);
-          }
-          return;
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [jumpToSpread, runShuffle, cycleDesign, mirrorSpread, toggleSpreadLock, removePhoto]);
+      jumpToSpread,
+      cycleDesign,
+      shuffle: runShuffle,
+      mirror: mirrorSpread,
+      toggleLock: toggleSpreadLock,
+      removeSelectedPhoto: () => {
+        if (!selected) return;
+        removePhoto(selected.spreadIndex, selected.slotId);
+        setSelected(null);
+      },
+    },
+  );
 
   if (album.isLoading) return <p className="page muted">Loading album…</p>;
   if (album.isError) return <p className="page error">{(album.error as Error).message}</p>;
   if (!current) return null;
   const locked = current.status === "APPROVED";
   const aspectRatio = (current.format.pageWidthMm * 2) / current.format.pageHeightMm;
+  const historyBusy = draft.restoreSpreads.isPending;
 
   return (
     <div className="page editor editor--with-strip">
@@ -1191,157 +445,41 @@ export function AlbumEditorPage() {
             {t("album.back")}
           </Link>
           <span className="dimension-badge">
-            {t("dimension.chip", {
-              width: current.format.pageWidthMm / 10,
-              height: current.format.pageHeightMm / 10,
-            })}
+            {t("dimension.chip", { width: current.format.pageWidthMm / 10, height: current.format.pageHeightMm / 10 })}
           </span>
           <h1>{current.title}</h1>
           <p className="muted">
-            {t("album.stats", {
-              spreads: current.spreadCount,
-              pages: current.pageCount,
-              photos: current.photoCount,
-            })}
+            {t("album.stats", { spreads: current.spreadCount, pages: current.pageCount, photos: current.photoCount })}
           </p>
         </div>
-        <div className="page__header-actions" data-tour="editor-tools">
-          <span className={`save-state ${saving ? "save-state--saving" : ""}`} role="status" aria-live="polite">
-            {saving ? t("album.saving") : t("album.saved")}
-          </span>
-          <button type="button" className="button button--small" onClick={() => setPreviewOpen(true)} {...tip(t("tip.preview"))}>
-            {t("album.preview")}
-          </button>
-          <button
-            type="button"
-            className={`button button--small ${needsAttention > 0 ? "button--attention" : ""}`}
-            onClick={() => setCheckOpen(true)}
-            data-tour="editor-check"
-            {...tip(t("tip.check"))}
-          >
-            {t("album.check")}
-            {needsAttention > 0 && <span className="sidebar__badge">{needsAttention}</span>}
-          </button>
-          <button
-            type="button"
-            className="button button--small"
-            onClick={() => setShortcutsOpen(true)}
-            aria-label={t("shortcuts.title")}
-            {...tip(t("shortcuts.title"))}
-          >
-            ?
-          </button>
-          <button
-            type="button"
-            className="button button--small"
-            disabled={locked || past.length === 0 || restoreSpreads.isPending}
-            onClick={undo}
-            {...tip(t("tip.undo"))}
-          >
-            {t("album.undo")}
-          </button>
-          <button
-            type="button"
-            className="button button--small"
-            disabled={locked || future.length === 0 || restoreSpreads.isPending}
-            onClick={redo}
-            {...tip(t("tip.redo"))}
-          >
-            {t("album.redo")}
-          </button>
-          <label className="ruler-toggle" {...tip(t("tip.ruler"))}>
-            <input
-              type="checkbox"
-              className="ruler-toggle__input"
-              checked={showRuler}
-              onChange={(event) => setShowRuler(event.target.checked)}
-            />
-            <span className="ruler-toggle__track" aria-hidden="true">
-              <span className="ruler-toggle__thumb" />
-            </span>
-            {t("album.ruler")}
-          </label>
-          <label className="ruler-toggle" {...tip(t("tip.snap"))}>
-            <input
-              type="checkbox"
-              className="ruler-toggle__input"
-              checked={snapEnabled}
-              onChange={(event) => setSnapEnabled(event.target.checked)}
-            />
-            <span className="ruler-toggle__track" aria-hidden="true">
-              <span className="ruler-toggle__thumb" />
-            </span>
-            {t("album.snap")}
-          </label>
-          <label className="ruler-toggle" {...tip(t("tip.guides"))}>
-            <input
-              type="checkbox"
-              className="ruler-toggle__input"
-              checked={showGuides}
-              onChange={(event) => {
-                const checked = event.target.checked;
-                setShowGuides(checked);
-                if (checked) setGuidesModalOpen(true);
-              }}
-            />
-            <span className="ruler-toggle__track" aria-hidden="true">
-              <span className="ruler-toggle__thumb" />
-            </span>
-            {t("album.guides")}
-          </label>
-          {showGuides && selectedPrintProfile && (
-            <button
-              type="button"
-              className="print-profile-chip"
-              onClick={() => setGuidesModalOpen(true)}
-            >
-              {shortenProfileName(selectedPrintProfile.name)}
-            </button>
-          )}
-          <span className={`chip chip--${current.status.toLowerCase()}`}>{current.status}</span>
-          {locked ? (
-            <button
-              type="button"
-              className="button"
-              onClick={() => edit.mutate({ type: "REOPEN" })}
-              data-tour="editor-ready"
-              {...tip(t("tip.reopen"))}
-            >
-              {t("album.reopen")}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="button"
-              onClick={() => edit.mutate({ type: "SUBMIT_FOR_REVIEW" })}
-              data-tour="editor-ready"
-              {...tip(t("tip.markReady"))}
-            >
-              {t("album.markReady")}
-            </button>
-          )}
-          <button
-            type="button"
-            className="button button--small button--primary"
-            onClick={() => setConfirmingDelete(true)}
-            {...tip(t("tip.deleteAlbum"))}
-          >
-            {t("album.deleteAlbum")}
-          </button>
-        </div>
+        <EditorToolbar
+          saving={saving}
+          needsAttention={needsAttention}
+          onPreview={() => setPreviewOpen(true)}
+          onCheck={() => setCheckOpen(true)}
+          onShortcuts={() => setShortcutsOpen(true)}
+          locked={locked}
+          undo={{ run: draft.undo, disabled: locked || !draft.canUndo || historyBusy }}
+          redo={{ run: draft.redo, disabled: locked || !draft.canRedo || historyBusy }}
+          showRuler={showRuler}
+          onShowRulerChange={setShowRuler}
+          snapEnabled={snapEnabled}
+          onSnapChange={setSnapEnabled}
+          guides={guides}
+          status={current.status}
+          onReopen={() => draft.edit.mutate({ type: "REOPEN" })}
+          onMarkReady={() => draft.edit.mutate({ type: "SUBMIT_FOR_REVIEW" })}
+          onDelete={() => setConfirmingDelete(true)}
+        />
       </header>
 
-      {edit.isError && <p className="error">{(edit.error as Error).message}</p>}
-      {restoreSpreads.isError && (
-        <p className="error">{(restoreSpreads.error as Error).message}</p>
-      )}
+      {draft.edit.isError && <p className="error">{(draft.edit.error as Error).message}</p>}
+      {draft.restoreSpreads.isError && <p className="error">{(draft.restoreSpreads.error as Error).message}</p>}
       {locked && (
-        <p className="notice">
-          This album is approved and locked. Reopen it if the client asked for another change.
-        </p>
+        <p className="notice">This album is approved and locked. Reopen it if the client asked for another change.</p>
       )}
 
-      <div className={`editor__layout ${trayPrefs.wide ? "editor__layout--wide" : ""}`}>
+      <div className={`editor__layout ${tray.prefs.wide ? "editor__layout--wide" : ""}`}>
         <main className="spreads">
           <CoverEditor
             cover={current.cover ?? null}
@@ -1353,88 +491,85 @@ export function AlbumEditorPage() {
             locked={locked}
             onChange={setCover}
           />
-          {current.spreads.map((spread, spreadIndex) => (
-            <div key={spreadIndex} className="spread-slot-group">
-              <SpreadBlock
-                // Keyed by position alone. Including the template id would change the
-                // key whenever the layout changed, remounting the section and forcing
-                // the browser to re-decode every photo on it.
-                spread={spread}
-                spreadIndex={spreadIndex}
-                spreadCount={current.spreads.length}
-                template={templateById.get(spread.templateId)}
-                templates={templateList}
-                previewUrlFor={previewUrlFor}
-                aspectRatio={aspectRatio}
-                pageWidthMm={current.format.pageWidthMm}
-                pageHeightMm={current.format.pageHeightMm}
-                showRuler={showRuler}
-                showGuides={showGuides}
-                safeMarginMm={showGuides ? (selectedPrintProfile?.safeMarginMm ?? 0) : 0}
-                snapEnabled={snapEnabled}
-                selectedSlotId={
-                  selected?.spreadIndex === spreadIndex ? selected.slotId : null
-                }
-                locked={locked}
-                shuffling={shuffle.isPending}
-                designIndex={designPositionOf(spread).index}
-                designTotal={designPositionOf(spread).total}
-                addingPhoto={addingToSpread === spreadIndex}
-                addPhotoDisabled={spread.placements.length >= MAX_PHOTOS_PER_SPREAD}
-                openComments={commentsBySpread.get(spreadIndex) ?? 0}
-                onSelectSlot={selectSlot}
-                onReorder={reorderSpread}
-                onResetFrames={resetFrames}
-                onCycleDesign={cycleDesign}
-                onAddPhoto={armAddToSpread}
-                onSpreadTreatment={setSpreadTreatment}
-                onRemove={removeSpread}
-                onSlotDrop={dropPhotoInSlot}
-                onCropChange={handleCropChange}
-                onTreatmentChange={setSlotTreatment}
-                onFrameChange={handleFrameChange}
-                onFramesChange={handleFramesChange}
-                onMirror={mirrorSpread}
-                onToggleLock={toggleSpreadLock}
-                chapterLabel={chapters[spreadIndex] ? t(`chapter.${chapters[spreadIndex]}`) : undefined}
-                onReorderPlacement={reorderPlacement}
-                onMoveToNeighbor={moveToNeighbor}
-                onMovePlacementAcrossSpreads={movePlacementAcrossSpreads}
-                onMovePhotoAsNewPhoto={movePhotoAsNewPhotoDrop}
-                onPickTemplate={pickTemplate}
-                onAddPhotoDrop={addPhotoDrop}
-                onRemovePhoto={removePhoto}
-                onReplacePhoto={replacePhoto}
-                onCloseTools={closeTools}
-                albumStyle={current.style ?? DEFAULT_STYLE}
-                selectedTextId={selectedText?.spreadIndex === spreadIndex ? selectedText.blockId : null}
-                onAddText={addText}
-                onTextSelect={selectText}
-                onTextChange={handleTextChange}
-                onTextRemove={removeText}
-                focusFor={focusFor}
-              />
+          {current.spreads.map((spread, spreadIndex) => {
+            const design = layouts.designPositionOf(spread);
+            return (
+              <div key={spreadIndex} className="spread-slot-group">
+                <SpreadBlock
+                  // Keyed by position alone. Including the template id would change the
+                  // key whenever the layout changed, remounting the section and forcing
+                  // the browser to re-decode every photo on it.
+                  spread={spread}
+                  spreadIndex={spreadIndex}
+                  spreadCount={current.spreads.length}
+                  template={templateById.get(spread.templateId)}
+                  templates={templateList}
+                  previewUrlFor={previewUrlFor}
+                  aspectRatio={aspectRatio}
+                  pageWidthMm={current.format.pageWidthMm}
+                  pageHeightMm={current.format.pageHeightMm}
+                  showRuler={showRuler}
+                  showGuides={guides.show}
+                  safeMarginMm={guides.show ? (guides.selected?.safeMarginMm ?? 0) : 0}
+                  snapEnabled={snapEnabled}
+                  selectedSlotId={selected?.spreadIndex === spreadIndex ? selected.slotId : null}
+                  locked={locked}
+                  shuffling={layouts.shuffle.isPending}
+                  designIndex={design.index}
+                  designTotal={design.total}
+                  addingPhoto={addingToSpread === spreadIndex}
+                  addPhotoDisabled={spread.placements.length >= MAX_PHOTOS_PER_SPREAD}
+                  openComments={commentsBySpread.get(spreadIndex) ?? 0}
+                  onSelectSlot={selectSlot}
+                  onReorder={reorderSpread}
+                  onResetFrames={resetFrames}
+                  onCycleDesign={cycleDesign}
+                  onAddPhoto={armAddToSpread}
+                  onSpreadTreatment={setSpreadTreatment}
+                  onRemove={removeSpread}
+                  onSlotDrop={dropPhotoInSlot}
+                  onCropChange={draft.changeCrop}
+                  onTreatmentChange={setSlotTreatment}
+                  onFrameChange={draft.changeFrame}
+                  onFramesChange={draft.changeFrames}
+                  onMirror={mirrorSpread}
+                  onToggleLock={toggleSpreadLock}
+                  chapterLabel={chapters[spreadIndex] ? t(`chapter.${chapters[spreadIndex]}`) : undefined}
+                  onReorderPlacement={reorderPlacement}
+                  onMoveToNeighbor={moveToNeighbor}
+                  onMovePlacementAcrossSpreads={movePlacementAcrossSpreads}
+                  onMovePhotoAsNewPhoto={movePhotoAsNewPhotoDrop}
+                  onPickTemplate={pickTemplate}
+                  onAddPhotoDrop={addPhotoDrop}
+                  onRemovePhoto={removePhoto}
+                  onReplacePhoto={replacePhoto}
+                  onCloseTools={closeTools}
+                  albumStyle={current.style ?? DEFAULT_STYLE}
+                  selectedTextId={selectedText?.spreadIndex === spreadIndex ? selectedText.blockId : null}
+                  onAddText={addText}
+                  onTextSelect={selectText}
+                  onTextChange={draft.changeText}
+                  onTextRemove={removeText}
+                  focusFor={focusFor}
+                />
 
-              {!locked && (
-                <button
-                  type="button"
-                  className="spread-insert"
-                  title={t("spread.insert.title")}
-                  aria-label={t("spread.insert.title")}
-                  onClick={() => setInsertAt(spreadIndex + 1)}
-                >
-                  +
-                </button>
-              )}
-            </div>
-          ))}
+                {!locked && (
+                  <button
+                    type="button"
+                    className="spread-insert"
+                    title={t("spread.insert.title")}
+                    aria-label={t("spread.insert.title")}
+                    onClick={() => setInsertAt(spreadIndex + 1)}
+                  >
+                    +
+                  </button>
+                )}
+              </div>
+            );
+          })}
 
           {!locked && (
-            <button
-              type="button"
-              className="button add-spread"
-              onClick={() => setInsertAt(current.spreads.length)}
-            >
+            <button type="button" className="button add-spread" onClick={() => setInsertAt(current.spreads.length)}>
               {t("album.addSpread")}
             </button>
           )}
@@ -1448,7 +583,7 @@ export function AlbumEditorPage() {
                 ["design", t("album.sidebar.design"), 0],
                 ["review", t("album.sidebar.review"), feedback.data?.openCount ?? 0],
                 ["export", t("album.sidebar.export"), 0],
-              ] as ["photos" | "design" | "review" | "export", string, number][]
+              ] as [SidebarTab, string, number][]
             ).map(([tab, label, badge]) => (
               <button
                 key={tab}
@@ -1469,379 +604,34 @@ export function AlbumEditorPage() {
             </div>
             <StylePanel style={current.style ?? DEFAULT_STYLE} locked={locked} onChange={setStyle} />
           </section>
-          <section className={`panel panel--tray ${sidebarTab === "photos" ? "" : "is-hidden"}`}>
-            <div className="panel__head">
-              <h2>{t("album.photoTray.title")}</h2>
-              <label className="tray-sort">
-                {t("album.photoTray.sortBy")}
-                <select
-                  value={traySort}
-                  onChange={(event) => setTraySort(event.target.value as TraySort)}
-                >
-                  <option value="score">{t("album.photoTray.sort.score")}</option>
-                  <option value="category">{t("album.photoTray.sort.category")}</option>
-                  <option value="filename">{t("album.photoTray.sort.filename")}</option>
-                  <option value="similarity">{t("album.photoTray.sort.similarity")}</option>
-                </select>
-              </label>
-            </div>
-            <div className="tray-tools">
-              <div className="tray-search">
-                <input
-                  type="search"
-                  value={traySearch}
-                  placeholder={t("album.photoTray.filter.search")}
-                  aria-label={t("album.photoTray.filter.search")}
-                  onChange={(event) => setTraySearch(event.target.value)}
-                />
-              </div>
-              <div className="tray-chips" role="group" aria-label={t("album.photoTray.filter.show")}>
-                {(
-                  [
-                    ["all", t("album.photoTray.chip.all"), trayCounts.all],
-                    ["picks", `♥ ${t("album.photoTray.chip.picks")}`, trayCounts.picks],
-                    ["unused", t("album.photoTray.chip.unused"), trayCounts.unused],
-                    ["used", t("album.photoTray.chip.used"), trayCounts.used],
-                    ["worthy", t("album.photoTray.chip.worthy"), trayCounts.worthy],
-                  ] as [TrayShow, string, number][]
-                ).map(([value, label, count]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`tray-chip ${trayShow === value ? "tray-chip--on" : ""}`}
-                    aria-pressed={trayShow === value}
-                    title={value === "picks" ? t("album.photoTray.clientPicked") : undefined}
-                    onClick={() => setTrayShow(value)}
-                  >
-                    {label} <span className="tray-chip__count">{formatCount(count)}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="tray-tools__row">
-                <select
-                  aria-label={t("album.photoTray.filter.type")}
-                  value={trayCategory}
-                  onChange={(event) => setTrayCategory(event.target.value)}
-                >
-                  <option value="">{t("album.photoTray.filter.anyType")}</option>
-                  {trayCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {categoryLabel(category)}
-                    </option>
-                  ))}
-                </select>
-                <div className="tray-view" role="group" aria-label={t("album.photoTray.view.size")}>
-                  {(["s", "m", "l"] as TrayDensity[]).map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      className={`tray-view__button ${trayPrefs.density === size ? "tray-view__button--on" : ""}`}
-                      aria-pressed={trayPrefs.density === size}
-                      title={t(`album.photoTray.view.${size}`)}
-                      onClick={() => updateTrayPrefs({ density: size })}
-                    >
-                      {size.toUpperCase()}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className={`tray-view__button tray-view__wide ${trayPrefs.wide ? "tray-view__button--on" : ""}`}
-                    aria-pressed={trayPrefs.wide}
-                    title={t(trayPrefs.wide ? "album.photoTray.view.narrower" : "album.photoTray.view.wider")}
-                    onClick={() => updateTrayPrefs({ wide: !trayPrefs.wide })}
-                  >
-                    ↔
-                  </button>
-                </div>
-              </div>
-              {trayFilterActive && (
-                <p className="muted tray-tools__count">
-                  {t("album.photoTray.filter.showing", {
-                    shown: formatCount(visibleTrayPhotos.length),
-                    total: formatCount(trayPhotos.length),
-                  })}{" "}
-                  <button
-                    type="button"
-                    className="link-button"
-                    onClick={() => {
-                      setTrayShow("all");
-                      setTrayCategory("");
-                      setTraySearch("");
-                    }}
-                  >
-                    {t("album.photoTray.filter.clear")}
-                  </button>
-                </p>
-              )}
-            </div>
-            <p className="muted">
-              {addingToSpread !== null
-                ? `Click a photo to add it to spread ${addingToSpread + 1}.`
-                : selected
-                  ? `Click a photo to drop it into spread ${selected.spreadIndex + 1}.`
-                  : "Pick photos to build a new spread, or drag one onto any slot."}
-            </p>
-
-            {picked.length > 0 && (
-              <div className="picked-bar">
-                <span>
-                  {picked.length} selected
-                  {picked.length > MAX_PHOTOS_PER_SPREAD &&
-                    ` — a spread holds at most ${MAX_PHOTOS_PER_SPREAD}`}
-                </span>
-                <div className="picked-bar__actions">
-                  <button type="button" className="button button--small" onClick={() => setPicked([])}>
-                    Clear
-                  </button>
-                  <button
-                    type="button"
-                    className="button button--small button--primary"
-                    disabled={
-                      locked || picked.length > MAX_PHOTOS_PER_SPREAD || addPickedAsSpread.isPending
-                    }
-                    onClick={() => addPickedAsSpread.mutate()}
-                  >
-                    {addPickedAsSpread.isPending ? "Adding…" : "Add as spread"}
-                  </button>
-                </div>
-              </div>
+          <TrayPanel
+            tray={tray}
+            hidden={sidebarTab !== "photos"}
+            locked={locked}
+            addingToSpread={addingToSpread}
+            selectedSpread={selected?.spreadIndex ?? null}
+            picked={picked}
+            onClearPicked={() => setPicked([])}
+            onAddPicked={() => layouts.addAsSpread.mutate(picked, { onSuccess: () => setPicked([]) })}
+            addingPicked={layouts.addAsSpread.isPending}
+            errors={[layouts.addAsSpread, layouts.shuffle, layouts.addPhoto, layouts.removePhoto, layouts.movePhoto].map(
+              (mutation) => (mutation.isError ? (mutation.error as Error) : null),
             )}
-            {addPickedAsSpread.isError && (
-              <p className="error">{(addPickedAsSpread.error as Error).message}</p>
-            )}
-            {shuffle.isError && <p className="error">{(shuffle.error as Error).message}</p>}
-            {addPhotoToSpread.isError && (
-              <p className="error">{(addPhotoToSpread.error as Error).message}</p>
-            )}
-            {removePhotoFromSpread.isError && (
-              <p className="error">{(removePhotoFromSpread.error as Error).message}</p>
-            )}
-            {movePhotoAcrossSpreadsAsNewPhoto.isError && (
-              <p className="error">{(movePhotoAcrossSpreadsAsNewPhoto.error as Error).message}</p>
-            )}
-
-            {trayFilterActive && visibleTrayPhotos.length === 0 && (
-              <p className="muted">
-                {trayShow === "picks" && trayCounts.picks === 0
-                  ? t("album.photoTray.noSelections")
-                  : t("album.photoTray.filter.none")}
-              </p>
-            )}
-            <div className="tray-frame">
-            <PhotoTray
-              density={trayPrefs.density}
-              resetKey={`${trayShow}|${trayCategory}|${traySearch}|${traySort}`}
-              photos={visibleTrayPhotos}
-              picked={picked}
-              locked={locked}
-              onPhotoClick={trayPhotoClick}
-              analysisByPhoto={analysisByPhoto}
-              rankByPhoto={rankByPhoto}
-              rankedCount={analyses.data?.length ?? 0}
-              usedPhotoIds={usedPhotoIds}
-              clientPickedIds={clientPickedIds}
-            />
-            </div>
-          </section>
-
-          {sidebarTab === "review" && (
-            <>
-          <PlanUpsell feature="watermark" />
-          <section className="panel">
-            <h2>{t("album.review.title")}</h2>
-            <div className="field">
-              <label htmlFor="client-name">{t("album.review.clientName")}</label>
-              <input
-                id="client-name"
-                value={clientName}
-                placeholder={t("album.review.clientName")}
-                onChange={(event) => setClientName(event.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="review-client-email">{t("client.email")}</label>
-              <input
-                id="review-client-email"
-                type="email"
-                value={reviewClientEmail}
-                placeholder={t("client.email.placeholder")}
-                onChange={(event) => setReviewClientEmail(event.target.value)}
-              />
-            </div>
-            <div className="client-invite">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={reviewSendEmail}
-                  disabled={!reviewClientEmail.trim()}
-                  onChange={(event) => setReviewSendEmail(event.target.checked)}
-                />
-                {t("client.sendEmail")}
-              </label>
-              <select
-                value={reviewEmailLanguage}
-                aria-label={t("client.emailLanguage")}
-                onChange={(event) => setReviewEmailLanguage(event.target.value as "en" | "ro")}
-              >
-                <option value="en">English</option>
-                <option value="ro">Română</option>
-              </select>
-            </div>
-            <button
-              type="button"
-              className="button button--primary"
-              disabled={share.isPending}
-              onClick={() => share.mutate()}
-            >
-              {share.isPending ? t("album.review.creating") : t("album.review.createLink")}
-            </button>
-            {reviewEmailNote?.sentTo && (
-              <p className="notice notice--good" role="status">
-                {t("client.send.done", { email: reviewEmailNote.sentTo })}
-              </p>
-            )}
-            {reviewEmailNote?.error && (
-              <p className="notice" role="alert">
-                {t("client.notSent", { reason: reviewEmailNote.error })}
-              </p>
-            )}
-            {shareLink && (
-              <p className="share-link">
-                <a href={shareLink}>{shareLink}</a>
-                {sharePassword && (
-                  <>
-                    <br />
-                    <span className="muted">{t("access.details.password")}: </span>
-                    <code className="access-modal__password">{sharePassword}</code>
-                  </>
-                )}
-              </p>
-            )}
-            {(reviews.data ?? []).map((session) => (
-              <p key={session.id} className="muted">
-                {t("album.review.session", { name: session.clientName, status: session.status })}
-                {session.openComments > 0 &&
-                  t("album.review.openComments", { count: session.openComments })}{" "}
-                {session.passwordProtected && (
-                  <button type="button" className="button button--small" onClick={() => setReviewDetailsFor(session.id)}>
-                    {t("access.details.open")}
-                  </button>
-                )}
-                {session.lastSentTo && (
-                  <>
-                    <br />
-                    {t("client.sentAt", {
-                      email: session.lastSentTo,
-                      date: new Date(session.lastSentAt ?? session.createdAt).toLocaleString(),
-                    })}
-                  </>
-                )}
-              </p>
-            ))}
-            {reviewDetailsFor && (
-              <AccessDetailsModal
-                title={t("access.details.title")}
-                queryKey={["review-access", albumId, reviewDetailsFor]}
-                load={() => getReviewAccess(albumId, reviewDetailsFor)}
-                urlFor={(token) => `${window.location.origin}/review/${token}`}
-                defaultEmail={reviewClientEmail}
-                onSend={async ({ email, language: emailIn }) => {
-                  await sendReviewInvitation(albumId, reviewDetailsFor, { email, language: emailIn });
-                  await queryClient.invalidateQueries({ queryKey: ["reviews", albumId] });
-                }}
-                onClose={() => setReviewDetailsFor(null)}
-              />
-            )}
-          </section>
-
-          <section className="panel">
-            <h2>
-              {t("album.feedback.title")}
-              {(feedback.data?.openCount ?? 0) > 0 && (
-                <span className="panel__badge">{feedback.data?.openCount}</span>
-              )}
-            </h2>
-            {resolveFeedback.isError && (
-              <p className="error">{(resolveFeedback.error as Error).message}</p>
-            )}
-            <ClientFeedback
-              feedback={feedback.data}
-              loading={feedback.isLoading}
-              error={feedback.isError ? (feedback.error as Error) : null}
-              resolvingId={resolveFeedback.isPending ? (resolveFeedback.variables ?? null) : null}
-              onJumpTo={jumpToComment}
-              onResolve={markCommentDone}
-              photoNumber={feedbackPhotoNumber}
-            />
-          </section>
-
-            </>
-          )}
-
-          {sidebarTab === "export" && (
-          <section className="panel">
-            <h2>{t("album.export.title")}</h2>
-            <button
-              type="button"
-              className="button"
-              disabled={startExport.isPending}
-              onClick={() => startExport.mutate()}
-            >
-              {startExport.isPending ? t("album.export.queueing") : t("album.export.button")}
-            </button>
-            {startExport.isError && (
-              <p className="error">{(startExport.error as Error).message}</p>
-            )}
-            {removeExport.isError && (
-              <p className="error">{(removeExport.error as Error).message}</p>
-            )}
-            <ul className="export-list">
-              {(exports.data ?? []).map((job) => {
-                const inProgress = job.status === "QUEUED" || job.status === "RENDERING";
-                return (
-                <li key={job.id}>
-                  <span className={`chip chip--${job.status.toLowerCase()}`}>{job.status}</span>
-                  {job.status === "READY" ? (
-                    <button
-                      type="button"
-                      className="link-button"
-                      onClick={async () => {
-                        const { url } = await getExportDownload(job.id);
-                        window.open(url, "_blank", "noopener");
-                      }}
-                    >
-                      {t("album.export.download", {
-                        size: Math.round((job.byteSize ?? 0) / 1024),
-                      })}
-                    </button>
-                  ) : (
-                    <span className="muted">{job.failureReason ?? `${job.printProfileId}`}</span>
-                  )}
-                  <button
-                    type="button"
-                    className="button button--small button--danger"
-                    title={
-                      inProgress
-                        ? t("album.export.inProgress.title")
-                        : t("album.export.delete.title")
-                    }
-                    disabled={inProgress || removeExport.isPending}
-                    onClick={() => {
-                      if (window.confirm(t("album.export.delete.confirm"))) {
-                        removeExport.mutate(job.id);
-                      }
-                    }}
-                  >
-                    {removeExport.isPending && removeExport.variables === job.id
-                      ? t("album.export.deleting")
-                      : t("album.export.delete")}
-                  </button>
-                </li>
-                );
-              })}
-            </ul>
-          </section>
-          )}
+            onPhotoClick={trayPhotoClick}
+            analysisByPhoto={analysisByPhoto}
+            rankedCount={analyses.data?.length ?? 0}
+            usedPhotoIds={usedPhotoIds}
+            clientPickedIds={clientPickedIds}
+          />
+          <ReviewPanel albumId={albumId} hidden={sidebarTab !== "review"} />
+          <FeedbackPanel
+            albumId={albumId}
+            feedback={feedback}
+            hidden={sidebarTab !== "review"}
+            onJumpTo={jumpToComment}
+            photoNumber={feedbackPhotoNumber}
+          />
+          <ExportPanel albumId={albumId} hidden={sidebarTab !== "export"} />
         </aside>
       </div>
 
@@ -1868,8 +658,8 @@ export function AlbumEditorPage() {
           onJump={jumpToSpread}
           onShowUnused={() => {
             setSidebarTab("photos");
-            setTrayShow("unused");
-            setTraySort("score");
+            tray.setShow("unused");
+            tray.setSort("score");
           }}
           onClose={() => setCheckOpen(false)}
         />
@@ -1925,122 +715,9 @@ export function AlbumEditorPage() {
       )}
 
       {insertAt !== null && (
-        <div className="modal-overlay" role="presentation" onClick={() => setInsertAt(null)}>
-          <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="insert-spread-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 id="insert-spread-title">{t("spread.insert.modal.title")}</h2>
-            <p>{t("spread.insert.modal.body")}</p>
-            <LayoutPicker
-              templates={templateList}
-              photoCount={null}
-              currentTemplateId=""
-              onPick={insertSpread}
-            />
-            <div className="modal__actions">
-              <button type="button" className="button" onClick={() => setInsertAt(null)}>
-                {t("common.cancel")}
-              </button>
-            </div>
-          </div>
-        </div>
+        <InsertSpreadModal templates={templateList} onPick={insertSpread} onClose={() => setInsertAt(null)} />
       )}
-
-      {guidesModalOpen && (
-        <div
-          className="modal-overlay"
-          role="presentation"
-          onClick={() => setGuidesModalOpen(false)}
-        >
-          <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="guides-profile-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 id="guides-profile-title">Choose a print profile</h2>
-            <p>
-              The trim line and safe-area guides come from a print profile's bleed and margin —
-              pick the one this album will actually be printed with.
-            </p>
-            {printProfiles.isLoading && <p className="muted">Loading print profiles…</p>}
-            <ul className="print-profile-options">
-              {(printProfiles.data ?? []).map((profile) => (
-                <li key={profile.id}>
-                  <button
-                    type="button"
-                    className={`print-profile-option ${
-                      selectedPrintProfile?.id === profile.id ? "print-profile-option--selected" : ""
-                    }`}
-                    onClick={() => {
-                      setPrintProfileId(profile.id);
-                      setGuidesModalOpen(false);
-                    }}
-                  >
-                    <strong>{profile.name}</strong>
-                    <span className="muted">
-                      {profile.bleedMm}mm bleed · {profile.safeMarginMm}mm safe margin
-                    </span>
-                  </button>
-                </li>
-              ))}
-              <li>
-                <div
-                  className={`print-profile-option print-profile-option--custom ${
-                    printProfileId === CUSTOM_PROFILE_ID ? "print-profile-option--selected" : ""
-                  }`}
-                >
-                  <strong>Custom</strong>
-                  <div className="print-profile-custom-fields">
-                    <label>
-                      Bleed (mm)
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        value={customBleedMm}
-                        onChange={(event) => setCustomBleedMm(Math.max(0, Number(event.target.value)))}
-                      />
-                    </label>
-                    <label>
-                      Safe margin (mm)
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        value={customSafeMarginMm}
-                        onChange={(event) =>
-                          setCustomSafeMarginMm(Math.max(0, Number(event.target.value)))
-                        }
-                      />
-                    </label>
-                  </div>
-                  <button
-                    type="button"
-                    className="button button--small"
-                    onClick={() => {
-                      setPrintProfileId(CUSTOM_PROFILE_ID);
-                      setGuidesModalOpen(false);
-                    }}
-                  >
-                    Use custom
-                  </button>
-                </div>
-              </li>
-            </ul>
-            <div className="modal__actions">
-              <button type="button" className="button" onClick={() => setGuidesModalOpen(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {guides.modalOpen && <PrintGuidesModal guides={guides} />}
     </div>
   );
 }
