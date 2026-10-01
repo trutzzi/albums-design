@@ -1,5 +1,5 @@
-import { useLanguage } from "../lib/i18n/LanguageContext";
-import { LANGUAGES } from "../lib/i18n/translations";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { LANGUAGES } from "@/shared/i18n/translations";
 
 export interface LanguagePromptProps {
   /** Called once a language is picked — the caller resumes whatever it was doing (e.g. generating the album). */

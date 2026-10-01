@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { ClientBrandBar, brandStyle } from "../../components/ClientBrand";
+import { ClientBrandBar, brandStyle } from "@/shared/ui/ClientBrand";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { downloadZipUrl, getDownloadView } from "../../lib/api";
-import { LANGUAGES } from "../../lib/i18n/translations";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { ThemeToggle } from "../../components/ThemeToggle";
-import { PasswordGate, needsPassword } from "../../components/PasswordGate";
-import { PhotoLightbox } from "../../components/PhotoLightbox";
-import { PhotoGallery } from "../../components/PhotoGallery";
+import { downloadZipUrl, getDownloadView } from "@/shared/api";
+import { LANGUAGES } from "@/shared/i18n/translations";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
+import { PasswordGate, needsPassword } from "@/features/review/components/PasswordGate";
+import { PhotoLightbox } from "@/shared/ui/PhotoLightbox";
+import { PhotoGallery } from "@/shared/ui/PhotoGallery";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;

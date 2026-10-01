@@ -1,5 +1,5 @@
 import { STYLE_PRESETS, type AlbumStyleDTO } from "@albumflow/contracts";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 const PRESET_ORDER = ["classic", "modern", "fine-art", "midnight"] as const;
 

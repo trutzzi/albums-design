@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { ApiError, requestPasswordReset } from "../../lib/api";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { ApiError, requestPasswordReset } from "@/shared/api";
 
 export function ForgotPasswordPage() {
   const { t, language } = useLanguage();

@@ -1,8 +1,8 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { PhotoAnalysisDTO, PhotoDTO } from "@albumflow/contracts";
-import { useLanguage } from "../lib/i18n/LanguageContext";
-import { TRAY_GAP, computeTrayGrid, rowRange, type TrayDensity } from "../lib/tray-grid";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { TRAY_GAP, computeTrayGrid, rowRange, type TrayDensity } from "@/features/album-editor/lib/tray-grid";
 
 export interface PhotoTrayProps {
   photos: PhotoDTO[];

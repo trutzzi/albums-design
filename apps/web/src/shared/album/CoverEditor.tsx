@@ -7,9 +7,9 @@ import {
   type AlbumStyleDTO,
   type PhotoFocus,
 } from "@albumflow/contracts";
-import { cropToStyle } from "../lib/crop-geometry";
+import { cropToStyle } from "./crop-geometry";
 import { textStyle } from "./SpreadTexts";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 const FULL_CROP = { x: 0, y: 0, width: 1, height: 1 };
 

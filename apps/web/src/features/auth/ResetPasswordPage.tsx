@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../app/AuthContext";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { ApiError } from "../../lib/api";
+import { useAuth } from "@/app/AuthContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { ApiError } from "@/shared/api";
 
 /** Where the link in the reset email lands: choose a new password, then straight into the app. */
 export function ResetPasswordPage() {

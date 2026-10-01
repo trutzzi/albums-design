@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AlbumCoverDTO, AlbumDTO, AlbumStyleDTO, LayoutTemplateDTO, PhotoFocus, TextBlockDTO } from "@albumflow/contracts";
 import { SpreadCanvas, type SpreadPlacement } from "./SpreadCanvas";
 import { CoverPreview } from "./CoverEditor";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 /**
  * The album as the client will hold it: one spread at a time, full screen, turned like a

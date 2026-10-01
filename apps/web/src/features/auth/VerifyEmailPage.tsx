@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../app/AuthContext";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { ApiError } from "../../lib/api";
+import { useAuth } from "@/app/AuthContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { ApiError } from "@/shared/api";
 
 /** Where the link in the confirmation email lands: opens the account, then straight into the app. */
 export function VerifyEmailPage() {

@@ -2,8 +2,8 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { ApiError, submitFeedback, type FeedbackKind } from "../lib/api";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { ApiError, submitFeedback, type FeedbackKind } from "@/shared/api";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 const KINDS: FeedbackKind[] = ["IDEA", "PROBLEM", "QUESTION", "PRAISE"];
 

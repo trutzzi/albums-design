@@ -9,10 +9,10 @@ import type {
   SlotFrame,
   TextBlockDTO,
 } from "@albumflow/contracts";
-import { SpreadCanvas } from "./SpreadCanvas";
+import { SpreadCanvas } from "@/shared/album/SpreadCanvas";
 import { LayoutPicker } from "./LayoutPicker";
-import { useLanguage } from "../lib/i18n/LanguageContext";
-import { tip } from "../lib/tip";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { tip } from "@/shared/lib/tip";
 
 type Spread = AlbumDTO["spreads"][number];
 

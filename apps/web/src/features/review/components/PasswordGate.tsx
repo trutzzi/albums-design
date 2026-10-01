@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { ApiError, unlockClientLink } from "../lib/api";
-import { useLanguage } from "../lib/i18n/LanguageContext";
-import { LANGUAGES } from "../lib/i18n/translations";
-import { ThemeToggle } from "./ThemeToggle";
+import { ApiError, unlockClientLink } from "@/shared/api";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { LANGUAGES } from "@/shared/i18n/translations";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 
 interface Props {
   kind: "review" | "download" | "pick";

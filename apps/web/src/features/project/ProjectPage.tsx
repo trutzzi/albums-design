@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { runWithLimit, sortFilesByName } from "../../lib/upload-queue";
+import { runWithLimit, sortFilesByName } from "@/features/project/lib/upload-queue";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { SUPPORTED_MIME_TYPES } from "@albumflow/contracts";
@@ -29,21 +29,21 @@ import {
   abandonUpload,
   putFileToStorage,
   requestUpload,
-} from "../../lib/api";
-import { useAuth } from "../../app/AuthContext";
-import { GuidedTour, type TourStep } from "../../components/GuidedTour";
-import { tip } from "../../lib/tip";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { LanguagePrompt } from "../../components/LanguagePrompt";
-import { AccessDetailsModal } from "../../components/AccessDetailsModal";
-import { PhotoGallery } from "../../components/PhotoGallery";
-import { PlanUpsell } from "../../components/PlanUpsell";
-import { PhotoLightbox } from "../../components/PhotoLightbox";
+} from "@/shared/api";
+import { useAuth } from "@/app/AuthContext";
+import { GuidedTour, type TourStep } from "@/shared/ui/GuidedTour";
+import { tip } from "@/shared/lib/tip";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { LanguagePrompt } from "@/features/project/components/LanguagePrompt";
+import { AccessDetailsModal } from "@/shared/ui/AccessDetailsModal";
+import { PhotoGallery } from "@/shared/ui/PhotoGallery";
+import { PlanUpsell } from "@/shared/ui/PlanUpsell";
+import { PhotoLightbox } from "@/shared/ui/PhotoLightbox";
 import {
   ALBUM_DIMENSIONS,
   DEFAULT_ALBUM_DIMENSION_ID,
   DEFAULT_BLEED_MM,
-} from "../../lib/album-dimensions";
+} from "@/features/project/lib/album-dimensions";
 
 const CUSTOM_DIMENSION_ID = "custom";
 

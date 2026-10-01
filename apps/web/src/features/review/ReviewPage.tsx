@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
-import { ClientBrandBar, brandStyle } from "../../components/ClientBrand";
+import { ClientBrandBar, brandStyle } from "@/shared/ui/ClientBrand";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { addReviewComment, getReview, listLayoutTemplates, submitReviewDecision } from "../../lib/api";
-import { SpreadCanvas } from "../../components/SpreadCanvas";
-import { CoverPreview } from "../../components/CoverEditor";
-import { BookPreview } from "../../components/BookPreview";
-import { PasswordGate, needsPassword } from "../../components/PasswordGate";
-import { ThemeToggle } from "../../components/ThemeToggle";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { LANGUAGES } from "../../lib/i18n/translations";
+import { addReviewComment, getReview, listLayoutTemplates, submitReviewDecision } from "@/shared/api";
+import { SpreadCanvas } from "@/shared/album/SpreadCanvas";
+import { CoverPreview } from "@/shared/album/CoverEditor";
+import { BookPreview } from "@/shared/album/BookPreview";
+import { PasswordGate, needsPassword } from "@/features/review/components/PasswordGate";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { LANGUAGES } from "@/shared/i18n/translations";
 
 export function ReviewPage() {
   const { token = "" } = useParams();

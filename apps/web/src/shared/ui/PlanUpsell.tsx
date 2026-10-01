@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { getStudioOverview, listPlans, type PlanDto } from "../lib/api";
-import { useAuth } from "../app/AuthContext";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { getStudioOverview, listPlans, type PlanDto } from "@/shared/api";
+import { useAuth } from "@/app/AuthContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 /** Plan changes go through us until self-serve checkout is switched on. */
 export const UPGRADE_EMAIL = "contact@valentintruta.ro";

@@ -21,7 +21,7 @@ import {
   pannedCrop,
   withZoom,
   zoomOf,
-} from "../lib/crop-geometry";
+} from "./crop-geometry";
 import {
   RESIZE_CORNERS,
   collectPrintGuideTargets,
@@ -34,11 +34,11 @@ import {
   resizeFrame,
   resizeFrameSnapped,
   type ResizeCorner,
-} from "../lib/frame-geometry";
-import { findDividers, moveDivider, type Divider } from "../lib/dividers";
+} from "./frame-geometry";
+import { findDividers, moveDivider, type Divider } from "./dividers";
 import { RulerOverlay } from "./RulerOverlay";
 import { PrintGuidesOverlay } from "./PrintGuidesOverlay";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 export interface SpreadPlacement {
   slotId: string;

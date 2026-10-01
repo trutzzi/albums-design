@@ -1,6 +1,6 @@
 import { memo } from "react";
 import type { LayoutTemplateDTO } from "@albumflow/contracts";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 interface LayoutPickerProps {
   /** Every known template; the picker filters to the ones that fit. */

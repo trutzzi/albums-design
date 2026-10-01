@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import type { AlbumIssue } from "../lib/album-check";
-import { DPI_ERROR, DPI_WARNING } from "../lib/album-check";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import type { AlbumIssue } from "@/features/album-editor/lib/album-check";
+import { DPI_ERROR, DPI_WARNING } from "@/features/album-editor/lib/album-check";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 /**
  * The pre-flight list: everything to look at before the album goes to the client or the

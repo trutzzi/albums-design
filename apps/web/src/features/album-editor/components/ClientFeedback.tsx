@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { AlbumFeedback, FeedbackComment } from "../lib/api";
+import type { AlbumFeedback, FeedbackComment } from "@/shared/api";
 
 export interface ClientFeedbackProps {
   feedback: AlbumFeedback | undefined;

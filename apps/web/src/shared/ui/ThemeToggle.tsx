@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useLanguage } from "../lib/i18n/LanguageContext";
-import { applyTheme, currentTheme, loadTheme, saveTheme, systemTheme, type Theme } from "../lib/theme";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { applyTheme, currentTheme, loadTheme, saveTheme, systemTheme, type Theme } from "@/shared/lib/theme";
 
 /**
  * Light/dark switch. Until it is pressed the theme follows the operating system

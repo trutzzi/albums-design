@@ -25,8 +25,8 @@ import type {
   RequestUploadInput,
   RequestUploadResponse,
 } from "@albumflow/contracts";
-import { loadSession } from "./auth-storage";
-import { grantKindForPath, loadGrant, saveGrant } from "./client-grants";
+import { loadSession } from "@/shared/lib/auth-storage";
+import { grantKindForPath, loadGrant, saveGrant } from "@/shared/lib/client-grants";
 
 // `||`, not `??`: a GitHub Actions secret that was never created (or left
 // blank) still gets wired into the build as an empty string, not as

@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { spacedSlotRect, type AlbumDTO, type AlbumStyleDTO, type LayoutTemplateDTO } from "@albumflow/contracts";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 type Spread = AlbumDTO["spreads"][number];
 

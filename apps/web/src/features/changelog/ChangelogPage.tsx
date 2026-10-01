@@ -1,4 +1,4 @@
-import { useLanguage } from "../../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { CHANGELOG_RELEASES } from "./changelog-data";
 
 export function ChangelogPage() {

@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
-import { ClientBrandBar, brandStyle } from "../../components/ClientBrand";
+import { ClientBrandBar, brandStyle } from "@/shared/ui/ClientBrand";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { getPickView, setPhotoPicked, setPickStage, submitPicks, type PickView } from "../../lib/api";
-import { LANGUAGES } from "../../lib/i18n/translations";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { ThemeToggle } from "../../components/ThemeToggle";
-import { PhotoLightbox } from "../../components/PhotoLightbox";
-import { PhotoGallery } from "../../components/PhotoGallery";
-import { PasswordGate, needsPassword } from "../../components/PasswordGate";
+import { getPickView, setPhotoPicked, setPickStage, submitPicks, type PickView } from "@/shared/api";
+import { LANGUAGES } from "@/shared/i18n/translations";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
+import { PhotoLightbox } from "@/shared/ui/PhotoLightbox";
+import { PhotoGallery } from "@/shared/ui/PhotoGallery";
+import { PasswordGate, needsPassword } from "@/features/review/components/PasswordGate";
 
 type Filter = "all" | "picked";
 

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getStudioOverview, listPlans, type PlanDto } from "../lib/api";
-import { useAuth } from "../app/AuthContext";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { getStudioOverview, listPlans, type PlanDto } from "@/shared/api";
+import { useAuth } from "@/app/AuthContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { useHowItWorksOpen } from "./HowItWorks";
 
 const SEEN_KEY = "albumflow.launchOffer.seen";

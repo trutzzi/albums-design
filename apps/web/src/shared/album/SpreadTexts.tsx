@@ -8,7 +8,7 @@ import {
   type TextBlockDTO,
   type TextSize,
 } from "@albumflow/contracts";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 const MIN_TEXT_SIZE = 0.04;
 

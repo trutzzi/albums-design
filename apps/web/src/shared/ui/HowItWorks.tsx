@@ -1,5 +1,5 @@
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 // --- open from anywhere --------------------------------------------------------
 // The header's "How it works" link and the shoots page's first-visit welcome both open

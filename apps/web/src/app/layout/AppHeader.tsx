@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getAdminMe } from "../lib/api";
+import { getAdminMe } from "@/shared/api";
 import { FeedbackButton } from "./FeedbackButton";
-import { useAvailableTour } from "./GuidedTour";
-import { HowItWorksHost, openHowItWorks } from "./HowItWorks";
-import { LaunchOfferHost } from "./LaunchOffer";
-import { useAuth } from "../app/AuthContext";
-import { useLanguage } from "../lib/i18n/LanguageContext";
-import { ThemeToggle } from "./ThemeToggle";
+import { useAvailableTour } from "@/shared/ui/GuidedTour";
+import { HowItWorksHost, openHowItWorks } from "@/shared/ui/HowItWorks";
+import { LaunchOfferHost } from "@/shared/ui/LaunchOffer";
+import { useAuth } from "@/app/AuthContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 
 /** A warm, time-of-day greeting — the kind of touch a boutique studio owner would want their own tool to have. */
 function greetingKeyForHour(hour: number): string {

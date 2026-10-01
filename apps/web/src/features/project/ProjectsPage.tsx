@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import type { ProjectSummaryDTO, ProjectType } from "@albumflow/contracts";
-import { createProject, listProjects } from "../../lib/api";
-import { useAuth } from "../../app/AuthContext";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { GettingStarted, onboardingDismissed } from "../../components/GettingStarted";
-import { GuidedTour, type TourStep } from "../../components/GuidedTour";
-import { howItWorksSeen, openHowItWorks, useHowItWorksOpen } from "../../components/HowItWorks";
-import { tip } from "../../lib/tip";
+import { createProject, listProjects } from "@/shared/api";
+import { useAuth } from "@/app/AuthContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { GettingStarted, onboardingDismissed } from "@/features/project/components/GettingStarted";
+import { GuidedTour, type TourStep } from "@/shared/ui/GuidedTour";
+import { howItWorksSeen, openHowItWorks, useHowItWorksOpen } from "@/shared/ui/HowItWorks";
+import { tip } from "@/shared/lib/tip";
 
 const SHOOTS_TOUR: TourStep[] = [
   { target: '[data-tour="new-shoot"]', titleKey: "tour.shoots.new.title", bodyKey: "tour.shoots.new.body" },

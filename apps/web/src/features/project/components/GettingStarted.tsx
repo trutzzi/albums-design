@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { ProjectSummaryDTO } from "@albumflow/contracts";
-import { useLanguage } from "../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 const DISMISSED_KEY = "albumflow.onboarding.dismissed";
 

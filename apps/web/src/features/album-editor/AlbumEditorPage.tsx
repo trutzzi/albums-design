@@ -36,18 +36,18 @@ import {
   resolveComment,
   requestExport,
   suggestSpreadLayouts,
-} from "../../lib/api";
-import { SpreadBlock } from "../../components/SpreadBlock";
-import { StylePanel } from "../../components/StylePanel";
-import { CoverEditor } from "../../components/CoverEditor";
-import { GuidedTour, type TourStep } from "../../components/GuidedTour";
-import { PageStrip } from "../../components/PageStrip";
-import { AlbumCheckPanel } from "../../components/AlbumCheckPanel";
-import { BookPreview } from "../../components/BookPreview";
-import { ShortcutsHelp } from "../../components/ShortcutsHelp";
-import { checkAlbum, issuesBySpread } from "../../lib/album-check";
-import { chapterStarts } from "../../lib/chapters";
-import { tip } from "../../lib/tip";
+} from "@/shared/api";
+import { SpreadBlock } from "@/features/album-editor/components/SpreadBlock";
+import { StylePanel } from "@/features/album-editor/components/StylePanel";
+import { CoverEditor } from "@/shared/album/CoverEditor";
+import { GuidedTour, type TourStep } from "@/shared/ui/GuidedTour";
+import { PageStrip } from "@/features/album-editor/components/PageStrip";
+import { AlbumCheckPanel } from "@/features/album-editor/components/AlbumCheckPanel";
+import { BookPreview } from "@/shared/album/BookPreview";
+import { ShortcutsHelp } from "@/features/album-editor/components/ShortcutsHelp";
+import { checkAlbum, issuesBySpread } from "@/features/album-editor/lib/album-check";
+import { chapterStarts } from "@/features/album-editor/lib/chapters";
+import { tip } from "@/shared/lib/tip";
 
 const EDITOR_TOUR: TourStep[] = [
   { target: '[data-tour="editor-cover"]', titleKey: "tour.editor.cover.title", bodyKey: "tour.editor.cover.body" },
@@ -60,16 +60,16 @@ const EDITOR_TOUR: TourStep[] = [
   { target: '[data-tour="editor-check"]', titleKey: "tour.editor.check.title", bodyKey: "tour.editor.check.body" },
   { target: '[data-tour="editor-ready"]', titleKey: "tour.editor.ready.title", bodyKey: "tour.editor.ready.body" },
 ];
-import { AccessDetailsModal } from "../../components/AccessDetailsModal";
-import { LayoutPicker } from "../../components/LayoutPicker";
-import { PhotoTray } from "../../components/PhotoTray";
-import { PlanUpsell } from "../../components/PlanUpsell";
-import { loadTrayPrefs, saveTrayPrefs, type TrayPrefs } from "../../lib/tray-prefs";
-import type { TrayDensity } from "../../lib/tray-grid";
-import { countTrayPhotos, filterTrayPhotos, isFiltering, type TrayContext, type TrayShow } from "../../lib/tray-filter";
-import { ClientFeedback, openCommentsBySpread } from "../../components/ClientFeedback";
-import type { FeedbackComment } from "../../lib/api";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
+import { AccessDetailsModal } from "@/shared/ui/AccessDetailsModal";
+import { LayoutPicker } from "@/features/album-editor/components/LayoutPicker";
+import { PhotoTray } from "@/features/album-editor/components/PhotoTray";
+import { PlanUpsell } from "@/shared/ui/PlanUpsell";
+import { loadTrayPrefs, saveTrayPrefs, type TrayPrefs } from "@/features/album-editor/lib/tray-prefs";
+import type { TrayDensity } from "@/features/album-editor/lib/tray-grid";
+import { countTrayPhotos, filterTrayPhotos, isFiltering, type TrayContext, type TrayShow } from "@/features/album-editor/lib/tray-filter";
+import { ClientFeedback, openCommentsBySpread } from "@/features/album-editor/components/ClientFeedback";
+import type { FeedbackComment } from "@/shared/api";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 type Spread = AlbumDTO["spreads"][number];
 type TraySort = "score" | "category" | "filename" | "similarity";
