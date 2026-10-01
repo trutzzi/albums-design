@@ -403,10 +403,10 @@ jobs:
             # logs attached, instead of silently storing nothing.
             if grep -qE "^STORAGE_PROVIDER='?digistorage'?$" .env; then
               for attempt in $(seq 1 30); do
-                $COMPOSE logs --tail 200 worker 2>&1 | grep -q "long-term storage: digistorage" && break
+                $COMPOSE logs --tail 200 worker 2>&1 | grep -q '"longTermStorage":"digistorage"' && break
                 sleep 2
               done
-              if ! $COMPOSE logs --tail 200 worker 2>&1 | grep -q "long-term storage: digistorage"; then
+              if ! $COMPOSE logs --tail 200 worker 2>&1 | grep -q '"longTermStorage":"digistorage"'; then
                 echo "::error::STORAGE_PROVIDER is digistorage but the worker did not report long-term storage as active."
                 $COMPOSE logs --tail 60 api worker
                 exit 1
