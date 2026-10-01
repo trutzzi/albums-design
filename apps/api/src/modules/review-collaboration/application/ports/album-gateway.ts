@@ -30,7 +30,11 @@ export interface ReviewableAlbum {
 
 /** The client's browser loads originals straight from storage via short-lived URLs. */
 export interface PhotoPreviewResolver {
-  previewUrl(photoId: string): Promise<string | null>;
+  /**
+   * Preview URLs for every photo on an album at once, keyed by photo id — one lookup, not
+   * one per photo. A photo that no longer exists is absent from the map.
+   */
+  previewUrls(photoIds: string[]): Promise<Map<string, string>>;
 }
 
 /** Review never mutates the album directly — it asks Album Composition to move state. */

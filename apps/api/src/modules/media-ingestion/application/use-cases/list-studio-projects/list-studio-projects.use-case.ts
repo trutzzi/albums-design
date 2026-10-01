@@ -1,10 +1,12 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { StorageProvider } from "../../../../../shared-kernel/storage-provider";
 import type { AlbumRepository } from "../../../../album-composition/domain/album-repository";
+import type { Photo } from "../../../domain/photo";
 import type { Project } from "../../../domain/project";
 import type { PhotoRepository } from "../../../domain/photo-repository";
 import type { ProjectRepository } from "../../../domain/project-repository";
 import type { ObjectStorage } from "../../ports/object-storage";
+import { consoleLogger, type Logger } from "../../../../../shared-kernel/logger";
 
 const COVER_TTL_SECONDS = 60 * 60;
 
@@ -27,8 +29,8 @@ export interface ProjectSummaryView {
 /**
  * The shoots list. It carries enough for a card a photographer can recognise at a glance —
  * a cover photo, how many photos and albums it holds, who it is for — without ever loading
- * a shoot's photos: the counts come from two grouped queries, and each cover is a single
- * indexed row.
+ * a shoot's photos: the counts come from two grouped queries and the covers from one, all
+ * three at once, so the list costs four queries however many shoots a studio has.
  */
 export class ListStudioProjectsUseCase {
   constructor(
@@ -37,6 +39,7 @@ export class ListStudioProjectsUseCase {
     private readonly albums: AlbumRepository,
     private readonly storage: ObjectStorage,
     private readonly permanent?: StorageProvider,
+    private readonly logger: Logger = consoleLogger,
   ) {}
 
   async execute(studioId: string): Promise<ProjectSummaryView[]> {
@@ -44,11 +47,14 @@ export class ListStudioProjectsUseCase {
     if (projects.length === 0) return [];
 
     const ids = projects.map((project) => project.id);
-    const [photoCounts, albumCounts] = await Promise.all([
+    const [photoCounts, albumCounts, coverPhotos] = await Promise.all([
       this.photos.countByProjectIds(ids),
       this.albums.countByProjectIds(ids),
+      this.photos.findCoverPhotos(ids),
     ]);
-    const covers = await Promise.all(projects.map((project) => this.coverUrl(project)));
+    const covers = await Promise.all(
+      projects.map((project) => this.coverUrl(project, coverPhotos.get(project.id.toString()))),
+    );
 
     return projects.map((project, index) => ({
       id: project.id.toString(),
@@ -65,8 +71,7 @@ export class ListStudioProjectsUseCase {
     }));
   }
 
-  private async coverUrl(project: Project): Promise<string | null> {
-    const photo = await this.photos.findCoverPhoto(project.id);
+  private async coverUrl(project: Project, photo: Photo | undefined): Promise<string | null> {
     if (!photo) return null;
     const key = photo.storageKey.derivative("thumb").toString();
     // A cover that cannot be signed is not worth failing the whole list for.
@@ -74,7 +79,8 @@ export class ListStudioProjectsUseCase {
       return photo.permanentDerivatives && this.permanent
         ? await this.permanent.getUrl(key, { expiresInSeconds: COVER_TTL_SECONDS })
         : await this.storage.presignGet(key, COVER_TTL_SECONDS);
-    } catch {
+    } catch (error) {
+      this.logger.warn("could not sign a project cover URL", { projectId: project.id.toString(), err: error });
       return null;
     }
   }

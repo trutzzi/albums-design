@@ -14,7 +14,7 @@ import {
   StudioPlansUseCase,
 } from "../src/modules/platform-admin/application/use-cases/admin.use-cases";
 import { registerPlatformAdminRoutes } from "../src/modules/platform-admin/interface/http/routes";
-import { registerTenancyGuard } from "../src/interface/tenancy";
+import { RepositoryResourceOwnership, registerTenancyGuard } from "../src/interface/tenancy";
 import { Studio } from "../src/modules/identity/domain/studio";
 import { StudioMember } from "../src/modules/identity/domain/studio-member";
 import { Subscription } from "../src/modules/identity/domain/subscription";
@@ -162,12 +162,12 @@ describe("feedback and the admin area", () => {
       const member = request.headers["x-member"];
       if (typeof member === "string") request.memberId = member;
     });
-    registerTenancyGuard(server, {
+    registerTenancyGuard(server, new RepositoryResourceOwnership({
       projects: new InMemoryProjectRepository(),
       photos: new InMemoryPhotoRepository(),
       albums: new InMemoryAlbumRepository(),
       exportJobs: new InMemoryExportJobRepository(),
-    });
+    }));
     registerPlatformAdminRoutes(server, {
       access,
       feedback: new FeedbackUseCase(

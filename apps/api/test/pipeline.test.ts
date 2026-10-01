@@ -48,6 +48,7 @@ import {
   InMemoryStudioRepository,
   InMemorySubscriptionRepository,
 } from "./support/in-memory";
+import { silentLogger } from "../src/shared-kernel/logger";
 
 const PHOTO_COUNT = 12;
 
@@ -122,7 +123,7 @@ function buildWorld() {
     ),
     editAlbum: new EditAlbumUseCase(albums),
     openReview: new OpenReviewSessionUseCase(reviews, reviewGateway),
-    reviewPortal: new ReviewPortalUseCase(reviews, reviewGateway, new LoggingReviewNotifier(() => {})),
+    reviewPortal: new ReviewPortalUseCase(reviews, reviewGateway, new LoggingReviewNotifier(silentLogger)),
     requestExport: new RequestExportUseCase(exports, exportGateway, queue),
     runExport: new RunExportUseCase(
       exports,

@@ -3,12 +3,14 @@ import { FallbackVisionClassifier } from "./fallback-vision-classifier";
 import { HeuristicVisionClassifier } from "./heuristic-vision-classifier";
 import { OllamaVisionClassifier } from "./ollama-vision-classifier";
 import type { VisionClassifier } from "../../application/ports/vision-classifier";
+import type { Logger } from "../../../../shared-kernel/logger";
 
 export interface VisionClassifierConfig {
   provider: "heuristic" | "anthropic" | "ollama";
   anthropicApiKey?: string | undefined;
   ollamaBaseUrl?: string | undefined;
   ollamaModel?: string | undefined;
+  logger?: Logger | undefined;
 }
 
 /**
@@ -26,6 +28,7 @@ export function buildVisionClassifier(config: VisionClassifierConfig): VisionCla
       return new FallbackVisionClassifier(
         new OllamaVisionClassifier({ baseUrl: config.ollamaBaseUrl, model: config.ollamaModel }),
         new HeuristicVisionClassifier(),
+        config.logger,
       );
     case "heuristic":
     default:

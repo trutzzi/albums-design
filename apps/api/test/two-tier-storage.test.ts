@@ -33,6 +33,7 @@ import {
   InMemoryProjectRepository,
   InMemoryReviewSessionRepository,
 } from "./support/in-memory";
+import { RecordingLogger } from "./support/recording-logger";
 
 const DAY = 24 * 60 * 60 * 1000;
 const FULL = { x: 0, y: 0, width: 1, height: 1 };
@@ -180,7 +181,7 @@ describe("tier 1 — previews go to long-term storage, originals stay in staging
     await new GenerateDerivativesUseCase(w.photos, w.staging, new SharpImageResizer(), w.permanent).execute({
       photoId: photo.id.toString(),
     });
-    const url = await new StoragePhotoPreviewResolver(w.photos, w.staging, w.permanent).previewUrl(photo.id.toString());
+    const url = (await new StoragePhotoPreviewResolver(w.photos, w.staging, w.permanent).previewUrls([photo.id.toString()])).get(photo.id.toString());
     assert.ok(url?.startsWith("https://api.example.test/media/"));
   });
 });
@@ -395,14 +396,14 @@ describe("approval trigger", () => {
   });
 
   it("never fails the client's decision because the queue is down", async () => {
-    const logged: string[] = [];
+    const logged = new RecordingLogger();
     const notifier = new PromoteOnApprovalNotifier(
       { clientDecided: async () => {} },
       { enqueue: async () => { throw new Error("redis down"); } },
-      (message) => logged.push(message),
+      logged,
     );
     await notifier.clientDecided({ ...decision, decision: "APPROVED" });
-    assert.equal(logged.length, 1);
+    assert.equal(logged.problems.length, 1);
   });
 });
 

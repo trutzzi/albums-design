@@ -1,6 +1,9 @@
 import type { EmailSender } from "../../../../shared-kernel/email";
 import type { DownloadNotifier, StudioContacts } from "../ports/delivery-gateway";
 import type { PickNotifier } from "../ports/pick-gateway";
+import type { ReviewNotifier } from "../ports/album-gateway";
+import type { ClientContactDirectory } from "../ports/client-contact";
+import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
 
 /**
  * Tells the studio's owners by email when a client does something that needs
@@ -9,14 +12,41 @@ import type { PickNotifier } from "../ports/pick-gateway";
  * Best effort: the client's action is already recorded, so a mail failure is
  * logged and never surfaces to the client.
  */
-export class StudioEmailNotifier implements PickNotifier, DownloadNotifier {
+export class StudioEmailNotifier implements PickNotifier, DownloadNotifier, ReviewNotifier {
   constructor(
     private readonly email: EmailSender,
     private readonly contacts: StudioContacts,
     /** Where the studio app lives, for the link in the email (WEB_ORIGIN). */
     private readonly webOrigin: string,
-    private readonly log: (message: string) => void = console.error,
+    private readonly logger: Logger = consoleLogger,
+    /** Finds the shoot behind an album, for the client's verdict on a proof. */
+    private readonly clients?: ClientContactDirectory,
   ) {}
+
+  async clientDecided(params: Parameters<ReviewNotifier["clientDecided"]>[0]): Promise<void> {
+    const contact = await this.clients?.forAlbum(params.albumId).catch(() => undefined);
+    if (!contact) return;
+    const approved = params.decision === "APPROVED";
+    const notes = params.openComments;
+    await this.notify(
+      contact.projectId,
+      (project) => ({
+        subject: approved
+          ? `${params.clientName} a aprobat albumul / approved the album — ${project}`
+          : `${params.clientName} cere modificări / asked for changes — ${project}`,
+        lines: approved
+          ? [
+              `RO: ${params.clientName} a aprobat albumul pentru „${project}". Îl poți exporta pentru tipar.`,
+              `EN: ${params.clientName} approved the album for "${project}". It is ready to export for print.`,
+            ]
+          : [
+              `RO: ${params.clientName} cere modificări la albumul pentru „${project}"${notes ? ` (${notes} ${notes === 1 ? "comentariu" : "comentarii"})` : ""}.`,
+              `EN: ${params.clientName} asked for changes to the album for "${project}"${notes ? ` (${notes} open ${notes === 1 ? "comment" : "comments"})` : ""}.`,
+            ],
+      }),
+      `/albums/${params.albumId}`,
+    );
+  }
 
   async picksSubmitted(params: Parameters<PickNotifier["picksSubmitted"]>[0]): Promise<void> {
     await this.notify(params.projectId, (project, link) => ({
@@ -44,29 +74,30 @@ export class StudioEmailNotifier implements PickNotifier, DownloadNotifier {
 
   private async notify(
     projectId: string,
-    compose: (projectName: string, link: string) => { subject: string; lines: string[]; link: string },
+    compose: (projectName: string, link: string) => { subject: string; lines: string[]; link?: string },
+    path = `/projects/${projectId}`,
   ): Promise<void> {
     try {
       const studio = await this.contacts.forProject(projectId);
       if (!studio) return;
       if (studio.ownerEmails.length === 0) {
-        this.log(`[email] no owner email on file for project ${projectId}; nothing sent`);
+        this.logger.warn("no owner email on file; studio notification not sent", { projectId });
         return;
       }
-      const link = `${this.webOrigin.replace(/\/$/, "")}/projects/${projectId}`;
-      const message = compose(studio.projectName, link);
-      const text = [...message.lines, "", `${message.link}`].join("\n");
+      const message = compose(studio.projectName, `${this.webOrigin.replace(/\/$/, "")}${path}`);
+      const link = message.link ?? `${this.webOrigin.replace(/\/$/, "")}${path}`;
+      const text = [...message.lines, "", link].join("\n");
       const html =
         message.lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("") +
-        `<p><a href="${escapeHtml(message.link)}">${escapeHtml(message.link)}</a></p>`;
+        `<p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>`;
       await this.email.send({ to: studio.ownerEmails, subject: message.subject, text, html });
     } catch (error) {
-      this.log(`[email] could not notify the studio about project ${projectId}: ${String(error)}`);
+      this.logger.error("could not email the studio", { projectId, err: error });
     }
   }
 }
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

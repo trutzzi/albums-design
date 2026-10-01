@@ -1,10 +1,11 @@
 import type { Env } from "../../shared-kernel/env";
 import type { EmailSender } from "../../shared-kernel/email";
+import type { Logger } from "../../shared-kernel/logger";
 import { LoggingEmailSender } from "./logging-email-sender";
 import { SmtpEmailSender } from "./smtp-email-sender";
 
 /** The one place that turns `EMAIL_PROVIDER` into an adapter. */
-export function buildEmailSender(env: Env): EmailSender {
+export function buildEmailSender(env: Env, logger?: Logger): EmailSender {
   switch (env.EMAIL_PROVIDER) {
     case "smtp": {
       const missing = [
@@ -27,6 +28,6 @@ export function buildEmailSender(env: Env): EmailSender {
     }
     case "none":
     default:
-      return new LoggingEmailSender();
+      return new LoggingEmailSender(logger);
   }
 }

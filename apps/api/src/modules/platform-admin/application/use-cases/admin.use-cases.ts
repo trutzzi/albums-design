@@ -3,6 +3,7 @@ import os from "node:os";
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import { NotFoundError, ValidationError, type ApplicationError } from "../../../../shared-kernel/errors";
 import type { EmailSender } from "../../../../shared-kernel/email";
+import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
 import type {
   StudioMemberRepository,
   StudioRepository,
@@ -84,7 +85,7 @@ export class FeedbackUseCase {
     private readonly access: AdminAccess,
     private readonly email: EmailSender,
     private readonly webOrigin: string,
-    private readonly log: (message: string) => void = console.error,
+    private readonly logger: Logger = consoleLogger,
   ) {}
 
   async submit(params: {
@@ -118,8 +119,8 @@ export class FeedbackUseCase {
     }
     await this.feedback.save(item);
     // Telling us is the point; a mail hiccup must never lose the feedback or fail the request.
-    await this.notifyAdmins(item, studio.name).catch((error) =>
-      this.log(`[feedback] admin notification failed: ${error instanceof Error ? error.message : error}`),
+    await this.notifyAdmins(item, studio.name).catch((error: unknown) =>
+      this.logger.error("could not email admins about new feedback", { feedbackId: item.id.toString(), err: error }),
     );
     return Result.success({ id: item.id.toString() });
   }

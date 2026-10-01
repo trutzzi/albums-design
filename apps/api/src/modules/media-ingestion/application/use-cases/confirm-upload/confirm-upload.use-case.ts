@@ -3,6 +3,7 @@ import { NotFoundError, ValidationError, type ApplicationError } from "../../../
 import type { PhotoRepository } from "../../../domain/photo-repository";
 import type { ObjectStorage } from "../../ports/object-storage";
 import type { JobQueue } from "../../ports/job-queue";
+import { consoleLogger, type Logger } from "../../../../../shared-kernel/logger";
 
 const PHOTO_INTELLIGENCE_QUEUE = "photo-intelligence";
 const MEDIA_QUEUE = "media-ingestion";
@@ -28,6 +29,7 @@ export class ConfirmUploadUseCase {
     private readonly jobs: JobQueue,
     /** Copy every uploaded original to long-term storage right after upload (LONG_TERM_ORIGINALS=all). */
     private readonly storeOriginalLongTerm = false,
+    private readonly logger: Logger = consoleLogger,
   ) {}
 
   async execute(command: ConfirmUploadCommand): Promise<Result<ConfirmUploadResult, ApplicationError>> {
@@ -69,7 +71,7 @@ export class ConfirmUploadUseCase {
       try {
         await this.jobs.enqueue(STORAGE_QUEUE, "store-original", { photoId: photo.id.toString() });
       } catch (error) {
-        console.error(`[storage] could not queue the long-term copy of ${photo.id.toString()}: ${String(error)}`);
+        this.logger.warn("could not queue the long-term copy of an upload", { photoId: photo.id.toString(), err: error });
       }
     }
 

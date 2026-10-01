@@ -22,14 +22,23 @@ export function startErrorMonitoring(options: {
     tracesSampleRate: 0,
     // Request bodies can hold client names and passwords; Sentry gets the error, not the payload.
     sendDefaultPii: false,
+    // The process guards log and report these themselves (see process-guards.ts); Sentry's
+    // own handlers would report each one twice and exit on a schedule of their own.
+    integrations: (defaults) =>
+      defaults.filter((integration) => integration.name !== "OnUncaughtException" && integration.name !== "OnUnhandledRejection"),
   });
   enabled = true;
   return true;
 }
 
-export function reportError(error: unknown, context?: Record<string, string | number | undefined>): void {
+export function reportError(error: unknown, context?: Record<string, unknown>): void {
   if (!enabled) return;
-  Sentry.captureException(error, context ? { extra: context } : undefined);
+  const requestId = typeof context?.["requestId"] === "string" ? context["requestId"] : undefined;
+  Sentry.captureException(error, {
+    ...(context ? { extra: context } : {}),
+    // Searchable on Sentry, and the same id the client got back in its response headers.
+    ...(requestId ? { tags: { requestId } } : {}),
+  });
 }
 
 /** Lets queued reports reach Sentry before the process exits. */

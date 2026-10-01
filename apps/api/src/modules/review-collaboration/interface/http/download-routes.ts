@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { sendApplicationError } from "../../../../interface/error-translator";
 import { streamZip } from "../../../../interface/zip-stream";
-import { grantFrom, sendClientError } from "../../../../interface/client-errors";
+import { grantFrom } from "../../../../interface/client-errors";
 import type { DownloadSessionAdminUseCase } from "../../application/use-cases/download-session-admin.use-case";
 import type { DownloadPortalUseCase } from "../../application/use-cases/download-portal.use-case";
 
@@ -34,7 +35,7 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
     const { projectId } = projectParams.parse(request.params);
     const body = openSchema.parse(request.body);
     const result = await deps.downloadAdmin.open({ projectId, ...body, clientName: body.clientName ?? "" });
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(201).send(result.getValue());
   });
 
@@ -47,14 +48,14 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
     const { projectId, sessionId } = sessionParams.parse(request.params);
     const body = invitationSchema.parse(request.body ?? {});
     const result = await deps.downloadAdmin.sendInvitation(projectId, sessionId, body);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.post("/projects/:projectId/download-sessions/:sessionId/revoke", async (request, reply) => {
     const { projectId, sessionId } = sessionParams.parse(request.params);
     const result = await deps.downloadAdmin.revoke(projectId, sessionId);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -62,7 +63,7 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
   app.get("/projects/:projectId/download-sessions/:sessionId/access", async (request, reply) => {
     const { projectId, sessionId } = sessionParams.parse(request.params);
     const result = await deps.downloadAdmin.reveal(projectId, sessionId);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -72,16 +73,16 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
     const { token } = tokenParams.parse(request.params);
     const { password } = unlockSchema.parse(request.body);
     const result = await deps.downloadPortal.unlock(token, password);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.get("/download/:token", async (request, reply) => {
     const { token } = tokenParams.parse(request.params);
     const allowed = await deps.downloadPortal.authorize(token, grantFrom(request));
-    if (allowed.isFailure) return sendClientError(reply, allowed.getError());
+    if (allowed.isFailure) return sendApplicationError(reply, allowed.getError());
     const result = await deps.downloadPortal.view(token);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -90,9 +91,9 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
   app.get("/download/:token/photos.zip", async (request, reply) => {
     const { token } = tokenParams.parse(request.params);
     const allowed = await deps.downloadPortal.authorize(token, grantFrom(request));
-    if (allowed.isFailure) return sendClientError(reply, allowed.getError());
+    if (allowed.isFailure) return sendApplicationError(reply, allowed.getError());
     const prepared = await deps.downloadPortal.prepare(token);
-    if (prepared.isFailure) return sendClientError(reply, prepared.getError());
+    if (prepared.isFailure) return sendApplicationError(reply, prepared.getError());
     const { fileName, entries, complete } = prepared.getValue();
 
     reply.hijack();

@@ -1,4 +1,4 @@
-import { integer, jsonb, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { projects } from "../../../media-ingestion/infrastructure/persistence/schema";
 import type { AlbumCover, AlbumFormat, AlbumStyle, Spread } from "../../domain/album";
 
@@ -15,19 +15,23 @@ export const albumStatusEnum = pgEnum("album_status", [
  * aggregate: it is always loaded and written as one unit, and nothing queries a
  * placement independently. Normalising them would buy joins we never need.
  */
-export const albums = pgTable("albums", {
-  id: uuid("id").primaryKey(),
-  projectId: uuid("project_id")
-    .notNull()
-    .references(() => projects.id),
-  title: varchar("title", { length: 255 }).notNull(),
-  status: albumStatusEnum("status").notNull(),
-  format: jsonb("format").$type<AlbumFormat>().notNull(),
-  spreads: jsonb("spreads").$type<Spread[]>().notNull(),
-  /** Null on albums made before styles existed; read as the default style. */
-  style: jsonb("style").$type<AlbumStyle>(),
-  cover: jsonb("cover").$type<AlbumCover>(),
-  spreadCount: integer("spread_count").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
-});
+export const albums = pgTable(
+  "albums",
+  {
+    id: uuid("id").primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id),
+    title: varchar("title", { length: 255 }).notNull(),
+    status: albumStatusEnum("status").notNull(),
+    format: jsonb("format").$type<AlbumFormat>().notNull(),
+    spreads: jsonb("spreads").$type<Spread[]>().notNull(),
+    /** Null on albums made before styles existed; read as the default style. */
+    style: jsonb("style").$type<AlbumStyle>(),
+    cover: jsonb("cover").$type<AlbumCover>(),
+    spreadCount: integer("spread_count").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [index("albums_project_id_idx").on(table.projectId)],
+);

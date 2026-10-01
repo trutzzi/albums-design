@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { sendApplicationError } from "../../../../interface/error-translator";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { confirmUploadSchema, createProjectSchema, requestUploadSchema } from "@albumflow/contracts";
-import { ApplicationError, NotFoundError } from "../../../../shared-kernel/errors";
+import { NotFoundError } from "../../../../shared-kernel/errors";
 import { authenticatedStudioId } from "../../../../interface/tenancy";
 import { Project } from "../../domain/project";
 import type { ProjectRepository } from "../../domain/project-repository";
@@ -139,7 +140,3 @@ export function registerMediaIngestionRoutes(app: FastifyInstance, deps: MediaIn
   });
 }
 
-function sendApplicationError(reply: import("fastify").FastifyReply, error: ApplicationError) {
-  const status = error instanceof NotFoundError ? 404 : error.code === "CONFLICT" ? 409 : 422;
-  return reply.code(status).send({ code: error.code, message: error.message });
-}

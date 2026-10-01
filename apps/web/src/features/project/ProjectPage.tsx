@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { runWithLimit, sortFilesByName } from "../../lib/upload-queue";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { SUPPORTED_MIME_TYPES } from "@albumflow/contracts";
 import {
   confirmUpload,
@@ -36,6 +36,9 @@ import { tip } from "../../lib/tip";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { LanguagePrompt } from "../../components/LanguagePrompt";
 import { AccessDetailsModal } from "../../components/AccessDetailsModal";
+import { PhotoGallery } from "../../components/PhotoGallery";
+import { PlanUpsell } from "../../components/PlanUpsell";
+import { PhotoLightbox } from "../../components/PhotoLightbox";
 import {
   ALBUM_DIMENSIONS,
   DEFAULT_ALBUM_DIMENSION_ID,
@@ -57,6 +60,21 @@ interface Transfer {
 
 /** Uploads in flight at once. Enough to keep a fast connection busy, few enough to stay orderly. */
 const UPLOAD_PARALLELISM = 6;
+
+/** The shoot's workflow, in order. Each step is a tab; the photographer can open any of them. */
+const STEPS = ["photos", "selection", "album", "delivery"] as const;
+type Step = (typeof STEPS)[number];
+/** The guided tour points at the step tabs, since only the open step's content is on the page. */
+const STEP_TOUR_TARGETS: Record<Step, string | undefined> = {
+  photos: undefined,
+  selection: "project-picks",
+  album: "project-generate",
+  delivery: "project-delivery",
+};
+
+const PHOTO_FILTERS = ["all", "worthy", "picked", "processing"] as const;
+type PhotoFilter = (typeof PHOTO_FILTERS)[number];
+type PhotoSort = "name" | "score";
 
 const PROJECT_TOUR: TourStep[] = [
   { target: '[data-tour="project-upload"]', titleKey: "tour.project.upload.title", bodyKey: "tour.project.upload.body" },
@@ -96,6 +114,29 @@ export function ProjectPage() {
   // requires reading and agreeing to the disclaimer modal below first.
   const [useAi, setUseAi] = useState(false);
   const [aiConsentOpen, setAiConsentOpen] = useState(false);
+
+  // Which step is open lives in the URL, so a reload or the back button keeps the place.
+  const [params, setParams] = useSearchParams();
+  const requestedStep = params.get("step");
+  const step: Step = STEPS.includes(requestedStep as Step) ? (requestedStep as Step) : "photos";
+  const goTo = useCallback(
+    (next: Step) =>
+      setParams(
+        (current) => {
+          const updated = new URLSearchParams(current);
+          updated.set("step", next);
+          return updated;
+        },
+        { replace: true },
+      ),
+    [setParams],
+  );
+  const [photoFilter, setPhotoFilter] = useState<PhotoFilter>("all");
+  const [photoSort, setPhotoSort] = useState<PhotoSort>("name");
+  const [lightboxId, setLightboxId] = useState<string | null>(null);
+  // Link forms stay folded away once a shoot has links; the list of them is what matters then.
+  const [pickFormOpen, setPickFormOpen] = useState(false);
+  const [deliveryFormOpen, setDeliveryFormOpen] = useState(false);
 
   // Client photo selection: the link is shown once (only its hash is stored).
   const [pickClientName, setPickClientName] = useState("");
@@ -208,6 +249,7 @@ export function ProjectPage() {
       setPickLink(`${window.location.origin}/pick/${session.token}`);
       setPickPassword(session.password ?? null);
       setPickLinkCopied(false);
+      setPickFormOpen(false);
       void refreshPicks();
     },
   });
@@ -268,6 +310,7 @@ export function ProjectPage() {
       setDeliveryPassword(session.password ?? null);
       setDeliveryMissing(session.missingCount);
       setDeliveryCopied(false);
+      setDeliveryFormOpen(false);
       void refreshDownloads();
     },
   });
@@ -399,9 +442,132 @@ export function ProjectPage() {
   const analysed = analyses.data?.length ?? 0;
   const albumWorthy = (analyses.data ?? []).filter((analysis) => analysis.albumWorthy).length;
   const inFlight = transfers.filter((t) => t.state === "uploading" || t.state === "confirming");
+  const uploadedCount = photos.data?.length ?? 0;
+
+  // --- Photos step: the gallery, its filters and its order --------------------------
+  const galleryPhotos = useMemo(
+    () =>
+      (photos.data ?? []).map((photo) => {
+        const analysis = analysisByPhoto.get(photo.id);
+        return {
+          ...photo,
+          thumbnailUrl: photo.thumbnailUrl ?? photo.previewUrl,
+          width: analysis?.width ?? null,
+          height: analysis?.height ?? null,
+          analysis,
+        };
+      }),
+    [photos.data, analysisByPhoto],
+  );
+  const photoCounts: Record<PhotoFilter, number> = useMemo(
+    () => ({
+      all: galleryPhotos.length,
+      worthy: galleryPhotos.filter((photo) => photo.analysis?.albumWorthy).length,
+      picked: galleryPhotos.filter((photo) => clientPicked.has(photo.id)).length,
+      processing: galleryPhotos.filter((photo) => !photo.analysis).length,
+    }),
+    [galleryPhotos, clientPicked],
+  );
+  const shownPhotos = useMemo(() => {
+    const matching = galleryPhotos.filter((photo) =>
+      photoFilter === "worthy"
+        ? photo.analysis?.albumWorthy
+        : photoFilter === "picked"
+          ? clientPicked.has(photo.id)
+          : photoFilter === "processing"
+            ? !photo.analysis
+            : true,
+    );
+    // The server already lists photos in file-name order.
+    return photoSort === "score"
+      ? [...matching].sort((a, b) => (b.analysis?.overall ?? -1) - (a.analysis?.overall ?? -1))
+      : matching;
+  }, [galleryPhotos, photoFilter, photoSort, clientPicked]);
+  const viewablePhotos = useMemo(
+    () =>
+      shownPhotos.flatMap((photo) =>
+        photo.previewUrl ? [{ id: photo.id, fileName: photo.fileName, previewUrl: photo.previewUrl }] : [],
+      ),
+    [shownPhotos],
+  );
+  const lightboxIndex = lightboxId ? viewablePhotos.findIndex((photo) => photo.id === lightboxId) : -1;
+
+  // --- Where the shoot is: each step's status, and what to do next ------------------
+  const hasPickSessions = (pickSessions.data ?? []).length > 0;
+  const showPickForm = pickFormOpen || !hasPickSessions;
+  const hasDeliverySessions = (downloadSessions.data ?? []).length > 0;
+  const showDeliveryForm = deliveryFormOpen || !hasDeliverySessions;
+  const submittedPick = pickSessions.data?.find((session) => session.status === "SUBMITTED");
+  const openPick = pickSessions.data?.find((session) => session.status === "OPEN");
+  const firstAlbum = albums.data?.[0];
+  const approvedAlbum = albums.data?.find((album) => album.status === "APPROVED" || album.status === "EXPORTED");
+  const delivered = (downloadSessions.data ?? []).some((session) => session.downloadCount > 0);
+  const deliveryActive = (downloadSessions.data ?? []).some((session) => session.status === "ACTIVE");
+
+  const stepInfo: Record<Step, { done: boolean; status: string }> = {
+    photos: {
+      done: uploadedCount > 0 && analysed >= uploadedCount,
+      status:
+        uploadedCount === 0
+          ? t("project.step.photos.empty")
+          : analysed < uploadedCount
+            ? t("project.step.photos.processing", { done: analysed, total: uploadedCount })
+            : t("project.step.photos.ready", { count: uploadedCount }),
+    },
+    selection: {
+      done: Boolean(submittedPick),
+      status: submittedPick
+        ? t("project.step.selection.received")
+        : openPick
+          ? t("project.step.selection.waiting")
+          : t("project.step.selection.optional"),
+    },
+    album: {
+      done: Boolean(approvedAlbum),
+      status: approvedAlbum
+        ? t("project.step.album.approved")
+        : firstAlbum
+          ? t("project.step.album.draft", { count: albums.data?.length ?? 0 })
+          : t("project.step.album.none"),
+    },
+    delivery: {
+      done: delivered,
+      status: delivered
+        ? t("project.step.delivery.downloaded")
+        : deliveryActive
+          ? t("project.step.delivery.active")
+          : t("project.step.delivery.none"),
+    },
+  };
+
+  const addPhotos = { label: t("project.next.addPhotos"), run: () => inputRef.current?.click() };
+  const toSelection = { label: t("project.next.toSelection"), run: () => goTo("selection") };
+  const toAlbum = { label: t("project.next.toAlbum"), run: () => goTo("album") };
+  const next: { text: string; actions: { label: string; run: () => void }[] } =
+    uploadedCount === 0
+      ? { text: t("project.next.upload"), actions: [addPhotos] }
+      : delivered || (approvedAlbum && deliveryActive)
+        ? { text: t("project.next.done"), actions: [] }
+        : approvedAlbum
+          ? { text: t("project.next.deliver"), actions: [{ label: t("project.next.toDelivery"), run: () => goTo("delivery") }] }
+          : firstAlbum
+            ? {
+                text: t("project.next.editAlbum"),
+                actions: [{ label: t("project.next.openAlbum"), run: () => navigate(`/albums/${firstAlbum.id}`) }],
+              }
+            : submittedPick
+              ? {
+                  text: t("project.next.picksIn", { name: submittedPick.clientName }),
+                  actions: [{ label: t("project.next.seePicks"), run: () => goTo("selection") }],
+                }
+              : openPick
+                ? { text: t("project.next.waitingPicks", { name: openPick.clientName }), actions: [toAlbum] }
+                : analysed < uploadedCount
+                  ? { text: t("project.next.processing", { done: analysed, total: uploadedCount }), actions: [toSelection] }
+                  : { text: t("project.next.start"), actions: [toSelection, toAlbum] };
 
   return (
-    <div className="page">
+    <div className="page shoot">
       <GuidedTour id="project" steps={PROJECT_TOUR} ready={project.isSuccess} />
       <header className="page__header">
         <div>
@@ -417,9 +583,667 @@ export function ProjectPage() {
             })}
           </p>
         </div>
+      </header>
+
+      {/* Mounted on every step, so "Add photos" works from wherever the photographer is. */}
+      <input
+        id="photo-input"
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/tiff,image/webp"
+        hidden
+        onChange={(event) => handleFiles(event.target.files)}
+      />
+
+      <nav className="steps" role="tablist" aria-label={t("project.steps.label")}>
+        {STEPS.map((key, index) => {
+          const info = stepInfo[key];
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              id={`step-${key}`}
+              aria-selected={step === key}
+              aria-controls="step-panel"
+              data-tour={STEP_TOUR_TARGETS[key]}
+              className={`steps__tab ${step === key ? "steps__tab--on" : ""} ${info.done ? "steps__tab--done" : ""}`}
+              onClick={() => goTo(key)}
+            >
+              <span className="steps__number" aria-hidden="true">
+                {info.done ? "✓" : index + 1}
+              </span>
+              <span className="steps__text">
+                <span className="steps__label">{t(`project.step.${key}`)}</span>
+                <span className="steps__status">
+                  {info.done && <span className="visually-hidden">{t("project.step.done")}: </span>}
+                  {info.status}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <section className="next-step" aria-live="polite">
+        <div>
+          <h2 className="next-step__title">{t("project.next.title")}</h2>
+          <p className="next-step__text">{next.text}</p>
+        </div>
+        {next.actions.length > 0 && (
+          <div className="next-step__actions">
+            {next.actions.map((action, index) => (
+              <button
+                key={action.label}
+                type="button"
+                className={`button ${index === 0 ? "button--primary" : ""}`}
+                onClick={action.run}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <div id="step-panel" role="tabpanel" aria-labelledby={`step-${step}`}>
+        {step === "photos" && (
+          <>
+        <div className="ai-toggle-row">
+          <label className="ruler-toggle">
+            <input
+              type="checkbox"
+              className="ruler-toggle__input"
+              checked={useAi}
+              disabled={!aiStatus.data?.available}
+              onChange={(event) => {
+                if (event.target.checked) {
+                  setAiConsentOpen(true);
+                } else {
+                  setUseAi(false);
+                }
+              }}
+            />
+            <span className="ruler-toggle__track" aria-hidden="true">
+              <span className="ruler-toggle__thumb" />
+            </span>
+            {t("project.upload.useAi")}
+          </label>
+          <span
+            className={`chip ai-status-chip chip--${aiStatus.data?.available ? "active" : "queued"}`}
+            title={
+              aiStatus.data?.available
+                ? t("ai.status.online.title")
+                : t("project.upload.useAi.unavailable")
+            }
+          >
+            {aiStatus.data?.available ? t("ai.status.online") : t("ai.status.offline")}
+          </span>
+        </div>
+
+
+            <section
+              data-tour="project-upload"
+              role="button"
+              tabIndex={0}
+              className={`dropzone ${uploadedCount > 0 ? "dropzone--compact" : ""} ${isDragging ? "dropzone--active" : ""}`}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDragging(false);
+                handleFiles(event.dataTransfer.files);
+              }}
+              onClick={() => inputRef.current?.click()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  inputRef.current?.click();
+                }
+              }}
+            >
+              {uploadedCount === 0 ? (
+                <>
+                  <p className="dropzone__title">{t("project.dropzone.title")}</p>
+                  <p className="muted">{t("project.dropzone.subtitle")}</p>
+                </>
+              ) : (
+                <p className="dropzone__title">{t("project.upload.more")}</p>
+              )}
+              {photoLimit !== null && (
+                <p className="muted">{t("project.limit.count", { count: photos.data?.length ?? 0, limit: photoLimit })}</p>
+              )}
+            </section>
+
+        {limitNotice && <p className="notice">{limitNotice}</p>}
+            {limitNotice && <PlanUpsell feature="photos" />}
+        {inFlight.length > 0 && (
+          <p className="muted upload-status">
+            {t("project.uploading", { count: inFlight.length, plural: inFlight.length === 1 ? "" : "s" })}
+          </p>
+        )}
+        {transfers.some((t) => t.state === "error") && (
+          <ul className="error-list">
+            {transfers
+              .filter((t) => t.state === "error")
+              .map((t) => (
+                <li key={t.key}>
+                  {t.fileName}: {t.message}
+                </li>
+              ))}
+          </ul>
+        )}
+
+            <section className="panel" data-tour="project-photos">
+              <div className="panel__head">
+                <h2>{t("project.photos.title")}</h2>
+                {uploadedCount > 0 && (
+                  <div className="photo-toolbar">
+                    <div className="photo-toolbar__filters" role="group" aria-label={t("project.photos.filterLabel")}>
+                      {PHOTO_FILTERS.map((filter) => (
+                        <button
+                          key={filter}
+                          type="button"
+                          aria-pressed={photoFilter === filter}
+                          className={`pick__filter ${photoFilter === filter ? "pick__filter--on" : ""}`}
+                          onClick={() => setPhotoFilter(filter)}
+                        >
+                          {t(`project.photos.filter.${filter}`, { count: photoCounts[filter] })}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="photo-toolbar__sort">
+                      {t("project.photos.sort")}{" "}
+                      <select value={photoSort} onChange={(event) => setPhotoSort(event.target.value as PhotoSort)}>
+                        <option value="name">{t("project.photos.sort.name")}</option>
+                        <option value="score">{t("project.photos.sort.score")}</option>
+                      </select>
+                    </label>
+                  </div>
+                )}
+              </div>
+              {uploadedCount === 0 ? (
+                <p className="muted">{t("project.photos.empty")}</p>
+              ) : shownPhotos.length === 0 ? (
+                <p className="muted">{t("project.photos.filterEmpty")}</p>
+              ) : (
+                <PhotoGallery
+                  photos={shownPhotos}
+                  columnWidth={200}
+                  resetKey={`${photoFilter}-${photoSort}`}
+                  onOpen={(photo) => setLightboxId(photo.id)}
+                  overlay={(photo) =>
+                    clientPicked.has(photo.id) ? (
+                      <span className="photo-card__pick" title={t("project.picks.badge")} aria-label={t("project.picks.badge")}>
+                        ♥
+                      </span>
+                    ) : null
+                  }
+                  placeholder={(photo) => (
+                    <div className="gallery__placeholder">{photo.status.toLowerCase().replace(/_/g, " ")}</div>
+                  )}
+                  caption={(photo) => (
+                    <>
+                      <span className="photo-card__name">{photo.fileName}</span>
+                      {photo.analysis ? (
+                        <span className={`score ${photo.analysis.albumWorthy ? "score--good" : ""}`}>
+                          {photo.analysis.overall} · {photo.analysis.category.toLowerCase()}
+                        </span>
+                      ) : (
+                        <span className="muted">{photo.status.toLowerCase().replace(/_/g, " ")}</span>
+                      )}
+                    </>
+                  )}
+                  itemClassName={(photo) => (clientPicked.has(photo.id) ? "gallery__item--on" : "")}
+                  moreLabel={(remaining) => t("gallery.more", { count: remaining })}
+                />
+              )}
+            </section>
+          </>
+        )}
+
+        {step === "selection" && (
+        <section className="panel">
+          <div className="panel__head">
+            <h2>{t("project.picks.title")}</h2>
+            {!showPickForm && (
+              <button type="button" className="button button--primary" onClick={() => setPickFormOpen(true)}>
+                {t("project.picks.new")}
+              </button>
+            )}
+          </div>
+          <p className="muted">{t("project.picks.intro")}</p>
+          {showPickForm && (
+          <div className="link-form">
+          <div className="pick-create">
+            <div className="field">
+              <label htmlFor="pick-client-name">{t("project.picks.clientName")}</label>
+              <input
+                id="pick-client-name"
+                value={pickClientName}
+                onChange={(event) => setPickClientName(event.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="pick-limit">{t("project.picks.limit")}</label>
+              <input
+                id="pick-limit"
+                type="number"
+                min={1}
+                value={pickLimit}
+                onChange={(event) => setPickLimit(event.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              className="button button--primary"
+              disabled={createPickLink.isPending}
+              onClick={() => createPickLink.mutate()}
+              {...tip(t("tip.pickLink"))}
+            >
+              {createPickLink.isPending ? t("project.picks.creating") : t("project.picks.create")}
+            </button>
+          </div>
+              <div className="client-invite">
+                <div className="field">
+                  <label htmlFor="pick-client-email">{t("client.email")}</label>
+                  <input
+                    id="pick-client-email"
+                    type="email"
+                    value={effectiveClientEmail}
+                    placeholder={t("client.email.placeholder")}
+                    onChange={(event) => setClientEmail(event.target.value)}
+                  />
+                </div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={pickSendEmail}
+                    disabled={!effectiveClientEmail}
+                    onChange={(event) => setPickSendEmail(event.target.checked)}
+                  />
+                  {t("client.sendEmail")}
+                </label>
+                <select
+                  value={emailLanguage}
+                  aria-label={t("client.emailLanguage")}
+                  onChange={(event) => setEmailLanguage(event.target.value as "en" | "ro")}
+                >
+                  <option value="en">English</option>
+                  <option value="ro">Română</option>
+                </select>
+              </div>
+              {hasPickSessions && (
+                <button type="button" className="button button--small" onClick={() => setPickFormOpen(false)}>
+                  {t("common.cancel")}
+                </button>
+              )}
+          </div>
+          )}
+          {pickEmailNote?.sentTo && (
+            <p className="notice notice--good" role="status">
+              {t("client.send.done", { email: pickEmailNote.sentTo })}
+            </p>
+          )}
+          {pickEmailNote?.error && (
+            <p className="notice" role="alert">
+              {t("client.notSent", { reason: pickEmailNote.error })}
+            </p>
+          )}
+          {createPickLink.isError && <p className="error">{(createPickLink.error as Error).message}</p>}
+          {pickLink && (
+            <div className="share-link">
+              <p className="muted">{t("project.picks.linkReady")}</p>
+              <a href={pickLink}>{pickLink}</a>{" "}
+              <button
+                type="button"
+                className="button button--small"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(pickLink).then(() => setPickLinkCopied(true));
+                }}
+              >
+                {pickLinkCopied ? t("project.picks.copied") : t("project.picks.copy")}
+              </button>
+              {pickPassword && (
+                <p>
+                  <span className="muted">{t("access.details.password")}: </span>
+                  <code className="access-modal__password">{pickPassword}</code>
+                </p>
+              )}
+            </div>
+          )}
+
+          {hasPickSessions && (
+            <ul className="album-list">
+              {(pickSessions.data ?? []).map((session) => (
+                <li key={session.id}>
+                  <div>
+                    <span className="album-list__title">{session.clientName}</span>
+                    <p className="muted">
+                      {session.pickLimit === null
+                        ? t("project.picks.progress", {
+                            shortlisted: session.shortlistedCount,
+                            count: session.pickedCount,
+                          })
+                        : t("project.picks.progressLimit", {
+                            shortlisted: session.shortlistedCount,
+                            count: session.pickedCount,
+                            limit: session.pickLimit,
+                          })}
+                    </p>
+                    {session.status === "OPEN" && (
+                      <p className="muted">
+                        {t(session.stage === "SHORTLIST" ? "project.picks.step.shortlist" : "project.picks.step.final")}
+                      </p>
+                    )}
+                    {session.lastSentTo && (
+                      <p className="muted">
+                        {t("client.sentAt", {
+                          email: session.lastSentTo,
+                          date: new Date(session.lastSentAt ?? session.createdAt).toLocaleString(),
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  <div className="panel__actions">
+                    <span className={`chip chip--${session.status.toLowerCase()}`}>
+                      {t(`project.picks.status.${session.status.toLowerCase()}`)}
+                    </span>
+                    {session.passwordProtected && (
+                      <button type="button" className="button button--small" onClick={() => setPickDetailsFor(session.id)}>
+                        {t("access.details.open")}
+                      </button>
+                    )}
+                    {session.status !== "OPEN" && session.pickedCount > 0 && (
+                      <button
+                        type="button"
+                        className="button button--primary button--small"
+                        disabled={buildFromPicks.isPending}
+                        onClick={() => buildFromPicks.mutate(session)}
+                      >
+                        {buildFromPicks.isPending ? t("project.picks.building") : t("project.picks.buildAlbum")}
+                      </button>
+                    )}
+                    {session.status === "SUBMITTED" && (
+                      <button
+                        type="button"
+                        className="button button--small"
+                        disabled={reopenPick.isPending}
+                        onClick={() => reopenPick.mutate(session.id)}
+                      >
+                        {t("project.picks.reopen")}
+                      </button>
+                    )}
+                    {session.status !== "REVOKED" && (
+                      <button
+                        type="button"
+                        className="button button--small button--danger"
+                        disabled={revokePick.isPending}
+                        onClick={() => revokePick.mutate(session.id)}
+                      >
+                        {t("project.picks.revoke")}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {buildFromPicks.isError && <p className="error">{(buildFromPicks.error as Error).message}</p>}
+        </section>
+
+        )}
+
+        {step === "album" && (
+        <section className="panel">
+          <div className="panel__head">
+            <h2>{t("project.generate.title")}</h2>
+            <div className="panel__actions">
+              <label htmlFor="target-spreads" className="muted">
+                {t("project.generate.targetSpreads")}
+              </label>
+              <input
+                id="target-spreads"
+                type="number"
+                min={1}
+                max={60}
+                value={targetSpreads}
+                onChange={(event) => setTargetSpreads(Number(event.target.value))}
+              />
+              <span className="muted">{t("project.generate.dimension")}</span>
+              <button
+                type="button"
+                className="print-profile-chip"
+                onClick={() => setDimensionModalOpen(true)}
+              >
+                {t("dimension.chip", {
+                  width: selectedDimension.widthCm,
+                  height: selectedDimension.heightCm,
+                })}
+              </button>
+              <button
+                type="button"
+                className="button button--primary"
+                disabled={generate.isPending || analysed === 0}
+                onClick={startGenerate}
+                {...tip(analysed === 0 ? t("tip.generate.waiting") : t("tip.generate"))}
+              >
+                {generate.isPending ? t("project.generate.submitting") : t("project.generate.submit")}
+              </button>
+            </div>
+          </div>
+          {analysed === 0 && <p className="muted">{t("project.generate.waitingOnAnalysis")}</p>}
+          {generate.isError && <p className="error">{(generate.error as Error).message}</p>}
+
+          {albums.data && albums.data.length > 0 && (
+            <ul className="album-list">
+              {albums.data.map((album) => (
+                <li key={album.id}>
+                  <div>
+                    <Link to={`/albums/${album.id}`} className="album-list__title">
+                      {album.title}
+                    </Link>
+                    <p className="muted">
+                      {album.spreadCount} spreads · {album.pageCount} pages · {album.photoCount} photos
+                    </p>
+                  </div>
+                  <span className={`chip chip--${album.status.toLowerCase()}`}>{album.status}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        )}
+
+        {step === "delivery" && (
+        <section className="panel">
+          <div className="panel__head">
+            <h2>{t("project.delivery.title")}</h2>
+            {canSendDownloadLinks && !showDeliveryForm && (
+              <button type="button" className="button button--primary" onClick={() => setDeliveryFormOpen(true)}>
+                {t("project.delivery.new")}
+              </button>
+            )}
+          </div>
+          <p className="muted">{t("project.delivery.intro")}</p>
+          {!canSendDownloadLinks && <PlanUpsell feature="downloadLinks" />}
+          {canSendDownloadLinks && showDeliveryForm && (
+          <div className="link-form">
+          <div className="pick-create">
+            <div className="field">
+              <label htmlFor="delivery-client-name">{t("project.delivery.clientName")}</label>
+              <input
+                id="delivery-client-name"
+                value={deliveryClientName}
+                onChange={(event) => setDeliveryClientName(event.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="delivery-days">{t("project.delivery.days")}</label>
+              <input
+                id="delivery-days"
+                type="number"
+                min={1}
+                max={365}
+                value={deliveryDays}
+                onChange={(event) => setDeliveryDays(event.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              className="button button--primary"
+              disabled={createDownloadLink.isPending}
+              onClick={() => createDownloadLink.mutate()}
+              {...tip(t("tip.deliveryLink"))}
+            >
+              {createDownloadLink.isPending ? t("project.delivery.creating") : t("project.delivery.create")}
+            </button>
+          </div>
+              <div className="client-invite">
+                <div className="field">
+                  <label htmlFor="delivery-client-email">{t("client.email")}</label>
+                  <input
+                    id="delivery-client-email"
+                    type="email"
+                    value={effectiveClientEmail}
+                    placeholder={t("client.email.placeholder")}
+                    onChange={(event) => setClientEmail(event.target.value)}
+                  />
+                </div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={deliverySendEmail}
+                    disabled={!effectiveClientEmail}
+                    onChange={(event) => setDeliverySendEmail(event.target.checked)}
+                  />
+                  {t("client.sendEmail")}
+                </label>
+                <select
+                  value={emailLanguage}
+                  aria-label={t("client.emailLanguage")}
+                  onChange={(event) => setEmailLanguage(event.target.value as "en" | "ro")}
+                >
+                  <option value="en">English</option>
+                  <option value="ro">Română</option>
+                </select>
+              </div>
+              {hasDeliverySessions && (
+                <button type="button" className="button button--small" onClick={() => setDeliveryFormOpen(false)}>
+                  {t("common.cancel")}
+                </button>
+              )}
+          </div>
+          )}
+          {deliveryEmailNote?.sentTo && (
+            <p className="notice notice--good" role="status">
+              {t("client.send.done", { email: deliveryEmailNote.sentTo })}
+            </p>
+          )}
+          {deliveryEmailNote?.error && (
+            <p className="notice" role="alert">
+              {t("client.notSent", { reason: deliveryEmailNote.error })}
+            </p>
+          )}
+          {createDownloadLink.isError && <p className="error">{(createDownloadLink.error as Error).message}</p>}
+          {deliveryLink && (
+            <div className="share-link">
+              <p className="muted">{t("project.delivery.linkReady")}</p>
+              <a href={deliveryLink}>{deliveryLink}</a>{" "}
+              <button
+                type="button"
+                className="button button--small"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(deliveryLink).then(() => setDeliveryCopied(true));
+                }}
+              >
+                {deliveryCopied ? t("project.delivery.copied") : t("project.delivery.copy")}
+              </button>
+              {deliveryPassword && (
+                <p>
+                  <span className="muted">{t("access.details.password")}: </span>
+                  <code className="access-modal__password">{deliveryPassword}</code>
+                </p>
+              )}
+              {deliveryMissing > 0 && (
+                <p className="muted">{t("project.delivery.missing", { count: deliveryMissing })}</p>
+              )}
+            </div>
+          )}
+
+          {hasDeliverySessions && (
+            <ul className="album-list">
+              {(downloadSessions.data ?? []).map((session) => (
+                <li key={session.id}>
+                  <div>
+                    <span className="album-list__title">{session.clientName}</span>
+                    <p className="muted">
+                      {session.downloadCount === 0
+                        ? t("project.delivery.notDownloaded")
+                        : t("project.delivery.downloaded", {
+                            count: session.downloadCount,
+                            date: new Date(session.lastDownloadedAt ?? session.createdAt).toLocaleString(),
+                          })}
+                    </p>
+                    {session.lastSentTo && (
+                      <p className="muted">
+                        {t("client.sentAt", {
+                          email: session.lastSentTo,
+                          date: new Date(session.lastSentAt ?? session.createdAt).toLocaleString(),
+                        })}
+                      </p>
+                    )}
+                    {session.status === "ACTIVE" && (
+                      <p className="muted">
+                        {t("project.delivery.expires", {
+                          date: new Date(session.expiresAt).toLocaleDateString(),
+                          days: session.daysLeft,
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  <div className="panel__actions">
+                    <span className={`chip chip--${session.status === "ACTIVE" ? "active" : session.status.toLowerCase()}`}>
+                      {t(`project.delivery.status.${session.status.toLowerCase()}`)}
+                    </span>
+                    {session.passwordProtected && (
+                      <button type="button" className="button button--small" onClick={() => setDetailsFor(session.id)}>
+                        {t("access.details.open")}
+                      </button>
+                    )}
+                    {session.status === "ACTIVE" && (
+                      <button
+                        type="button"
+                        className="button button--small button--danger"
+                        disabled={revokeDownload.isPending}
+                        onClick={() => revokeDownload.mutate(session.id)}
+                      >
+                        {t("project.delivery.revoke")}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        )}
+      </div>
+
+      <section className="danger-zone">
+        <div>
+          <h2>{t("project.danger.title")}</h2>
+          <p className="muted">{t("project.danger.body")}</p>
+        </div>
         <button
           type="button"
-          className="button button--primary"
+          className="button button--danger"
           onClick={() => {
             removeProject.reset();
             setConfirmingDelete(true);
@@ -428,487 +1252,6 @@ export function ProjectPage() {
         >
           {t("project.deleteShoot")}
         </button>
-      </header>
-
-      <div className="ai-toggle-row">
-        <label className="ruler-toggle">
-          <input
-            type="checkbox"
-            className="ruler-toggle__input"
-            checked={useAi}
-            disabled={!aiStatus.data?.available}
-            onChange={(event) => {
-              if (event.target.checked) {
-                setAiConsentOpen(true);
-              } else {
-                setUseAi(false);
-              }
-            }}
-          />
-          <span className="ruler-toggle__track" aria-hidden="true">
-            <span className="ruler-toggle__thumb" />
-          </span>
-          {t("project.upload.useAi")}
-        </label>
-        <span
-          className={`chip ai-status-chip chip--${aiStatus.data?.available ? "active" : "queued"}`}
-          title={
-            aiStatus.data?.available
-              ? t("ai.status.online.title")
-              : t("project.upload.useAi.unavailable")
-          }
-        >
-          {aiStatus.data?.available ? t("ai.status.online") : t("ai.status.offline")}
-        </span>
-      </div>
-
-      <section
-        data-tour="project-upload"
-        className={`dropzone ${isDragging ? "dropzone--active" : ""}`}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragging(false);
-          handleFiles(event.dataTransfer.files);
-        }}
-        onClick={() => inputRef.current?.click()}
-      >
-        <p className="dropzone__title">{t("project.dropzone.title")}</p>
-        <p className="muted">{t("project.dropzone.subtitle")}</p>
-        {photoLimit !== null && (
-          <p className="muted">{t("project.limit.count", { count: photos.data?.length ?? 0, limit: photoLimit })}</p>
-        )}
-        <input
-          id="photo-input"
-          ref={inputRef}
-          type="file"
-          multiple
-          accept="image/jpeg,image/png,image/tiff,image/webp"
-          hidden
-          onChange={(event) => handleFiles(event.target.files)}
-        />
-      </section>
-
-      {limitNotice && <p className="notice">{limitNotice}</p>}
-      {inFlight.length > 0 && (
-        <p className="muted upload-status">
-          {t("project.uploading", { count: inFlight.length, plural: inFlight.length === 1 ? "" : "s" })}
-        </p>
-      )}
-      {transfers.some((t) => t.state === "error") && (
-        <ul className="error-list">
-          {transfers
-            .filter((t) => t.state === "error")
-            .map((t) => (
-              <li key={t.key}>
-                {t.fileName}: {t.message}
-              </li>
-            ))}
-        </ul>
-      )}
-
-      <section className="panel" data-tour="project-generate">
-        <div className="panel__head">
-          <h2>{t("project.generate.title")}</h2>
-          <div className="panel__actions">
-            <label htmlFor="target-spreads" className="muted">
-              {t("project.generate.targetSpreads")}
-            </label>
-            <input
-              id="target-spreads"
-              type="number"
-              min={1}
-              max={60}
-              value={targetSpreads}
-              onChange={(event) => setTargetSpreads(Number(event.target.value))}
-            />
-            <span className="muted">{t("project.generate.dimension")}</span>
-            <button
-              type="button"
-              className="print-profile-chip"
-              onClick={() => setDimensionModalOpen(true)}
-            >
-              {t("dimension.chip", {
-                width: selectedDimension.widthCm,
-                height: selectedDimension.heightCm,
-              })}
-            </button>
-            <button
-              type="button"
-              className="button button--primary"
-              disabled={generate.isPending || analysed === 0}
-              onClick={startGenerate}
-              {...tip(analysed === 0 ? t("tip.generate.waiting") : t("tip.generate"))}
-            >
-              {generate.isPending ? t("project.generate.submitting") : t("project.generate.submit")}
-            </button>
-          </div>
-        </div>
-        {analysed === 0 && <p className="muted">{t("project.generate.waitingOnAnalysis")}</p>}
-        {generate.isError && <p className="error">{(generate.error as Error).message}</p>}
-
-        {albums.data && albums.data.length > 0 && (
-          <ul className="album-list">
-            {albums.data.map((album) => (
-              <li key={album.id}>
-                <div>
-                  <Link to={`/albums/${album.id}`} className="album-list__title">
-                    {album.title}
-                  </Link>
-                  <p className="muted">
-                    {album.spreadCount} spreads · {album.pageCount} pages · {album.photoCount} photos
-                  </p>
-                </div>
-                <span className={`chip chip--${album.status.toLowerCase()}`}>{album.status}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="panel" data-tour="project-picks">
-        <div className="panel__head">
-          <h2>{t("project.picks.title")}</h2>
-        </div>
-        <p className="muted">{t("project.picks.intro")}</p>
-        <div className="pick-create">
-          <div className="field">
-            <label htmlFor="pick-client-name">{t("project.picks.clientName")}</label>
-            <input
-              id="pick-client-name"
-              value={pickClientName}
-              onChange={(event) => setPickClientName(event.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="pick-limit">{t("project.picks.limit")}</label>
-            <input
-              id="pick-limit"
-              type="number"
-              min={1}
-              value={pickLimit}
-              onChange={(event) => setPickLimit(event.target.value)}
-            />
-          </div>
-          <button
-            type="button"
-            className="button button--primary"
-            disabled={createPickLink.isPending}
-            onClick={() => createPickLink.mutate()}
-            {...tip(t("tip.pickLink"))}
-          >
-            {createPickLink.isPending ? t("project.picks.creating") : t("project.picks.create")}
-          </button>
-        </div>
-            <div className="client-invite">
-              <div className="field">
-                <label htmlFor="pick-client-email">{t("client.email")}</label>
-                <input
-                  id="pick-client-email"
-                  type="email"
-                  value={effectiveClientEmail}
-                  placeholder={t("client.email.placeholder")}
-                  onChange={(event) => setClientEmail(event.target.value)}
-                />
-              </div>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={pickSendEmail}
-                  disabled={!effectiveClientEmail}
-                  onChange={(event) => setPickSendEmail(event.target.checked)}
-                />
-                {t("client.sendEmail")}
-              </label>
-              <select
-                value={emailLanguage}
-                aria-label={t("client.emailLanguage")}
-                onChange={(event) => setEmailLanguage(event.target.value as "en" | "ro")}
-              >
-                <option value="en">English</option>
-                <option value="ro">Română</option>
-              </select>
-            </div>
-        {pickEmailNote?.sentTo && (
-          <p className="notice notice--good" role="status">
-            {t("client.send.done", { email: pickEmailNote.sentTo })}
-          </p>
-        )}
-        {pickEmailNote?.error && (
-          <p className="notice" role="alert">
-            {t("client.notSent", { reason: pickEmailNote.error })}
-          </p>
-        )}
-        {createPickLink.isError && <p className="error">{(createPickLink.error as Error).message}</p>}
-        {pickLink && (
-          <div className="share-link">
-            <p className="muted">{t("project.picks.linkReady")}</p>
-            <a href={pickLink}>{pickLink}</a>{" "}
-            <button
-              type="button"
-              className="button button--small"
-              onClick={() => {
-                void navigator.clipboard?.writeText(pickLink).then(() => setPickLinkCopied(true));
-              }}
-            >
-              {pickLinkCopied ? t("project.picks.copied") : t("project.picks.copy")}
-            </button>
-            {pickPassword && (
-              <p>
-                <span className="muted">{t("access.details.password")}: </span>
-                <code className="access-modal__password">{pickPassword}</code>
-              </p>
-            )}
-          </div>
-        )}
-
-        {(pickSessions.data ?? []).length === 0 ? (
-          <p className="muted">{t("project.picks.empty")}</p>
-        ) : (
-          <ul className="album-list">
-            {(pickSessions.data ?? []).map((session) => (
-              <li key={session.id}>
-                <div>
-                  <span className="album-list__title">{session.clientName}</span>
-                  <p className="muted">
-                    {session.pickLimit === null
-                      ? t("project.picks.progress", {
-                          shortlisted: session.shortlistedCount,
-                          count: session.pickedCount,
-                        })
-                      : t("project.picks.progressLimit", {
-                          shortlisted: session.shortlistedCount,
-                          count: session.pickedCount,
-                          limit: session.pickLimit,
-                        })}
-                  </p>
-                  {session.status === "OPEN" && (
-                    <p className="muted">
-                      {t(session.stage === "SHORTLIST" ? "project.picks.step.shortlist" : "project.picks.step.final")}
-                    </p>
-                  )}
-                  {session.lastSentTo && (
-                    <p className="muted">
-                      {t("client.sentAt", {
-                        email: session.lastSentTo,
-                        date: new Date(session.lastSentAt ?? session.createdAt).toLocaleString(),
-                      })}
-                    </p>
-                  )}
-                </div>
-                <div className="panel__actions">
-                  <span className={`chip chip--${session.status.toLowerCase()}`}>
-                    {t(`project.picks.status.${session.status.toLowerCase()}`)}
-                  </span>
-                  {session.passwordProtected && (
-                    <button type="button" className="button button--small" onClick={() => setPickDetailsFor(session.id)}>
-                      {t("access.details.open")}
-                    </button>
-                  )}
-                  {session.status !== "OPEN" && session.pickedCount > 0 && (
-                    <button
-                      type="button"
-                      className="button button--primary button--small"
-                      disabled={buildFromPicks.isPending}
-                      onClick={() => buildFromPicks.mutate(session)}
-                    >
-                      {buildFromPicks.isPending ? t("project.picks.building") : t("project.picks.buildAlbum")}
-                    </button>
-                  )}
-                  {session.status === "SUBMITTED" && (
-                    <button
-                      type="button"
-                      className="button button--small"
-                      disabled={reopenPick.isPending}
-                      onClick={() => reopenPick.mutate(session.id)}
-                    >
-                      {t("project.picks.reopen")}
-                    </button>
-                  )}
-                  {session.status !== "REVOKED" && (
-                    <button
-                      type="button"
-                      className="button button--small button--danger"
-                      disabled={revokePick.isPending}
-                      onClick={() => revokePick.mutate(session.id)}
-                    >
-                      {t("project.picks.revoke")}
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        {buildFromPicks.isError && <p className="error">{(buildFromPicks.error as Error).message}</p>}
-      </section>
-
-      <section className="panel" data-tour="project-delivery">
-        <div className="panel__head">
-          <h2>{t("project.delivery.title")}</h2>
-        </div>
-        <p className="muted">{t("project.delivery.intro")}</p>
-        {!canSendDownloadLinks && <p className="notice">{t("project.delivery.needsStudio")}</p>}
-        {canSendDownloadLinks && (
-        <>
-        <div className="pick-create">
-          <div className="field">
-            <label htmlFor="delivery-client-name">{t("project.delivery.clientName")}</label>
-            <input
-              id="delivery-client-name"
-              value={deliveryClientName}
-              onChange={(event) => setDeliveryClientName(event.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="delivery-days">{t("project.delivery.days")}</label>
-            <input
-              id="delivery-days"
-              type="number"
-              min={1}
-              max={365}
-              value={deliveryDays}
-              onChange={(event) => setDeliveryDays(event.target.value)}
-            />
-          </div>
-          <button
-            type="button"
-            className="button button--primary"
-            disabled={createDownloadLink.isPending}
-            onClick={() => createDownloadLink.mutate()}
-            {...tip(t("tip.deliveryLink"))}
-          >
-            {createDownloadLink.isPending ? t("project.delivery.creating") : t("project.delivery.create")}
-          </button>
-        </div>
-            <div className="client-invite">
-              <div className="field">
-                <label htmlFor="delivery-client-email">{t("client.email")}</label>
-                <input
-                  id="delivery-client-email"
-                  type="email"
-                  value={effectiveClientEmail}
-                  placeholder={t("client.email.placeholder")}
-                  onChange={(event) => setClientEmail(event.target.value)}
-                />
-              </div>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={deliverySendEmail}
-                  disabled={!effectiveClientEmail}
-                  onChange={(event) => setDeliverySendEmail(event.target.checked)}
-                />
-                {t("client.sendEmail")}
-              </label>
-              <select
-                value={emailLanguage}
-                aria-label={t("client.emailLanguage")}
-                onChange={(event) => setEmailLanguage(event.target.value as "en" | "ro")}
-              >
-                <option value="en">English</option>
-                <option value="ro">Română</option>
-              </select>
-            </div>
-        </>
-        )}
-        {deliveryEmailNote?.sentTo && (
-          <p className="notice notice--good" role="status">
-            {t("client.send.done", { email: deliveryEmailNote.sentTo })}
-          </p>
-        )}
-        {deliveryEmailNote?.error && (
-          <p className="notice" role="alert">
-            {t("client.notSent", { reason: deliveryEmailNote.error })}
-          </p>
-        )}
-        {createDownloadLink.isError && <p className="error">{(createDownloadLink.error as Error).message}</p>}
-        {deliveryLink && (
-          <div className="share-link">
-            <p className="muted">{t("project.delivery.linkReady")}</p>
-            <a href={deliveryLink}>{deliveryLink}</a>{" "}
-            <button
-              type="button"
-              className="button button--small"
-              onClick={() => {
-                void navigator.clipboard?.writeText(deliveryLink).then(() => setDeliveryCopied(true));
-              }}
-            >
-              {deliveryCopied ? t("project.delivery.copied") : t("project.delivery.copy")}
-            </button>
-            {deliveryPassword && (
-              <p>
-                <span className="muted">{t("access.details.password")}: </span>
-                <code className="access-modal__password">{deliveryPassword}</code>
-              </p>
-            )}
-            {deliveryMissing > 0 && (
-              <p className="muted">{t("project.delivery.missing", { count: deliveryMissing })}</p>
-            )}
-          </div>
-        )}
-
-        {(downloadSessions.data ?? []).length === 0 ? (
-          <p className="muted">{t("project.delivery.empty")}</p>
-        ) : (
-          <ul className="album-list">
-            {(downloadSessions.data ?? []).map((session) => (
-              <li key={session.id}>
-                <div>
-                  <span className="album-list__title">{session.clientName}</span>
-                  <p className="muted">
-                    {session.downloadCount === 0
-                      ? t("project.delivery.notDownloaded")
-                      : t("project.delivery.downloaded", {
-                          count: session.downloadCount,
-                          date: new Date(session.lastDownloadedAt ?? session.createdAt).toLocaleString(),
-                        })}
-                  </p>
-                  {session.lastSentTo && (
-                    <p className="muted">
-                      {t("client.sentAt", {
-                        email: session.lastSentTo,
-                        date: new Date(session.lastSentAt ?? session.createdAt).toLocaleString(),
-                      })}
-                    </p>
-                  )}
-                  {session.status === "ACTIVE" && (
-                    <p className="muted">
-                      {t("project.delivery.expires", {
-                        date: new Date(session.expiresAt).toLocaleDateString(),
-                        days: session.daysLeft,
-                      })}
-                    </p>
-                  )}
-                </div>
-                <div className="panel__actions">
-                  <span className={`chip chip--${session.status === "ACTIVE" ? "active" : session.status.toLowerCase()}`}>
-                    {t(`project.delivery.status.${session.status.toLowerCase()}`)}
-                  </span>
-                  {session.passwordProtected && (
-                    <button type="button" className="button button--small" onClick={() => setDetailsFor(session.id)}>
-                      {t("access.details.open")}
-                    </button>
-                  )}
-                  {session.status === "ACTIVE" && (
-                    <button
-                      type="button"
-                      className="button button--small button--danger"
-                      disabled={revokeDownload.isPending}
-                      onClick={() => revokeDownload.mutate(session.id)}
-                    >
-                      {t("project.delivery.revoke")}
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
 
       {pickDetailsFor && (
@@ -941,46 +1284,14 @@ export function ProjectPage() {
         />
       )}
 
-      <section className="panel" data-tour="project-photos">
-        <div className="panel__head">
-          <h2>{t("project.photos.title")}</h2>
-        </div>
-        <div className="photo-grid">
-          {(photos.data ?? []).map((photo) => {
-            const analysis = analysisByPhoto.get(photo.id);
-            return (
-              <figure key={photo.id} className={`photo-card ${clientPicked.has(photo.id) ? "photo-card--picked" : ""}`}>
-                {clientPicked.has(photo.id) && (
-                  <span className="photo-card__pick" title={t("project.picks.badge")} aria-label={t("project.picks.badge")}>
-                    ♥
-                  </span>
-                )}
-                {(photo.thumbnailUrl ?? photo.previewUrl) ? (
-                  <img
-                    src={photo.thumbnailUrl ?? photo.previewUrl ?? ""}
-                    alt={photo.fileName}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <div className="photo-card__placeholder">{photo.status}</div>
-                )}
-                <figcaption>
-                  <span className="photo-card__name">{photo.fileName}</span>
-                  {analysis ? (
-                    <span className={`score ${analysis.albumWorthy ? "score--good" : ""}`}>
-                      {analysis.overall} · {analysis.category.toLowerCase()}
-                    </span>
-                  ) : (
-                    <span className="muted">{photo.status.toLowerCase().replace(/_/g, " ")}</span>
-                  )}
-                </figcaption>
-              </figure>
-            );
-          })}
-        </div>
-        {(photos.data?.length ?? 0) === 0 && <p className="muted">{t("project.photos.empty")}</p>}
-      </section>
+      {lightboxIndex >= 0 && (
+        <PhotoLightbox
+          photos={viewablePhotos}
+          index={lightboxIndex}
+          onIndexChange={(nextIndex) => setLightboxId(viewablePhotos[nextIndex]?.id ?? null)}
+          onClose={() => setLightboxId(null)}
+        />
+      )}
 
       {aiConsentOpen && (
         <div className="modal-overlay" role="presentation" onClick={() => setAiConsentOpen(false)}>

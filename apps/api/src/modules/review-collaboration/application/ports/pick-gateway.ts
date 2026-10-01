@@ -13,6 +13,9 @@ export interface PickablePhoto {
   previewUrl: string;
   /** Grid-sized copy, a few tens of kilobytes. */
   thumbnailUrl: string;
+  /** Upright pixel size, so the gallery can lay portraits and landscapes out without cropping. Null until analysed. */
+  width: number | null;
+  height: number | null;
 }
 
 /**

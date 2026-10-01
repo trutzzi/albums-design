@@ -1,4 +1,5 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
+import type { Photo } from "../../../media-ingestion/domain/photo";
 import type { PhotoRepository } from "../../../media-ingestion/domain/photo-repository";
 import type { ObjectStorage } from "../../../media-ingestion/application/ports/object-storage";
 import type { StorageProvider } from "../../../../shared-kernel/storage-provider";
@@ -13,9 +14,16 @@ export class StoragePhotoPreviewResolver implements PhotoPreviewResolver {
     private readonly permanent?: StorageProvider,
   ) {}
 
-  async previewUrl(photoId: string): Promise<string | null> {
-    const photo = await this.photos.findById(UniqueEntityId.create(photoId));
-    if (!photo) return null;
+  async previewUrls(photoIds: string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(photoIds)];
+    if (unique.length === 0) return new Map();
+    // One query for the whole album: the review page used to load each placed photo on its own.
+    const photos = await this.photos.findByIds(unique.map((id) => UniqueEntityId.create(id)));
+    const entries = await Promise.all(photos.map(async (photo) => [photo.id.toString(), await this.urlFor(photo)] as const));
+    return new Map(entries);
+  }
+
+  private urlFor(photo: Photo): Promise<string> {
     // Clients review on phones over mobile data; the original is for the printer.
     const key = photo.hasDerivatives
       ? photo.storageKey.derivative("preview")

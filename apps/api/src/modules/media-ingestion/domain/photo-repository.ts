@@ -4,6 +4,8 @@ import type { Photo, PhotoStatus } from "./photo";
 export interface PhotoRepository {
   save(photo: Photo): Promise<void>;
   findById(id: UniqueEntityId): Promise<Photo | undefined>;
+  /** Many photos in one query; ids that match nothing are simply absent from the result. */
+  findByIds(ids: UniqueEntityId[]): Promise<Photo[]>;
   findByProjectId(projectId: UniqueEntityId): Promise<Photo[]>;
   delete(id: UniqueEntityId): Promise<void>;
 
@@ -35,6 +37,9 @@ export interface PhotoRepository {
   findAwaitingLongTermStorage(limit: number): Promise<Photo[]>;
   /** How many photos each shoot has, in one query — the shoots list must not load every row to count. */
   countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, number>>;
-  /** The photo that represents a shoot in a list: the first one with display copies, by file name. */
-  findCoverPhoto(projectId: UniqueEntityId): Promise<Photo | undefined>;
+  /**
+   * The photo that represents each shoot in a list — the first one with display copies, by
+   * file name — keyed by project id, in one query. Shoots with no such photo are absent.
+   */
+  findCoverPhotos(projectIds: UniqueEntityId[]): Promise<Map<string, Photo>>;
 }

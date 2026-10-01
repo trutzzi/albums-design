@@ -6,7 +6,8 @@ const MOD = IS_MAC ? "⌘" : "Ctrl";
 
 /** Every key the editor answers to, in one place — opened with "?". */
 export const EDITOR_SHORTCUTS: { keys: string[]; labelKey: string }[] = [
-  { keys: ["←", "→"], labelKey: "shortcuts.spread" },
+  { keys: ["↑", "↓"], labelKey: "shortcuts.spread" },
+  { keys: ["←", "→"], labelKey: "shortcuts.design" },
   { keys: [`${MOD} Z`], labelKey: "shortcuts.undo" },
   { keys: [`${MOD} ⇧ Z`], labelKey: "shortcuts.redo" },
   { keys: ["S"], labelKey: "shortcuts.shuffle" },

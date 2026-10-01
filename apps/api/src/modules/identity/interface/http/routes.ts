@@ -1,7 +1,7 @@
-import type { FastifyInstance, FastifyReply } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { sendApplicationError } from "../../../../interface/error-translator";
 import { loginInputSchema, registerInputSchema, studioBrandingSchema } from "@albumflow/contracts";
-import { ApplicationError, NotFoundError, TooManyAttemptsError } from "../../../../shared-kernel/errors";
 import { PLANS } from "../../domain/plan";
 import type { StudioAdministrationUseCase } from "../../application/use-cases/studio-administration.use-case";
 import type { RegisterUseCase } from "../../application/use-cases/register.use-case";
@@ -59,14 +59,14 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
         .send({ code: "HUMAN_CHECK_FAILED", message: "Please complete the check that you are not a robot, then try again." });
     }
     const result = await deps.register.execute({ ...body, ip: request.ip });
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(201).send(result.getValue());
   });
 
   app.post("/auth/verify-email", async (request, reply) => {
     const { token } = verifyEmailSchema.parse(request.body);
     const result = await deps.register.confirm(token);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -80,7 +80,7 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
   app.post("/auth/login", async (request, reply) => {
     const body = loginInputSchema.parse(request.body);
     const result = await deps.login.execute({ ...body, ip: request.ip });
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -94,21 +94,21 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
   app.post("/auth/reset-password", async (request, reply) => {
     const body = resetPasswordSchema.parse(request.body);
     const result = await deps.passwordReset.reset(body);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.post("/studios", async (request, reply) => {
     const body = onboardSchema.parse(request.body);
     const result = await deps.administration.onboard(body);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(201).send(result.getValue());
   });
 
   app.get("/studios/:studioId", async (request, reply) => {
     const { studioId } = studioParams.parse(request.params);
     const result = await deps.administration.overview(studioId);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return { ...result.getValue(), billing: { provider: deps.billing.provider } };
   });
 
@@ -116,7 +116,7 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
     const { studioId } = studioParams.parse(request.params);
     const body = inviteSchema.parse(request.body);
     const result = await deps.administration.inviteMember({ studioId, ...body });
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(201).send(result.getValue());
   });
 
@@ -125,14 +125,14 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
     const { studioId } = studioParams.parse(request.params);
     const body = studioBrandingSchema.parse(request.body);
     const result = await deps.administration.setBranding(studioId, request.role, body);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return { ...result.getValue(), billing: { provider: deps.billing.provider } };
   });
 
   app.delete("/studios/:studioId/members/:memberId", async (request, reply) => {
     const { studioId, memberId } = memberParams.parse(request.params);
     const result = await deps.administration.removeMember(studioId, memberId);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(204).send();
   });
 }
@@ -143,7 +143,7 @@ export function registerBillingRoutes(app: FastifyInstance, billing: BillingUseC
   app.post("/studios/:studioId/billing/portal", async (request, reply) => {
     const { studioId } = studioParams.parse(request.params);
     const result = await billing.portal({ studioId, role: request.role });
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -178,19 +178,3 @@ function toPlanDto(plan: (typeof PLANS)[keyof typeof PLANS]) {
   };
 }
 
-function sendError(reply: FastifyReply, error: ApplicationError) {
-  if (error instanceof TooManyAttemptsError) reply.header("Retry-After", String(error.retryAfterSeconds));
-  const status =
-    error instanceof NotFoundError
-      ? 404
-      : error.code === "CONFLICT"
-        ? 409
-        : error.code === "UNAUTHORIZED"
-          ? 401
-          : error.code === "FORBIDDEN" || error.code === "EMAIL_NOT_VERIFIED"
-            ? 403
-            : error.code === "TOO_MANY_ATTEMPTS"
-              ? 429
-              : 422;
-  return reply.code(status).send({ code: error.code, message: error.message });
-}

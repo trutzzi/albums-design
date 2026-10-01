@@ -53,8 +53,18 @@ export async function streamZip(
       if (isAborted() || failure) break;
       const data = await entry.read();
       await new Promise<void>((resolve, reject) => {
-        archive.once("entry", () => resolve());
-        archive.once("error", reject);
+        // Each wait removes the listener it did not use, or a 2,000-photo shoot would leave
+        // 2,000 "error" listeners (and their closures) attached for the whole download.
+        const onEntry = () => {
+          archive.off("error", onError);
+          resolve();
+        };
+        const onError = (error: Error) => {
+          archive.off("entry", onEntry);
+          reject(error);
+        };
+        archive.once("entry", onEntry);
+        archive.once("error", onError);
         archive.append(data, { name: entry.name });
       });
       appended += data.length;

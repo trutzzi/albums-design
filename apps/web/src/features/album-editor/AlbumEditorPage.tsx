@@ -63,6 +63,7 @@ const EDITOR_TOUR: TourStep[] = [
 import { AccessDetailsModal } from "../../components/AccessDetailsModal";
 import { LayoutPicker } from "../../components/LayoutPicker";
 import { PhotoTray } from "../../components/PhotoTray";
+import { PlanUpsell } from "../../components/PlanUpsell";
 import { loadTrayPrefs, saveTrayPrefs, type TrayPrefs } from "../../lib/tray-prefs";
 import type { TrayDensity } from "../../lib/tray-grid";
 import { countTrayPhotos, filterTrayPhotos, isFiltering, type TrayContext, type TrayShow } from "../../lib/tray-filter";
@@ -80,6 +81,11 @@ function shortenProfileName(name: string): string {
 
 /** Never a real print profile's id — those come from the server's PRINT_PROFILES list. */
 const CUSTOM_PROFILE_ID = "custom";
+
+/** The same photos in any order are the same set, and share one ranking of layouts. */
+function photoSetKey(photoIds: string[]): string {
+  return [...photoIds].sort().join("|");
+}
 
 export function AlbumEditorPage() {
   const { albumId = "" } = useParams();
@@ -376,16 +382,19 @@ export function AlbumEditorPage() {
   // observe it uninitialised on a render that bails out early.
   const current = draft ?? album.data;
 
-  // Suggestions are keyed by the photo set, so shuffling a spread never refetches.
+  // Suggestions are keyed by the photo set, so stepping through a spread's designs never refetches.
   const suggestionCache = useRef<Map<string, LayoutSuggestionDTO[]>>(new Map());
+  // Bumped when a ranking arrives, so the "Design 3 of 12" counters redraw with it.
+  const [, setSuggestionsLoaded] = useState(0);
 
   const suggestionsFor = useCallback(
     async (photoIds: string[]): Promise<LayoutSuggestionDTO[]> => {
-      const key = [...photoIds].sort().join("|");
+      const key = photoSetKey(photoIds);
       const cached = suggestionCache.current.get(key);
       if (cached) return cached;
       const fresh = await suggestSpreadLayouts(projectId, photoIds);
       suggestionCache.current.set(key, fresh);
+      setSuggestionsLoaded((count) => count + 1);
       return fresh;
     },
     [projectId],
@@ -411,15 +420,18 @@ export function AlbumEditorPage() {
   });
 
   const shuffle = useMutation({
-    mutationFn: async (spreadIndex: number) => {
+    mutationFn: async ({ spreadIndex, step }: { spreadIndex: number; step: 1 | -1 }) => {
       const spread = current?.spreads[spreadIndex];
       if (!spread) throw new Error("That spread is gone.");
       const photoIds = spread.placements.map((placement) => placement.photoId).filter(Boolean);
       const ranked = await suggestionsFor(photoIds);
       if (ranked.length < 2) throw new Error("No other layout holds this many photos.");
 
+      // A layout outside the ranking (a hand-picked one) steps to either end of it.
       const currentIndex = ranked.findIndex((entry) => entry.templateId === spread.templateId);
-      const next = ranked[(currentIndex + 1) % ranked.length];
+      const nextIndex =
+        currentIndex < 0 ? (step === 1 ? 0 : ranked.length - 1) : (currentIndex + step + ranked.length) % ranked.length;
+      const next = ranked[nextIndex];
       if (!next) throw new Error("No alternative layout found.");
       return editAlbum(albumId, {
         type: "CHANGE_TEMPLATE",
@@ -898,7 +910,37 @@ export function AlbumEditorPage() {
 
   const shuffleRef = useRef(shuffle.mutate);
   shuffleRef.current = shuffle.mutate;
-  const runShuffle = useCallback((spreadIndex: number) => shuffleRef.current(spreadIndex), []);
+  // One step at a time: a held arrow key must not send edits computed from a stale layout.
+  const cycling = useRef(false);
+  const cycleDesign = useCallback((spreadIndex: number, step: 1 | -1) => {
+    if (cycling.current) return;
+    cycling.current = true;
+    shuffleRef.current({ spreadIndex, step }, { onSettled: () => void (cycling.current = false) });
+  }, []);
+  const runShuffle = useCallback((spreadIndex: number) => cycleDesign(spreadIndex, 1), [cycleDesign]);
+
+  /** Where a spread's layout sits among those ranked for its photos, once that ranking is known. */
+  const designPositionOf = (spread: { templateId: string; placements: { photoId: string }[] }) => {
+    const ranked = suggestionCache.current.get(
+      photoSetKey(spread.placements.map((placement) => placement.photoId).filter(Boolean)),
+    );
+    if (!ranked) return { index: null, total: null };
+    const index = ranked.findIndex((entry) => entry.templateId === spread.templateId);
+    return { index: index < 0 ? null : index, total: ranked.length };
+  };
+
+  // The spread in view gets its ranking early, so its counter reads "Design 3 of 12"
+  // before the first click; the others load when someone steps through them.
+  const photosInView = (current?.spreads[currentSpread]?.placements ?? [])
+    .map((placement) => placement.photoId)
+    .filter(Boolean);
+  const photosInViewKey = photoSetKey(photosInView);
+  useEffect(() => {
+    if (photosInView.length === 0 || suggestionCache.current.has(photosInViewKey)) return;
+    // Only a head start: if it fails, the first arrow press asks again and shows the error.
+    void suggestionsFor(photosInView).catch(() => undefined);
+    // Keyed by the photo set rather than the array, which is a new object every render.
+  }, [photosInViewKey, suggestionsFor]);
 
   const addPhotoRef = useRef(addPhotoToSpread.mutate);
   addPhotoRef.current = addPhotoToSpread.mutate;
@@ -1086,13 +1128,14 @@ export function AlbumEditorPage() {
           setCheckOpen(true);
           return;
       }
-      // Arrow keys belong to the selected photo (they nudge it); without one they turn pages.
-      if (!state.selected && (event.key === "ArrowRight" || event.key === "ArrowDown" || event.key === "PageDown")) {
+      // Arrow keys belong to the selected photo (they nudge it). Without one, up and down
+      // turn pages and left and right step through the current spread's designs.
+      if (!state.selected && (event.key === "ArrowDown" || event.key === "PageDown")) {
         event.preventDefault();
         jumpToSpread(Math.min(state.spreadCount - 1, here + 1));
         return;
       }
-      if (!state.selected && (event.key === "ArrowLeft" || event.key === "ArrowUp" || event.key === "PageUp")) {
+      if (!state.selected && (event.key === "ArrowUp" || event.key === "PageUp")) {
         event.preventDefault();
         jumpToSpread(Math.max(0, here - 1));
         return;
@@ -1100,6 +1143,13 @@ export function AlbumEditorPage() {
       if (state.locked) return;
       const spread = spreads[here];
       switch (event.key) {
+        case "ArrowLeft":
+        case "ArrowRight":
+          if (!state.selected && spread && !spread.locked) {
+            event.preventDefault();
+            cycleDesign(here, event.key === "ArrowRight" ? 1 : -1);
+          }
+          return;
         case "s":
         case "S":
           if (spread && !spread.locked) runShuffle(here);
@@ -1124,7 +1174,7 @@ export function AlbumEditorPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [jumpToSpread, runShuffle, mirrorSpread, toggleSpreadLock, removePhoto]);
+  }, [jumpToSpread, runShuffle, cycleDesign, mirrorSpread, toggleSpreadLock, removePhoto]);
 
   if (album.isLoading) return <p className="page muted">Loading album…</p>;
   if (album.isError) return <p className="page error">{(album.error as Error).message}</p>;
@@ -1327,13 +1377,15 @@ export function AlbumEditorPage() {
                 }
                 locked={locked}
                 shuffling={shuffle.isPending}
+                designIndex={designPositionOf(spread).index}
+                designTotal={designPositionOf(spread).total}
                 addingPhoto={addingToSpread === spreadIndex}
                 addPhotoDisabled={spread.placements.length >= MAX_PHOTOS_PER_SPREAD}
                 openComments={commentsBySpread.get(spreadIndex) ?? 0}
                 onSelectSlot={selectSlot}
                 onReorder={reorderSpread}
                 onResetFrames={resetFrames}
-                onShuffle={runShuffle}
+                onCycleDesign={cycleDesign}
                 onAddPhoto={armAddToSpread}
                 onSpreadTreatment={setSpreadTreatment}
                 onRemove={removeSpread}
@@ -1594,6 +1646,7 @@ export function AlbumEditorPage() {
 
           {sidebarTab === "review" && (
             <>
+          <PlanUpsell feature="watermark" />
           <section className="panel">
             <h2>{t("album.review.title")}</h2>
             <div className="field">

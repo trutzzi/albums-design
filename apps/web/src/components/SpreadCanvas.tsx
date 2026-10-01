@@ -226,7 +226,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
       const placement = placements.find((candidate) => candidate.slotId === slot.id);
       return {
         slotId: slot.id,
-        rect: placement?.frame ?? spacedSlotRect(slot, template.fullBleed, albumStyle.spacing),
+        rect: placement?.frame ?? spacedSlotRect(slot, template, albumStyle.spacing),
       };
     });
   }, [template, placements, albumStyle.spacing]);
@@ -323,7 +323,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
         const editable = Boolean(onCropChange) && selected;
         const interactive = Boolean(onSlotClick || onSlotDrop);
 
-        const rect = placement?.frame ?? spacedSlotRect(slot, template.fullBleed, albumStyle.spacing);
+        const rect = placement?.frame ?? spacedSlotRect(slot, template, albumStyle.spacing);
         const slotAspect = (rect.width * aspectRatio) / rect.height;
         const imageAspect = placement ? aspects[placement.photoId] : undefined;
         const storedCrop = placement?.crop ?? DEFAULT_CROP;

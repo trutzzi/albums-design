@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getAdminMe } from "../lib/api";
 import { FeedbackButton } from "./FeedbackButton";
 import { useAvailableTour } from "./GuidedTour";
+import { HowItWorksHost, openHowItWorks } from "./HowItWorks";
 import { useAuth } from "../app/AuthContext";
 import { useLanguage } from "../lib/i18n/LanguageContext";
 import { ThemeToggle } from "./ThemeToggle";
@@ -85,6 +86,9 @@ export function AppHeader() {
               {t("nav.guide")}
             </button>
           )}
+          <button type="button" className="link-button" onClick={openHowItWorks}>
+            {t("howItWorks.nav")}
+          </button>
           <Link to="/changelog">{t("nav.changelog")}</Link>
           <Link to="/contact">{t("nav.contact")}</Link>
           {auth.isAuthenticated ? (
@@ -113,6 +117,7 @@ export function AppHeader() {
           </button>
         </div>
       </header>
+      <HowItWorksHost />
     </>
   );
 }

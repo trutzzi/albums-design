@@ -4,7 +4,7 @@ import { describe, it, before } from "node:test";
 import Fastify, { type FastifyInstance } from "fastify";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { registerStudioAuth } from "../src/interface/auth";
-import { registerTenancyGuard } from "../src/interface/tenancy";
+import { RepositoryResourceOwnership, registerTenancyGuard } from "../src/interface/tenancy";
 import { Studio } from "../src/modules/identity/domain/studio";
 import { Project } from "../src/modules/media-ingestion/domain/project";
 import { Album } from "../src/modules/album-composition/domain/album";
@@ -56,12 +56,13 @@ describe("HTTP security boundary", () => {
 
     app = Fastify();
     registerStudioAuth(app, studios);
-    registerTenancyGuard(app, { projects, photos, albums, exportJobs });
+    registerTenancyGuard(app, new RepositoryResourceOwnership({ projects, photos, albums, exportJobs }));
 
     // Stand-ins for the real routes: the guards run before any of them.
     app.get("/projects/:projectId/photos", async () => ({ ok: true }));
     app.get("/albums/:albumId", async () => ({ ok: true }));
     app.get("/studios/:studioId", async () => ({ ok: true }));
+    app.post("/studios/:studioId/projects/:projectId/photos", async () => ({ ok: true }));
     app.post("/studios", async () => ({ ok: true }));
     app.get("/albums/:albumId/comments", async () => ({ ok: true }));
     app.post("/albums/:albumId/comments/:commentId/resolve", async () => ({ ok: true }));
@@ -171,6 +172,29 @@ describe("HTTP security boundary", () => {
     for (const url of ["/auth/verify-email", "/auth/resend-confirmation"]) {
       const response = await app.inject({ method: "POST", url, payload: {} });
       assert.equal(response.statusCode, 200, url);
+    }
+  });
+
+  it("checks the addressed project even when the path names the caller's own studio", async () => {
+    const intoOtherStudio = await app.inject({
+      method: "POST",
+      url: `/studios/${studioA.id}/projects/${projectB.id}/photos`,
+      headers: auth(keyA),
+    });
+    assert.equal(intoOtherStudio.statusCode, 404);
+
+    const own = await app.inject({
+      method: "POST",
+      url: `/studios/${studioA.id}/projects/${projectA.id}/photos`,
+      headers: auth(keyA),
+    });
+    assert.equal(own.statusCode, 200);
+  });
+
+  it("answers a malformed id with 404 rather than a database error", async () => {
+    for (const url of ["/projects/not-a-uuid/photos", "/albums/1%27%20OR%201=1"]) {
+      const response = await app.inject({ method: "GET", url, headers: auth(keyA) });
+      assert.equal(response.statusCode, 404, url);
     }
   });
 

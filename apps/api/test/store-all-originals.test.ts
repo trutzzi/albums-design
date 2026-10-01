@@ -23,6 +23,8 @@ import {
   InMemoryPhotoRepository,
   InMemoryProjectRepository,
 } from "./support/in-memory";
+import { RecordingLogger } from "./support/recording-logger";
+import { silentLogger } from "../src/shared-kernel/logger";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -144,7 +146,7 @@ describe("StorePendingOriginalsUseCase — the backfill and safety net", () => {
     const w = await world();
     const added = [];
     for (let i = 0; i < 7; i++) added.push(await w.addPhoto(`p${i}.jpg`));
-    const sweep = new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, () => {});
+    const sweep = new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, silentLogger);
 
     const summary = await sweep.execute({ batchSize: 3 });
     assert.equal(summary.stored, 7);
@@ -163,7 +165,7 @@ describe("StorePendingOriginalsUseCase — the backfill and safety net", () => {
     await w.photos.markStagedOriginalPurged(purged.photo.id, new Date());
     w.permanent.uploads = 0;
 
-    const summary = await new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, () => {}).execute();
+    const summary = await new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, silentLogger).execute();
     assert.equal(summary.stored, 1, "only old.jpg needed storing");
     assert.equal(w.permanent.uploads, 1);
     assert.ok(w.permanent.objects.has(old.key));
@@ -177,17 +179,17 @@ describe("StorePendingOriginalsUseCase — the backfill and safety net", () => {
     const bad = await w.addPhoto("bad.jpg");
     const c = await w.addPhoto("c.jpg");
     w.permanent.failKeys.add(bad.key);
-    const logged: string[] = [];
-    const summary = await new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, (m) => logged.push(m)).execute({ batchSize: 1 });
+    const logged = new RecordingLogger();
+    const summary = await new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, logged).execute({ batchSize: 1 });
 
     assert.equal(summary.stored, 2);
     assert.equal(summary.failed, 1, "tried once this run, not endlessly");
     assert.ok(w.permanent.objects.has(a.key) && w.permanent.objects.has(c.key));
-    assert.equal(logged.length, 1);
+    assert.equal(logged.problems.length, 1);
 
     // The next run retries it, and succeeds once DigiStorage is reachable again.
     w.permanent.failKeys.clear();
-    const retry = await new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, () => {}).execute();
+    const retry = await new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, silentLogger).execute();
     assert.equal(retry.stored, 1);
     assert.ok(w.permanent.objects.has(bad.key));
   });
@@ -197,7 +199,7 @@ describe("StorePendingOriginalsUseCase — the backfill and safety net", () => {
     for (let i = 0; i < 6; i++) await w.addPhoto(`p${i}.jpg`);
     let now = 0;
     const clock = () => (now += 100); // every look at the clock costs 100ms
-    const sweep = new StorePendingOriginalsUseCase(w.photos, w.store, clock, () => {});
+    const sweep = new StorePendingOriginalsUseCase(w.photos, w.store, clock, silentLogger);
 
     const first = await sweep.execute({ budgetMs: 350, batchSize: 10 });
     assert.equal(first.stoppedEarly, true);

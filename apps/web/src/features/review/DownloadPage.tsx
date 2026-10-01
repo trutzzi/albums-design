@@ -8,6 +8,7 @@ import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { PasswordGate, needsPassword } from "../../components/PasswordGate";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
+import { PhotoGallery } from "../../components/PhotoGallery";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -107,20 +108,12 @@ export function DownloadPage() {
         <>
           <h2 className="download__grid-title">{t("download.grid.title")}</h2>
           <p className="muted">{t("download.grid.hint")}</p>
-          <div className="pick__grid">
-            {data.photos.map((photo, index) => (
-              <figure key={photo.id} className="pick__card">
-                <button
-                  type="button"
-                  className="pick__image"
-                  aria-label={photo.fileName}
-                  onClick={() => setSlide(index)}
-                >
-                  <img src={photo.thumbnailUrl} alt={photo.fileName} loading="lazy" decoding="async" />
-                </button>
-              </figure>
-            ))}
-          </div>
+          <PhotoGallery
+            photos={data.photos}
+            columnWidth={260}
+            onOpen={(_photo, index) => setSlide(index)}
+            moreLabel={(remaining) => t("gallery.more", { count: remaining })}
+          />
         </>
       )}
 

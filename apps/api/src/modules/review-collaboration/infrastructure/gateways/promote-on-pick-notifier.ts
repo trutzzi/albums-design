@@ -1,6 +1,7 @@
 import type { JobQueue } from "../../../../shared-kernel/job-queue";
 import { QUEUES } from "../../../../shared-kernel/job-queue";
 import type { PickNotifier } from "../../application/ports/pick-gateway";
+import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
 
 /**
  * A client's submitted picks are the strongest "selected" signal there is, so
@@ -13,7 +14,7 @@ export class PromoteOnPickNotifier implements PickNotifier {
   constructor(
     private readonly next: PickNotifier,
     private readonly jobs: JobQueue,
-    private readonly log: (message: string) => void = console.error,
+    private readonly logger: Logger = consoleLogger,
   ) {}
 
   async picksSubmitted(params: Parameters<PickNotifier["picksSubmitted"]>[0]): Promise<void> {
@@ -21,7 +22,7 @@ export class PromoteOnPickNotifier implements PickNotifier {
     try {
       await this.jobs.enqueue(QUEUES.storage, "promote-picked", { projectId: params.projectId });
     } catch (error) {
-      this.log(`[storage] could not queue promotion for picks of project ${params.projectId}: ${String(error)}`);
+      this.logger.warn("could not queue long-term promotion for client picks", { projectId: params.projectId, err: error });
     }
   }
 }

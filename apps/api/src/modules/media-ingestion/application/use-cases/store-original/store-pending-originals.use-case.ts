@@ -1,5 +1,6 @@
 import type { PhotoRepository } from "../../../domain/photo-repository";
 import type { StoreOriginalUseCase } from "./store-original.use-case";
+import { consoleLogger, type Logger } from "../../../../../shared-kernel/logger";
 
 export interface StorePendingSummary {
   stored: number;
@@ -25,7 +26,7 @@ export class StorePendingOriginalsUseCase {
     private readonly photos: PhotoRepository,
     private readonly store: StoreOriginalUseCase,
     private readonly now: () => number = Date.now,
-    private readonly log: (message: string) => void = console.error,
+    private readonly logger: Logger = consoleLogger,
   ) {}
 
   async execute(options: { budgetMs?: number; batchSize?: number } = {}): Promise<StorePendingSummary> {
@@ -51,7 +52,8 @@ export class StorePendingOriginalsUseCase {
         if (result.isFailure) {
           failedThisRun.add(photo.id.toString());
           summary.failed++;
-          this.log(`[storage] ${result.getError().message}`);
+          // The next run retries it; the run summary reports the failure count.
+          this.logger.warn("could not store an original long-term", { photoId: photo.id.toString(), reason: result.getError().message });
         } else if (result.getValue() === "stored") summary.stored++;
         else if (result.getValue() === "already-stored") summary.alreadyStored++;
         else {

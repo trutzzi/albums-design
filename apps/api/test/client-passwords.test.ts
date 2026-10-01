@@ -34,6 +34,7 @@ import {
   InMemoryProjectRepository,
   InMemoryReviewSessionRepository,
 } from "./support/in-memory";
+import { silentLogger } from "../src/shared-kernel/logger";
 
 const SECRET = "test-secret-test-secret-test-secret-123";
 
@@ -311,7 +312,7 @@ async function downloadApp() {
   const app = Fastify();
   registerDownloadRoutes(app, {
     downloadAdmin: admin,
-    downloadPortal: new DownloadPortalUseCase(sessions, gateway, { photosDownloaded: async () => {} }, () => {}, () => new Date(), access, gallery),
+    downloadPortal: new DownloadPortalUseCase(sessions, gateway, { photosDownloaded: async () => {} }, silentLogger, () => new Date(), access, gallery),
   });
   await app.listen({ port: 0, host: "127.0.0.1" });
   const base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;

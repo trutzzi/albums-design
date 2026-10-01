@@ -1,8 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { ZodError } from "zod";
 import { buildCompositionRoot } from "./composition-root";
-import { clientErrorFrom } from "./shared-kernel/errors";
 import { registerStudioAuth } from "./interface/auth";
 import { registerTenancyGuard } from "./interface/tenancy";
 import { registerMediaIngestionRoutes } from "./modules/media-ingestion/interface/http/routes";
@@ -11,32 +9,28 @@ import { registerAlbumCompositionRoutes } from "./modules/album-composition/inte
 import { registerReviewRoutes } from "./modules/review-collaboration/interface/http/routes";
 import { registerExportRoutes } from "./modules/export-print/interface/http/routes";
 import { registerBillingRoutes, registerIdentityRoutes } from "./modules/identity/interface/http/routes";
-import { acceptEmptyJsonBody } from "./interface/empty-body";
 import { registerMediaRoutes } from "./interface/media-routes";
 import { registerPickRoutes } from "./modules/review-collaboration/interface/http/pick-routes";
 import { registerDownloadRoutes } from "./modules/review-collaboration/interface/http/download-routes";
-import { flushErrorReports, reportError, startErrorMonitoring } from "./infrastructure/monitoring/error-monitoring";
-import { registerRequestMetrics } from "./interface/request-metrics";
+import { flushErrorReports, startErrorMonitoring } from "./infrastructure/monitoring/error-monitoring";
+import { installProcessGuards } from "./infrastructure/monitoring/process-guards";
+import { httpServerOptions, registerHttpFoundation, REQUEST_ID_HEADER } from "./interface/http-foundation";
 import { registerPlatformAdminRoutes } from "./modules/platform-admin/interface/http/routes";
 
 async function main() {
-  const root = buildCompositionRoot();
+  const root = buildCompositionRoot(undefined, { service: "api" });
   startErrorMonitoring({ dsn: root.env.SENTRY_DSN, environment: root.env.NODE_ENV, service: "api" });
-  const app = Fastify({ logger: true, trustProxy: root.env.TRUST_PROXY });
+  installProcessGuards(root.logger);
+  const app = Fastify({ ...httpServerOptions(root.pinoLogger), trustProxy: root.env.TRUST_PROXY });
 
-  acceptEmptyJsonBody(app);
-  await app.register(cors, { origin: root.env.WEB_ORIGIN });
+  registerHttpFoundation(app, { logger: root.logger, metrics: root.requestMetrics });
+  // Exposed so the web app can quote the id when it shows an error.
+  await app.register(cors, { origin: root.env.WEB_ORIGIN, exposedHeaders: [REQUEST_ID_HEADER] });
 
-  app.get("/health", async () => ({ status: "ok" }));
-  registerRequestMetrics(app, root.requestMetrics);
+  app.get("/health", { logLevel: "warn" }, async () => ({ status: "ok" }));
 
   registerStudioAuth(app, root.studios, root.env.JWT_SECRET);
-  registerTenancyGuard(app, {
-    projects: root.projects,
-    photos: root.photos,
-    albums: root.albums,
-    exportJobs: root.exportJobs,
-  });
+  registerTenancyGuard(app, root.resourceOwnership);
 
   if (root.permanentStorage) {
     registerMediaRoutes(app, { signer: root.mediaUrlSigner, provider: root.permanentStorage });
@@ -57,6 +51,7 @@ async function main() {
     dashboard: root.adminDashboard,
     plans: root.studioPlans,
     deleteStudio: root.deleteStudio,
+    errors: root.errorInbox,
   });
   registerMediaIngestionRoutes(app, root.mediaIngestion);
   registerPhotoIntelligenceRoutes(app, {
@@ -86,33 +81,14 @@ async function main() {
     storage: root.exportStorage,
   });
 
-  app.setErrorHandler((error, request, reply) => {
-    if (error instanceof ZodError) {
-      return reply
-        .code(400)
-        .send({ code: "BAD_REQUEST", message: error.issues.map((i) => i.message).join(", ") });
-    }
-    const clientError = clientErrorFrom(error);
-    if (clientError) {
-      return reply
-        .code(clientError.status)
-        .send({ code: clientError.code, message: clientError.message });
-    }
-    app.log.error(error);
-    reportError(error, { method: request.method, route: request.routeOptions.url });
-    root.requestMetrics.recordError({
-      at: new Date().toISOString(),
-      method: request.method,
-      route: request.routeOptions.url ?? request.url.split("?")[0] ?? "",
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return reply.code(500).send({ code: "INTERNAL_ERROR", message: "Something went wrong." });
-  });
-
   const closeGracefully = async (signal: string) => {
-    app.log.info(`Received ${signal}, shutting down…`);
-    await app.close();
-    await root.shutdown();
+    root.logger.info("shutting down", { signal });
+    try {
+      await app.close();
+      await root.shutdown();
+    } catch (error) {
+      root.logger.error("shutdown did not complete cleanly", { err: error });
+    }
     await flushErrorReports();
     process.exit(0);
   };
@@ -122,7 +98,9 @@ async function main() {
   await app.listen({ port: root.env.PORT, host: "0.0.0.0" });
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
+  // The logger may not exist yet (an invalid environment fails before it is built).
   console.error(error);
+  await flushErrorReports();
   process.exit(1);
 });

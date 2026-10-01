@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import type { ProjectSummaryDTO, ProjectType } from "@albumflow/contracts";
@@ -7,6 +7,7 @@ import { useAuth } from "../../app/AuthContext";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { GettingStarted, onboardingDismissed } from "../../components/GettingStarted";
 import { GuidedTour, type TourStep } from "../../components/GuidedTour";
+import { howItWorksSeen, openHowItWorks, useHowItWorksOpen } from "../../components/HowItWorks";
 import { tip } from "../../lib/tip";
 
 const SHOOTS_TOUR: TourStep[] = [
@@ -80,6 +81,14 @@ export function ProjectsPage() {
     new Date(iso).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
 
   const all = projects.data ?? [];
+
+  // A studio with no shoots yet is shown the whole journey first, once; the page's own
+  // guided tour waits until that closes, so two overlays never stack.
+  const overviewOpen = useHowItWorksOpen();
+  const welcoming = projects.isSuccess && all.length === 0 && !howItWorksSeen();
+  useEffect(() => {
+    if (welcoming) openHowItWorks();
+  }, [welcoming]);
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
     if (!needle) return all;
@@ -161,7 +170,7 @@ export function ProjectsPage() {
 
   return (
     <div className="page">
-      <GuidedTour id="shoots" steps={SHOOTS_TOUR} ready={projects.isSuccess} />
+      <GuidedTour id="shoots" steps={SHOOTS_TOUR} ready={projects.isSuccess && !welcoming && !overviewOpen} />
       <header className="page__header">
         <div>
           <h1>{t("projects.title")}</h1>

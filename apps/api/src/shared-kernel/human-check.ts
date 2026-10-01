@@ -1,3 +1,5 @@
+import { consoleLogger, type Logger } from "./logger";
+
 /** Tells a person from a signup bot before an account is created. */
 export interface HumanCheck {
   readonly enabled: boolean;
@@ -24,7 +26,7 @@ export class TurnstileHumanCheck implements HumanCheck {
   constructor(
     private readonly secret: string,
     private readonly fetchImpl: typeof fetch = fetch,
-    private readonly log: (message: string) => void = console.error,
+    private readonly logger: Logger = consoleLogger,
   ) {}
 
   async verify(token: string | undefined, ip: string | undefined): Promise<boolean> {
@@ -34,11 +36,11 @@ export class TurnstileHumanCheck implements HumanCheck {
     try {
       const response = await this.fetchImpl(SITEVERIFY, { method: "POST", body, signal: AbortSignal.timeout(8000) });
       const result = (await response.json()) as { success?: boolean; "error-codes"?: string[] };
-      if (!result.success) this.log(`[signup] human check failed: ${(result["error-codes"] ?? []).join(", ") || "no reason given"}`);
+      if (!result.success) this.logger.info("signup human check failed", { errorCodes: result["error-codes"] ?? [] });
       return result.success === true;
     } catch (error) {
       // Cloudflare unreachable: better to let a person in than to lock out every signup.
-      this.log(`[signup] human check unavailable, allowing: ${error instanceof Error ? error.message : error}`);
+      this.logger.warn("signup human check unavailable; allowing the signup", { err: error });
       return true;
     }
   }

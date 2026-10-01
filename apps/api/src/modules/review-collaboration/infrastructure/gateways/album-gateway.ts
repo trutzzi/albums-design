@@ -9,6 +9,7 @@ import type {
   ReviewNotifier,
   ReviewableAlbum,
 } from "../../application/ports/album-gateway";
+import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
 
 export class AlbumCompositionGateway implements AlbumGateway {
   constructor(
@@ -22,41 +23,47 @@ export class AlbumCompositionGateway implements AlbumGateway {
   async load(albumId: string): Promise<ReviewableAlbum | undefined> {
     const album = await this.albums.findById(UniqueEntityId.create(albumId));
     if (!album) return undefined;
-    const focus = await this.focus?.forProject(album.projectId.toString());
+    const projectId = album.projectId.toString();
+    const photoIds = [
+      ...(album.cover?.photoId ? [album.cover.photoId] : []),
+      ...album.spreads.flatMap((spread) => spread.placements.map((placement) => placement.photoId).filter(Boolean)),
+    ];
+    // Independent of each other, so fetched together — the client's first paint waits on the slowest, not the sum.
+    const [focus, features, branding, previews] = await Promise.all([
+      this.focus?.forProject(projectId),
+      this.features?.forProject(projectId),
+      this.branding?.forProject(projectId),
+      this.previews?.previewUrls(photoIds),
+    ]);
+    const previewOf = (photoId: string | null | undefined) => (photoId ? (previews?.get(photoId) ?? null) : null);
     return {
       id: album.id.toString(),
       title: album.title,
       status: album.status,
-      watermark: (await this.features?.forProject(album.projectId.toString()))?.watermarkDrafts ?? false,
-      branding: (await this.branding?.forProject(album.projectId.toString())) ?? null,
+      watermark: features?.watermarkDrafts ?? false,
+      branding: branding ?? null,
       format: album.format,
       style: album.style,
       cover: album.cover
         ? {
             ...album.cover,
             focus: (album.cover.photoId && focus?.get(album.cover.photoId)) || null,
-            previewUrl: album.cover.photoId ? ((await this.previews?.previewUrl(album.cover.photoId)) ?? null) : null,
+            previewUrl: previewOf(album.cover.photoId),
           }
         : null,
-      spreads: await Promise.all(
-        album.spreads.map(async (spread) => ({
-          templateId: spread.templateId,
-          texts: spread.texts,
-          placements: await Promise.all(
-            spread.placements.map(async (placement) => ({
-              slotId: placement.slotId,
-              photoId: placement.photoId,
-              crop: placement.crop,
-              treatment: placement.treatment ?? "COLOR",
-              frame: placement.frame,
-              focus: focus?.get(placement.photoId) ?? null,
-              previewUrl: placement.photoId
-                ? ((await this.previews?.previewUrl(placement.photoId)) ?? null)
-                : null,
-            })),
-          ),
+      spreads: album.spreads.map((spread) => ({
+        templateId: spread.templateId,
+        texts: spread.texts,
+        placements: spread.placements.map((placement) => ({
+          slotId: placement.slotId,
+          photoId: placement.photoId,
+          crop: placement.crop,
+          treatment: placement.treatment ?? "COLOR",
+          frame: placement.frame,
+          focus: focus?.get(placement.photoId) ?? null,
+          previewUrl: previewOf(placement.photoId),
         })),
-      ),
+      })),
     };
   }
 
@@ -85,7 +92,7 @@ export class AlbumCompositionGateway implements AlbumGateway {
 
 /** Email/push lands in Epic 5's follow-up; the log keeps the flow observable today. */
 export class LoggingReviewNotifier implements ReviewNotifier {
-  constructor(private readonly log: (message: string) => void = console.log) {}
+  constructor(private readonly logger: Logger = consoleLogger) {}
 
   async clientDecided(params: {
     albumId: string;
@@ -93,8 +100,10 @@ export class LoggingReviewNotifier implements ReviewNotifier {
     clientName: string;
     openComments: number;
   }): Promise<void> {
-    this.log(
-      `[review] ${params.clientName} ${params.decision} album ${params.albumId} (${params.openComments} open comments)`,
-    );
+    this.logger.info("client decided on an album", {
+      albumId: params.albumId,
+      decision: params.decision,
+      openComments: params.openComments,
+    });
   }
 }

@@ -66,25 +66,13 @@ export class DrizzleAlbumRepository implements AlbumRepository {
   }
 
   async countCreatedSince(studioId: UniqueEntityId, since: Date): Promise<number> {
-    const studioProjects = await this.db
-      .select({ id: projects.id })
-      .from(projects)
-      .where(eq(projects.studioId, studioId.toString()));
-    if (studioProjects.length === 0) return 0;
-
-    const rows = await this.db
-      .select({ id: albums.id })
+    // Counted in the database: no project ids or album rows travel back just to be counted.
+    const [row] = await this.db
+      .select({ total: count() })
       .from(albums)
-      .where(
-        and(
-          inArray(
-            albums.projectId,
-            studioProjects.map((project) => project.id),
-          ),
-          gte(albums.createdAt, since),
-        ),
-      );
-    return rows.length;
+      .innerJoin(projects, eq(projects.id, albums.projectId))
+      .where(and(eq(projects.studioId, studioId.toString()), gte(albums.createdAt, since)));
+    return Number(row?.total ?? 0);
   }
 
   async delete(id: UniqueEntityId): Promise<void> {

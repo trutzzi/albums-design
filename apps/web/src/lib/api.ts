@@ -583,10 +583,20 @@ export interface PickState {
   expiresAt: string;
 }
 
+/** A photo in a client gallery: display copies only, plus its upright size (null until analysed). */
+export interface ClientGalleryPhoto {
+  id: string;
+  fileName: string;
+  previewUrl: string;
+  thumbnailUrl: string;
+  width: number | null;
+  height: number | null;
+}
+
 export interface PickView {
   session: PickState;
   projectName: string;
-  photos: { id: string; fileName: string; previewUrl: string; thumbnailUrl: string }[];
+  photos: ClientGalleryPhoto[];
   /** Photos still being prepared; the gallery grows as they finish. */
   processingCount: number;
   branding: ClientBrandingDTO | null;
@@ -681,7 +691,7 @@ export interface DownloadView {
   expiresAt: string;
   daysLeft: number;
   /** Display copies to browse before downloading. */
-  photos: { id: string; fileName: string; previewUrl: string; thumbnailUrl: string }[];
+  photos: ClientGalleryPhoto[];
   /** Photos still being prepared for the gallery (they are in the download regardless). */
   processingCount: number;
   branding: ClientBrandingDTO | null;
@@ -857,4 +867,54 @@ export function setStudioPlan(studioId: string, planCode: PlanDto["code"]): Prom
 /** Removes the studio with all its shoots, photos and members. */
 export function deleteAdminStudio(studioId: string): Promise<{ shootsDeleted: number }> {
   return request(`/admin/studios/${studioId}`, { method: "DELETE" });
+}
+
+export type ErrorIssueStatus = "OPEN" | "RESOLVED";
+export type ErrorSource = "api" | "worker";
+
+/** One kind of failure, with every time it happened counted. */
+export interface AdminErrorIssue {
+  id: string;
+  source: ErrorSource;
+  /** What the code was doing, e.g. "request failed" or "job failed". */
+  title: string;
+  errorType: string | null;
+  errorMessage: string | null;
+  /** "GET /review/:token", "storage › store-original", or the part of the app that logged it. */
+  location: string | null;
+  status: ErrorIssueStatus;
+  occurrences: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  resolvedAt: string | null;
+}
+
+export interface AdminErrorOccurrence {
+  id: string;
+  occurredAt: string;
+  requestId: string | null;
+  errorMessage: string | null;
+  stack: string | null;
+  context: Record<string, string | number | boolean | null>;
+}
+
+export function listAdminErrors(filter: {
+  status?: ErrorIssueStatus;
+  source?: ErrorSource;
+  search?: string;
+}): Promise<AdminErrorIssue[]> {
+  const params = new URLSearchParams();
+  if (filter.status) params.set("status", filter.status);
+  if (filter.source) params.set("source", filter.source);
+  if (filter.search) params.set("search", filter.search);
+  const query = params.toString();
+  return request(`/admin/errors${query ? `?${query}` : ""}`);
+}
+
+export function getAdminError(id: string): Promise<{ issue: AdminErrorIssue; occurrences: AdminErrorOccurrence[] }> {
+  return request(`/admin/errors/${id}`);
+}
+
+export function setAdminErrorStatus(id: string, status: ErrorIssueStatus): Promise<AdminErrorIssue> {
+  return request(`/admin/errors/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
 }

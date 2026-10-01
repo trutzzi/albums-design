@@ -2,6 +2,7 @@ import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import { ConflictError, type ApplicationError } from "../../../../../shared-kernel/errors";
 import type { PhotoRepository } from "../../../domain/photo-repository";
 import type { ObjectStorageWithBody } from "../../ports/object-storage";
+import { consoleLogger, type Logger } from "../../../../../shared-kernel/logger";
 
 /**
  * Throws away an upload that never finished — what a cancelled batch leaves behind.
@@ -17,6 +18,7 @@ export class AbandonUploadUseCase {
   constructor(
     private readonly photos: PhotoRepository,
     private readonly storage: ObjectStorageWithBody,
+    private readonly logger: Logger = consoleLogger,
   ) {}
 
   async execute(command: { photoId: string }): Promise<Result<void, ApplicationError>> {
@@ -34,8 +36,9 @@ export class AbandonUploadUseCase {
     // Best effort: a storage hiccup must not leave the row behind as well.
     try {
       await this.storage.delete(photo.storageKey.toString());
-    } catch {
-      // Ignored on purpose — the row is what makes the photo visible anywhere.
+    } catch (error) {
+      // Not fatal — the row is what makes the photo visible anywhere — but it leaves an orphaned object.
+      this.logger.warn("could not delete an abandoned upload's object", { photoId: command.photoId, err: error });
     }
     await this.photos.delete(id);
     return Result.success(undefined);
