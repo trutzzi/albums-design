@@ -190,10 +190,10 @@ jobs:
           # fail here: it fails 90 seconds later, opaquely, inside the smoke
           # test's first upload check, with no indication of why.
           for attempt in $(seq 1 30); do
-            grep -q "Worker listening on:" /tmp/worker.log && break
+            grep -qi "worker listening" /tmp/worker.log && break
             sleep 2
           done
-          grep -q "Worker listening on:" /tmp/worker.log \
+          grep -qi "worker listening" /tmp/worker.log \
             || { echo "::error::Worker never finished starting"; cat /tmp/worker.log; exit 1; }
 
       # Unit tests run on in-memory adapters. This is the only check that proves
