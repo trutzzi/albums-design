@@ -16,6 +16,7 @@ import { LANGUAGES } from "../../lib/i18n/translations";
 import { tip } from "../../lib/tip";
 import { ClientBrandBar } from "../../components/ClientBrand";
 import { PlanUpsell } from "../../components/PlanUpsell";
+import { PlanPrice } from "../../components/LaunchOffer";
 
 
 export function StudioPage() {
@@ -118,9 +119,15 @@ export function StudioPage() {
           )}
         </div>
         <p className="muted">{t("studio.plan.contact")}</p>
+        {subscription.launchPrice && <p className="notice notice--good">{t("launch.studioNote")}</p>}
         <div className="plan-cards">
           {(plans.data ?? []).map((plan) => (
-            <PlanCard key={plan.code} plan={plan} current={plan.code === subscription.planCode} />
+            <PlanCard
+              key={plan.code}
+              plan={plan}
+              current={plan.code === subscription.planCode}
+              launch={subscription.launchPrice}
+            />
           ))}
         </div>
         {manageBilling.isError && <p className="error">{(manageBilling.error as Error).message}</p>}
@@ -220,14 +227,14 @@ export function StudioPage() {
   );
 }
 
-function PlanCard(props: { plan: PlanDto; current: boolean }) {
+function PlanCard(props: { plan: PlanDto; current: boolean; launch: boolean }) {
   const { t } = useLanguage();
   const { plan } = props;
   return (
     <article className={`plan-card ${props.current ? "plan-card--current" : ""}`}>
       <h3>{plan.name}</h3>
       <p className="plan-card__price">
-        {t("studio.plan.price", { price: plan.monthlyPriceEur })}
+        <PlanPrice plan={plan} launch={props.launch} />
       </p>
       <ul>
         <li>

@@ -450,6 +450,10 @@ export interface StudioOverview {
     hasBillingAccount: boolean;
     /** The plan shows the studio's own branding on client pages (Studio Pro). */
     whiteLabel: boolean;
+    /** What this studio pays per month for its plan. */
+    priceEur: number;
+    /** Joined during the launch offer: launch prices on every plan, for good. */
+    launchPrice: boolean;
   };
   members: { id: string; name: string; email: string; role: string; accepted: boolean }[];
   /** "stripe": the studio can open the payment provider's portal for its card and invoices. */
@@ -459,7 +463,14 @@ export interface StudioOverview {
 export interface PlanDto {
   code: "TRIAL" | "STARTER" | "STUDIO" | "STUDIO_PRO";
   name: string;
+  /** What a studio signing up today pays per month: the launch price while the offer is open. */
   monthlyPriceEur: number;
+  /** The list price. */
+  regularPriceEur: number;
+  /** What studios that joined during the launch offer pay, for as long as they stay. */
+  launchPriceEur: number;
+  /** Studios created before this keep the launch prices. */
+  launchPricesUntil: string;
   /** `null` means unlimited. */
   albumsPerPeriod: number | null;
   seats: number | null;

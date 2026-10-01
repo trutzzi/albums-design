@@ -1,4 +1,4 @@
-import { PLANS, type PlanCode } from "../../identity/domain/plan";
+import { PLANS, monthlyPriceFor, type PlanCode } from "../../identity/domain/plan";
 
 /**
  * The raw facts the business numbers are computed from — small, flat rows each source
@@ -78,6 +78,7 @@ export function computeBusinessStats(input: StatsInput, now: Date = new Date()):
   };
 
   // --- revenue ----------------------------------------------------------------
+  const joined = new Map(input.studios.map((studio) => [studio.id, studio.createdAt]));
   const paying = input.subscriptions.filter((sub) => sub.planCode !== "TRIAL" && sub.status === "ACTIVE");
   const planCounts = new Map<PlanCode, number>();
   for (const sub of input.subscriptions) planCounts.set(sub.planCode, (planCounts.get(sub.planCode) ?? 0) + 1);
@@ -135,7 +136,8 @@ export function computeBusinessStats(input: StatsInput, now: Date = new Date()):
     },
     activeStudios: { d7: activeIn(7), d30: activeIn(30) },
     revenue: {
-      mrrEur: paying.reduce((sum, sub) => sum + PLANS[sub.planCode].monthlyPriceEur, 0),
+      // Each studio at what it actually pays: early studios keep their launch price.
+      mrrEur: paying.reduce((sum, sub) => sum + monthlyPriceFor(PLANS[sub.planCode], joined.get(sub.studioId) ?? now), 0),
       payingStudios: paying.length,
       trialToPaidPct: total === 0 ? 0 : Math.round((paying.length / total) * 1000) / 10,
       pastDue: input.subscriptions.filter((sub) => sub.status === "PAST_DUE").length,

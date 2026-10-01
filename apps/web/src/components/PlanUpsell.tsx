@@ -31,7 +31,7 @@ export function PlanUpsell({ feature }: { feature: UpsellFeature }) {
   if (!current || INCLUDES[feature](current)) return null;
   const target = [...(plans.data ?? [])]
     .filter((plan) => plan.code !== "TRIAL" && INCLUDES[feature](plan))
-    .sort((a, b) => a.monthlyPriceEur - b.monthlyPriceEur)[0];
+    .sort((a, b) => a.regularPriceEur - b.regularPriceEur)[0];
   if (!target) return null;
 
   const subject = encodeURIComponent(`Upgrade ${studio.data?.studio.name ?? ""} to ${target.name}`.trim());
@@ -41,7 +41,12 @@ export function PlanUpsell({ feature }: { feature: UpsellFeature }) {
         <p className="upsell__title">{t(`upsell.${feature}.title`)}</p>
         <p className="upsell__body">{t(`upsell.${feature}.body`)}</p>
         <p className="upsell__plan">
-          {t("upsell.includedIn", { plan: target.name, price: target.monthlyPriceEur, current: current.name })}
+          {t("upsell.includedIn", {
+            plan: target.name,
+            // What this studio would pay: early studios keep launch prices on every plan.
+            price: studio.data?.subscription.launchPrice ? target.launchPriceEur : target.regularPriceEur,
+            current: current.name,
+          })}
         </p>
       </div>
       <a className="button button--primary button--small" href={`mailto:${UPGRADE_EMAIL}?subject=${subject}`}>

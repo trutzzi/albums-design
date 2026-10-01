@@ -5,6 +5,7 @@ import { getAdminMe } from "../lib/api";
 import { FeedbackButton } from "./FeedbackButton";
 import { useAvailableTour } from "./GuidedTour";
 import { HowItWorksHost, openHowItWorks } from "./HowItWorks";
+import { LaunchOfferHost } from "./LaunchOffer";
 import { useAuth } from "../app/AuthContext";
 import { useLanguage } from "../lib/i18n/LanguageContext";
 import { ThemeToggle } from "./ThemeToggle";
@@ -118,6 +119,7 @@ export function AppHeader() {
         </div>
       </header>
       <HowItWorksHost />
+      <LaunchOfferHost />
     </>
   );
 }

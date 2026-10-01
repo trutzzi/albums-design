@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { sendApplicationError } from "../../../../interface/error-translator";
 import { loginInputSchema, registerInputSchema, studioBrandingSchema } from "@albumflow/contracts";
-import { PLANS } from "../../domain/plan";
+import { LAUNCH_PRICES_UNTIL, PLANS, currentPriceEur } from "../../domain/plan";
 import type { StudioAdministrationUseCase } from "../../application/use-cases/studio-administration.use-case";
 import type { RegisterUseCase } from "../../application/use-cases/register.use-case";
 import type { LoginUseCase } from "../../application/use-cases/login.use-case";
@@ -172,6 +172,9 @@ export function registerBillingRoutes(app: FastifyInstance, billing: BillingUseC
 function toPlanDto(plan: (typeof PLANS)[keyof typeof PLANS]) {
   return {
     ...plan,
+    /** What a studio signing up today pays: the launch price while the offer is open. */
+    monthlyPriceEur: currentPriceEur(plan),
+    launchPricesUntil: LAUNCH_PRICES_UNTIL.toISOString(),
     albumsPerPeriod: Number.isFinite(plan.albumsPerPeriod) ? plan.albumsPerPeriod : null,
     seats: Number.isFinite(plan.seats) ? plan.seats : null,
     maxPhotosPerShoot: Number.isFinite(plan.maxPhotosPerShoot) ? plan.maxPhotosPerShoot : null,

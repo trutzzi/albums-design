@@ -85,7 +85,8 @@ describe("business stats", () => {
   });
 
   it("sums monthly revenue from paying, active plans only", () => {
-    assert.equal(stats.revenue.mrrEur, PLANS.STUDIO.monthlyPriceEur + PLANS.STARTER.monthlyPriceEur, "a past-due Starter is not revenue");
+    // Every studio here joined during the launch offer, so each pays its launch price.
+    assert.equal(stats.revenue.mrrEur, PLANS.STUDIO.launchPriceEur + PLANS.STARTER.launchPriceEur, "a past-due Starter is not revenue");
     assert.equal(stats.revenue.payingStudios, 2);
     assert.equal(stats.revenue.trialToPaidPct, 50);
     assert.equal(stats.revenue.pastDue, 1);

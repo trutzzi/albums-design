@@ -1,3 +1,4 @@
+import { hasLaunchPrice, monthlyPriceFor } from "../../domain/plan";
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import {
   ConflictError,
@@ -42,6 +43,10 @@ export interface StudioOverview {
     hasBillingAccount: boolean;
     /** The plan shows the studio's own branding on client pages. */
     whiteLabel: boolean;
+    /** What this studio pays per month for its plan. */
+    priceEur: number;
+    /** The studio joined during the launch offer and keeps launch prices on every plan. */
+    launchPrice: boolean;
   };
   members: { id: string; name: string; email: string; role: StudioRole; accepted: boolean }[];
 }
@@ -108,6 +113,8 @@ export class StudioAdministrationUseCase {
         watermarkExports: plan.watermarkExports,
         hasBillingAccount: subscription.externalCustomerId !== undefined,
         whiteLabel: plan.whiteLabelReview,
+        priceEur: monthlyPriceFor(plan, studio.createdAt),
+        launchPrice: hasLaunchPrice(studio.createdAt),
       },
       members: members.map((member) => ({
         id: member.id.toString(),

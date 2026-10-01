@@ -1396,6 +1396,31 @@ a:focus-visible,
   font-size: 1.25rem;
   font-weight: 700;
 }
+.plan-price__regular {
+  margin-left: 4px;
+  color: var(--ink-faint);
+  font-size: 0.85em;
+  font-weight: 400;
+}
+.launch-offer__plans {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.launch-offer__plans li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.launch-offer__plans span {
+  font-weight: 700;
+}
 .plan-card ul {
   margin: 0 0 6px;
   padding-left: 18px;
