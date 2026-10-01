@@ -1,10 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { sendApplicationError } from "../../../../interface/error-translator";
+import { sendApplicationError } from "#src/interface/error-translator";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { confirmUploadSchema, createProjectSchema, requestUploadSchema } from "@albumflow/contracts";
-import { NotFoundError } from "../../../../shared-kernel/errors";
-import { authenticatedStudioId } from "../../../../interface/tenancy";
+import { NotFoundError } from "#src/shared-kernel/errors";
+import { authenticatedStudioId } from "#src/interface/tenancy";
 import { Project } from "../../domain/project";
 import type { ProjectRepository } from "../../domain/project-repository";
 import type { RequestUploadUseCase } from "../../application/use-cases/request-upload/request-upload.use-case";

@@ -1,6 +1,6 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { AlbumRepository } from "../../../album-composition/domain/album-repository";
-import type { ExportJobRepository } from "../../../export-print/domain/export-job-repository";
+import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
+import type { ExportJobRepository } from "#src/modules/export-print/domain/export-job-repository";
 import type { DeliveryDirectory } from "../../application/ports/delivery-directory";
 
 export class ExportPrintDeliveryDirectory implements DeliveryDirectory {

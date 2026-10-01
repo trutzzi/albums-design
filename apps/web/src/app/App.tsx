@@ -18,7 +18,7 @@ import { ResetPasswordPage } from "../features/auth/ResetPasswordPage";
 import { VerifyEmailPage } from "../features/auth/VerifyEmailPage";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { RequireAuth } from "./RequireAuth";
-import { LanguageProvider, useLanguage } from "../lib/i18n/LanguageContext";
+import { LanguageProvider } from "../lib/i18n/LanguageContext";
 
 const AUTH_PAGES = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
 

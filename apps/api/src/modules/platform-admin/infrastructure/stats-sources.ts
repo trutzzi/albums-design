@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import type { Database } from "../../../db/client";
+import type { Database } from "#src/db/client";
 import {
   albums,
   exportJobs,
@@ -8,7 +8,7 @@ import {
   reviewSessions,
   studios,
   subscriptions,
-} from "../../../db/schema";
+} from "#src/db/schema";
 import type { StatsInput } from "../domain/business-stats";
 import { dayKey } from "../domain/business-stats";
 import type { StatsSource } from "../application/ports/stats-source";

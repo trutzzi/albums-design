@@ -1,6 +1,6 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { ProjectRepository } from "../../../media-ingestion/domain/project-repository";
-import type { PhotoAnalysisRepository } from "../../../photo-intelligence/domain/photo-analysis-repository";
+import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
+import type { PhotoAnalysisRepository } from "#src/modules/photo-intelligence/domain/photo-analysis-repository";
 import type { CandidatePhoto } from "../../domain/layout-planner";
 import type {
   AnalysedPhotoDirectory,

@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { sendApplicationError } from "../../../../interface/error-translator";
-import { streamZip } from "../../../../interface/zip-stream";
-import { grantFrom } from "../../../../interface/client-errors";
+import { sendApplicationError } from "#src/interface/error-translator";
+import { streamZip } from "#src/interface/zip-stream";
+import { grantFrom } from "#src/interface/client-errors";
 import type { DownloadSessionAdminUseCase } from "../../application/use-cases/download-session-admin.use-case";
 import type { DownloadPortalUseCase } from "../../application/use-cases/download-portal.use-case";
 

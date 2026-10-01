@@ -1,11 +1,11 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { ProjectRepository } from "../../../media-ingestion/domain/project-repository";
-import type { PhotoRepository } from "../../../media-ingestion/domain/photo-repository";
-import type { ListProjectPhotosUseCase } from "../../../media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
+import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
+import type { ListProjectPhotosUseCase } from "#src/modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
 import type { PickGateway, PickNotifier } from "../../application/ports/pick-gateway";
-import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
-import type { PhotoDimensionsDirectory } from "../../../../shared-kernel/photo-dimensions";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import type { StudioBrandingDirectory } from "#src/shared-kernel/studio-branding";
+import type { PhotoDimensionsDirectory } from "#src/shared-kernel/photo-dimensions";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 /** Anti-corruption layer over Media Ingestion: the client only ever sees display copies, never originals. */
 export class MediaIngestionPickGateway implements PickGateway {

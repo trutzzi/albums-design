@@ -4,7 +4,7 @@ import {
   NotFoundError,
   ValidationError,
   type ApplicationError,
-} from "../../../../../shared-kernel/errors";
+} from "#src/shared-kernel/errors";
 import type { AlbumCoverDTO, AlbumStyleDTO, SpreadDTO, TextBlockDTO } from "@albumflow/contracts";
 import {
   Album,
@@ -13,9 +13,9 @@ import {
   type PhotoTreatment,
   type SlotFrame,
   SpreadLockedError,
-} from "../../../domain/album";
-import type { AlbumRepository } from "../../../domain/album-repository";
-import { findTemplate } from "../../../domain/layout-template";
+} from "#src/modules/album-composition/domain/album";
+import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
+import { findTemplate } from "#src/modules/album-composition/domain/layout-template";
 
 export type AlbumEditCommand =
   | { type: "RENAME"; title: string }

@@ -1,5 +1,5 @@
 import type { VisionClassifier, VisionVerdict } from "../../application/ports/vision-classifier";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 /**
  * Wraps a classifier that depends on something outside this process (a local

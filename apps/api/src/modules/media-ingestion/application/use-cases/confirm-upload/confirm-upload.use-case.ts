@@ -1,9 +1,9 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { NotFoundError, ValidationError, type ApplicationError } from "../../../../../shared-kernel/errors";
-import type { PhotoRepository } from "../../../domain/photo-repository";
+import { NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
 import type { ObjectStorage } from "../../ports/object-storage";
 import type { JobQueue } from "../../ports/job-queue";
-import { consoleLogger, type Logger } from "../../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 const PHOTO_INTELLIGENCE_QUEUE = "photo-intelligence";
 const MEDIA_QUEUE = "media-ingestion";

@@ -1,4 +1,4 @@
-import type { EmailSender } from "../../../../shared-kernel/email";
+import type { EmailSender } from "#src/shared-kernel/email";
 
 export type ResetLanguage = "en" | "ro";
 

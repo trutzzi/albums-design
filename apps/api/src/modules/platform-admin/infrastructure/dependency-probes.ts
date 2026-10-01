@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import type { Database } from "../../../db/client";
+import type { Database } from "#src/db/client";
 import type { DependencyProbe } from "../application/ports/stats-source";
 
 type QueueCounts = Awaited<ReturnType<DependencyProbe["queues"]>>;

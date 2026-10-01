@@ -1,6 +1,6 @@
 import { and, asc, count, eq, inArray, isNull, ne } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { Database } from "../../../../db/client";
+import type { Database } from "#src/db/client";
 import type { PhotoRepository } from "../../domain/photo-repository";
 import { Photo, type PhotoStatus } from "../../domain/photo";
 import { StorageKey } from "../../domain/value-objects/storage-key";

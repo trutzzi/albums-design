@@ -1,5 +1,5 @@
 import type { ClientBrandingDTO } from "@albumflow/contracts";
-import type { InlineImage } from "../../../../shared-kernel/email";
+import type { InlineImage } from "#src/shared-kernel/email";
 
 /** The house colour, for studios whose plan does not include their own branding. */
 export const ALBUMFLOW_ACCENT = "#ad5522";

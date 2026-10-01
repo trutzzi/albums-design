@@ -1,8 +1,8 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { ConflictError, type ApplicationError } from "../../../../../shared-kernel/errors";
-import type { PhotoRepository } from "../../../domain/photo-repository";
+import { ConflictError, type ApplicationError } from "#src/shared-kernel/errors";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
 import type { ObjectStorageWithBody } from "../../ports/object-storage";
-import { consoleLogger, type Logger } from "../../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 /**
  * Throws away an upload that never finished — what a cancelled batch leaves behind.

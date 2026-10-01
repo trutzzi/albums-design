@@ -1,4 +1,4 @@
-import type { EmailSender } from "../../../../shared-kernel/email";
+import type { EmailSender } from "#src/shared-kernel/email";
 import type { EmailBrand } from "./email-brand";
 
 export type InvitationKind = "pick" | "review" | "download";

@@ -1,11 +1,11 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { AlbumRepository } from "../../../album-composition/domain/album-repository";
-import type { PhotoRepository } from "../../../media-ingestion/domain/photo-repository";
-import type { PhotoByteSource } from "../../../photo-intelligence/application/ports/photo-source";
+import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
+import type { PhotoByteSource } from "#src/modules/photo-intelligence/application/ports/photo-source";
 import type { PhotoResolver, RenderableAlbum } from "../../application/ports/album-pdf-renderer";
 import type { ExportAlbumGateway } from "../../application/use-cases/request-export.use-case";
-import type { PlanFeatureDirectory } from "../../../../shared-kernel/plan-features";
-import type { PhotoFocusDirectory } from "../../../../shared-kernel/photo-focus";
+import type { PlanFeatureDirectory } from "#src/shared-kernel/plan-features";
+import type { PhotoFocusDirectory } from "#src/shared-kernel/photo-focus";
 
 export const TRIAL_WATERMARK = "AlbumFlow · trial";
 

@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { Database } from "../../../../db/client";
+import type { Database } from "#src/db/client";
 import type { ProjectRepository } from "../../domain/project-repository";
 import { Project } from "../../domain/project";
 import { projects } from "./schema";

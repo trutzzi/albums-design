@@ -4,7 +4,7 @@ import {
   NotFoundError,
   ValidationError,
   type ApplicationError,
-} from "../../../../shared-kernel/errors";
+} from "#src/shared-kernel/errors";
 import {
   ReviewClosedError,
   ReviewExpiredError,

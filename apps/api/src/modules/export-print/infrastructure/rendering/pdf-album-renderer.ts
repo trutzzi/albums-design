@@ -14,7 +14,7 @@ import {
   type TextBlockDTO,
 } from "@albumflow/contracts";
 import { AlbumFonts, wrapText } from "./album-fonts";
-import { findTemplate } from "../../../album-composition/domain/layout-template";
+import { findTemplate } from "#src/modules/album-composition/domain/layout-template";
 import { mmToPoints, type PrintProfile } from "../../domain/print-profile";
 import type {
   AlbumPdfRenderer,

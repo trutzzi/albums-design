@@ -1,5 +1,5 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { DownloadSessionRepository } from "../../../review-collaboration/domain/download-session-repository";
+import type { DownloadSessionRepository } from "#src/modules/review-collaboration/domain/download-session-repository";
 import type { DownloadHoldDirectory } from "../../application/ports/download-holds";
 
 export class ReviewCollaborationDownloadHolds implements DownloadHoldDirectory {

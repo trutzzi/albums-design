@@ -1,9 +1,9 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { PhotoRepository } from "../../../domain/photo-repository";
-import type { Photo } from "../../../domain/photo";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
+import type { Photo } from "#src/modules/media-ingestion/domain/photo";
 import type { ObjectStorage } from "../../ports/object-storage";
-import { compareFileNames } from "../../../../../shared-kernel/natural-order";
-import type { StorageProvider } from "../../../../../shared-kernel/storage-provider";
+import { compareFileNames } from "#src/shared-kernel/natural-order";
+import type { StorageProvider } from "#src/shared-kernel/storage-provider";
 
 const PREVIEW_TTL_SECONDS = 60 * 60;
 

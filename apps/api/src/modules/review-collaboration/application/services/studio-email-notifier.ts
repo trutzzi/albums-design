@@ -1,9 +1,9 @@
-import type { EmailSender } from "../../../../shared-kernel/email";
+import type { EmailSender } from "#src/shared-kernel/email";
 import type { DownloadNotifier, StudioContacts } from "../ports/delivery-gateway";
 import type { PickNotifier } from "../ports/pick-gateway";
 import type { ReviewNotifier } from "../ports/album-gateway";
 import type { ClientContactDirectory } from "../ports/client-contact";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 /**
  * Tells the studio's owners by email when a client does something that needs

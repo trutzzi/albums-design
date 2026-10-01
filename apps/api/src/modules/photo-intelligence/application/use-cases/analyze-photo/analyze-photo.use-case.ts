@@ -1,7 +1,7 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import type { ApplicationError } from "../../../../../shared-kernel/errors";
-import { PhotoAnalysis } from "../../../domain/photo-analysis";
-import type { PhotoAnalysisRepository } from "../../../domain/photo-analysis-repository";
+import type { ApplicationError } from "#src/shared-kernel/errors";
+import { PhotoAnalysis } from "#src/modules/photo-intelligence/domain/photo-analysis";
+import type { PhotoAnalysisRepository } from "#src/modules/photo-intelligence/domain/photo-analysis-repository";
 import type { ImageInspector } from "../../ports/image-inspector";
 import type { VisionClassifier } from "../../ports/vision-classifier";
 import type { PhotoByteSource } from "../../ports/photo-source";

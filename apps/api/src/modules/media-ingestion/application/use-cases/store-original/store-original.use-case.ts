@@ -1,7 +1,7 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { ConflictError, type ApplicationError } from "../../../../../shared-kernel/errors";
-import type { StorageProvider } from "../../../../../shared-kernel/storage-provider";
-import type { PhotoRepository } from "../../../domain/photo-repository";
+import { ConflictError, type ApplicationError } from "#src/shared-kernel/errors";
+import type { StorageProvider } from "#src/shared-kernel/storage-provider";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
 import type { ObjectStorageWithBody } from "../../ports/object-storage";
 
 /** What happened to one photo's original. Every outcome except a thrown error means "nothing more to do". */

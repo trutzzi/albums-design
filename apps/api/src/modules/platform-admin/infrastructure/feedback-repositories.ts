@@ -1,6 +1,6 @@
 import { and, avg, count, desc, eq, gte, inArray, isNotNull, type SQL } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { Database } from "../../../db/client";
+import type { Database } from "#src/db/client";
 import { Feedback, type FeedbackKind, type FeedbackRepository, type FeedbackStatus } from "../domain/feedback";
 import { feedback } from "./schema";
 

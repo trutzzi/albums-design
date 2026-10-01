@@ -1,16 +1,16 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { ProjectRepository } from "../../../media-ingestion/domain/project-repository";
-import type { PhotoRepository } from "../../../media-ingestion/domain/photo-repository";
-import type { Photo } from "../../../media-ingestion/domain/photo";
-import type { ObjectStorageWithBody } from "../../../media-ingestion/application/ports/object-storage";
-import type { StudioMemberRepository, StudioRepository } from "../../../identity/domain/repositories";
-import { compareFileNames } from "../../../../shared-kernel/natural-order";
-import type { StorageProvider } from "../../../../shared-kernel/storage-provider";
-import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
+import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
+import type { Photo } from "#src/modules/media-ingestion/domain/photo";
+import type { ObjectStorageWithBody } from "#src/modules/media-ingestion/application/ports/object-storage";
+import type { StudioMemberRepository, StudioRepository } from "#src/modules/identity/domain/repositories";
+import { compareFileNames } from "#src/shared-kernel/natural-order";
+import type { StorageProvider } from "#src/shared-kernel/storage-provider";
+import type { StudioBrandingDirectory } from "#src/shared-kernel/studio-branding";
 import type { DeliverablePhoto, DeliveryGateway, StudioContacts } from "../../application/ports/delivery-gateway";
 import type { PickNotifier } from "../../application/ports/pick-gateway";
 import type { ReviewNotifier } from "../../application/ports/album-gateway";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 /** Anti-corruption layer over Media Ingestion for handing originals to a client. */
 export class MediaIngestionDeliveryGateway implements DeliveryGateway {

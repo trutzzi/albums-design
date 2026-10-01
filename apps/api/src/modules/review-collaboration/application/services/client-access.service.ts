@@ -1,15 +1,15 @@
 import { Result, type UniqueEntityId } from "@albumflow/domain-kernel";
-import { generateAccessPassword, normalizeAccessPassword } from "../../../../shared-kernel/access-code";
-import { AttemptLimiter } from "../../../../shared-kernel/attempt-limiter";
-import type { ClientGrantSigner, GrantKind } from "../../../../shared-kernel/client-grant";
+import { generateAccessPassword, normalizeAccessPassword } from "#src/shared-kernel/access-code";
+import { AttemptLimiter } from "#src/shared-kernel/attempt-limiter";
+import type { ClientGrantSigner, GrantKind } from "#src/shared-kernel/client-grant";
 import {
   InvalidPasswordError,
   PasswordRequiredError,
   TooManyAttemptsError,
   type ApplicationError,
-} from "../../../../shared-kernel/errors";
-import { hashPassword, verifyPassword } from "../../../../shared-kernel/password-hasher";
-import type { SecretBox } from "../../../../shared-kernel/secret-box";
+} from "#src/shared-kernel/errors";
+import { hashPassword, verifyPassword } from "#src/shared-kernel/password-hasher";
+import type { SecretBox } from "#src/shared-kernel/secret-box";
 
 /** Anything a client can be given a link to that may be password protected. */
 export interface ProtectedLink {

@@ -4,14 +4,14 @@ import {
   ConflictError,
   NotFoundError,
   type ApplicationError,
-} from "../../../../shared-kernel/errors";
+} from "#src/shared-kernel/errors";
 import { DownloadUnavailableError, type DownloadSession } from "../../domain/download-session";
 import type { DownloadSessionRepository } from "../../domain/download-session-repository";
 import { hashToken } from "../../domain/review-session";
 import type { DeliverablePhoto, DeliveryGateway, DownloadNotifier } from "../ports/delivery-gateway";
 import type { PickGateway, PickablePhoto } from "../ports/pick-gateway";
 import type { ClientAccessService } from "../services/client-access.service";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 export interface DownloadView {
   clientName: string;

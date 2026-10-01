@@ -1,5 +1,5 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { PhotoRepository } from "../../../media-ingestion/domain/photo-repository";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
 import type { PhotoLifecycle } from "../../application/ports/photo-lifecycle";
 
 export class MediaIngestionPhotoLifecycle implements PhotoLifecycle {

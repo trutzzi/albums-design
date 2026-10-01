@@ -3,7 +3,7 @@ import {
   ConflictError,
   NotFoundError,
   type ApplicationError,
-} from "../../../../shared-kernel/errors";
+} from "#src/shared-kernel/errors";
 import type { ExportJobRepository } from "../../domain/export-job-repository";
 import type { ExportStorage } from "../ports/album-pdf-renderer";
 

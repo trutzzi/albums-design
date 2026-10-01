@@ -1,10 +1,10 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { NotFoundError, type ApplicationError } from "../../../../../shared-kernel/errors";
-import type { DerivativeVariant } from "../../../domain/value-objects/storage-key";
-import type { PhotoRepository } from "../../../domain/photo-repository";
+import { NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
+import type { DerivativeVariant } from "#src/modules/media-ingestion/domain/value-objects/storage-key";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
 import type { ImageResizer } from "../../ports/image-resizer";
 import type { ObjectStorageWithBody } from "../../ports/object-storage";
-import type { StorageProvider } from "../../../../../shared-kernel/storage-provider";
+import type { StorageProvider } from "#src/shared-kernel/storage-provider";
 
 /**
  * Two sizes, chosen from how the editor actually draws them: the tray and the

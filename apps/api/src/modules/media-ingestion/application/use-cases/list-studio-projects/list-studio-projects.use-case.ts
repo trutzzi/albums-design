@@ -1,12 +1,12 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { StorageProvider } from "../../../../../shared-kernel/storage-provider";
-import type { AlbumRepository } from "../../../../album-composition/domain/album-repository";
-import type { Photo } from "../../../domain/photo";
-import type { Project } from "../../../domain/project";
-import type { PhotoRepository } from "../../../domain/photo-repository";
-import type { ProjectRepository } from "../../../domain/project-repository";
+import type { StorageProvider } from "#src/shared-kernel/storage-provider";
+import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
+import type { Photo } from "#src/modules/media-ingestion/domain/photo";
+import type { Project } from "#src/modules/media-ingestion/domain/project";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
+import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
 import type { ObjectStorage } from "../../ports/object-storage";
-import { consoleLogger, type Logger } from "../../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 const COVER_TTL_SECONDS = 60 * 60;
 

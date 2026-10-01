@@ -4,7 +4,7 @@ import {
   NotFoundError,
   ValidationError,
   type ApplicationError,
-} from "../../../../shared-kernel/errors";
+} from "#src/shared-kernel/errors";
 import type { ReviewSessionRepository } from "../../domain/review-session-repository";
 import type { ClientAccessService } from "../services/client-access.service";
 import type { ClientContactDirectory } from "../ports/client-contact";

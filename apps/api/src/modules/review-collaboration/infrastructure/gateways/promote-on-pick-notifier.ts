@@ -1,7 +1,7 @@
-import type { JobQueue } from "../../../../shared-kernel/job-queue";
-import { QUEUES } from "../../../../shared-kernel/job-queue";
+import type { JobQueue } from "#src/shared-kernel/job-queue";
+import { QUEUES } from "#src/shared-kernel/job-queue";
 import type { PickNotifier } from "../../application/ports/pick-gateway";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 /**
  * A client's submitted picks are the strongest "selected" signal there is, so

@@ -1,7 +1,7 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { ClientBrandingDTO } from "@albumflow/contracts";
-import type { ProjectRepository } from "../../../media-ingestion/domain/project-repository";
-import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
+import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
+import type { StudioBrandingDirectory } from "#src/shared-kernel/studio-branding";
 import type { StudioRepository, SubscriptionRepository } from "../../domain/repositories";
 
 /** A shoot's studio branding, but only while the studio's plan includes white-label pages. */

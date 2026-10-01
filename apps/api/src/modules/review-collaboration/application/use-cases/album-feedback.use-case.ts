@@ -1,5 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { NotFoundError, type ApplicationError } from "../../../../shared-kernel/errors";
+import { NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
 import type { ReviewSession } from "../../domain/review-session";
 import type { ReviewSessionRepository } from "../../domain/review-session-repository";
 

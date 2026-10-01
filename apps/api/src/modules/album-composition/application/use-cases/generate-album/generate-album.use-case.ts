@@ -4,10 +4,10 @@ import {
   NotFoundError,
   ValidationError,
   type ApplicationError,
-} from "../../../../../shared-kernel/errors";
-import { Album, type AlbumFormat } from "../../../domain/album";
-import type { AlbumRepository } from "../../../domain/album-repository";
-import { planAlbum } from "../../../domain/layout-planner";
+} from "#src/shared-kernel/errors";
+import { Album, type AlbumFormat } from "#src/modules/album-composition/domain/album";
+import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
+import { planAlbum } from "#src/modules/album-composition/domain/layout-planner";
 import type {
   AlbumQuotaPolicy,
   AnalysedPhotoDirectory,

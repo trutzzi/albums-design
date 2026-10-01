@@ -1,5 +1,5 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { PickSessionRepository } from "../../../review-collaboration/domain/pick-session-repository";
+import type { PickSessionRepository } from "#src/modules/review-collaboration/domain/pick-session-repository";
 import type { ClientPickDirectory } from "../../application/ports/client-picks";
 
 export class ReviewCollaborationClientPickDirectory implements ClientPickDirectory {

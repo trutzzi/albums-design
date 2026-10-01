@@ -1,7 +1,7 @@
 import { and, count, eq, gte, inArray } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { Database } from "../../../../db/client";
-import { projects } from "../../../media-ingestion/infrastructure/persistence/schema";
+import type { Database } from "#src/db/client";
+import { projects } from "#src/modules/media-ingestion/infrastructure/persistence/schema";
 import { DEFAULT_STYLE } from "@albumflow/contracts";
 import { Album } from "../../domain/album";
 import type { AlbumRepository } from "../../domain/album-repository";

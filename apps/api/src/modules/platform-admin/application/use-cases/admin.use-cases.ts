@@ -1,18 +1,18 @@
 import { readFile } from "node:fs/promises";
 import os from "node:os";
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { NotFoundError, ValidationError, type ApplicationError } from "../../../../shared-kernel/errors";
-import type { EmailSender } from "../../../../shared-kernel/email";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import { NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
+import type { EmailSender } from "#src/shared-kernel/email";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 import type {
   StudioMemberRepository,
   StudioRepository,
   SubscriptionRepository,
-} from "../../../identity/domain/repositories";
-import { PLANS, type PlanCode } from "../../../identity/domain/plan";
-import type { Subscription } from "../../../identity/domain/subscription";
-import type { Studio } from "../../../identity/domain/studio";
-import type { ProjectRepository } from "../../../media-ingestion/domain/project-repository";
+} from "#src/modules/identity/domain/repositories";
+import { PLANS, type PlanCode } from "#src/modules/identity/domain/plan";
+import type { Subscription } from "#src/modules/identity/domain/subscription";
+import type { Studio } from "#src/modules/identity/domain/studio";
+import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
 import { computeBusinessStats, type BusinessStats } from "../../domain/business-stats";
 import {
   Feedback,
@@ -21,8 +21,8 @@ import {
   type FeedbackStatus,
 } from "../../domain/feedback";
 import type { DependencyProbe, StatsSource } from "../ports/stats-source";
-import type { HttpStats, RequestMetrics } from "../../../../interface/request-metrics";
-import type { StorageProvider } from "../../../../shared-kernel/storage-provider";
+import type { HttpStats, RequestMetrics } from "#src/interface/request-metrics";
+import type { StorageProvider } from "#src/shared-kernel/storage-provider";
 
 /** The long-term store's space, or why it could not be read. `null`: no long-term store. */
 export type StorageSpace =

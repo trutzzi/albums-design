@@ -1,7 +1,7 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { ConflictError, NotFoundError, type ApplicationError } from "../../../../../shared-kernel/errors";
-import type { StorageProvider } from "../../../../../shared-kernel/storage-provider";
-import type { PhotoRepository } from "../../../domain/photo-repository";
+import { ConflictError, NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
+import type { StorageProvider } from "#src/shared-kernel/storage-provider";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
 import type { AlbumPlacementDirectory } from "../../ports/album-placements";
 import type { ClientPickDirectory } from "../../ports/client-picks";
 import type { ObjectStorageWithBody } from "../../ports/object-storage";

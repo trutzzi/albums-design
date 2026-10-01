@@ -1,6 +1,6 @@
 import type { ClientContactDirectory } from "../ports/client-contact";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
-import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
+import type { StudioBrandingDirectory } from "#src/shared-kernel/studio-branding";
 import { emailBrandFor } from "./email-brand";
 import type { StudioContacts } from "../ports/delivery-gateway";
 import type { ClientInvitationMailer, InvitationKind, InvitationLanguage } from "./client-invitation.mailer";

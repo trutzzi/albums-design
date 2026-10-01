@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { Database } from "../../../../db/client";
+import type { Database } from "#src/db/client";
 import { ReviewSession } from "../../domain/review-session";
 import type { ReviewSessionRepository } from "../../domain/review-session-repository";
 import { reviewSessions } from "./schema";

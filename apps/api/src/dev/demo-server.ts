@@ -48,7 +48,6 @@ import { StudioEmailNotifier } from "../modules/review-collaboration/application
 import { ClientConfirmationMailer } from "../modules/review-collaboration/application/services/client-confirmation.mailer";
 import { DownloadSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/download-session-admin.use-case";
 import { DownloadPortalUseCase } from "../modules/review-collaboration/application/use-cases/download-portal.use-case";
-import { ReviewCollaborationDownloadHolds } from "../modules/media-ingestion/infrastructure/gateways/download-hold-gateway";
 import { ClientAccessService } from "../modules/review-collaboration/application/services/client-access.service";
 import { ReviewAccessUseCase } from "../modules/review-collaboration/application/use-cases/review-access.use-case";
 import { SecretBox } from "../shared-kernel/secret-box";
