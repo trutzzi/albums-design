@@ -13,6 +13,7 @@ import type { EmailMessage, EmailSender } from "../src/shared-kernel/email";
 import type { PickGateway } from "../src/modules/review-collaboration/application/ports/pick-gateway";
 import type { StudioContacts } from "../src/modules/review-collaboration/application/ports/delivery-gateway";
 import { InMemoryAlbumRepository, InMemoryPickSessionRepository, InMemoryProjectRepository } from "./support/in-memory";
+import { silentLogger } from "../src/shared-kernel/logger";
 
 const SECRET = "test-secret-test-secret-test-secret-123";
 const ORIGIN = "https://app.example.test";
@@ -53,7 +54,7 @@ async function world(options: { clientName?: string; clientEmail?: string } = {}
     contacts,
     studios,
     ORIGIN,
-    () => {},
+    silentLogger,
   );
   const gateway: PickGateway = {
     loadProject: async (id) => (id === project.id.toString() ? { id, name: "Elena & Radu" } : undefined),

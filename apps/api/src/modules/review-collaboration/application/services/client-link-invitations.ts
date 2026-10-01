@@ -1,4 +1,7 @@
 import type { ClientContactDirectory } from "../ports/client-contact";
+import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
+import { emailBrandFor } from "./email-brand";
 import type { StudioContacts } from "../ports/delivery-gateway";
 import type { ClientInvitationMailer, InvitationKind, InvitationLanguage } from "./client-invitation.mailer";
 
@@ -36,7 +39,9 @@ export class ClientLinkInvitations {
     private readonly studios: StudioContacts,
     /** Where the client-facing app lives (WEB_ORIGIN), for building the link. */
     private readonly webOrigin: string,
-    private readonly log: (message: string) => void = console.error,
+    private readonly logger: Logger = consoleLogger,
+    /** The studio's own look, when its plan includes white-label pages. */
+    private readonly branding?: StudioBrandingDirectory,
   ) {}
 
   /** The app also serves the logo the email shows. */
@@ -52,7 +57,10 @@ export class ClientLinkInvitations {
   async invite(command: InviteCommand): Promise<InviteOutcome> {
     try {
       await this.contacts.remember(command.projectId, { name: command.clientName, email: command.to });
-      const studio = await this.studios.forProject(command.projectId);
+      const [studio, branding] = await Promise.all([
+        this.studios.forProject(command.projectId),
+        this.branding?.forProject(command.projectId) ?? null,
+      ]);
       await this.mailer.send({
         kind: command.kind,
         to: command.to,
@@ -67,11 +75,12 @@ export class ClientLinkInvitations {
         // The client reads the photographer's name at the top, not the tool's.
         ...(studio?.studioName ? { studioName: studio.studioName } : {}),
         ...(studio?.ownerEmails[0] ? { replyTo: studio.ownerEmails[0] } : {}),
+        brand: emailBrandFor(studio?.studioName, branding ?? null),
       });
       return { sentTo: command.to };
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown error";
-      this.log(`[email] could not send the ${command.kind} link for project ${command.projectId}: ${reason}`);
+      this.logger.error("could not send a client link invitation", { kind: command.kind, projectId: command.projectId, err: error });
       return { error: reason };
     }
   }

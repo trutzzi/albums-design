@@ -73,7 +73,7 @@ export function checkAlbum({ album, templates, analyses, existingPhotoIds }: Che
 
       const analysis = analyses.get(placement.photoId);
       if (!analysis || !analysis.width || !analysis.height) continue;
-      const rect = placement.frame ?? spacedSlotRect(slot, template.fullBleed, album.style.spacing);
+      const rect = placement.frame ?? spacedSlotRect(slot, template, album.style.spacing);
       const crop = effectiveCrop(placement.crop, analysis, rect, spreadWidthMm / spreadHeightMm);
 
       const dpi = printResolution(crop, analysis, rect, spreadWidthMm, spreadHeightMm);

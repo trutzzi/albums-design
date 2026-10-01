@@ -1,7 +1,8 @@
-import type { FastifyInstance, FastifyReply } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { sendApplicationError } from "../../../../interface/error-translator";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import { ApplicationError, NotFoundError } from "../../../../shared-kernel/errors";
+import { NotFoundError } from "../../../../shared-kernel/errors";
 import type { ExportJob } from "../../domain/export-job";
 import type { ExportJobRepository } from "../../domain/export-job-repository";
 import { PRINT_PROFILES } from "../../domain/print-profile";
@@ -32,7 +33,7 @@ export function registerExportRoutes(app: FastifyInstance, deps: ExportDependenc
       albumId,
       ...(body.printProfileId ? { printProfileId: body.printProfileId } : {}),
     });
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(202).send(toDto(result.getValue()));
   });
 
@@ -45,7 +46,7 @@ export function registerExportRoutes(app: FastifyInstance, deps: ExportDependenc
   app.get("/exports/:exportJobId/download", async (request, reply) => {
     const { exportJobId } = jobParams.parse(request.params);
     const job = await deps.jobs.findById(UniqueEntityId.create(exportJobId));
-    if (!job) return sendError(reply, new NotFoundError("Export job", exportJobId));
+    if (!job) return sendApplicationError(reply, new NotFoundError("Export job", exportJobId));
     if (job.status !== "READY" || !job.storageKey) {
       return reply.code(409).send({ code: "NOT_READY", message: `Export is ${job.status}.` });
     }
@@ -56,7 +57,7 @@ export function registerExportRoutes(app: FastifyInstance, deps: ExportDependenc
   app.delete("/exports/:exportJobId", async (request, reply) => {
     const { exportJobId } = jobParams.parse(request.params);
     const result = await deps.deleteExport.execute({ exportJobId });
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(204).send();
   });
 }
@@ -75,7 +76,3 @@ function toDto(job: ExportJob) {
   };
 }
 
-function sendError(reply: FastifyReply, error: ApplicationError) {
-  const status = error instanceof NotFoundError ? 404 : error.code === "CONFLICT" ? 409 : 422;
-  return reply.code(status).send({ code: error.code, message: error.message });
-}

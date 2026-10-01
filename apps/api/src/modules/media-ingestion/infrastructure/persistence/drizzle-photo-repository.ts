@@ -103,20 +103,35 @@ export class DrizzlePhotoRepository implements PhotoRepository {
     return Object.fromEntries(rows.map((row) => [row.projectId, Number(row.total)]));
   }
 
-  async findCoverPhoto(projectId: UniqueEntityId): Promise<Photo | undefined> {
-    const [row] = await this.db
-      .select()
+  async findCoverPhotos(projectIds: UniqueEntityId[]): Promise<Map<string, Photo>> {
+    if (projectIds.length === 0) return new Map();
+    // DISTINCT ON keeps the first row per shoot in ORDER BY order; (project_id, file_name) is indexed.
+    const rows = await this.db
+      .selectDistinctOn([photos.projectId])
       .from(photos)
-      .where(and(eq(photos.projectId, projectId.toString()), eq(photos.hasDerivatives, true)))
-      .orderBy(asc(photos.fileName))
-      .limit(1);
-    return row ? this.toDomain(row) : undefined;
+      .where(
+        and(
+          inArray(photos.projectId, projectIds.map((id) => id.toString())),
+          eq(photos.hasDerivatives, true),
+        ),
+      )
+      .orderBy(photos.projectId, asc(photos.fileName));
+    return new Map(rows.map((row) => [row.projectId, this.toDomain(row)]));
   }
 
   async findById(id: UniqueEntityId): Promise<Photo | undefined> {
     const [row] = await this.db.select().from(photos).where(eq(photos.id, id.toString())).limit(1);
     if (!row) return undefined;
     return this.toDomain(row);
+  }
+
+  async findByIds(ids: UniqueEntityId[]): Promise<Photo[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db
+      .select()
+      .from(photos)
+      .where(inArray(photos.id, ids.map((id) => id.toString())));
+    return rows.map((row) => this.toDomain(row));
   }
 
   async findByProjectId(projectId: UniqueEntityId): Promise<Photo[]> {

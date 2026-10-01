@@ -1,4 +1,5 @@
 import type { EmailSender } from "../../../../shared-kernel/email";
+import type { EmailBrand } from "./email-brand";
 
 export type InvitationKind = "pick" | "review" | "download";
 /** The photographer's own app language — they know which one their client reads. */
@@ -23,6 +24,8 @@ export interface Invitation {
   availableUntil?: Date | undefined;
   /** Where a reply should go — the photographer, never the no-reply mailbox. */
   replyTo?: string | undefined;
+  /** The studio's look and sender name, from what its plan includes. */
+  brand?: EmailBrand | undefined;
 }
 
 function formatDate(date: Date, language: InvitationLanguage): string {
@@ -173,7 +176,11 @@ const PAPER = "#f4f5f3";
  * blocked, and the link is repeated as text under the button for clients that strip it.
  */
 function renderHtml(invitation: Invitation, copy: Copy): string {
-  const { logoUrl, studioName } = invitation;
+  const { brand } = invitation;
+  const studioName = brand?.displayName ?? invitation.studioName;
+  // A white-label studio's own logo replaces AlbumFlow's.
+  const logoUrl = brand?.logo?.src ?? (brand && !brand.poweredBy ? undefined : invitation.logoUrl);
+  const accent = brand?.accent ?? ACCENT;
   const header = [
     logoUrl
       ? `<img src="${escapeHtml(logoUrl)}" width="132" alt="${escapeHtml(studioName ?? "AlbumFlow")}" style="display:block;margin:0 auto 14px;max-width:132px;height:auto;border:0">`
@@ -188,7 +195,7 @@ function renderHtml(invitation: Invitation, copy: Copy): string {
     .map(
       (step) =>
         `<tr>` +
-        `<td valign="top" style="width:18px;padding:0 0 10px 0;font:${stepFont};color:${ACCENT}">&bull;</td>` +
+        `<td valign="top" style="width:18px;padding:0 0 10px 0;font:${stepFont};color:${accent}">&bull;</td>` +
         `<td valign="top" style="padding:0 0 10px 0;font:${stepFont};color:${SOFT}">${escapeHtml(step)}</td>` +
         `</tr>`,
     )
@@ -216,7 +223,7 @@ function renderHtml(invitation: Invitation, copy: Copy): string {
         <table role="presentation" cellpadding="0" cellspacing="0" width="100%">${steps}</table>
       </td></tr>
       <tr><td style="padding:22px 28px 6px" align="center">
-        <a href="${escapeHtml(invitation.url)}" style="display:inline-block;background:${ACCENT};color:#ffffff;text-decoration:none;font:600 16px/1 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:15px 30px;border-radius:10px">${escapeHtml(copy.action)}</a>
+        <a href="${escapeHtml(invitation.url)}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font:600 16px/1 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:15px 30px;border-radius:10px">${escapeHtml(copy.action)}</a>
         <div style="padding-top:12px;font:13px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:${FAINT};word-break:break-all">${escapeHtml(invitation.url)}</div>
       </td></tr>
       <tr><td style="padding:0 28px">${password}</td></tr>
@@ -224,7 +231,7 @@ function renderHtml(invitation: Invitation, copy: Copy): string {
         <p style="margin:0;font:14px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:${FAINT}">${escapeHtml(copy.closing)}</p>
       </td></tr>
     </table>
-    <div style="padding:14px 0 0;font:12px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:${FAINT}">AlbumFlow</div>
+    ${brand && !brand.poweredBy ? "" : `<div style="padding:14px 0 0;font:12px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:${FAINT}">Sent with AlbumFlow</div>`}
   </td></tr>
 </table>
 </body></html>`;
@@ -274,6 +281,8 @@ export class ClientInvitationMailer {
       text: lines.join("\n"),
       html,
       ...(invitation.replyTo ? { replyTo: invitation.replyTo } : {}),
+      ...(invitation.brand ? { senderName: invitation.brand.senderName } : {}),
+      ...(invitation.brand?.logo ? { inlineImages: [invitation.brand.logo.image] } : {}),
     });
   }
 }

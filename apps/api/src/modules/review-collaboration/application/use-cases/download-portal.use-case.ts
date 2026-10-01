@@ -11,6 +11,7 @@ import { hashToken } from "../../domain/review-session";
 import type { DeliverablePhoto, DeliveryGateway, DownloadNotifier } from "../ports/delivery-gateway";
 import type { PickGateway, PickablePhoto } from "../ports/pick-gateway";
 import type { ClientAccessService } from "../services/client-access.service";
+import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
 
 export interface DownloadView {
   clientName: string;
@@ -45,7 +46,7 @@ export class DownloadPortalUseCase {
     private readonly sessions: DownloadSessionRepository,
     private readonly delivery: DeliveryGateway,
     private readonly notifier: DownloadNotifier,
-    private readonly log: (message: string) => void = console.error,
+    private readonly logger: Logger = consoleLogger,
     private readonly now: () => Date = () => new Date(),
     private readonly access?: ClientAccessService,
     /** Where the browsable display copies come from. Without it the page shows no gallery. */
@@ -122,7 +123,7 @@ export class DownloadPortalUseCase {
           });
         } catch (error) {
           // The client already has their photos; a bookkeeping or mail failure must not matter to them.
-          this.log(`[download] could not record/announce a finished download: ${String(error)}`);
+          this.logger.error("could not record or announce a finished download", { sessionId: session.id.toString(), err: error });
         }
       },
     });

@@ -81,7 +81,12 @@ export class RequestMetrics {
       requests += bucket.requests;
       errors += bucket.errors;
       all.push(...bucket.durations);
-      for (const [route, samples] of bucket.byRoute) routes.set(route, [...(routes.get(route) ?? []), ...samples]);
+      for (const [route, samples] of bucket.byRoute) {
+        // Appended in place: re-copying the merged list once per minute made this quadratic.
+        const merged = routes.get(route);
+        if (merged) merged.push(...samples);
+        else routes.set(route, [...samples]);
+      }
     }
 
     return {

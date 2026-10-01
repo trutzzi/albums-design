@@ -2,19 +2,23 @@ import { SharpLogoProcessor } from "../modules/identity/infrastructure/branding/
 import { SubscriptionStudioBrandingDirectory } from "../modules/identity/infrastructure/branding/subscription-branding-directory";
 import { NoHumanCheck, TurnstileHumanCheck } from "../shared-kernel/human-check";
 import { AnalysisPhotoFocusDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-focus-directory";
+import { AnalysisPhotoDimensionsDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-dimensions-directory";
 import Fastify from "fastify";
 import { SubscriptionPlanFeatureDirectory } from "../modules/identity/infrastructure/gateways/subscription-plan-features";
 import cors from "@fastify/cors";
-import { ZodError } from "zod";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { MAX_UPLOAD_BYTES } from "@albumflow/contracts";
 
 import { registerStudioAuth } from "../interface/auth";
-import { clientErrorFrom } from "../shared-kernel/errors";
-import { registerTenancyGuard } from "../interface/tenancy";
+import { RepositoryResourceOwnership, registerTenancyGuard } from "../interface/tenancy";
+import { httpServerOptions, registerHttpFoundation, REQUEST_ID_HEADER } from "../interface/http-foundation";
+import { ConsoleLogger, type Logger } from "../shared-kernel/logger";
+import { ErrorRecordingLogger } from "../infrastructure/monitoring/error-recording-logger";
+import { InMemoryErrorLogRepository } from "../modules/platform-admin/infrastructure/error-log-repositories";
+import { ErrorInboxUseCase } from "../modules/platform-admin/application/use-cases/error-inbox.use-case";
 import { registerBillingRoutes, registerIdentityRoutes } from "../modules/identity/interface/http/routes";
 import { BillingUseCase } from "../modules/identity/application/use-cases/billing.use-case";
-import { RequestMetrics, registerRequestMetrics } from "../interface/request-metrics";
+import { RequestMetrics } from "../interface/request-metrics";
 import { InMemoryFeedbackRepository } from "../modules/platform-admin/infrastructure/feedback-repositories";
 import { InMemoryStatsSource } from "../modules/platform-admin/infrastructure/stats-sources";
 import { InProcessDependencyProbe } from "../modules/platform-admin/infrastructure/dependency-probes";
@@ -36,11 +40,12 @@ import { registerAlbumCompositionRoutes } from "../modules/album-composition/int
 import { registerReviewRoutes } from "../modules/review-collaboration/interface/http/routes";
 import { registerPickRoutes } from "../modules/review-collaboration/interface/http/pick-routes";
 import { registerDownloadRoutes } from "../modules/review-collaboration/interface/http/download-routes";
-import { CompositePickNotifier, IdentityStudioContacts, MediaIngestionDeliveryGateway } from "../modules/review-collaboration/infrastructure/gateways/delivery-gateway";
+import { CompositePickNotifier, CompositeReviewNotifier, IdentityStudioContacts, MediaIngestionDeliveryGateway } from "../modules/review-collaboration/infrastructure/gateways/delivery-gateway";
 import { ClientInvitationMailer } from "../modules/review-collaboration/application/services/client-invitation.mailer";
 import { ClientLinkInvitations } from "../modules/review-collaboration/application/services/client-link-invitations";
 import { ProjectClientContactDirectory } from "../modules/review-collaboration/infrastructure/gateways/client-contact-gateway";
 import { StudioEmailNotifier } from "../modules/review-collaboration/application/services/studio-email-notifier";
+import { ClientConfirmationMailer } from "../modules/review-collaboration/application/services/client-confirmation.mailer";
 import { DownloadSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/download-session-admin.use-case";
 import { DownloadPortalUseCase } from "../modules/review-collaboration/application/use-cases/download-portal.use-case";
 import { ReviewCollaborationDownloadHolds } from "../modules/media-ingestion/infrastructure/gateways/download-hold-gateway";
@@ -122,7 +127,6 @@ import {
 } from "./in-memory-adapters";
 import { LocalBlobStore } from "./local-blob-store";
 import { SynchronousJobQueue } from "./synchronous-job-queue";
-import { acceptEmptyJsonBody } from "../interface/empty-body";
 import { registerMediaRoutes } from "../interface/media-routes";
 import { MediaUrlSigner } from "../infrastructure/storage/media-url-signer";
 import { DigiStorageProvider } from "../infrastructure/storage/digistorage-storage-provider";
@@ -169,6 +173,11 @@ const UPLOADABLE_TYPES = [
 ];
 
 async function main() {
+  // Readable lines, not JSON: demo mode is read by a developer at a terminal. Errors are also
+  // kept for the admin Errors tab, in memory like everything else here.
+  const errorLog = new InMemoryErrorLogRepository();
+  const errorInbox = new ErrorInboxUseCase(errorLog, 30);
+  const logger: Logger = new ErrorRecordingLogger(new ConsoleLogger({ service: "demo" }), errorLog, "api");
   const studios = new InMemoryStudioRepository();
   const subscriptions = new InMemorySubscriptionRepository();
   const members = new InMemoryStudioMemberRepository();
@@ -203,7 +212,7 @@ async function main() {
           password: process.env.SMTP_PASSWORD || undefined,
           from: process.env.MAIL_FROM,
         })
-      : new LoggingEmailSender();
+      : new LoggingEmailSender(logger.child({ component: "email" }));
   const administration = new StudioAdministrationUseCase(studios, subscriptions, members, new SharpLogoProcessor());
   const register = new RegisterUseCase(
     studios,
@@ -223,6 +232,7 @@ async function main() {
     anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     ollamaBaseUrl: OLLAMA_BASE_URL,
     ollamaModel: OLLAMA_MODEL,
+    logger: logger.child({ component: "vision" }),
   });
   const mediaUrlSigner = new MediaUrlSigner(DEMO_JWT_SECRET, BASE_URL);
   let permanentStorage: StorageProvider | undefined;
@@ -388,17 +398,17 @@ async function main() {
   // Uploads land on this server in demo mode instead of going straight to S3, so the
   // body limit has to clear the contract's per-file ceiling. Fastify defaults to 1MB,
   // which every real camera file exceeds.
-  const app = Fastify({ logger: false, bodyLimit: MAX_UPLOAD_BYTES + 1024 * 1024 });
-  acceptEmptyJsonBody(app);
-  await app.register(cors, { origin: WEB_ORIGIN });
+  const app = Fastify({ ...httpServerOptions(undefined), bodyLimit: MAX_UPLOAD_BYTES + 1024 * 1024 });
+  const requestMetrics = new RequestMetrics();
+  // Demo mode shows the real failure message in the browser, which production never does.
+  registerHttpFoundation(app, { logger, metrics: requestMetrics, exposeInternalErrors: true });
+  await app.register(cors, { origin: WEB_ORIGIN, exposedHeaders: [REQUEST_ID_HEADER] });
 
   app.addContentTypeParser(UPLOADABLE_TYPES, { parseAs: "buffer" }, (_request, body, done) => {
     done(null, body);
   });
 
   app.get("/health", async () => ({ status: "ok", mode: "demo" }));
-  const requestMetrics = new RequestMetrics();
-  registerRequestMetrics(app, requestMetrics);
 
   // Stands in for S3 over HTTP so the browser can upload and load previews.
   app.put("/dev-storage/*", async (request, reply) => {
@@ -422,7 +432,7 @@ async function main() {
   });
 
   registerStudioAuth(app, studios, DEMO_JWT_SECRET, { publicPrefixes: ["/dev-storage/"] });
-  registerTenancyGuard(app, { projects, photos, albums, exportJobs });
+  registerTenancyGuard(app, new RepositoryResourceOwnership({ projects, photos, albums, exportJobs }));
 
   if (permanentStorage) registerMediaRoutes(app, { signer: mediaUrlSigner, provider: permanentStorage });
 
@@ -500,7 +510,14 @@ async function main() {
   );
   // No worker in demo mode: the unconfirmed-signup sweep runs on a timer in this process.
   const purgeUnconfirmed = new PurgeUnconfirmedSignupsUseCase(members, projects, deleteStudio);
-  setInterval(() => void purgeUnconfirmed.execute().catch(() => undefined), 60 * 60 * 1000).unref();
+  setInterval(
+    () =>
+      void purgeUnconfirmed
+        .execute()
+        .catch((error: unknown) => logger.warn("unconfirmed-signup sweep failed", { err: error }))
+        .then(() => errorInbox.purgeExpired()),
+    60 * 60 * 1000,
+  ).unref();
   registerPlatformAdminRoutes(app, {
     access: adminAccess,
     feedback: new FeedbackUseCase(feedbackRepository, members, studios, adminAccess, emailSender, WEB_ORIGIN),
@@ -530,6 +547,7 @@ async function main() {
     ),
     plans: new StudioPlansUseCase(studios, subscriptions, members, projects),
     deleteStudio,
+    errors: errorInbox,
   });
   const studioContacts = new IdentityStudioContacts(projects, members, studios);
   const clientContacts = new ProjectClientContactDirectory(projects, albums);
@@ -538,13 +556,19 @@ async function main() {
     clientContacts,
     studioContacts,
     process.env.WEB_ORIGIN ?? "http://localhost:5173",
+    logger.child({ component: "client-invitations" }),
+    studioBranding,
   );
   const studioEmail = new StudioEmailNotifier(
     emailSender,
     studioContacts,
     process.env.WEB_ORIGIN ?? "http://localhost:5173",
+    logger.child({ component: "studio-email" }),
+    clientContacts,
   );
-  const loggedAndEmailed = new CompositePickNotifier([new LoggingPickNotifier(), studioEmail]);
+  const clientEmail = new ClientConfirmationMailer(emailSender, clientContacts, studioContacts, logger.child({ component: "client-email" }), studioBranding);
+  const decided = new CompositeReviewNotifier([new LoggingReviewNotifier(), studioEmail, clientEmail]);
+  const loggedAndEmailed = new CompositePickNotifier([new LoggingPickNotifier(), studioEmail, clientEmail]);
 
   registerReviewRoutes(app, {
     openReviewSession: new OpenReviewSessionUseCase(
@@ -558,8 +582,8 @@ async function main() {
       reviewSessions,
       reviewGateway,
       permanentStorage
-        ? new PromoteOnApprovalNotifier(new LoggingReviewNotifier(), queue)
-        : new LoggingReviewNotifier(),
+        ? new PromoteOnApprovalNotifier(decided, queue)
+        : decided,
       clientAccess,
     ),
     albumFeedback: new AlbumFeedbackUseCase(reviewSessions),
@@ -570,6 +594,7 @@ async function main() {
     projects,
     photos,
     new ListProjectPhotosUseCase(photos, storage, permanentStorage),
+    { branding: studioBranding, dimensions: new AnalysisPhotoDimensionsDirectory(analyses) },
   );
   registerPickRoutes(app, {
     pickAdmin: new PickSessionAdminUseCase(pickSessions, pickGateway, clientAccess, invitations, clientContacts),
@@ -595,7 +620,7 @@ async function main() {
       downloadSessions,
       deliveryGateway,
       studioEmail,
-      console.error,
+      logger.child({ component: "download-portal" }),
       () => new Date(),
       clientAccess,
       pickGateway,
@@ -606,29 +631,6 @@ async function main() {
     deleteExport: new DeleteExportUseCase(exportJobs, storage),
     jobs: exportJobs,
     storage,
-  });
-
-  app.setErrorHandler((error, request, reply) => {
-    if (error instanceof ZodError) {
-      return reply
-        .code(400)
-        .send({ code: "BAD_REQUEST", message: error.issues.map((i) => i.message).join(", ") });
-    }
-    const clientError = clientErrorFrom(error);
-    if (clientError) {
-      return reply
-        .code(clientError.status)
-        .send({ code: clientError.code, message: clientError.message });
-    }
-    console.error(error);
-    const message = error instanceof Error ? error.message : "Something went wrong.";
-    requestMetrics.recordError({
-      at: new Date().toISOString(),
-      method: request.method,
-      route: request.routeOptions.url ?? request.url.split("?")[0] ?? "",
-      message,
-    });
-    return reply.code(500).send({ code: "INTERNAL_ERROR", message });
   });
 
   await app.listen({ port: PORT, host: "0.0.0.0" });

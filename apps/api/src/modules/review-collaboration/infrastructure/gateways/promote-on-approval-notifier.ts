@@ -1,6 +1,7 @@
 import type { JobQueue } from "../../../../shared-kernel/job-queue";
 import { QUEUES } from "../../../../shared-kernel/job-queue";
 import type { ReviewNotifier } from "../../application/ports/album-gateway";
+import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
 
 /**
  * When a client approves an album, the photos placed on it are the "selected"
@@ -13,7 +14,7 @@ export class PromoteOnApprovalNotifier implements ReviewNotifier {
   constructor(
     private readonly next: ReviewNotifier,
     private readonly jobs: JobQueue,
-    private readonly log: (message: string) => void = console.error,
+    private readonly logger: Logger = consoleLogger,
   ) {}
 
   async clientDecided(params: Parameters<ReviewNotifier["clientDecided"]>[0]): Promise<void> {
@@ -22,7 +23,8 @@ export class PromoteOnApprovalNotifier implements ReviewNotifier {
     try {
       await this.jobs.enqueue(QUEUES.storage, "promote-selected", { albumId: params.albumId });
     } catch (error) {
-      this.log(`[storage] could not queue promotion for album ${params.albumId}: ${String(error)}`);
+      // The retention sweep promotes placed photos itself, so this is delayed, not lost.
+      this.logger.warn("could not queue long-term promotion for an approved album", { albumId: params.albumId, err: error });
     }
   }
 }

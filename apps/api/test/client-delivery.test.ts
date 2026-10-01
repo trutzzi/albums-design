@@ -47,6 +47,15 @@ import {
   InMemoryStudioRepository,
 } from "./support/in-memory";
 import { Studio } from "../src/modules/identity/domain/studio";
+import { RecordingLogger } from "./support/recording-logger";
+import { silentLogger, type Logger } from "../src/shared-kernel/logger";
+
+/** For a path that must log nothing worth an operator's attention. */
+const failOnProblem: Logger = {
+  ...silentLogger,
+  warn: (message) => assert.fail(message),
+  error: (message) => assert.fail(message),
+};
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -91,7 +100,7 @@ async function world() {
   const gateway = new MediaIngestionDeliveryGateway(projects, photos, staging, permanent);
   const sent: EmailMessage[] = [];
   const sender: EmailSender = { id: "test", send: async (message) => void sent.push(message) };
-  const email = new StudioEmailNotifier(sender, new IdentityStudioContacts(projects, members), "https://app.example.test", () => {});
+  const email = new StudioEmailNotifier(sender, new IdentityStudioContacts(projects, members), "https://app.example.test", silentLogger);
   return { staging, permanent, photos, projects, members, sessions, project, addPhoto, gateway, sent, sender, email, contents };
 }
 
@@ -237,7 +246,7 @@ describe("client download portal", () => {
   async function opened(w: Awaited<ReturnType<typeof world>>, notifier: DownloadNotifier = noopNotifier, ttlDays?: number) {
     const admin = new DownloadSessionAdminUseCase(w.sessions, w.gateway);
     const link = (await admin.open({ projectId: w.project.id.toString(), clientName: "Elena", ...(ttlDays ? { ttlDays } : {}) })).getValue();
-    return { link, portal: new DownloadPortalUseCase(w.sessions, w.gateway, notifier, () => {}) };
+    return { link, portal: new DownloadPortalUseCase(w.sessions, w.gateway, notifier, silentLogger) };
   }
 
   it("tells the client what they are getting and for how long", async () => {
@@ -269,7 +278,7 @@ describe("client download portal", () => {
     await w2.addPhoto("a.jpg");
     const second = await opened(w2, noopNotifier, 1);
     [...w2.sessions.items.values()][0]!.recordDownload();
-    const later = new DownloadPortalUseCase(w2.sessions, w2.gateway, noopNotifier, () => {}, () => new Date(Date.now() + 2 * DAY));
+    const later = new DownloadPortalUseCase(w2.sessions, w2.gateway, noopNotifier, silentLogger, () => new Date(Date.now() + 2 * DAY));
     const expired = await later.prepare(second.link.token);
     assert.equal(expired.getError().code, "CONFLICT");
     assert.match(expired.getError().message, /expired/);
@@ -301,18 +310,19 @@ describe("client download portal", () => {
   it("never fails the client's download because the studio could not be told", async () => {
     const w = await world();
     await w.addPhoto("a.jpg");
-    const logged: string[] = [];
+    const logged = new RecordingLogger();
     const admin = new DownloadSessionAdminUseCase(w.sessions, w.gateway);
     const link = (await admin.open({ projectId: w.project.id.toString(), clientName: "E" })).getValue();
     const portal = new DownloadPortalUseCase(
       w.sessions,
       w.gateway,
       { photosDownloaded: async () => { throw new Error("mail server down"); } },
-      (message) => logged.push(message),
+      logged,
     );
     const prepared = (await portal.prepare(link.token)).getValue();
     await assert.doesNotReject(prepared.complete());
-    assert.equal(logged.length, 1);
+    assert.equal(logged.problems.length, 1);
+    assert.equal(logged.problems[0]!.level, "error", "a lost bookkeeping step is reported, not just logged");
   });
 
   it("has nothing to download when every original is gone", async () => {
@@ -354,7 +364,7 @@ describe("download routes — the ZIP itself", () => {
     const admin = new DownloadSessionAdminUseCase(w.sessions, w.gateway);
     registerDownloadRoutes(app, {
       downloadAdmin: admin,
-      downloadPortal: new DownloadPortalUseCase(w.sessions, w.gateway, notifier, () => {}),
+      downloadPortal: new DownloadPortalUseCase(w.sessions, w.gateway, notifier, silentLogger),
     });
     await app.listen({ port: 0, host: "127.0.0.1" });
     const base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
@@ -472,25 +482,26 @@ describe("emails to the studio", () => {
 
   it("never throws into the client's request when mail fails, and says nothing when there is no owner", async () => {
     const w = await world();
-    const logged: string[] = [];
+    const logged = new RecordingLogger();
     const failing = new StudioEmailNotifier(
       { id: "x", send: async () => { throw new Error("smtp down"); } },
       new IdentityStudioContacts(w.projects, w.members),
       "https://app.example.test",
-      (message) => logged.push(message),
+      logged,
     );
     await assert.doesNotReject(failing.picksSubmitted({ projectId: w.project.id.toString(), sessionId: "s", clientName: "E", photoIds: ["a"] }));
-    assert.equal(logged.length, 1);
+    assert.equal(logged.problems.length, 1);
+    assert.equal(logged.problems[0]!.level, "error");
 
     const noOwner = new StudioEmailNotifier(
       w.sender,
       { forProject: async () => ({ projectName: "x", ownerEmails: [] }) },
       "https://app.example.test",
-      (message) => logged.push(message),
+      logged,
     );
     await noOwner.picksSubmitted({ projectId: "p", sessionId: "s", clientName: "E", photoIds: ["a"] });
     assert.equal(w.sent.length, 0);
-    assert.match(logged.at(-1)!, /no owner email/);
+    assert.match(logged.entries.at(-1)!.message, /no owner email/);
   });
 
   it("uses the owner email shown in Studio settings, once even if an owner member has the same address", async () => {
@@ -515,7 +526,7 @@ describe("emails to the studio", () => {
         { picksSubmitted: async () => { throw new Error("boom"); } },
         { picksSubmitted: async () => void calls.push("second") },
       ],
-      () => {},
+      silentLogger,
     );
     await composite.picksSubmitted({ projectId: "p", sessionId: "s", clientName: "E", photoIds: [] });
     assert.deepEqual(calls, ["second"]);
@@ -605,7 +616,7 @@ describe("real SMTP delivery", () => {
         from: "AlbumFlow <notify@studio.ro>",
       });
       const w = await world();
-      const notifier = new StudioEmailNotifier(sender, new IdentityStudioContacts(w.projects, w.members), "https://app.example.test", (m) => assert.fail(m));
+      const notifier = new StudioEmailNotifier(sender, new IdentityStudioContacts(w.projects, w.members), "https://app.example.test", failOnProblem);
       await notifier.photosDownloaded({
         projectId: w.project.id.toString(),
         sessionId: "s",

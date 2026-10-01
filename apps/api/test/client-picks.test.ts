@@ -36,6 +36,7 @@ import {
   InMemoryProjectRepository,
   InMemoryReviewSessionRepository,
 } from "./support/in-memory";
+import { RecordingLogger } from "./support/recording-logger";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -476,18 +477,18 @@ describe("picks and the two-tier storage pipeline", () => {
     });
 
     const failing = { enqueue: async () => { throw new Error("redis down"); } } as unknown as InMemoryJobQueue;
-    const logged: string[] = [];
+    const logged = new RecordingLogger();
     const resilient = new PickPortalUseCase(
       w.pickSessions,
       w.gateway,
-      new PromoteOnPickNotifier({ picksSubmitted: async () => {} }, failing, (message) => logged.push(message)),
+      new PromoteOnPickNotifier({ picksSubmitted: async () => {} }, failing, logged),
     );
     const second = await w.openLink();
     await resilient.setPick(second.token, a.id.toString(), true);
     await resilient.setStage(second.token, "FINAL");
     const submitted = await resilient.submit(second.token);
     assert.ok(submitted.isSuccess, "the client's submission must not fail because Redis blinked");
-    assert.equal(logged.length, 1);
+    assert.equal(logged.problems.length, 1);
   });
 
   it("retention keeps a picked photo the sweep has to promote first, and purges the rest", async () => {

@@ -127,6 +127,27 @@ describe("the shoots list a photographer lands on", () => {
     assert.deepEqual([byName.get("First"), byName.get("Second")], [1, 2]);
   });
 
+  it("picks every shoot's cover in one lookup, the first processed photo by name", async () => {
+    const w = await world();
+    const first = await w.addProject("First");
+    const second = await w.addProject("Second");
+    await w.addPhoto(first, "b.jpg", { derivatives: true });
+    const firstCover = await w.addPhoto(first, "a.jpg", { derivatives: true });
+    const secondCover = await w.addPhoto(second, "z.jpg", { derivatives: true });
+    let lookups = 0;
+    const findCoverPhotos = w.photos.findCoverPhotos.bind(w.photos);
+    w.photos.findCoverPhotos = async (ids) => {
+      lookups++;
+      return findCoverPhotos(ids);
+    };
+
+    const summaries = await w.list.execute(w.studioId.toString());
+    assert.equal(lookups, 1, "one query for all covers, not one per shoot");
+    const cover = new Map(summaries.map((summary) => [summary.name, summary.coverThumbnailUrl]));
+    assert.ok(cover.get("First")?.includes(firstCover.storageKey.derivative("thumb").toString()));
+    assert.ok(cover.get("Second")?.includes(secondCover.storageKey.derivative("thumb").toString()));
+  });
+
   it("returns nothing for a studio with no shoots", async () => {
     const w = await world();
     assert.deepEqual(await w.list.execute(UniqueEntityId.create().toString()), []);

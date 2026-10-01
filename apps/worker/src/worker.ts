@@ -1,8 +1,10 @@
+import { performance } from "node:perf_hooks";
 import { Queue, Worker } from "bullmq";
 import type { ConnectionOptions, Job } from "bullmq";
-import { buildCompositionRoot } from "@albumflow/api";
+import { buildCompositionRoot, type CompositionRoot } from "@albumflow/api";
 import { QUEUES } from "@albumflow/api/shared-kernel/job-queue";
-import { flushErrorReports, reportError, startErrorMonitoring } from "@albumflow/api/monitoring";
+import { flushErrorReports, installProcessGuards, startErrorMonitoring } from "@albumflow/api/monitoring";
+import type { LogContext, Logger } from "@albumflow/api/logger";
 
 interface AnalyzePhotoJob {
   photoId: string;
@@ -31,134 +33,178 @@ interface StoreOriginalJob {
   photoId: string;
 }
 
-/**
- * Every log line here is timestamped and every job logs both when it starts
- * and when it finishes — not just completion. Without both ends, "this line
- * appears right after startup" is indistinguishable from "this line appears
- * right after an 85-second stall nothing else got logged during," which is
- * exactly the ambiguity that made an earlier CI failure impossible to diagnose
- * from the log alone.
- */
-function log(message: string): void {
-  console.log(`[${new Date().toISOString()}] ${message}`);
+/** Runs one kind of job; what it returns is logged with the job's completion. */
+type JobHandler = (job: Job) => Promise<LogContext | void>;
+
+/** Types a handler by its payload, so each one reads its own job data without casts at the call site. */
+function handle<T>(run: (data: T) => Promise<LogContext | void>): JobHandler {
+  return (job) => run(job.data as T);
 }
 
-function redisConnectionFrom(url: string): ConnectionOptions {
-  const parsed = new URL(url);
+/** A use case that failed is a failed job: BullMQ retries it and, on the last attempt, it is reported. */
+function valueOf<T>(result: { isFailure: boolean; getError(): { message: string }; getValue(): T }): T {
+  if (result.isFailure) throw new Error(result.getError().message);
+  return result.getValue();
+}
+
+/**
+ * Every queue is served the same way: its job names map to handlers, and the dispatch
+ * logs when each job starts and when it finishes — not just completion. Without both
+ * ends, "this line appears right after startup" is indistinguishable from "this line
+ * appears right after an 85-second stall nothing else got logged during", which is
+ * exactly the ambiguity that made an earlier CI failure impossible to diagnose.
+ */
+function serveQueue(
+  queue: string,
+  handlers: Record<string, JobHandler>,
+  options: { connection: ConnectionOptions; concurrency: number; logger: Logger },
+): Worker {
+  const log = options.logger.child({ queue });
+  const worker = new Worker(
+    queue,
+    async (job: Job) => {
+      const run = handlers[job.name];
+      if (!run) {
+        log.warn("no handler for job; skipped", { job: job.name, jobId: job.id });
+        return;
+      }
+      const started = performance.now();
+      const summary = await run(job);
+      log.info("job completed", {
+        job: job.name,
+        jobId: job.id,
+        durationMs: Math.round(performance.now() - started),
+        ...summary,
+      });
+    },
+    { connection: options.connection, concurrency: options.concurrency },
+  );
+  worker.on("active", (job) => log.info("job started", { job: job.name, jobId: job.id }));
+  worker.on("failed", (job, error) => {
+    const context = { job: job?.name, jobId: job?.id, attempt: job?.attemptsMade, err: error };
+    // Only the last attempt is an incident: a retry that later succeeds is noise.
+    if (!job || job.attemptsMade >= (job.opts.attempts ?? 1)) log.error("job failed", context);
+    else log.warn("job failed; will retry", context);
+  });
+  // Without a listener, a Redis connection error on a worker is an unhandled 'error' event.
+  worker.on("error", (error) => log.error("worker error", { err: error }));
+  return worker;
+}
+
+function analysisJobs(root: CompositionRoot): Record<string, JobHandler> {
   return {
-    host: parsed.hostname,
-    port: Number(parsed.port || 6379),
-    password: parsed.password || undefined,
+    "analyze-photo": handle<AnalyzePhotoJob>(async (data) => {
+      const analysis = valueOf(await root.analyzePhoto.execute(data));
+      return {
+        photoId: analysis.photoId.toString(),
+        score: analysis.score.overall,
+        category: analysis.category,
+        orientation: analysis.orientation,
+      };
+    }),
+  };
+}
+
+function derivativeJobs(root: CompositionRoot): Record<string, JobHandler> {
+  return {
+    "generate-derivatives": handle<GenerateDerivativesJob>(async (data) => {
+      const { photoId, written } = valueOf(await root.generateDerivatives.execute(data));
+      return { photoId, thumbKb: Math.round(written.thumb / 1024), previewKb: Math.round(written.preview / 1024) };
+    }),
+  };
+}
+
+function exportJobs(root: CompositionRoot): Record<string, JobHandler> {
+  return {
+    "render-album": handle<RenderAlbumJob>(async (data) => {
+      const exportJob = valueOf(await root.runExport.execute(data.exportJobId));
+      if (exportJob.status === "FAILED") throw new Error(exportJob.failureReason ?? "Render failed");
+      return {
+        exportJobId: exportJob.id.toString(),
+        spreads: exportJob.pageCount,
+        sizeKb: Math.round((exportJob.byteSize ?? 0) / 1024),
+      };
+    }),
+  };
+}
+
+/** Only the jobs whose use case exists under this configuration are registered. */
+function storageJobs(root: CompositionRoot): Record<string, JobHandler> {
+  const jobs: Record<string, JobHandler> = {};
+  const { storeOriginal, storePending, promoteSelected, purgeExpiredOriginals, offsiteBackups } = root;
+  if (storeOriginal) {
+    // The fast path: one photo's original, queued the moment its upload was confirmed.
+    jobs["store-original"] = handle<StoreOriginalJob>(async (data) => ({
+      photoId: data.photoId,
+      outcome: valueOf(await storeOriginal.execute({ photoId: data.photoId })),
+    }));
+  }
+  if (storePending) {
+    // The safety net and backfill: everything not yet on long-term storage, oldest first.
+    jobs["store-pending"] = handle(async () => {
+      const summary = await storePending.execute();
+      // The next run continues where a time-limited one stopped.
+      return { ...summary };
+    });
+  }
+  if (promoteSelected) {
+    jobs["promote-picked"] = handle<PromotePickedJob>(async (data) => ({
+      projectId: data.projectId,
+      ...valueOf(await promoteSelected.executePicked({ projectId: data.projectId })),
+    }));
+    jobs["promote-selected"] = handle<PromoteSelectedJob>(async (data) => ({
+      albumId: data.albumId,
+      ...valueOf(await promoteSelected.execute({ albumId: data.albumId })),
+    }));
+  }
+  if (offsiteBackups) {
+    jobs["offsite-backup"] = handle(async () => {
+      const summary = await offsiteBackups.run();
+      return { uploaded: summary.uploaded, alreadyThere: summary.alreadyThere, pruned: summary.pruned };
+    });
+  }
+  if (purgeExpiredOriginals) {
+    jobs["purge-expired"] = handle(async () => ({ ...(await purgeExpiredOriginals.execute()) }));
+  }
+  return jobs;
+}
+
+function maintenanceJobs(root: CompositionRoot): Record<string, JobHandler> {
+  return {
+    // Unconfirmed signups older than 48h; ones with shoots or teammates are kept.
+    "purge-unconfirmed": handle(async () => ({ ...(await root.purgeUnconfirmedSignups.execute()) })),
+    // Admin error log occurrences past ERROR_LOG_RETENTION_DAYS; the grouped issues stay.
+    "purge-error-log": handle(async () => ({ ...(await root.errorInbox.purgeExpired()) })),
   };
 }
 
 async function main() {
   // The worker is a second entrypoint into the same application core, not a
   // parallel implementation — it shares every use case and adapter with the API.
-  const root = buildCompositionRoot();
+  const root = buildCompositionRoot(undefined, { service: "worker" });
   startErrorMonitoring({ dsn: root.env.SENTRY_DSN, environment: root.env.NODE_ENV, service: "worker" });
-  const connection = redisConnectionFrom(root.env.REDIS_URL);
+  installProcessGuards(root.logger);
+  const logger = root.logger;
+  const connection = root.redisConnection;
+  const serve = (queue: string, handlers: Record<string, JobHandler>, concurrency: number) =>
+    serveQueue(queue, handlers, { connection, concurrency, logger });
 
-  const analysisWorker = new Worker(
-    QUEUES.photoIntelligence,
-    async (job: Job<AnalyzePhotoJob>) => {
-      if (job.name !== "analyze-photo") return;
-      const result = await root.analyzePhoto.execute(job.data);
-      if (result.isFailure) throw new Error(result.getError().message);
-      const analysis = result.getValue();
-      log(
-        `[analysis] ${analysis.photoId.toString()} scored ${analysis.score.overall} (${analysis.category}, ${analysis.orientation})`,
-      );
-    },
-    { connection, concurrency: root.env.WORKER_CONCURRENCY },
-  );
-  analysisWorker.on("active", (job) => log(`[analysis] started ${job.data.photoId}`));
-
-  // Display copies are what the editor draws, so they are generated eagerly and
-  // with more parallelism than analysis: a photographer is usually looking at the
-  // tray within seconds of the upload finishing.
-  const derivativeWorker = new Worker(
-    QUEUES.mediaIngestion,
-    async (job: Job<GenerateDerivativesJob>) => {
-      if (job.name !== "generate-derivatives") return;
-      const result = await root.generateDerivatives.execute(job.data);
-      if (result.isFailure) throw new Error(result.getError().message);
-      const { photoId, written } = result.getValue();
-      log(
-        `[derivatives] ${photoId} — thumb ${Math.round(written.thumb / 1024)}KB, ` +
-          `preview ${Math.round(written.preview / 1024)}KB`,
-      );
-    },
-    { connection, concurrency: root.env.WORKER_CONCURRENCY },
-  );
-  derivativeWorker.on("active", (job) => log(`[derivatives] started ${job.data.photoId}`));
-
-  const exportWorker = new Worker(
-    QUEUES.albumExport,
-    async (job: Job<RenderAlbumJob>) => {
-      if (job.name !== "render-album") return;
-      const result = await root.runExport.execute(job.data.exportJobId);
-      if (result.isFailure) throw new Error(result.getError().message);
-      const exportJob = result.getValue();
-      if (exportJob.status === "FAILED") throw new Error(exportJob.failureReason ?? "Render failed");
-      log(
-        `[export] ${exportJob.id.toString()} ready — ${exportJob.pageCount} spreads, ${Math.round((exportJob.byteSize ?? 0) / 1024)}KB`,
-      );
-    },
-    // PDF rendering is memory-hungry; one album at a time per worker process.
-    { connection, concurrency: 1 },
-  );
-  exportWorker.on("active", (job) => log(`[export] started ${job.data.exportJobId}`));
+  // Display copies are what the editor draws, so they are generated eagerly and with
+  // as much parallelism as analysis: a photographer is usually looking at the tray
+  // within seconds of the upload finishing.
+  const derivativeWorker = serve(QUEUES.mediaIngestion, derivativeJobs(root), root.env.WORKER_CONCURRENCY);
+  const analysisWorker = serve(QUEUES.photoIntelligence, analysisJobs(root), root.env.WORKER_CONCURRENCY);
+  // PDF rendering is memory-hungry; one album at a time per worker process.
+  const exportWorker = serve(QUEUES.albumExport, exportJobs(root), 1);
 
   // Long-term tier: promote chosen originals when an album is approved, and
   // expire staged originals after delivery. Only exists when a provider is
   // configured — with STORAGE_PROVIDER=none there is no second copy, so a
   // purge would be data loss and neither job is ever registered.
-  const storageWorker = root.promoteSelected && root.purgeExpiredOriginals
-    ? new Worker(
-        QUEUES.storage,
-        async (job: Job<PromoteSelectedJob | PromotePickedJob | StoreOriginalJob | Record<string, never>>) => {
-          if (job.name === "store-original") {
-            // The fast path: one photo's original, queued the moment its upload was confirmed.
-            const result = await root.storeOriginal!.execute({ photoId: (job.data as StoreOriginalJob).photoId });
-            if (result.isFailure) throw new Error(result.getError().message);
-            log(`[storage] original ${(job.data as StoreOriginalJob).photoId}: ${result.getValue()}`);
-          } else if (job.name === "store-pending") {
-            // The safety net and backfill: everything not yet on long-term storage, oldest first.
-            const summary = await root.storePending!.execute();
-            log(
-              `[storage] sweep: ${summary.stored} stored, ${summary.alreadyStored} already there, ${summary.failed} failed` +
-                (summary.stoppedEarly ? " (time budget reached; the next run continues)" : ""),
-            );
-          } else if (job.name === "promote-picked") {
-            const result = await root.promoteSelected!.executePicked({ projectId: (job.data as PromotePickedJob).projectId });
-            if (result.isFailure) throw new Error(result.getError().message);
-            const { promoted, alreadyStored } = result.getValue();
-            log(`[storage] client picks of project ${(job.data as PromotePickedJob).projectId}: ${promoted} promoted, ${alreadyStored} already stored`);
-          } else if (job.name === "promote-selected") {
-            const result = await root.promoteSelected!.execute({ albumId: (job.data as PromoteSelectedJob).albumId });
-            if (result.isFailure) throw new Error(result.getError().message);
-            const { promoted, alreadyStored } = result.getValue();
-            log(`[storage] album ${(job.data as PromoteSelectedJob).albumId}: ${promoted} promoted, ${alreadyStored} already stored`);
-          } else if (job.name === "offsite-backup") {
-            const summary = await root.offsiteBackups!.run();
-            log(
-              `[backup] off-site database copies: ${summary.uploaded.length} uploaded` +
-                (summary.uploaded.length ? ` (${summary.uploaded.join(", ")})` : "") +
-                `, ${summary.alreadyThere} already there, ${summary.pruned} old copies removed`,
-            );
-          } else if (job.name === "purge-expired") {
-            const summary = await root.purgeExpiredOriginals!.execute();
-            log(
-              `[storage] retention sweep: ${summary.projectsSwept} shoots, ${summary.purged} originals purged, ${summary.heldBack} held back, ${summary.projectsOnHold} shoots kept for active download links`,
-            );
-          }
-        },
-        // Copies move whole originals through memory, so keep this small: two at once lets a
-        // long backfill sweep run beside the individual copies without starving them.
-        { connection, concurrency: 2 },
-      )
-    : undefined;
+  // Copies move whole originals through memory, so keep this small: two at once lets a
+  // long backfill sweep run beside the individual copies without starving them.
+  const storageWorker =
+    root.promoteSelected && root.purgeExpiredOriginals ? serve(QUEUES.storage, storageJobs(root), 2) : undefined;
 
   const storageQueue = storageWorker ? new Queue(QUEUES.storage, { connection }) : undefined;
   // Idempotent by scheduler id: restarting the worker does not stack schedules.
@@ -191,18 +237,7 @@ async function main() {
     await storageQueue.add("store-pending", {}, { removeOnComplete: 50, removeOnFail: 50 });
   }
 
-  const maintenanceWorker = new Worker(
-    QUEUES.maintenance,
-    async (job: Job) => {
-      if (job.name === "purge-unconfirmed") {
-        const { deleted, kept } = await root.purgeUnconfirmedSignups.execute();
-        if (deleted > 0 || kept > 0) {
-          log(`[accounts] unconfirmed signups older than 48h: ${deleted} removed, ${kept} kept (they have shoots or teammates)`);
-        }
-      }
-    },
-    { connection, concurrency: 1 },
-  );
+  const maintenanceWorker = serve(QUEUES.maintenance, maintenanceJobs(root), 1);
   const maintenanceQueue = new Queue(QUEUES.maintenance, { connection });
   await maintenanceQueue.upsertJobScheduler(
     "purge-unconfirmed-signups",
@@ -210,6 +245,11 @@ async function main() {
     { name: "purge-unconfirmed", data: {} },
   );
   await maintenanceQueue.add("purge-unconfirmed", {}, { removeOnComplete: 20, removeOnFail: 20 });
+  await maintenanceQueue.upsertJobScheduler(
+    "purge-error-log",
+    { pattern: "40 4 * * *" },
+    { name: "purge-error-log", data: {} },
+  );
 
   const workers = [
     derivativeWorker,
@@ -218,33 +258,31 @@ async function main() {
     maintenanceWorker,
     ...(storageWorker ? [storageWorker] : []),
   ];
-  for (const worker of workers) {
-    worker.on("failed", (job, error) => {
-      log(`[${worker.name}] job ${job?.id} failed: ${error.message}`);
-      // Only the last attempt: a retry that later succeeds is noise, not an incident.
-      if (!job || job.attemptsMade >= (job.opts.attempts ?? 1)) {
-        reportError(error, { queue: worker.name, job: job?.name, jobId: job?.id });
-      }
-    });
-  }
 
-  const shutdown = async () => {
-    await Promise.all([...workers.map((worker) => worker.close()), storageQueue?.close(), maintenanceQueue.close()]);
-    await root.shutdown();
+  const shutdown = async (signal: string) => {
+    logger.info("shutting down", { signal });
+    try {
+      await Promise.all([...workers.map((worker) => worker.close()), storageQueue?.close(), maintenanceQueue.close()]);
+      await root.shutdown();
+    } catch (error) {
+      logger.error("shutdown did not complete cleanly", { err: error });
+    }
     await flushErrorReports();
     process.exit(0);
   };
-  process.on("SIGINT", () => void shutdown());
-  process.on("SIGTERM", () => void shutdown());
+  process.on("SIGINT", () => void shutdown("SIGINT"));
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
 
-  log(
-    `Worker listening on: ${QUEUES.mediaIngestion}, ${QUEUES.photoIntelligence}, ${QUEUES.albumExport}` +
-      (storageWorker ? `, ${QUEUES.storage} (long-term storage: ${root.permanentStorage?.id})` : "") +
-      (root.offsiteBackups ? " — off-site database backups on" : ""),
-  );
+  logger.info("worker listening", {
+    queues: workers.map((worker) => worker.name),
+    longTermStorage: root.permanentStorage?.id ?? null,
+    offsiteBackups: Boolean(root.offsiteBackups),
+  });
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
+  // The logger may not exist yet (an invalid environment fails before it is built).
   console.error(error);
+  await flushErrorReports();
   process.exit(1);
 });

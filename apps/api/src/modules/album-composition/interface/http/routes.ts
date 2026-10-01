@@ -1,8 +1,9 @@
-import type { FastifyInstance, FastifyReply } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { sendApplicationError } from "../../../../interface/error-translator";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { albumEditSchema, generateAlbumSchema, suggestLayoutsSchema } from "@albumflow/contracts";
-import { ApplicationError, NotFoundError } from "../../../../shared-kernel/errors";
+import { NotFoundError } from "../../../../shared-kernel/errors";
 import type { Album } from "../../domain/album";
 import type { AlbumRepository } from "../../domain/album-repository";
 import { LAYOUT_TEMPLATES } from "../../domain/layout-template";
@@ -32,7 +33,7 @@ export function registerAlbumCompositionRoutes(
     const { projectId } = projectParams.parse(request.params);
     const { photoIds } = suggestLayoutsSchema.parse(request.body);
     const result = await deps.suggestLayouts.execute({ projectId, photoIds });
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -48,7 +49,7 @@ export function registerAlbumCompositionRoutes(
       ...(body.photoIds ? { photoIds: body.photoIds } : {}),
     });
 
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(201).send(toDto(result.getValue()));
   });
 
@@ -61,7 +62,7 @@ export function registerAlbumCompositionRoutes(
   app.get("/albums/:albumId", async (request, reply) => {
     const { albumId } = albumParams.parse(request.params);
     const album = await deps.albums.findById(UniqueEntityId.create(albumId));
-    if (!album) return sendError(reply, new NotFoundError("Album", albumId));
+    if (!album) return sendApplicationError(reply, new NotFoundError("Album", albumId));
     return toDto(album);
   });
 
@@ -69,14 +70,14 @@ export function registerAlbumCompositionRoutes(
     const { albumId } = albumParams.parse(request.params);
     const command = albumEditSchema.parse(request.body);
     const result = await deps.editAlbum.execute(albumId, command);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return toDto(result.getValue());
   });
 
   app.delete("/albums/:albumId", async (request, reply) => {
     const { albumId } = albumParams.parse(request.params);
     const result = await deps.deleteAlbum.execute({ albumId });
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(204).send();
   });
 }
@@ -98,7 +99,3 @@ export function toDto(album: Album) {
   };
 }
 
-function sendError(reply: FastifyReply, error: ApplicationError) {
-  const status = error instanceof NotFoundError ? 404 : error.code === "CONFLICT" ? 409 : 422;
-  return reply.code(status).send({ code: error.code, message: error.message });
-}

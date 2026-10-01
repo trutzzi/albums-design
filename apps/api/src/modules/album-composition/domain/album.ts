@@ -1,10 +1,10 @@
 import { AggregateRoot, UniqueEntityId } from "@albumflow/domain-kernel";
 import {
-  DEFAULT_STYLE,
   spacedSlotRect,
   type AlbumCoverDTO,
   type AlbumStyleDTO,
   type TextBlockDTO,
+  NEW_ALBUM_STYLE,
 } from "@albumflow/contracts";
 import { findTemplate, type LayoutTemplate } from "./layout-template";
 
@@ -129,7 +129,8 @@ export class Album extends AggregateRoot<AlbumProps> {
         status: "DRAFT",
         format: params.format ?? DEFAULT_FORMAT,
         spreads: params.spreads,
-        style: DEFAULT_STYLE,
+        // New albums fill their spreads; stored older ones keep the style they were made with.
+        style: NEW_ALBUM_STYLE,
         cover: null,
         createdAt: now,
         updatedAt: now,
@@ -359,7 +360,7 @@ export class Album extends AggregateRoot<AlbumProps> {
     const template = findTemplate(spread.templateId);
     for (const placement of spread.placements) {
       const slot = template?.slots.find((candidate) => candidate.id === placement.slotId);
-      const rect = placement.frame ?? (slot ? spacedSlotRect(slot, template!.fullBleed, this.props.style.spacing) : undefined);
+      const rect = placement.frame ?? (slot ? spacedSlotRect(slot, template!, this.props.style.spacing) : undefined);
       if (!rect) continue;
       placement.frame = normaliseFrame({ ...rect, x: 1 - rect.x - rect.width });
     }

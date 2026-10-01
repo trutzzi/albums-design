@@ -5,6 +5,16 @@ export interface EmailMessage {
   html?: string;
   /** Where a reply should go when it is not the From address — the photographer, for a client invitation. */
   replyTo?: string;
+  /** Display name for the From line; the address stays the configured one, so SPF/DKIM still pass. */
+  senderName?: string;
+  /** Images the HTML shows as `cid:<cid>` — mail clients block data: URLs, but not attachments. */
+  inlineImages?: InlineImage[];
+}
+
+export interface InlineImage {
+  cid: string;
+  contentType: string;
+  content: Buffer;
 }
 
 /**

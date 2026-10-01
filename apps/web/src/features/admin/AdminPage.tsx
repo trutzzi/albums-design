@@ -20,8 +20,9 @@ import {
   type SystemStats,
 } from "../../lib/api";
 import { BarList, ColumnChart, StatTile } from "./charts";
+import { ErrorsTab } from "./ErrorsTab";
 
-type Tab = "business" | "studios" | "feedback" | "server";
+type Tab = "business" | "studios" | "feedback" | "server" | "errors";
 
 const FUNNEL_LABELS: Record<FunnelStep, string> = {
   signedUp: "Signed up",
@@ -61,7 +62,10 @@ export function AdminPage() {
       <header className="page__header">
         <div>
           <h1>Admin</h1>
-          <p className="muted">How AlbumFlow is doing, who is on which plan, what photographers are saying, and how the server is holding up.</p>
+          <p className="muted">
+            How AlbumFlow is doing, who is on which plan, what photographers are saying, how the server is holding up, and
+            what has failed.
+          </p>
         </div>
       </header>
       <div className="admin__tabs" role="tablist">
@@ -71,6 +75,7 @@ export function AdminPage() {
             ["studios", "Studios"],
             ["feedback", "Feedback"],
             ["server", "Server"],
+            ["errors", "Errors"],
           ] as [Tab, string][]
         ).map(([key, label]) => (
           <button
@@ -89,6 +94,7 @@ export function AdminPage() {
       {tab === "studios" && <StudiosTab />}
       {tab === "feedback" && <FeedbackTab />}
       {tab === "server" && <ServerTab />}
+      {tab === "errors" && <ErrorsTab initialSearch={params.get("q") ?? ""} />}
     </div>
   );
 }
@@ -475,6 +481,7 @@ function FeedbackCard({ item }: { item: AdminFeedback }) {
 }
 
 function ServerTab() {
+  const [, setParams] = useSearchParams();
   const stats = useQuery({ queryKey: ["admin-system"], queryFn: getSystemStats, refetchInterval: 15_000 });
   if (stats.isLoading) return <p className="muted">Loading…</p>;
   if (stats.isError || !stats.data) return <p className="error">{(stats.error as Error)?.message}</p>;
@@ -630,6 +637,9 @@ function ServerTab() {
       <section className="panel">
         <div className="panel__head">
           <h2>Recent server errors</h2>
+          <button type="button" className="button button--small" onClick={() => setParams({ tab: "errors" })}>
+            All errors, API and worker →
+          </button>
         </div>
         {data.http.recentErrors.length === 0 ? (
           <p className="muted">None since the API last started.</p>

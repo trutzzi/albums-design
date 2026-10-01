@@ -42,6 +42,10 @@ const envSchema = z.object({
     .transform((value) => value.split(",").map((email) => email.trim()).filter(Boolean)),
   /** Error monitoring. Unset (the default) sends nothing anywhere. */
   SENTRY_DSN: optionalString,
+  /** Lowest level written to the log. Every `error` entry also goes to Sentry when SENTRY_DSN is set. */
+  LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal", "silent"]).default("info"),
+  /** Days each occurrence stays in the admin error log (the grouped issues and their counts stay). */
+  ERROR_LOG_RETENTION_DAYS: z.coerce.number().int().min(1).default(30),
   /** Cloudflare Turnstile secret. When set, signing up needs a passed human check. */
   TURNSTILE_SECRET_KEY: optionalString,
   /**

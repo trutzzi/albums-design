@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { NoHumanCheck, TurnstileHumanCheck } from "../src/shared-kernel/human-check";
+import { silentLogger } from "../src/shared-kernel/logger";
 
 function fakeCloudflare(answer: object | Error) {
   const calls: URLSearchParams[] = [];
@@ -19,7 +20,7 @@ describe("the signup human check", () => {
 
   it("asks Cloudflare about the token, with the secret and the caller's address", async () => {
     const cloudflare = fakeCloudflare({ success: true });
-    const check = new TurnstileHumanCheck("secret-key", cloudflare.fetchImpl, () => {});
+    const check = new TurnstileHumanCheck("secret-key", cloudflare.fetchImpl, silentLogger);
     assert.equal(await check.verify("token-1", "203.0.113.9"), true);
     assert.equal(cloudflare.calls[0]?.get("secret"), "secret-key");
     assert.equal(cloudflare.calls[0]?.get("response"), "token-1");
@@ -28,13 +29,13 @@ describe("the signup human check", () => {
 
   it("refuses a missing or rejected token", async () => {
     const cloudflare = fakeCloudflare({ success: false, "error-codes": ["invalid-input-response"] });
-    const check = new TurnstileHumanCheck("secret-key", cloudflare.fetchImpl, () => {});
+    const check = new TurnstileHumanCheck("secret-key", cloudflare.fetchImpl, silentLogger);
     assert.equal(await check.verify(undefined, undefined), false);
     assert.equal(await check.verify("forged", undefined), false);
   });
 
   it("lets people in when Cloudflare cannot be reached", async () => {
-    const check = new TurnstileHumanCheck("secret-key", fakeCloudflare(new Error("timeout")).fetchImpl, () => {});
+    const check = new TurnstileHumanCheck("secret-key", fakeCloudflare(new Error("timeout")).fetchImpl, silentLogger);
     assert.equal(await check.verify("token", undefined), true);
   });
 });

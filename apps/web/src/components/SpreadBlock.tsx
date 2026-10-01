@@ -33,6 +33,9 @@ export interface SpreadBlockProps {
   selectedSlotId: string | null;
   locked: boolean;
   shuffling: boolean;
+  /** Where the current layout sits among the ones ranked for these photos; null until they are known. */
+  designIndex: number | null;
+  designTotal: number | null;
   /** True while this spread is armed to receive the next tray photo clicked. */
   addingPhoto: boolean;
   /** True once this spread is already at the largest layout the catalogue offers. */
@@ -42,7 +45,8 @@ export interface SpreadBlockProps {
   onSelectSlot: (spreadIndex: number, slotId: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onResetFrames: (spreadIndex: number) => void;
-  onShuffle: (spreadIndex: number) => void;
+  /** Steps to the previous (-1) or next (1) layout ranked for this spread's photos. */
+  onCycleDesign: (spreadIndex: number, step: 1 | -1) => void;
   onAddPhoto: (spreadIndex: number) => void;
   onSpreadTreatment: (spreadIndex: number, treatment: PhotoTreatment) => void;
   onRemove: (spreadIndex: number) => void;
@@ -112,13 +116,15 @@ export const SpreadBlock = memo(function SpreadBlock({
   selectedSlotId,
   locked,
   shuffling,
+  designIndex,
+  designTotal,
   addingPhoto,
   addPhotoDisabled,
   openComments,
   onSelectSlot,
   onReorder,
   onResetFrames,
-  onShuffle,
+  onCycleDesign,
   onAddPhoto,
   onSpreadTreatment,
   onRemove,
@@ -304,15 +310,35 @@ export const SpreadBlock = memo(function SpreadBlock({
           >
             {t("spread.resetLayout")}
           </button>
-          <button
-            type="button"
-            className="button button--small"
-            disabled={layoutLocked || shuffling}
-            {...below(t("spread.shuffle.title"))}
-            onClick={() => onShuffle(spreadIndex)}
-          >
-            {t("spread.shuffle")}
-          </button>
+          <div className="design-switch" role="group" aria-label={t("spread.design.group")}>
+            <button
+              type="button"
+              className="button button--small design-switch__arrow"
+              disabled={layoutLocked || shuffling}
+              aria-label={t("spread.design.prev")}
+              {...below(t("spread.design.prev.title"))}
+              onClick={() => onCycleDesign(spreadIndex, -1)}
+            >
+              ‹
+            </button>
+            <span className="design-switch__label" aria-live="polite">
+              {designTotal === null
+                ? t("spread.design.label")
+                : designIndex === null
+                  ? t("spread.design.count", { total: designTotal })
+                  : t("spread.design.position", { index: designIndex + 1, total: designTotal })}
+            </span>
+            <button
+              type="button"
+              className="button button--small design-switch__arrow"
+              disabled={layoutLocked || shuffling}
+              aria-label={t("spread.design.next")}
+              {...below(t("spread.design.next.title"))}
+              onClick={() => onCycleDesign(spreadIndex, 1)}
+            >
+              ›
+            </button>
+          </div>
           <button
             type="button"
             className={`button button--small ${addingPhoto ? "button--primary" : ""}`}

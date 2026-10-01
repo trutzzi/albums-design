@@ -117,7 +117,7 @@ export const PageStrip = memo(function PageStrip({
                 >
                   {template?.slots.map((slot) => {
                     const placement = spread.placements.find((candidate) => candidate.slotId === slot.id);
-                    const rect = placement?.frame ?? spacedSlotRect(slot, template.fullBleed, albumStyle.spacing);
+                    const rect = placement?.frame ?? spacedSlotRect(slot, template, albumStyle.spacing);
                     const url = placement?.photoId ? thumbnailUrlFor(placement.photoId) : null;
                     return (
                       <span

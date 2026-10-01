@@ -89,6 +89,12 @@ export class InMemoryPhotoRepository implements PhotoRepository {
     // actually reproduce it: mutating one copy would silently mutate both.
     return stored ? clonePhoto(stored) : undefined;
   }
+  async findByIds(ids: UniqueEntityId[]) {
+    return ids.flatMap((id) => {
+      const stored = this.items.get(id.toString());
+      return stored ? [clonePhoto(stored)] : [];
+    });
+  }
   async findByProjectId(projectId: UniqueEntityId) {
     return [...this.items.values()]
       .filter((photo) => photo.projectId.toString() === projectId.toString())
@@ -127,11 +133,16 @@ export class InMemoryPhotoRepository implements PhotoRepository {
     }
     return counts;
   }
-  async findCoverPhoto(projectId: UniqueEntityId) {
+  async findCoverPhotos(projectIds: UniqueEntityId[]) {
+    const wanted = new Set(projectIds.map((id) => id.toString()));
+    const covers = new Map<string, Photo>();
     const candidates = [...this.items.values()]
-      .filter((photo) => photo.projectId.toString() === projectId.toString() && photo.hasDerivatives)
+      .filter((photo) => wanted.has(photo.projectId.toString()) && photo.hasDerivatives)
       .sort((a, b) => a.fileName.localeCompare(b.fileName));
-    return candidates[0] ? clonePhoto(candidates[0]) : undefined;
+    for (const photo of candidates) {
+      if (!covers.has(photo.projectId.toString())) covers.set(photo.projectId.toString(), clonePhoto(photo));
+    }
+    return covers;
   }
   async findAwaitingLongTermStorage(limit: number) {
     return [...this.items.values()]

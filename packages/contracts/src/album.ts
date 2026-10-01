@@ -90,21 +90,34 @@ const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Colours are #rrggbb.");
 export const albumStyleSchema = z.object({
   preset: z.enum(["classic", "modern", "fine-art", "midnight", "custom"]),
   background: hexColor,
-  spacing: z.enum(["classic", "airy"]),
+  spacing: z.enum(["classic", "airy", "full"]),
   keyline: z.boolean(),
   font: albumFontSchema,
 });
 export type AlbumStyleDTO = z.infer<typeof albumStyleSchema>;
 
+/** Photos fill the spread in every preset except fine-art, whose wide margins are its look. */
 export const STYLE_PRESETS: Record<Exclude<AlbumStyleDTO["preset"], "custom">, AlbumStyleDTO> = {
-  classic: { preset: "classic", background: "#ffffff", spacing: "classic", keyline: false, font: "serif" },
-  modern: { preset: "modern", background: "#ffffff", spacing: "classic", keyline: false, font: "sans" },
+  classic: { preset: "classic", background: "#ffffff", spacing: "full", keyline: false, font: "serif" },
+  modern: { preset: "modern", background: "#ffffff", spacing: "full", keyline: false, font: "sans" },
   "fine-art": { preset: "fine-art", background: "#f4f0e8", spacing: "airy", keyline: true, font: "serif" },
-  midnight: { preset: "midnight", background: "#1b1c1f", spacing: "classic", keyline: false, font: "sans" },
+  midnight: { preset: "midnight", background: "#1b1c1f", spacing: "full", keyline: false, font: "sans" },
 };
 
-/** Albums made before styles existed look exactly as they always did. */
-export const DEFAULT_STYLE: AlbumStyleDTO = STYLE_PRESETS.classic;
+/**
+ * Albums stored before styles existed look exactly as they always did — template
+ * geometry as drawn — so this is pinned here rather than following the presets.
+ */
+export const DEFAULT_STYLE: AlbumStyleDTO = {
+  preset: "classic",
+  background: "#ffffff",
+  spacing: "classic",
+  keyline: false,
+  font: "serif",
+};
+
+/** What a newly generated album starts with: the classic look, photos filling the spread. */
+export const NEW_ALBUM_STYLE: AlbumStyleDTO = STYLE_PRESETS.classic;
 
 /** The front cover, printed as its own page ahead of the spreads. */
 export const albumCoverSchema = z.object({
@@ -321,20 +334,174 @@ export interface NormalisedRect {
   height: number;
 }
 
+/** The layout a slot belongs to — "full" spacing needs its neighbours, not just the slot. */
+export interface SpacedLayout {
+  fullBleed: boolean;
+  slots: readonly (NormalisedRect & { id: string })[];
+}
+
 /**
- * Where a template slot sits once the album style's spacing is applied. "airy" draws the
- * whole layout in towards the centre of the spread, adding margin and widening the gaps
- * in proportion. Full-bleed layouts are about running off the edge, so they never move.
- * A photographer's hand-set frame is an explicit position and is used as-is instead.
+ * Where a template slot sits once the album style's spacing is applied:
+ *  - "classic": exactly where the template puts it.
+ *  - "airy": the whole layout drawn in towards the centre, adding margin and widening the
+ *    gaps in proportion.
+ *  - "full": the layout opened out to thin margins and thin gutters, so the photos fill
+ *    the spread (see `fillSpread`).
+ * Full-bleed layouts are about running off the edge, so they never move. A photographer's
+ * hand-set frame is an explicit position and is used as-is instead of this.
  */
-export function spacedSlotRect(slot: NormalisedRect, fullBleed: boolean, spacing: AlbumStyleDTO["spacing"]): NormalisedRect {
-  if (fullBleed || spacing === "classic") return { x: slot.x, y: slot.y, width: slot.width, height: slot.height };
-  return {
-    x: 0.5 + (slot.x - 0.5) * AIRY_SCALE,
-    y: 0.5 + (slot.y - 0.5) * AIRY_SCALE,
-    width: slot.width * AIRY_SCALE,
-    height: slot.height * AIRY_SCALE,
-  };
+export function spacedSlotRect(
+  slot: NormalisedRect & { id: string },
+  layout: SpacedLayout,
+  spacing: AlbumStyleDTO["spacing"],
+): NormalisedRect {
+  const plain = { x: slot.x, y: slot.y, width: slot.width, height: slot.height };
+  if (layout.fullBleed || spacing === "classic") return plain;
+  if (spacing === "airy") {
+    return {
+      x: 0.5 + (slot.x - 0.5) * AIRY_SCALE,
+      y: 0.5 + (slot.y - 0.5) * AIRY_SCALE,
+      width: slot.width * AIRY_SCALE,
+      height: slot.height * AIRY_SCALE,
+    };
+  }
+  return filledLayout(layout).get(slot.id) ?? plain;
+}
+
+// --- "full" spacing ------------------------------------------------------------------
+// Distances are in the spread's normalised units, like the templates themselves: on a
+// typical 2:1 spread one unit of x is twice as long on paper as one unit of y, so the x
+// values are about half the y ones for the same printed width.
+
+/** Paper left around the outside of the photos. */
+export const FULL_MARGIN = { x: 0.018, y: 0.035 };
+/** The gap between two neighbouring photos. */
+export const FULL_GUTTER = { x: 0.008, y: 0.016 };
+/** Kept clear across the centre fold, so no face disappears into the binding. */
+export const FULL_FOLD_GAP = 0.03;
+/** How far a slot's shape may stretch while it grows — past this a portrait stops reading as one. */
+export const FULL_MAX_STRETCH = 1.15;
+const EPSILON = 0.0005;
+
+/** Templates never change, so each one is opened out once per page load. */
+const filledLayouts = new WeakMap<object, Map<string, NormalisedRect>>();
+
+function filledLayout(layout: SpacedLayout): Map<string, NormalisedRect> {
+  const cached = filledLayouts.get(layout.slots);
+  if (cached) return cached;
+  const filled = fillSpread(layout.slots);
+  const byId = new Map(layout.slots.map((slot, index) => [slot.id, filled[index]!]));
+  filledLayouts.set(layout.slots, byId);
+  return byId;
+}
+
+/**
+ * Opens a layout out to fill the spread, in two moves:
+ *  1. Scale it from the centre of the spread until its outermost photos reach the thin
+ *     margin. The two axes may scale differently, but never by more than
+ *     FULL_MAX_STRETCH apart, so every photo keeps its shape. Scaling from the centre keeps
+ *     every photo on its own side of the fold.
+ *  2. Close the gaps between neighbouring photos down to the thin gutter, each photo
+ *     growing by half of the gap — except across the fold, which keeps FULL_FOLD_GAP.
+ * If closing gaps would make any two photos touch (a rare diagonal arrangement), the
+ * layout keeps the result of the first move alone.
+ */
+export function fillSpread(slots: readonly NormalisedRect[]): NormalisedRect[] {
+  if (slots.length === 0) return [];
+  const minX = Math.min(...slots.map((slot) => slot.x));
+  const maxX = Math.max(...slots.map((slot) => slot.x + slot.width));
+  const minY = Math.min(...slots.map((slot) => slot.y));
+  const maxY = Math.max(...slots.map((slot) => slot.y + slot.height));
+  const reachX = Math.max(0.5 - minX, maxX - 0.5);
+  const reachY = Math.max(0.5 - minY, maxY - 0.5);
+  // Never shrink: a layout already past the margin stays where it is.
+  let scaleX = reachX > EPSILON ? Math.max(1, (0.5 - FULL_MARGIN.x) / reachX) : 1;
+  let scaleY = reachY > EPSILON ? Math.max(1, (0.5 - FULL_MARGIN.y) / reachY) : 1;
+  scaleX = Math.min(scaleX, scaleY * FULL_MAX_STRETCH);
+  scaleY = Math.min(scaleY, scaleX * FULL_MAX_STRETCH);
+  const scaled = slots.map((slot) => ({
+    x: 0.5 + (slot.x - 0.5) * scaleX,
+    y: 0.5 + (slot.y - 0.5) * scaleY,
+    width: slot.width * scaleX,
+    height: slot.height * scaleY,
+  }));
+
+  const closed = scaled.map((slot, index) => {
+    const others = scaled.filter((_, other) => other !== index);
+    const right = slot.x + slot.width;
+    const bottom = slot.y + slot.height;
+    const growRight = growthTowards(right, 1, others, slot, "x", (other) => other.x - right);
+    const growLeft = growthTowards(slot.x, -1, others, slot, "x", (other) => slot.x - (other.x + other.width));
+    const growDown = growthTowards(bottom, 1, others, slot, "y", (other) => other.y - bottom);
+    const growUp = growthTowards(slot.y, -1, others, slot, "y", (other) => slot.y - (other.y + other.height));
+    // Growing into a wide gap must not turn a square into a landscape: hold each photo
+    // within FULL_MAX_STRETCH of the shape its template gave it.
+    const shape = slots[index]!.width / slots[index]!.height;
+    const sideways = keepWithin(slot.width, growLeft + growRight, (slot.height + growUp + growDown) * shape * FULL_MAX_STRETCH);
+    const upright = keepWithin(slot.height, growUp + growDown, ((slot.width + (growLeft + growRight) * sideways) / shape) * FULL_MAX_STRETCH);
+    return {
+      x: slot.x - growLeft * sideways,
+      y: slot.y - growUp * upright,
+      width: slot.width + (growLeft + growRight) * sideways,
+      height: slot.height + (growUp + growDown) * upright,
+    };
+  });
+  return anyTooClose(closed) ? scaled : closed;
+}
+
+/**
+ * How far one edge may grow: half of the gap to the nearest photo it faces (one sharing
+ * some of its span on the other axis), less half the gutter. An edge facing nothing
+ * already sits at the margin, or deliberately in open paper, and stays put.
+ */
+function growthTowards(
+  edge: number,
+  /** +1 when the edge grows towards larger x/y (right, down), -1 when towards smaller. */
+  direction: 1 | -1,
+  others: NormalisedRect[],
+  slot: NormalisedRect,
+  axis: "x" | "y",
+  gapTo: (other: NormalisedRect) => number,
+): number {
+  let growth = Number.POSITIVE_INFINITY;
+  for (const other of others) {
+    const shared =
+      axis === "x"
+        ? Math.min(slot.y + slot.height, other.y + other.height) - Math.max(slot.y, other.y)
+        : Math.min(slot.x + slot.width, other.x + other.width) - Math.max(slot.x, other.x);
+    const gap = gapTo(other);
+    if (shared <= EPSILON || gap < -EPSILON) continue;
+    const far = edge + direction * gap;
+    const acrossFold = axis === "x" && Math.min(edge, far) < 0.5 + EPSILON && Math.max(edge, far) > 0.5 - EPSILON;
+    // Across the fold each photo stops at its own side of the clearance, wherever the gap
+    // sat before — so a photo never slides over the fold into the binding.
+    const limit = acrossFold
+      ? direction === 1
+        ? 0.5 - FULL_FOLD_GAP / 2 - edge
+        : edge - (0.5 + FULL_FOLD_GAP / 2)
+      : (gap - FULL_GUTTER[axis]) / 2;
+    growth = Math.min(growth, Math.max(0, limit));
+  }
+  return Number.isFinite(growth) ? growth : 0;
+}
+
+/** The share (0–1) of a proposed growth that keeps a side no longer than `limit`. */
+function keepWithin(size: number, growth: number, limit: number): number {
+  if (growth <= EPSILON || size + growth <= limit) return 1;
+  return Math.max(0, Math.min(1, (limit - size) / growth));
+}
+
+function anyTooClose(rects: NormalisedRect[]): boolean {
+  for (let a = 0; a < rects.length; a++) {
+    for (let b = a + 1; b < rects.length; b++) {
+      const first = rects[a]!;
+      const second = rects[b]!;
+      const apartX = Math.max(second.x - (first.x + first.width), first.x - (second.x + second.width));
+      const apartY = Math.max(second.y - (first.y + first.height), first.y - (second.y + second.height));
+      if (apartX < FULL_GUTTER.x - EPSILON && apartY < FULL_GUTTER.y - EPSILON) return true;
+    }
+  }
+  return false;
 }
 
 export const FULL_CROP_RECT: NormalisedRect = { x: 0, y: 0, width: 1, height: 1 };

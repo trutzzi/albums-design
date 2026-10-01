@@ -57,7 +57,7 @@ export class SmtpEmailSender implements EmailSender {
   async send(message: EmailMessage): Promise<void> {
     const sender = parseSender(this.config.from);
     await this.transport.sendMail({
-      from: sender,
+      from: message.senderName ? { name: message.senderName, address: sender.address } : sender,
       // Stated explicitly so the SMTP envelope carries the bare address, whatever the
       // display name contains.
       envelope: { from: sender.address, to: message.to },
@@ -66,6 +66,16 @@ export class SmtpEmailSender implements EmailSender {
       text: message.text,
       ...(message.html ? { html: message.html } : {}),
       ...(message.replyTo ? { replyTo: message.replyTo } : {}),
+      ...(message.inlineImages?.length
+        ? {
+            attachments: message.inlineImages.map((image) => ({
+              cid: image.cid,
+              contentType: image.contentType,
+              content: image.content,
+              filename: `${image.cid}.${image.contentType.split("/")[1] ?? "png"}`,
+            })),
+          }
+        : {}),
     });
   }
 }

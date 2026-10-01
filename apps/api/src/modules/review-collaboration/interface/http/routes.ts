@@ -1,13 +1,13 @@
-import type { FastifyInstance, FastifyReply } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { sendApplicationError } from "../../../../interface/error-translator";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import { ApplicationError, NotFoundError } from "../../../../shared-kernel/errors";
 import type { ReviewSessionRepository } from "../../domain/review-session-repository";
 import type { OpenReviewSessionUseCase } from "../../application/use-cases/open-review-session.use-case";
 import type { ReviewPortalUseCase } from "../../application/use-cases/review-portal.use-case";
 import type { AlbumFeedbackUseCase } from "../../application/use-cases/album-feedback.use-case";
 import type { ReviewAccessUseCase } from "../../application/use-cases/review-access.use-case";
-import { grantFrom, sendClientError } from "../../../../interface/client-errors";
+import { grantFrom } from "../../../../interface/client-errors";
 
 const albumParams = z.object({ albumId: z.string().uuid() });
 const tokenParams = z.object({ token: z.string().min(10) });
@@ -61,7 +61,7 @@ export function registerReviewRoutes(app: FastifyInstance, deps: ReviewDependenc
       ...(body.sendEmail ? { sendEmail: body.sendEmail } : {}),
       ...(body.language ? { language: body.language } : {}),
     });
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(201).send(result.getValue());
   });
 
@@ -87,7 +87,7 @@ export function registerReviewRoutes(app: FastifyInstance, deps: ReviewDependenc
     const body = invitationSchema.parse(request.body ?? {});
     if (!deps.reviewAccess) return reply.code(404).send({ code: "NOT_FOUND", message: "Not available." });
     const result = await deps.reviewAccess.sendInvitation(albumId, sessionId, body);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -95,7 +95,7 @@ export function registerReviewRoutes(app: FastifyInstance, deps: ReviewDependenc
     const { albumId, sessionId } = reviewSessionParams.parse(request.params);
     if (!deps.reviewAccess) return reply.code(404).send({ code: "NOT_FOUND", message: "Not available." });
     const result = await deps.reviewAccess.reveal(albumId, sessionId);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -104,14 +104,14 @@ export function registerReviewRoutes(app: FastifyInstance, deps: ReviewDependenc
   app.get("/albums/:albumId/comments", async (request, reply) => {
     const { albumId } = albumParams.parse(request.params);
     const result = await deps.albumFeedback.list(albumId);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.post("/albums/:albumId/comments/:commentId/resolve", async (request, reply) => {
     const { albumId, commentId } = commentParams.parse(request.params);
     const result = await deps.albumFeedback.resolve(albumId, commentId);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -121,45 +121,41 @@ export function registerReviewRoutes(app: FastifyInstance, deps: ReviewDependenc
     const { token } = tokenParams.parse(request.params);
     const { password } = unlockSchema.parse(request.body);
     const result = await deps.reviewPortal.unlock(token, password);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.get("/review/:token", async (request, reply) => {
     const { token } = tokenParams.parse(request.params);
     const allowed = await deps.reviewPortal.authorize(token, grantFrom(request));
-    if (allowed.isFailure) return sendClientError(reply, allowed.getError());
+    if (allowed.isFailure) return sendApplicationError(reply, allowed.getError());
     const result = await deps.reviewPortal.view(token);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.post("/review/:token/comments", async (request, reply) => {
     const { token } = tokenParams.parse(request.params);
     const allowed = await deps.reviewPortal.authorize(token, grantFrom(request));
-    if (allowed.isFailure) return sendClientError(reply, allowed.getError());
+    if (allowed.isFailure) return sendApplicationError(reply, allowed.getError());
     const body = commentSchema.parse(request.body);
     const result = await deps.reviewPortal.comment(token, {
       spreadIndex: body.spreadIndex,
       slotId: body.slotId,
       body: body.body,
     });
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(201).send(result.getValue());
   });
 
   app.post("/review/:token/decision", async (request, reply) => {
     const { token } = tokenParams.parse(request.params);
     const allowed = await deps.reviewPortal.authorize(token, grantFrom(request));
-    if (allowed.isFailure) return sendClientError(reply, allowed.getError());
+    if (allowed.isFailure) return sendApplicationError(reply, allowed.getError());
     const { decision } = decisionSchema.parse(request.body);
     const result = await deps.reviewPortal.decide(token, decision);
-    if (result.isFailure) return sendError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 }
 
-function sendError(reply: FastifyReply, error: ApplicationError) {
-  const status = error instanceof NotFoundError ? 404 : error.code === "CONFLICT" ? 409 : 422;
-  return reply.code(status).send({ code: error.code, message: error.message });
-}

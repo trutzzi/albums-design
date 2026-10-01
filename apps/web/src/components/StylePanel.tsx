@@ -61,6 +61,7 @@ export function StylePanel({
           disabled={locked}
           onChange={(event) => tweak({ spacing: event.target.value as AlbumStyleDTO["spacing"] })}
         >
+          <option value="full">{t("style.spacing.full")}</option>
           <option value="classic">{t("style.spacing.classic")}</option>
           <option value="airy">{t("style.spacing.airy")}</option>
         </select>

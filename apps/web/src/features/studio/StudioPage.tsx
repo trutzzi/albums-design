@@ -15,6 +15,7 @@ import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { LANGUAGES } from "../../lib/i18n/translations";
 import { tip } from "../../lib/tip";
 import { ClientBrandBar } from "../../components/ClientBrand";
+import { PlanUpsell } from "../../components/PlanUpsell";
 
 
 export function StudioPage() {
@@ -279,6 +280,7 @@ function BrandingPanel({
           <h2>{t("branding.title")}</h2>
         </div>
         <p className="muted">{t("branding.proOnly")}</p>
+        <PlanUpsell feature="branding" />
       </section>
     );
   }

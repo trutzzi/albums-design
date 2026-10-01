@@ -8,6 +8,7 @@ import {
   SpreadNotFoundError,
 } from "../src/modules/album-composition/domain/album";
 import { findTemplate } from "../src/modules/album-composition/domain/layout-template";
+import { spacedSlotRect } from "@albumflow/contracts";
 import { AlbumCompositionExportGateway } from "../src/modules/export-print/infrastructure/gateways/album-gateway";
 import { InMemoryAlbumRepository } from "./support/in-memory";
 
@@ -319,7 +320,10 @@ describe("mirroring a spread", () => {
     album.mirrorSpread(0);
     const [left, right] = album.spreads[0]!.placements;
     assert.ok(Math.abs((left?.frame?.x ?? 0) - 0.6) < 1e-9, "a frame at 0.1–0.4 lands at 0.6–0.9");
-    assert.ok(Math.abs((right?.frame?.x ?? 0) - (1 - 0.54 - 0.4)) < 1e-9, "template slots mirror too");
+    // An untouched slot mirrors from where the album's spacing draws it, not the bare template.
+    const template = findTemplate("portrait-pair")!;
+    const slot = spacedSlotRect(template.slots.find((candidate) => candidate.id === "right")!, template, album.style.spacing);
+    assert.ok(Math.abs((right?.frame?.x ?? 0) - (1 - slot.x - slot.width)) < 1e-9, "template slots mirror too");
     assert.deepEqual(right?.crop, { x: 0.1, y: 0.1, width: 0.5, height: 0.5 });
   });
 

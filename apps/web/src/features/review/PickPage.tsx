@@ -7,6 +7,7 @@ import { LANGUAGES } from "../../lib/i18n/translations";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
+import { PhotoGallery } from "../../components/PhotoGallery";
 import { PasswordGate, needsPassword } from "../../components/PasswordGate";
 
 type Filter = "all" | "picked";
@@ -257,16 +258,15 @@ export function PickPage() {
         <p className="muted">{onShortlist ? t("pick.emptyPicked") : t("pick.emptyChosen")}</p>
       )}
 
-      <div className="pick__grid">
-        {visible.map((photo) => (
-          <figure key={photo.id} className={`pick__card ${marked.has(photo.id) ? "pick__card--on" : ""}`}>
-            <button type="button" className="pick__image" onClick={() => setLightboxId(photo.id)}>
-              <img src={photo.thumbnailUrl} alt={photo.fileName} loading="lazy" decoding="async" />
-            </button>
-            {heart(photo.id, "pick-heart")}
-          </figure>
-        ))}
-      </div>
+      <PhotoGallery
+        photos={visible}
+        columnWidth={260}
+        resetKey={filter}
+        onOpen={(photo) => setLightboxId(photo.id)}
+        overlay={(photo) => heart(photo.id, "pick-heart")}
+        itemClassName={(photo) => (marked.has(photo.id) ? "gallery__item--on" : "")}
+        moreLabel={(remaining) => t("gallery.more", { count: remaining })}
+      />
 
       <div className="pick__bar">
         <span className="pick__counter">{counter}</span>

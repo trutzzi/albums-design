@@ -120,6 +120,20 @@
       "when": 1790787651121,
       "tag": "0016_studio_branding",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790848307213,
+      "tag": "0017_foreign_key_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790862516710,
+      "tag": "0018_admin_error_log",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,8 @@ import type { StorageProvider } from "../../../../shared-kernel/storage-provider
 import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
 import type { DeliverablePhoto, DeliveryGateway, StudioContacts } from "../../application/ports/delivery-gateway";
 import type { PickNotifier } from "../../application/ports/pick-gateway";
+import type { ReviewNotifier } from "../../application/ports/album-gateway";
+import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
 
 /** Anti-corruption layer over Media Ingestion for handing originals to a client. */
 export class MediaIngestionDeliveryGateway implements DeliveryGateway {
@@ -106,7 +108,7 @@ export class IdentityStudioContacts implements StudioContacts {
 export class CompositePickNotifier implements PickNotifier {
   constructor(
     private readonly notifiers: PickNotifier[],
-    private readonly log: (message: string) => void = console.error,
+    private readonly logger: Logger = consoleLogger,
   ) {}
 
   async picksSubmitted(params: Parameters<PickNotifier["picksSubmitted"]>[0]): Promise<void> {
@@ -114,7 +116,25 @@ export class CompositePickNotifier implements PickNotifier {
       try {
         await notifier.picksSubmitted(params);
       } catch (error) {
-        this.log(`[picks] a notifier failed: ${String(error)}`);
+        this.logger.error("a picks notifier failed", { projectId: params.projectId, err: error });
+      }
+    }
+  }
+}
+
+/** Runs several notifiers for a client's verdict on a proof; one failing never stops the others. */
+export class CompositeReviewNotifier implements ReviewNotifier {
+  constructor(
+    private readonly notifiers: ReviewNotifier[],
+    private readonly logger: Logger = consoleLogger,
+  ) {}
+
+  async clientDecided(params: Parameters<ReviewNotifier["clientDecided"]>[0]): Promise<void> {
+    for (const notifier of this.notifiers) {
+      try {
+        await notifier.clientDecided(params);
+      } catch (error) {
+        this.logger.error("a review notifier failed", { albumId: params.albumId, err: error });
       }
     }
   }

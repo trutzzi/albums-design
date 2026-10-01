@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { grantFrom, sendClientError } from "../../../../interface/client-errors";
+import { sendApplicationError } from "../../../../interface/error-translator";
+import { grantFrom } from "../../../../interface/client-errors";
 import type { PickSessionAdminUseCase } from "../../application/use-cases/open-pick-session.use-case";
 import type { PickPortalUseCase } from "../../application/use-cases/pick-portal.use-case";
 
@@ -36,7 +37,7 @@ export function registerPickRoutes(app: FastifyInstance, deps: PickDependencies)
     const { projectId } = projectParams.parse(request.params);
     const body = openSchema.parse(request.body);
     const result = await deps.pickAdmin.open({ projectId, ...body, clientName: body.clientName ?? "" });
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(201).send(result.getValue());
   });
 
@@ -50,21 +51,21 @@ export function registerPickRoutes(app: FastifyInstance, deps: PickDependencies)
     const { projectId, sessionId } = sessionParams.parse(request.params);
     const body = invitationSchema.parse(request.body ?? {});
     const result = await deps.pickAdmin.sendInvitation(projectId, sessionId, body);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.post("/projects/:projectId/pick-sessions/:sessionId/reopen", async (request, reply) => {
     const { projectId, sessionId } = sessionParams.parse(request.params);
     const result = await deps.pickAdmin.reopen(projectId, sessionId);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.post("/projects/:projectId/pick-sessions/:sessionId/revoke", async (request, reply) => {
     const { projectId, sessionId } = sessionParams.parse(request.params);
     const result = await deps.pickAdmin.revoke(projectId, sessionId);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -72,7 +73,7 @@ export function registerPickRoutes(app: FastifyInstance, deps: PickDependencies)
   app.get("/projects/:projectId/pick-sessions/:sessionId/access", async (request, reply) => {
     const { projectId, sessionId } = sessionParams.parse(request.params);
     const result = await deps.pickAdmin.reveal(projectId, sessionId);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -82,26 +83,26 @@ export function registerPickRoutes(app: FastifyInstance, deps: PickDependencies)
     const { token } = tokenParams.parse(request.params);
     const { password } = unlockSchema.parse(request.body);
     const result = await deps.pickPortal.unlock(token, password);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.get("/pick/:token", async (request, reply) => {
     const { token } = tokenParams.parse(request.params);
     const allowed = await deps.pickPortal.authorize(token, grantFrom(request));
-    if (allowed.isFailure) return sendClientError(reply, allowed.getError());
+    if (allowed.isFailure) return sendApplicationError(reply, allowed.getError());
     const result = await deps.pickPortal.view(token);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.put("/pick/:token/photos/:photoId", async (request, reply) => {
     const { token, photoId } = pickParams.parse(request.params);
     const allowed = await deps.pickPortal.authorize(token, grantFrom(request));
-    if (allowed.isFailure) return sendClientError(reply, allowed.getError());
+    if (allowed.isFailure) return sendApplicationError(reply, allowed.getError());
     const { picked } = pickSchema.parse(request.body);
     const result = await deps.pickPortal.setPick(token, photoId, picked);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
@@ -110,18 +111,18 @@ export function registerPickRoutes(app: FastifyInstance, deps: PickDependencies)
     const { token } = tokenParams.parse(request.params);
     const { stage } = stageSchema.parse(request.body);
     const allowed = await deps.pickPortal.authorize(token, grantFrom(request));
-    if (allowed.isFailure) return sendClientError(reply, allowed.getError());
+    if (allowed.isFailure) return sendApplicationError(reply, allowed.getError());
     const result = await deps.pickPortal.setStage(token, stage);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 
   app.post("/pick/:token/submit", async (request, reply) => {
     const { token } = tokenParams.parse(request.params);
     const allowed = await deps.pickPortal.authorize(token, grantFrom(request));
-    if (allowed.isFailure) return sendClientError(reply, allowed.getError());
+    if (allowed.isFailure) return sendApplicationError(reply, allowed.getError());
     const result = await deps.pickPortal.submit(token);
-    if (result.isFailure) return sendClientError(reply, result.getError());
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
   });
 }

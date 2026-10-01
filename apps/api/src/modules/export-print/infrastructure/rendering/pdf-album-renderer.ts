@@ -85,7 +85,7 @@ export class PdfAlbumRenderer implements AlbumPdfRenderer {
         const slot = template?.slots.find((candidate) => candidate.id === placement.slotId);
         if (!slot) continue;
         // A hand-resized frame is what the client approved on screen, so it wins.
-        const rect = placement.frame ?? spacedSlotRect(slot, fullBleed, style.spacing);
+        const rect = placement.frame ?? spacedSlotRect(slot, template!, style.spacing);
 
         // Full-bleed art runs to the paper edge; everything else sits inside the trim.
         const areaX = fullBleed ? 0 : bleed;
