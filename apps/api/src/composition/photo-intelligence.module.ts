@@ -1,4 +1,5 @@
 import { AnalyzePhotoUseCase } from "../modules/photo-intelligence/application/use-cases/analyze-photo/analyze-photo.use-case";
+import { RecordAnalysisFailureUseCase } from "../modules/photo-intelligence/application/use-cases/record-analysis-failure/record-analysis-failure.use-case";
 import { SharpImageInspector } from "../modules/photo-intelligence/infrastructure/vision/sharp-image-inspector";
 import { HeuristicVisionClassifier } from "../modules/photo-intelligence/infrastructure/vision/heuristic-vision-classifier";
 import { buildVisionClassifier } from "../modules/photo-intelligence/infrastructure/vision/build-vision-classifier";
@@ -19,6 +20,7 @@ export function buildPhotoIntelligenceModule(
     ollamaModel: env.OLLAMA_MODEL,
     logger: logger.child({ component: "vision" }),
   });
+  const lifecycle = new MediaIngestionPhotoLifecycle(photos);
   return {
     visionClassifier,
     analyzePhoto: new AnalyzePhotoUseCase(
@@ -27,8 +29,10 @@ export function buildPhotoIntelligenceModule(
       new SharpImageInspector(),
       new HeuristicVisionClassifier(),
       visionClassifier,
-      new MediaIngestionPhotoLifecycle(photos),
+      lifecycle,
     ),
+    /** Run by the job runner when an analysis job fails its last attempt. */
+    recordAnalysisFailure: new RecordAnalysisFailureUseCase(lifecycle),
     /** Subject positions, read by review and export so an untouched crop frames the subject. */
     photoFocus: new AnalysisPhotoFocusDirectory(analyses),
     /** Upright photo sizes, read by the client galleries to lay photos out uncropped. */

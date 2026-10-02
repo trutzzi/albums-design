@@ -17,4 +17,14 @@ export class MediaIngestionPhotoLifecycle implements PhotoLifecycle {
     photo.markAnalysed();
     await this.photos.updateStatus(id, photo.status);
   }
+
+  async markAnalysisFailed(photoId: string): Promise<void> {
+    const id = UniqueEntityId.create(photoId);
+    const photo = await this.photos.findById(id);
+    // A late success (another attempt finished first) must not be overwritten.
+    if (!photo || photo.status === "ANALYSED" || photo.status === "FAILED") return;
+    photo.markFailed();
+    // Status only, for the same race with derivative generation as markAnalysed.
+    await this.photos.updateStatus(id, photo.status);
+  }
 }

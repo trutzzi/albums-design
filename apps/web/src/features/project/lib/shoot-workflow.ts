@@ -13,6 +13,8 @@ export type NextAction = "addPhotos" | "toSelection" | "toAlbum" | "openAlbum" |
 export interface ShootFacts {
   uploaded: number;
   analysed: number;
+  /** Photos whose analysis failed for good; they count as processed, never as "still working". */
+  failed?: number;
   albums: { id: string; status: string }[];
   picks: { status: string; clientName: string }[];
   deliveries: { status: string; downloadCount: number }[];
@@ -27,7 +29,15 @@ export interface ShootWorkflow {
  * Where a shoot stands, worked out from its data alone: each step's status, and the one
  * thing to do next. Nothing is stored, so it can never disagree with what is on the page.
  */
-export function shootWorkflow({ uploaded, analysed, albums, picks, deliveries }: ShootFacts): ShootWorkflow {
+export function shootWorkflow({
+  uploaded,
+  analysed,
+  failed = 0,
+  albums,
+  picks,
+  deliveries,
+}: ShootFacts): ShootWorkflow {
+  const processed = analysed + failed;
   const submittedPick = picks.find((session) => session.status === "SUBMITTED");
   const openPick = picks.find((session) => session.status === "OPEN");
   const firstAlbum = albums[0];
@@ -37,12 +47,12 @@ export function shootWorkflow({ uploaded, analysed, albums, picks, deliveries }:
 
   const steps: ShootWorkflow["steps"] = {
     photos: {
-      done: uploaded > 0 && analysed >= uploaded,
+      done: uploaded > 0 && processed >= uploaded,
       status:
         uploaded === 0
           ? { key: "project.step.photos.empty" }
-          : analysed < uploaded
-            ? { key: "project.step.photos.processing", params: { done: analysed, total: uploaded } }
+          : processed < uploaded
+            ? { key: "project.step.photos.processing", params: { done: processed, total: uploaded } }
             : { key: "project.step.photos.ready", params: { count: uploaded } },
     },
     selection: {
@@ -90,9 +100,9 @@ export function shootWorkflow({ uploaded, analysed, albums, picks, deliveries }:
                     text: { key: "project.next.waitingPicks", params: { name: openPick.clientName } },
                     actions: ["toAlbum"],
                   }
-                : analysed < uploaded
+                : processed < uploaded
                   ? {
-                      text: { key: "project.next.processing", params: { done: analysed, total: uploaded } },
+                      text: { key: "project.next.processing", params: { done: processed, total: uploaded } },
                       actions: ["toSelection"],
                     }
                   : { text: { key: "project.next.start" }, actions: ["toSelection", "toAlbum"] };

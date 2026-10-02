@@ -57,7 +57,13 @@ function valueOf<T>(result: { isFailure: boolean; getError(): { message: string 
 function serveQueue(
   queue: string,
   handlers: Record<string, JobHandler>,
-  options: { connection: ConnectionOptions; concurrency: number; logger: Logger },
+  options: {
+    connection: ConnectionOptions;
+    concurrency: number;
+    logger: Logger;
+    /** Runs once a job has failed its last attempt, to close out what it was working on. */
+    onGaveUp?: (job: Job) => Promise<void>;
+  },
 ): Worker {
   const log = options.logger.child({ queue });
   const worker = new Worker(
@@ -83,8 +89,18 @@ function serveQueue(
   worker.on("failed", (job, error) => {
     const context = { job: job?.name, jobId: job?.id, attempt: job?.attemptsMade, err: error };
     // Only the last attempt is an incident: a retry that later succeeds is noise.
-    if (!job || job.attemptsMade >= (job.opts.attempts ?? 1)) log.error("job failed", context);
-    else log.warn("job failed; will retry", context);
+    if (job && job.attemptsMade < (job.opts.attempts ?? 1)) {
+      log.warn("job failed; will retry", context);
+      return;
+    }
+    log.error("job failed", context);
+    if (job && options.onGaveUp) {
+      options
+        .onGaveUp(job)
+        .catch((cleanupError: unknown) =>
+          log.error("could not close out a failed job", { job: job.name, jobId: job.id, err: cleanupError }),
+        );
+    }
   });
   // Without a listener, a Redis connection error on a worker is an unhandled 'error' event.
   worker.on("error", (error) => log.error("worker error", { err: error }));
@@ -102,6 +118,14 @@ function analysisJobs(root: CompositionRoot): Record<string, JobHandler> {
         orientation: analysis.orientation,
       };
     }),
+  };
+}
+
+/** A photo whose analysis failed for good is marked failed, so its shoot stops waiting for it. */
+function analysisGaveUp(root: CompositionRoot) {
+  return async (job: Job) => {
+    if (job.name !== "analyze-photo") return;
+    valueOf(await root.recordAnalysisFailure.execute({ photoId: (job.data as AnalyzePhotoJob).photoId }));
   };
 }
 
@@ -186,14 +210,23 @@ async function main() {
   installProcessGuards(root.logger);
   const logger = root.logger;
   const connection = root.redisConnection;
-  const serve = (queue: string, handlers: Record<string, JobHandler>, concurrency: number) =>
-    serveQueue(queue, handlers, { connection, concurrency, logger });
+  const serve = (
+    queue: string,
+    handlers: Record<string, JobHandler>,
+    concurrency: number,
+    onGaveUp?: (job: Job) => Promise<void>,
+  ) => serveQueue(queue, handlers, { connection, concurrency, logger, ...(onGaveUp ? { onGaveUp } : {}) });
 
   // Display copies are what the editor draws, so they are generated eagerly and with
   // as much parallelism as analysis: a photographer is usually looking at the tray
   // within seconds of the upload finishing.
   const derivativeWorker = serve(QUEUES.mediaIngestion, derivativeJobs(root), root.env.WORKER_CONCURRENCY);
-  const analysisWorker = serve(QUEUES.photoIntelligence, analysisJobs(root), root.env.WORKER_CONCURRENCY);
+  const analysisWorker = serve(
+    QUEUES.photoIntelligence,
+    analysisJobs(root),
+    root.env.WORKER_CONCURRENCY,
+    analysisGaveUp(root),
+  );
   // PDF rendering is memory-hungry; one album at a time per worker process.
   const exportWorker = serve(QUEUES.albumExport, exportJobs(root), 1);
 

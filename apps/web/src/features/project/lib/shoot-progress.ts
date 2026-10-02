@@ -4,6 +4,8 @@ export function analysisProgress(shoot: {
   processingCount: number;
 }): { done: number; total: number } | null {
   if (shoot.processingCount <= 0 || shoot.photoCount <= 0) return null;
+  // The two counts come from one query, so processing never exceeds the total today; the
+  // clamp only keeps a future change to either count from ever showing "-3 / 10".
   return { done: Math.max(0, shoot.photoCount - shoot.processingCount), total: shoot.photoCount };
 }
 

@@ -22,7 +22,7 @@ const METRICS: ImageMetrics = {
 
 const inspector: ImageInspector = { inspect: async () => METRICS };
 const bytes: PhotoByteSource = { read: async () => new Uint8Array() };
-const lifecycle: PhotoLifecycle = { markAnalysed: async () => {} };
+const lifecycle: PhotoLifecycle = { markAnalysed: async () => {}, markAnalysisFailed: async () => {} };
 
 function classifierNamed(category: "PORTRAIT" | "GROUP"): VisionClassifier {
   return {

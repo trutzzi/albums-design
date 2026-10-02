@@ -67,7 +67,8 @@ async function main() {
   });
   const { logger, emailSender, permanentStorage } = infra;
   const application = buildApplication(infra, repos);
-  const { generateDerivatives, analyzePhoto, storeOriginal, promoteSelected, runExport } = application;
+  const { generateDerivatives, analyzePhoto, recordAnalysisFailure, storeOriginal, promoteSelected, runExport } =
+    application;
 
   // Wire the queues to run in-process.
   queue.on(QUEUES.mediaIngestion, async (_jobName, payload) => {
@@ -87,12 +88,16 @@ async function main() {
       storageKey: String(payload.storageKey),
       useAi: Boolean(payload.useAi),
     });
-    if (result.isSuccess) {
-      const analysis = result.getValue();
-      console.log(
-        `  analysed ${analysis.photoId.toString().slice(0, 8)} → ${analysis.score.overall}/100 ${analysis.category} ${analysis.orientation}`,
-      );
+    // In-process jobs are not retried, so a failed analysis is final.
+    if (result.isFailure) {
+      console.error(`  analysis failed ${String(payload.photoId).slice(0, 8)}: ${result.getError().message}`);
+      await recordAnalysisFailure.execute({ photoId: String(payload.photoId) });
+      return;
     }
+    const analysis = result.getValue();
+    console.log(
+      `  analysed ${analysis.photoId.toString().slice(0, 8)} → ${analysis.score.overall}/100 ${analysis.category} ${analysis.orientation}`,
+    );
   });
   queue.on(QUEUES.storage, async (jobName, payload) => {
     if (jobName === "store-original" && storeOriginal) {

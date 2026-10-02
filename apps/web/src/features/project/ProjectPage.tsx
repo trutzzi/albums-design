@@ -129,6 +129,7 @@ export function ProjectPage() {
 
   const uploadedCount = photos.data?.length ?? 0;
   const analysed = analyses.data?.length ?? 0;
+  const failedAnalysis = (photos.data ?? []).filter((photo) => photo.status === "FAILED").length;
   const albumWorthy = (analyses.data ?? []).filter((analysis) => analysis.albumWorthy).length;
 
   const upload = usePhotoUpload({ studioId, projectId, useAi, photoLimit, photoCount: uploadedCount });
@@ -157,6 +158,7 @@ export function ProjectPage() {
   const workflow = shootWorkflow({
     uploaded: uploadedCount,
     analysed,
+    failed: failedAnalysis,
     albums: albums.data ?? [],
     picks: pickSessions.data ?? [],
     deliveries: downloadSessions.data ?? [],
