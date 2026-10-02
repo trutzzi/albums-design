@@ -1,6 +1,6 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { AlbumRepository } from "../../../album-composition/domain/album-repository";
-import type { Album } from "../../../album-composition/domain/album";
+import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
+import type { Album } from "#src/modules/album-composition/domain/album";
 import type { AlbumPlacementDirectory } from "../../application/ports/album-placements";
 
 function placedPhotoIds(album: Album): string[] {

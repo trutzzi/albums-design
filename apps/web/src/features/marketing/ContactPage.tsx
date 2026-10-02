@@ -1,4 +1,4 @@
-import { useLanguage } from "../../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 const CONTACT_EMAIL = "contact@valentintruta.ro";
 

@@ -1,6 +1,6 @@
 import { and, desc, eq, lt } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { Database } from "../../../../db/client";
+import type { Database } from "#src/db/client";
 import { ExportJob } from "../../domain/export-job";
 import type { ExportJobRepository } from "../../domain/export-job-repository";
 import { exportJobs } from "./schema";

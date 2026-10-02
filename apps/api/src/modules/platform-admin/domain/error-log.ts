@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { ErrorContextValue, ErrorEvent, ErrorSink, ErrorSource } from "../../../shared-kernel/error-sink";
+import type { ErrorContextValue, ErrorEvent, ErrorSink, ErrorSource } from "#src/shared-kernel/error-sink";
 
 export type ErrorIssueStatus = "OPEN" | "RESOLVED";
 

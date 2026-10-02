@@ -1,5 +1,5 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { PhotoDimensions, PhotoDimensionsDirectory } from "../../../../shared-kernel/photo-dimensions";
+import type { PhotoDimensions, PhotoDimensionsDirectory } from "#src/shared-kernel/photo-dimensions";
 import type { PhotoAnalysisRepository } from "../../domain/photo-analysis-repository";
 
 /** Reads each photo's upright size from the shoot's analyses. */

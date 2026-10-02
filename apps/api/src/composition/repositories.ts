@@ -1,4 +1,5 @@
 import type { Database } from "../db/client";
+import type { Repositories } from "./ports";
 import {
   DrizzleStudioMemberRepository,
   DrizzleStudioRepository,
@@ -33,7 +34,7 @@ export function buildRepositories(db: Database) {
     downloadSessions: new DrizzleDownloadSessionRepository(db),
     exportJobs: new DrizzleExportJobRepository(db),
     feedback: new DrizzleFeedbackRepository(db),
-  };
+  } satisfies Repositories;
 }
 
-export type Repositories = ReturnType<typeof buildRepositories>;
+export type DrizzleRepositories = ReturnType<typeof buildRepositories>;

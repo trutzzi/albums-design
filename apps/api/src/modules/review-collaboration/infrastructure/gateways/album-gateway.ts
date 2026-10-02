@@ -1,15 +1,15 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { AlbumRepository } from "../../../album-composition/domain/album-repository";
-import type { PlanFeatureDirectory } from "../../../../shared-kernel/plan-features";
-import type { PhotoFocusDirectory } from "../../../../shared-kernel/photo-focus";
-import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
+import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
+import type { PlanFeatureDirectory } from "#src/shared-kernel/plan-features";
+import type { PhotoFocusDirectory } from "#src/shared-kernel/photo-focus";
+import type { StudioBrandingDirectory } from "#src/shared-kernel/studio-branding";
 import type {
   AlbumGateway,
   PhotoPreviewResolver,
   ReviewNotifier,
   ReviewableAlbum,
 } from "../../application/ports/album-gateway";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 export class AlbumCompositionGateway implements AlbumGateway {
   constructor(

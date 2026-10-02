@@ -4,7 +4,7 @@ import {
   NotFoundError,
   ValidationError,
   type ApplicationError,
-} from "../../../../shared-kernel/errors";
+} from "#src/shared-kernel/errors";
 import { PickClosedError, PickSession, type PickStatus } from "../../domain/pick-session";
 import type { PickSessionRepository } from "../../domain/pick-session-repository";
 import type { PickStage } from "../../domain/pick-session";

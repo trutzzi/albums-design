@@ -1,4 +1,5 @@
-import type { EmailSender } from "../../../../shared-kernel/email";
+import type { EmailSender } from "#src/shared-kernel/email";
+import { escapeHtml } from "#src/shared-kernel/html";
 
 export type ResetLanguage = "en" | "ro";
 
@@ -38,10 +39,6 @@ function copyFor(email: PasswordResetEmail) {
     expiry: `The link works for ${email.expiresInMinutes} minutes and can be used once.`,
     ignore: "If you didn't ask for this, ignore this email — your password stays as it is.",
   };
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 /** The "forgot password" email, in the same visual style as the client invitations. */

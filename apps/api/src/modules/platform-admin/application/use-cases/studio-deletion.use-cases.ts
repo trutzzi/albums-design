@@ -1,11 +1,11 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { ConflictError, NotFoundError, type ApplicationError } from "../../../../shared-kernel/errors";
+import { ConflictError, NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
 import type {
   StudioMemberRepository,
   StudioRepository,
   SubscriptionRepository,
-} from "../../../identity/domain/repositories";
-import type { ProjectRepository } from "../../../media-ingestion/domain/project-repository";
+} from "#src/modules/identity/domain/repositories";
+import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
 import type { FeedbackRepository } from "../../domain/feedback";
 import type { AdminAccess } from "./admin.use-cases";
 

@@ -1,6 +1,6 @@
 import { Result } from "@albumflow/domain-kernel";
-import { NotFoundError, type ApplicationError } from "../../../../shared-kernel/errors";
-import type { ErrorContextValue, ErrorSource } from "../../../../shared-kernel/error-sink";
+import { NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
+import type { ErrorContextValue, ErrorSource } from "#src/shared-kernel/error-sink";
 import type { ErrorIssue, ErrorIssueStatus, ErrorLogRepository, ErrorOccurrence } from "../../domain/error-log";
 
 const DAY_MS = 24 * 60 * 60 * 1000;

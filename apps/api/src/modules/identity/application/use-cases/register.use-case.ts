@@ -1,14 +1,14 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { AttemptLimiter } from "../../../../shared-kernel/attempt-limiter";
+import { AttemptLimiter } from "#src/shared-kernel/attempt-limiter";
 import {
   ConflictError,
   TooManyAttemptsError,
   UnauthorizedError,
   ValidationError,
   type ApplicationError,
-} from "../../../../shared-kernel/errors";
-import { hashPassword } from "../../../../shared-kernel/password-hasher";
-import { signJwt, verifyJwt } from "../../../../shared-kernel/jwt";
+} from "#src/shared-kernel/errors";
+import { hashPassword } from "#src/shared-kernel/password-hasher";
+import { signJwt, verifyJwt } from "#src/shared-kernel/jwt";
 import type {
   StudioMemberRepository,
   StudioRepository,

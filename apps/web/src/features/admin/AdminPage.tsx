@@ -18,7 +18,7 @@ import {
   type FeedbackStatus,
   type FunnelStep,
   type SystemStats,
-} from "../../lib/api";
+} from "@/shared/api";
 import { BarList, ColumnChart, StatTile } from "./charts";
 import { ErrorsTab } from "./ErrorsTab";
 

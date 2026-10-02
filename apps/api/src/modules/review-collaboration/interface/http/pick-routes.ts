@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { sendApplicationError } from "../../../../interface/error-translator";
-import { grantFrom } from "../../../../interface/client-errors";
+import { sendApplicationError } from "#src/interface/error-translator";
+import { grantFrom } from "#src/interface/client-errors";
 import type { PickSessionAdminUseCase } from "../../application/use-cases/open-pick-session.use-case";
 import type { PickPortalUseCase } from "../../application/use-cases/pick-portal.use-case";
 

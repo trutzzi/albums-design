@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../app/AuthContext";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { ApiError, resendConfirmation } from "../../lib/api";
-import { Turnstile, TURNSTILE_SITE_KEY } from "../../components/Turnstile";
+import { useAuth } from "@/app/AuthContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { ApiError, resendConfirmation } from "@/shared/api";
+import { Turnstile, TURNSTILE_SITE_KEY } from "@/features/auth/components/Turnstile";
 
 export function RegisterPage() {
   const auth = useAuth();

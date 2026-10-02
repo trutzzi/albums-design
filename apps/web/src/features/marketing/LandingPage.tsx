@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 interface Feature {
   icon: string;

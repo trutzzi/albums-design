@@ -1,10 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { App } from "./app/App.js";
+import { App } from "@/app/App";
 import "./styles.css";
-import { applyTheme, currentTheme } from "./lib/theme";
-import { ErrorBoundary, startErrorMonitoring } from "./lib/monitoring";
+import { applyTheme, currentTheme } from "@/shared/lib/theme";
+import { ErrorBoundary, startErrorMonitoring } from "@/shared/lib/monitoring";
 
 startErrorMonitoring();
 applyTheme(currentTheme());

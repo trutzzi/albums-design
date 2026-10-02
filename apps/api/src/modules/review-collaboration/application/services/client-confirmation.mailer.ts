@@ -1,10 +1,10 @@
-import type { EmailSender } from "../../../../shared-kernel/email";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import type { EmailSender } from "#src/shared-kernel/email";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 import type { ReviewNotifier } from "../ports/album-gateway";
 import type { ClientContact, ClientContactDirectory } from "../ports/client-contact";
 import type { StudioContacts } from "../ports/delivery-gateway";
 import type { PickNotifier } from "../ports/pick-gateway";
-import type { StudioBrandingDirectory } from "../../../../shared-kernel/studio-branding";
+import type { StudioBrandingDirectory } from "#src/shared-kernel/studio-branding";
 import { enPhotos, roPhotos } from "./studio-email-notifier";
 import { brandedNoteHtml, emailBrandFor } from "./email-brand";
 

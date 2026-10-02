@@ -1,13 +1,13 @@
 import { Result } from "@albumflow/domain-kernel";
-import { AttemptLimiter } from "../../../../shared-kernel/attempt-limiter";
+import { AttemptLimiter } from "#src/shared-kernel/attempt-limiter";
 import {
   EmailNotVerifiedError,
   TooManyAttemptsError,
   UnauthorizedError,
   type ApplicationError,
-} from "../../../../shared-kernel/errors";
-import { verifyPassword } from "../../../../shared-kernel/password-hasher";
-import { signJwt } from "../../../../shared-kernel/jwt";
+} from "#src/shared-kernel/errors";
+import { verifyPassword } from "#src/shared-kernel/password-hasher";
+import { signJwt } from "#src/shared-kernel/jwt";
 import type { StudioMemberRepository } from "../../domain/repositories";
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days

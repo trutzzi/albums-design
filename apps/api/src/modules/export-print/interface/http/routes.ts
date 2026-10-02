@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { sendApplicationError } from "../../../../interface/error-translator";
+import { sendApplicationError } from "#src/interface/error-translator";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import { NotFoundError } from "../../../../shared-kernel/errors";
+import { NotFoundError } from "#src/shared-kernel/errors";
 import type { ExportJob } from "../../domain/export-job";
 import type { ExportJobRepository } from "../../domain/export-job-repository";
 import { PRINT_PROFILES } from "../../domain/print-profile";

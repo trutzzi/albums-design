@@ -1,6 +1,6 @@
-import type { PhotoRepository } from "../../../domain/photo-repository";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
 import type { StoreOriginalUseCase } from "./store-original.use-case";
-import { consoleLogger, type Logger } from "../../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 export interface StorePendingSummary {
   stored: number;

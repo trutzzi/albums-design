@@ -1,154 +1,26 @@
-import { SharpLogoProcessor } from "../modules/identity/infrastructure/branding/sharp-logo-processor";
-import { SubscriptionStudioBrandingDirectory } from "../modules/identity/infrastructure/branding/subscription-branding-directory";
-import { NoHumanCheck, TurnstileHumanCheck } from "../shared-kernel/human-check";
-import { AnalysisPhotoFocusDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-focus-directory";
-import { AnalysisPhotoDimensionsDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-dimensions-directory";
 import Fastify from "fastify";
-import { SubscriptionPlanFeatureDirectory } from "../modules/identity/infrastructure/gateways/subscription-plan-features";
 import cors from "@fastify/cors";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { MAX_UPLOAD_BYTES } from "@albumflow/contracts";
 
+import { loadAppSettings } from "../shared-kernel/env";
+import { QUEUES } from "../shared-kernel/job-queue";
 import { registerStudioAuth } from "../interface/auth";
-import { RepositoryResourceOwnership, registerTenancyGuard } from "../interface/tenancy";
+import { registerTenancyGuard } from "../interface/tenancy";
 import { httpServerOptions, registerHttpFoundation, REQUEST_ID_HEADER } from "../interface/http-foundation";
-import { ConsoleLogger, type Logger } from "../shared-kernel/logger";
-import { ErrorRecordingLogger } from "../infrastructure/monitoring/error-recording-logger";
-import { InMemoryErrorLogRepository } from "../modules/platform-admin/infrastructure/error-log-repositories";
-import { ErrorInboxUseCase } from "../modules/platform-admin/application/use-cases/error-inbox.use-case";
-import { registerBillingRoutes, registerIdentityRoutes } from "../modules/identity/interface/http/routes";
-import { BillingUseCase } from "../modules/identity/application/use-cases/billing.use-case";
-import { RequestMetrics } from "../interface/request-metrics";
-import { InMemoryFeedbackRepository } from "../modules/platform-admin/infrastructure/feedback-repositories";
-import { InMemoryStatsSource } from "../modules/platform-admin/infrastructure/stats-sources";
-import { InProcessDependencyProbe } from "../modules/platform-admin/infrastructure/dependency-probes";
-import { registerPlatformAdminRoutes } from "../modules/platform-admin/interface/http/routes";
-import {
-  AdminAccess,
-  AdminDashboardUseCase,
-  FeedbackUseCase,
-  StudioPlansUseCase,
-} from "../modules/platform-admin/application/use-cases/admin.use-cases";
-import {
-  DeleteStudioUseCase,
-  PurgeUnconfirmedSignupsUseCase,
-} from "../modules/platform-admin/application/use-cases/studio-deletion.use-cases";
-import { NoBillingGateway } from "../modules/identity/application/ports/billing-gateway";
-import { registerMediaIngestionRoutes } from "../modules/media-ingestion/interface/http/routes";
-import { registerPhotoIntelligenceRoutes } from "../modules/photo-intelligence/interface/http/routes";
-import { registerAlbumCompositionRoutes } from "../modules/album-composition/interface/http/routes";
-import { registerReviewRoutes } from "../modules/review-collaboration/interface/http/routes";
-import { registerPickRoutes } from "../modules/review-collaboration/interface/http/pick-routes";
-import { registerDownloadRoutes } from "../modules/review-collaboration/interface/http/download-routes";
-import { CompositePickNotifier, CompositeReviewNotifier, IdentityStudioContacts, MediaIngestionDeliveryGateway } from "../modules/review-collaboration/infrastructure/gateways/delivery-gateway";
-import { ClientInvitationMailer } from "../modules/review-collaboration/application/services/client-invitation.mailer";
-import { ClientLinkInvitations } from "../modules/review-collaboration/application/services/client-link-invitations";
-import { ProjectClientContactDirectory } from "../modules/review-collaboration/infrastructure/gateways/client-contact-gateway";
-import { StudioEmailNotifier } from "../modules/review-collaboration/application/services/studio-email-notifier";
-import { ClientConfirmationMailer } from "../modules/review-collaboration/application/services/client-confirmation.mailer";
-import { DownloadSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/download-session-admin.use-case";
-import { DownloadPortalUseCase } from "../modules/review-collaboration/application/use-cases/download-portal.use-case";
-import { ReviewCollaborationDownloadHolds } from "../modules/media-ingestion/infrastructure/gateways/download-hold-gateway";
-import { ClientAccessService } from "../modules/review-collaboration/application/services/client-access.service";
-import { ReviewAccessUseCase } from "../modules/review-collaboration/application/use-cases/review-access.use-case";
-import { SecretBox } from "../shared-kernel/secret-box";
-import { ClientGrantSigner } from "../shared-kernel/client-grant";
-import { SmtpEmailSender } from "../infrastructure/email/smtp-email-sender";
-import { LoggingEmailSender } from "../infrastructure/email/logging-email-sender";
-import { LoggingPickNotifier, MediaIngestionPickGateway } from "../modules/review-collaboration/infrastructure/gateways/pick-gateway";
-import { PromoteOnPickNotifier } from "../modules/review-collaboration/infrastructure/gateways/promote-on-pick-notifier";
-import { PickSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/open-pick-session.use-case";
-import { PickPortalUseCase } from "../modules/review-collaboration/application/use-cases/pick-portal.use-case";
-import { ReviewCollaborationClientPickDirectory } from "../modules/media-ingestion/infrastructure/gateways/client-pick-gateway";
-import { registerExportRoutes } from "../modules/export-print/interface/http/routes";
-
+import { registerMediaRoutes } from "../interface/media-routes";
+import { registerApplicationRoutes } from "../interface/application-routes";
+import { buildApplication } from "../composition/application";
 import { Studio, hashApiKey } from "../modules/identity/domain/studio";
 import { StudioMember } from "../modules/identity/domain/studio-member";
 import { Subscription } from "../modules/identity/domain/subscription";
 import { Project } from "../modules/media-ingestion/domain/project";
-import { StudioAdministrationUseCase } from "../modules/identity/application/use-cases/studio-administration.use-case";
-import { RegisterUseCase } from "../modules/identity/application/use-cases/register.use-case";
-import { LoginUseCase } from "../modules/identity/application/use-cases/login.use-case";
-import { PasswordResetUseCase } from "../modules/identity/application/use-cases/password-reset.use-case";
-import { EmailConfirmationMailer } from "../modules/identity/application/services/email-confirmation.mailer";
-import { PasswordResetMailer } from "../modules/identity/application/services/password-reset.mailer";
-import { SubscriptionQuotaPolicy } from "../modules/identity/application/subscription-quota-policy";
-import { RequestUploadUseCase } from "../modules/media-ingestion/application/use-cases/request-upload/request-upload.use-case";
-import { AbandonUploadUseCase } from "../modules/media-ingestion/application/use-cases/abandon-upload/abandon-upload.use-case";
-import { ListStudioProjectsUseCase } from "../modules/media-ingestion/application/use-cases/list-studio-projects/list-studio-projects.use-case";
-import { ConfirmUploadUseCase } from "../modules/media-ingestion/application/use-cases/confirm-upload/confirm-upload.use-case";
-import { ListProjectPhotosUseCase } from "../modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
-import { DeleteProjectUseCase } from "../modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
-import { GenerateDerivativesUseCase } from "../modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
-import { SharpImageResizer } from "../modules/media-ingestion/infrastructure/imaging/sharp-image-resizer";
-import { MediaIngestionPhotoLifecycle } from "../modules/photo-intelligence/infrastructure/gateways/photo-lifecycle-gateway";
-import { AnalyzePhotoUseCase } from "../modules/photo-intelligence/application/use-cases/analyze-photo/analyze-photo.use-case";
-import { SharpImageInspector } from "../modules/photo-intelligence/infrastructure/vision/sharp-image-inspector";
-import { buildVisionClassifier } from "../modules/photo-intelligence/infrastructure/vision/build-vision-classifier";
-import { HeuristicVisionClassifier } from "../modules/photo-intelligence/infrastructure/vision/heuristic-vision-classifier";
-import { GenerateAlbumUseCase } from "../modules/album-composition/application/use-cases/generate-album/generate-album.use-case";
-import { SuggestLayoutsUseCase } from "../modules/album-composition/application/use-cases/suggest-layouts/suggest-layouts.use-case";
-import { EditAlbumUseCase } from "../modules/album-composition/application/use-cases/edit-album/edit-album.use-case";
-import { DeleteAlbumUseCase } from "../modules/album-composition/application/use-cases/delete-album/delete-album.use-case";
-import {
-  MediaIngestionProjectDirectory,
-  PhotoIntelligenceDirectory,
-} from "../modules/album-composition/infrastructure/gateways/directories";
-import { OpenReviewSessionUseCase } from "../modules/review-collaboration/application/use-cases/open-review-session.use-case";
-import { ReviewPortalUseCase } from "../modules/review-collaboration/application/use-cases/review-portal.use-case";
-import { AlbumFeedbackUseCase } from "../modules/review-collaboration/application/use-cases/album-feedback.use-case";
-import {
-  AlbumCompositionGateway,
-  LoggingReviewNotifier,
-} from "../modules/review-collaboration/infrastructure/gateways/album-gateway";
-import { StoragePhotoPreviewResolver } from "../modules/review-collaboration/infrastructure/gateways/photo-preview-resolver";
-import { RequestExportUseCase } from "../modules/export-print/application/use-cases/request-export.use-case";
-import { DeleteExportUseCase } from "../modules/export-print/application/use-cases/delete-export.use-case";
-import { RunExportUseCase } from "../modules/export-print/application/use-cases/run-export.use-case";
-import {
-  AlbumCompositionExportGateway,
-  StoredPhotoResolver,
-} from "../modules/export-print/infrastructure/gateways/album-gateway";
-import { PdfAlbumRenderer } from "../modules/export-print/infrastructure/rendering/pdf-album-renderer";
-import { QUEUES } from "../shared-kernel/job-queue";
-
-import {
-  InMemoryAlbumRepository,
-  InMemoryExportJobRepository,
-  InMemoryPhotoAnalysisRepository,
-  InMemoryPhotoRepository,
-  InMemoryProjectRepository,
-  InMemoryDownloadSessionRepository,
-  InMemoryPickSessionRepository,
-  InMemoryReviewSessionRepository,
-  InMemoryStudioMemberRepository,
-  InMemoryStudioRepository,
-  InMemorySubscriptionRepository,
-} from "./in-memory-adapters";
-import { LocalBlobStore } from "./local-blob-store";
-import { SynchronousJobQueue } from "./synchronous-job-queue";
-import { registerMediaRoutes } from "../interface/media-routes";
-import { MediaUrlSigner } from "../infrastructure/storage/media-url-signer";
-import { DigiStorageProvider } from "../infrastructure/storage/digistorage-storage-provider";
-import { TieredPhotoByteSource } from "../infrastructure/storage/tiered-photo-byte-source";
-import { InMemoryStorageProvider } from "./in-memory-storage-provider";
-import { StoreOriginalUseCase } from "../modules/media-ingestion/application/use-cases/store-original/store-original.use-case";
-import { PromoteSelectedPhotosUseCase } from "../modules/media-ingestion/application/use-cases/promote-selected/promote-selected.use-case";
-import { AlbumCompositionPlacementDirectory } from "../modules/media-ingestion/infrastructure/gateways/album-placement-gateway";
-import { PromoteOnApprovalNotifier } from "../modules/review-collaboration/infrastructure/gateways/promote-on-approval-notifier";
-import type { StorageProvider } from "../shared-kernel/storage-provider";
+import { DERIVATIVE_SPECS } from "../modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
+import { buildInMemoryAdapters } from "./in-memory-infrastructure";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const BASE_URL = process.env.DEMO_BASE_URL ?? `http://localhost:${PORT}`;
 const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:5173";
-// Demo mode still honours VISION_PROVIDER, so the local Ollama setup can be
-// tried against the demo app without needing the full Postgres/MinIO stack.
-const VISION_PROVIDER = (process.env.VISION_PROVIDER ?? "heuristic") as
-  | "heuristic"
-  | "anthropic"
-  | "ollama";
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5vl:7b";
 // Long-term tier for the two-tier upload pipeline. Unset keeps the single-tier
 // demo; "memory" runs the whole pipeline with no account; "digistorage" talks to
 // the real thing using the same DIGISTORAGE_* variables as production.
@@ -172,136 +44,30 @@ const UPLOADABLE_TYPES = [
   "application/pdf",
 ];
 
+/**
+ * The demo API: the production application (`buildApplication`) on in-memory adapters,
+ * plus what only a self-contained demo needs — byte storage served over HTTP, jobs run
+ * in-process, and a seeded studio.
+ */
 async function main() {
-  // Readable lines, not JSON: demo mode is read by a developer at a terminal. Errors are also
-  // kept for the admin Errors tab, in memory like everything else here.
-  const errorLog = new InMemoryErrorLogRepository();
-  const errorInbox = new ErrorInboxUseCase(errorLog, 30);
-  const logger: Logger = new ErrorRecordingLogger(new ConsoleLogger({ service: "demo" }), errorLog, "api");
-  const studios = new InMemoryStudioRepository();
-  const subscriptions = new InMemorySubscriptionRepository();
-  const members = new InMemoryStudioMemberRepository();
-  const projects = new InMemoryProjectRepository();
-  const planFeatures = new SubscriptionPlanFeatureDirectory(projects, subscriptions);
-  const photos = new InMemoryPhotoRepository();
-  const analyses = new InMemoryPhotoAnalysisRepository();
-  const photoFocus = new AnalysisPhotoFocusDirectory(analyses);
-  const studioBranding = new SubscriptionStudioBrandingDirectory(projects, studios, subscriptions);
-  const albums = new InMemoryAlbumRepository();
-  const reviewSessions = new InMemoryReviewSessionRepository();
-  const pickSessions = new InMemoryPickSessionRepository();
-  const downloadSessions = new InMemoryDownloadSessionRepository();
-  const exportJobs = new InMemoryExportJobRepository();
-
-  const storage = new LocalBlobStore(BASE_URL);
-  const queue = new SynchronousJobQueue();
-  const clientAccess = new ClientAccessService(new SecretBox(DEMO_JWT_SECRET), new ClientGrantSigner(DEMO_JWT_SECRET));
-
-  // Real mail when SMTP_* is set for the demo, otherwise the message is printed in this log.
-  const emailSender =
-    process.env.EMAIL_PROVIDER === "smtp" &&
-    process.env.SMTP_HOST &&
-    process.env.MAIL_FROM &&
-    // A login with no password can only fail, and mail servers lock out repeated failures.
-    !(process.env.SMTP_USER && !process.env.SMTP_PASSWORD)
-      ? new SmtpEmailSender({
-          host: process.env.SMTP_HOST,
-          port: Number(process.env.SMTP_PORT ?? 587),
-          secure: process.env.SMTP_SECURE === "true",
-          user: process.env.SMTP_USER || undefined,
-          password: process.env.SMTP_PASSWORD || undefined,
-          from: process.env.MAIL_FROM,
-        })
-      : new LoggingEmailSender(logger.child({ component: "email" }));
-  const administration = new StudioAdministrationUseCase(studios, subscriptions, members, new SharpLogoProcessor());
-  const register = new RegisterUseCase(
-    studios,
-    subscriptions,
-    members,
-    DEMO_JWT_SECRET,
-    new EmailConfirmationMailer(emailSender),
+  // Same validation and defaults as production for everything the modules read. Demo mode
+  // still honours VISION_PROVIDER, so the local Ollama setup can be tried against the demo.
+  const settings = loadAppSettings({
+    ...process.env,
+    JWT_SECRET: DEMO_JWT_SECRET,
     WEB_ORIGIN,
-  );
-  const login = new LoginUseCase(members, DEMO_JWT_SECRET);
-  const quota = new SubscriptionQuotaPolicy(subscriptions);
-  // The demo never takes payment: choosing a plan switches it, as before.
-  const billing = new BillingUseCase(studios, subscriptions, new NoBillingGateway(), WEB_ORIGIN);
-
-  const visionClassifier = buildVisionClassifier({
-    provider: VISION_PROVIDER,
-    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-    ollamaBaseUrl: OLLAMA_BASE_URL,
-    ollamaModel: OLLAMA_MODEL,
-    logger: logger.child({ component: "vision" }),
+    // The demo has always cut previews at the resizer's own default.
+    PREVIEW_LONG_EDGE: process.env.PREVIEW_LONG_EDGE ?? String(DERIVATIVE_SPECS.preview.longestEdge),
   });
-  const mediaUrlSigner = new MediaUrlSigner(DEMO_JWT_SECRET, BASE_URL);
-  let permanentStorage: StorageProvider | undefined;
-  if (STORAGE_PROVIDER === "memory") {
-    permanentStorage = new InMemoryStorageProvider(mediaUrlSigner);
-  } else if (STORAGE_PROVIDER === "digistorage") {
-    const { DIGISTORAGE_WEBDAV_URL, DIGISTORAGE_USERNAME, DIGISTORAGE_APP_PASSWORD } = process.env;
-    if (!DIGISTORAGE_WEBDAV_URL || !DIGISTORAGE_USERNAME || !DIGISTORAGE_APP_PASSWORD) {
-      throw new Error(
-        "STORAGE_PROVIDER=digistorage needs DIGISTORAGE_WEBDAV_URL, DIGISTORAGE_USERNAME and DIGISTORAGE_APP_PASSWORD.",
-      );
-    }
-    permanentStorage = new DigiStorageProvider({
-      webdavUrl: DIGISTORAGE_WEBDAV_URL,
-      username: DIGISTORAGE_USERNAME,
-      appPassword: DIGISTORAGE_APP_PASSWORD,
-      rootPath: process.env.DIGISTORAGE_ROOT_PATH ?? "albumflow-demo",
-      urlSigner: mediaUrlSigner,
-    });
-  }
-  // Same switch as production: with a long-term provider, every upload is copied there too.
-  const storeEverything = Boolean(permanentStorage) && (process.env.LONG_TERM_ORIGINALS ?? "all") === "all";
-  const storeOriginal = permanentStorage ? new StoreOriginalUseCase(photos, storage, permanentStorage) : undefined;
-  const promoteSelected = permanentStorage
-    ? new PromoteSelectedPhotosUseCase(
-        photos,
-        storage,
-        permanentStorage,
-        new AlbumCompositionPlacementDirectory(albums),
-        undefined,
-        new ReviewCollaborationClientPickDirectory(pickSessions),
-      )
-    : undefined;
-
-  const analyzePhoto = new AnalyzePhotoUseCase(
-    analyses,
-    storage,
-    new SharpImageInspector(),
-    new HeuristicVisionClassifier(),
-    visionClassifier,
-    new MediaIngestionPhotoLifecycle(photos),
-  );
-
-  const reviewGateway = new AlbumCompositionGateway(
-    albums,
-    new StoragePhotoPreviewResolver(photos, storage, permanentStorage),
-    planFeatures,
-    photoFocus,
-    studioBranding,
-  );
-  const exportGateway = new AlbumCompositionExportGateway(albums, planFeatures, photoFocus);
-  const runExport = new RunExportUseCase(
-    exportJobs,
-    exportGateway,
-    new PdfAlbumRenderer(
-      new StoredPhotoResolver(
-        photos,
-        permanentStorage ? new TieredPhotoByteSource(storage, permanentStorage) : storage,
-      ),
-    ),
-    storage,
-  );
-
-  const generateDerivatives = new GenerateDerivativesUseCase(
-    photos,
-    storage,
-    new SharpImageResizer(),
-    permanentStorage,
-  );
+  const { infra, repos, blobs, queue, mediaUrlSigner } = buildInMemoryAdapters({
+    settings,
+    baseUrl: BASE_URL,
+    storageProvider: STORAGE_PROVIDER,
+    source: process.env,
+  });
+  const { logger, emailSender, permanentStorage } = infra;
+  const application = buildApplication(infra, repos);
+  const { generateDerivatives, analyzePhoto, storeOriginal, promoteSelected, runExport } = application;
 
   // Wire the queues to run in-process.
   queue.on(QUEUES.mediaIngestion, async (_jobName, payload) => {
@@ -367,13 +133,13 @@ async function main() {
     },
     UniqueEntityId.create(DEMO_STUDIO_ID),
   );
-  await studios.save(studio);
+  await repos.studios.save(studio);
 
   const subscription = Subscription.startTrial(studio.id);
   subscription.changePlan("STUDIO");
-  await subscriptions.save(subscription);
+  await repos.subscriptions.save(subscription);
 
-  await members.save(
+  await repos.members.save(
     StudioMember.invite({
       studioId: studio.id,
       email: studio.ownerEmail,
@@ -382,7 +148,7 @@ async function main() {
     }),
   );
 
-  await projects.save(
+  await repos.projects.save(
     Project.create(
       {
         studioId: studio.id,
@@ -399,9 +165,8 @@ async function main() {
   // body limit has to clear the contract's per-file ceiling. Fastify defaults to 1MB,
   // which every real camera file exceeds.
   const app = Fastify({ ...httpServerOptions(undefined), bodyLimit: MAX_UPLOAD_BYTES + 1024 * 1024 });
-  const requestMetrics = new RequestMetrics();
   // Demo mode shows the real failure message in the browser, which production never does.
-  registerHttpFoundation(app, { logger, metrics: requestMetrics, exposeInternalErrors: true });
+  registerHttpFoundation(app, { logger, metrics: application.requestMetrics, exposeInternalErrors: true });
   await app.register(cors, { origin: WEB_ORIGIN, exposedHeaders: [REQUEST_ID_HEADER] });
 
   app.addContentTypeParser(UPLOADABLE_TYPES, { parseAs: "buffer" }, (_request, body, done) => {
@@ -417,13 +182,13 @@ async function main() {
     if (!Buffer.isBuffer(body)) {
       return reply.code(400).send({ message: "Expected a binary body." });
     }
-    await storage.put(key, body, request.headers["content-type"] ?? "application/octet-stream");
+    await blobs.put(key, body, request.headers["content-type"] ?? "application/octet-stream");
     return reply.code(200).send({ ok: true });
   });
 
   app.get("/dev-storage/*", async (request, reply) => {
     const key = decodeURIComponent((request.params as Record<string, string>)["*"] ?? "");
-    const blob = storage.get(key);
+    const blob = blobs.get(key);
     if (!blob) return reply.code(404).send({ message: "Not found" });
     return reply
       .header("Content-Type", blob.contentType)
@@ -431,46 +196,11 @@ async function main() {
       .send(Buffer.from(blob.bytes));
   });
 
-  registerStudioAuth(app, studios, DEMO_JWT_SECRET, { publicPrefixes: ["/dev-storage/"] });
-  registerTenancyGuard(app, new RepositoryResourceOwnership({ projects, photos, albums, exportJobs }));
+  registerStudioAuth(app, repos.studios, DEMO_JWT_SECRET, { publicPrefixes: ["/dev-storage/"] });
+  registerTenancyGuard(app, infra.resourceOwnership);
 
   if (permanentStorage) registerMediaRoutes(app, { signer: mediaUrlSigner, provider: permanentStorage });
 
-  const deleteProject = new DeleteProjectUseCase(
-    projects,
-    photos,
-    storage,
-    analyses,
-    albums,
-    exportJobs,
-    storage,
-    reviewSessions,
-    permanentStorage,
-    pickSessions,
-    downloadSessions,
-    );
-  registerMediaIngestionRoutes(app, {
-    requestUpload: new RequestUploadUseCase(projects, photos, storage, planFeatures),
-    confirmUpload: new ConfirmUploadUseCase(photos, storage, queue, storeEverything),
-    abandonUpload: new AbandonUploadUseCase(photos, storage),
-    listStudioProjects: new ListStudioProjectsUseCase(projects, photos, albums, storage, permanentStorage),
-    listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
-    deleteProject,
-    projects,
-  });
-  registerPhotoIntelligenceRoutes(app, { analyses, visionClassifier });
-  registerAlbumCompositionRoutes(app, {
-    suggestLayouts: new SuggestLayoutsUseCase(new PhotoIntelligenceDirectory(analyses)),
-    generateAlbum: new GenerateAlbumUseCase(
-      albums,
-      new MediaIngestionProjectDirectory(projects),
-      new PhotoIntelligenceDirectory(analyses),
-      quota,
-    ),
-    editAlbum: new EditAlbumUseCase(albums),
-    deleteAlbum: new DeleteAlbumUseCase(albums, exportJobs, storage, reviewSessions),
-    albums,
-  });
   const emailIncomplete = process.env.EMAIL_PROVIDER === "smtp" && emailSender.id !== "smtp";
   console.log(
     `  email      ${
@@ -481,157 +211,18 @@ async function main() {
           : "logged only — set EMAIL_PROVIDER=smtp to send"
     }`,
   );
-  registerIdentityRoutes(app, {
-    administration,
-    register,
-    login,
-    passwordReset: new PasswordResetUseCase(members, new PasswordResetMailer(emailSender), DEMO_JWT_SECRET, WEB_ORIGIN),
-    billing,
-    // Cloudflare's always-pass test keys work here too (see .env.example).
-    humanCheck: process.env.TURNSTILE_SECRET_KEY
-      ? new TurnstileHumanCheck(process.env.TURNSTILE_SECRET_KEY)
-      : new NoHumanCheck(),
-  });
-  registerBillingRoutes(app, billing);
   // In demo mode ADMIN_EMAILS works the same way; sign up with one of them to see /admin.
-  const adminAccess = new AdminAccess(
-    members,
-    (process.env.ADMIN_EMAILS ?? "").split(",").map((email) => email.trim()).filter(Boolean),
-  );
-  const feedbackRepository = new InMemoryFeedbackRepository();
-  const deleteStudio = new DeleteStudioUseCase(
-    studios,
-    subscriptions,
-    members,
-    projects,
-    deleteProject,
-    feedbackRepository,
-    adminAccess,
-  );
+  registerApplicationRoutes(app, application);
+
   // No worker in demo mode: the unconfirmed-signup sweep runs on a timer in this process.
-  const purgeUnconfirmed = new PurgeUnconfirmedSignupsUseCase(members, projects, deleteStudio);
   setInterval(
     () =>
-      void purgeUnconfirmed
+      void application.purgeUnconfirmedSignups
         .execute()
         .catch((error: unknown) => logger.warn("unconfirmed-signup sweep failed", { err: error }))
-        .then(() => errorInbox.purgeExpired()),
+        .then(() => application.errorInbox.purgeExpired()),
     60 * 60 * 1000,
   ).unref();
-  registerPlatformAdminRoutes(app, {
-    access: adminAccess,
-    feedback: new FeedbackUseCase(feedbackRepository, members, studios, adminAccess, emailSender, WEB_ORIGIN),
-    dashboard: new AdminDashboardUseCase(
-      new InMemoryStatsSource({
-        studios,
-        subscriptions,
-        projects,
-        photos,
-        albums,
-        reviews: reviewSessions,
-        picks: pickSessions,
-        exports: exportJobs,
-      }),
-      feedbackRepository,
-      new InProcessDependencyProbe(),
-      requestMetrics,
-      {
-        mode: "demo",
-        storage: STORAGE_PROVIDER,
-        email: emailSender.id,
-        billing: "none",
-        vision: VISION_PROVIDER,
-        errorMonitoring: false,
-      },
-      permanentStorage,
-    ),
-    plans: new StudioPlansUseCase(studios, subscriptions, members, projects),
-    deleteStudio,
-    errors: errorInbox,
-  });
-  const studioContacts = new IdentityStudioContacts(projects, members, studios);
-  const clientContacts = new ProjectClientContactDirectory(projects, albums);
-  const invitations = new ClientLinkInvitations(
-    new ClientInvitationMailer(emailSender),
-    clientContacts,
-    studioContacts,
-    process.env.WEB_ORIGIN ?? "http://localhost:5173",
-    logger.child({ component: "client-invitations" }),
-    studioBranding,
-  );
-  const studioEmail = new StudioEmailNotifier(
-    emailSender,
-    studioContacts,
-    process.env.WEB_ORIGIN ?? "http://localhost:5173",
-    logger.child({ component: "studio-email" }),
-    clientContacts,
-  );
-  const clientEmail = new ClientConfirmationMailer(emailSender, clientContacts, studioContacts, logger.child({ component: "client-email" }), studioBranding);
-  const decided = new CompositeReviewNotifier([new LoggingReviewNotifier(), studioEmail, clientEmail]);
-  const loggedAndEmailed = new CompositePickNotifier([new LoggingPickNotifier(), studioEmail, clientEmail]);
-
-  registerReviewRoutes(app, {
-    openReviewSession: new OpenReviewSessionUseCase(
-      reviewSessions,
-      reviewGateway,
-      clientAccess,
-      invitations,
-      clientContacts,
-    ),
-    reviewPortal: new ReviewPortalUseCase(
-      reviewSessions,
-      reviewGateway,
-      permanentStorage
-        ? new PromoteOnApprovalNotifier(decided, queue)
-        : decided,
-      clientAccess,
-    ),
-    albumFeedback: new AlbumFeedbackUseCase(reviewSessions),
-    sessions: reviewSessions,
-    reviewAccess: new ReviewAccessUseCase(reviewSessions, clientAccess, invitations, clientContacts),
-  });
-  const pickGateway = new MediaIngestionPickGateway(
-    projects,
-    photos,
-    new ListProjectPhotosUseCase(photos, storage, permanentStorage),
-    { branding: studioBranding, dimensions: new AnalysisPhotoDimensionsDirectory(analyses) },
-  );
-  registerPickRoutes(app, {
-    pickAdmin: new PickSessionAdminUseCase(pickSessions, pickGateway, clientAccess, invitations, clientContacts),
-    pickPortal: new PickPortalUseCase(
-      pickSessions,
-      pickGateway,
-      permanentStorage ? new PromoteOnPickNotifier(loggedAndEmailed, queue) : loggedAndEmailed,
-      clientAccess,
-    ),
-  });
-  const deliveryGateway = new MediaIngestionDeliveryGateway(projects, photos, storage, permanentStorage, studioBranding);
-  registerDownloadRoutes(app, {
-    downloadAdmin: new DownloadSessionAdminUseCase(
-      downloadSessions,
-      deliveryGateway,
-      () => new Date(),
-      clientAccess,
-      invitations,
-      clientContacts,
-      planFeatures,
-    ),
-    downloadPortal: new DownloadPortalUseCase(
-      downloadSessions,
-      deliveryGateway,
-      studioEmail,
-      logger.child({ component: "download-portal" }),
-      () => new Date(),
-      clientAccess,
-      pickGateway,
-    ),
-  });
-  registerExportRoutes(app, {
-    requestExport: new RequestExportUseCase(exportJobs, exportGateway, queue),
-    deleteExport: new DeleteExportUseCase(exportJobs, storage),
-    jobs: exportJobs,
-    storage,
-  });
 
   await app.listen({ port: PORT, host: "0.0.0.0" });
 

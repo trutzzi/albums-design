@@ -9,14 +9,14 @@ import {
   saveStudioBranding,
   type PlanDto,
   type StudioOverview,
-} from "../../lib/api";
-import { useAuth } from "../../app/AuthContext";
-import { useLanguage } from "../../lib/i18n/LanguageContext";
-import { LANGUAGES } from "../../lib/i18n/translations";
-import { tip } from "../../lib/tip";
-import { ClientBrandBar } from "../../components/ClientBrand";
-import { PlanUpsell } from "../../components/PlanUpsell";
-import { PlanPrice } from "../../components/LaunchOffer";
+} from "@/shared/api";
+import { useAuth } from "@/app/AuthContext";
+import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { LANGUAGES } from "@/shared/i18n/translations";
+import { tip } from "@/shared/lib/tip";
+import { ClientBrandBar } from "@/shared/ui/ClientBrand";
+import { PlanUpsell } from "@/shared/ui/PlanUpsell";
+import { PlanPrice } from "@/shared/ui/LaunchOffer";
 
 
 export function StudioPage() {

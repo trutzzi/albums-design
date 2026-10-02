@@ -6,7 +6,7 @@ import {
   MediaIngestionProjectDirectory,
   PhotoIntelligenceDirectory,
 } from "../modules/album-composition/infrastructure/gateways/directories";
-import type { Repositories } from "./repositories";
+import type { Repositories } from "./ports";
 import type { IdentityModule } from "./identity.module";
 import type { ExportPrintModule } from "./export-print.module";
 

@@ -3,7 +3,7 @@ import { FallbackVisionClassifier } from "./fallback-vision-classifier";
 import { HeuristicVisionClassifier } from "./heuristic-vision-classifier";
 import { OllamaVisionClassifier } from "./ollama-vision-classifier";
 import type { VisionClassifier } from "../../application/ports/vision-classifier";
-import type { Logger } from "../../../../shared-kernel/logger";
+import type { Logger } from "#src/shared-kernel/logger";
 
 export interface VisionClassifierConfig {
   provider: "heuristic" | "anthropic" | "ollama";

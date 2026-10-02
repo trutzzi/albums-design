@@ -1,6 +1,6 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { PhotoFocus } from "@albumflow/contracts";
-import type { PhotoFocusDirectory } from "../../../../shared-kernel/photo-focus";
+import type { PhotoFocusDirectory } from "#src/shared-kernel/photo-focus";
 import type { PhotoAnalysisRepository } from "../../domain/photo-analysis-repository";
 
 /** Reads subject points from the shoot's analyses; photos analysed before they existed are left out. */

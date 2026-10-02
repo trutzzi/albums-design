@@ -29,14 +29,13 @@ import {
 import { ProjectClientContactDirectory } from "../modules/review-collaboration/infrastructure/gateways/client-contact-gateway";
 import { PromoteOnApprovalNotifier } from "../modules/review-collaboration/infrastructure/gateways/promote-on-approval-notifier";
 import { PromoteOnPickNotifier } from "../modules/review-collaboration/infrastructure/gateways/promote-on-pick-notifier";
-import type { Infrastructure } from "./infrastructure";
-import type { Repositories } from "./repositories";
+import type { ModuleInfrastructure, Repositories } from "./ports";
 import type { IdentityModule } from "./identity.module";
 import type { PhotoIntelligenceModule } from "./photo-intelligence.module";
 
 /** Review & collaboration: the three client links — album review, photo picks, and delivery. */
 export function buildReviewCollaborationModule(
-  { env, logger, emailSender, storage, jobQueue, permanentStorage }: Infrastructure,
+  { env, logger, emailSender, storage, jobQueue, permanentStorage }: ModuleInfrastructure,
   repos: Repositories,
   {
     planFeatures,

@@ -4,7 +4,7 @@ import {
   NotFoundError,
   ValidationError,
   type ApplicationError,
-} from "../../../../shared-kernel/errors";
+} from "#src/shared-kernel/errors";
 import { DownloadSession } from "../../domain/download-session";
 import type { DownloadSessionRepository } from "../../domain/download-session-repository";
 import type { DeliveryGateway } from "../ports/delivery-gateway";
@@ -12,7 +12,7 @@ import type { ClientAccessService } from "../services/client-access.service";
 import type { ClientContactDirectory } from "../ports/client-contact";
 import type { ClientLinkInvitations } from "../services/client-link-invitations";
 import type { InvitationLanguage } from "../services/client-invitation.mailer";
-import type { PlanFeatureDirectory } from "../../../../shared-kernel/plan-features";
+import type { PlanFeatureDirectory } from "#src/shared-kernel/plan-features";
 
 export interface DownloadSessionSummary {
   id: string;

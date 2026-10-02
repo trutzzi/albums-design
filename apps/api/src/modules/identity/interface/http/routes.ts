@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { sendApplicationError } from "../../../../interface/error-translator";
+import { sendApplicationError } from "#src/interface/error-translator";
 import { loginInputSchema, registerInputSchema, studioBrandingSchema } from "@albumflow/contracts";
 import { LAUNCH_PRICES_UNTIL, PLANS, currentPriceEur } from "../../domain/plan";
 import type { StudioAdministrationUseCase } from "../../application/use-cases/studio-administration.use-case";
@@ -8,8 +8,8 @@ import type { RegisterUseCase } from "../../application/use-cases/register.use-c
 import type { LoginUseCase } from "../../application/use-cases/login.use-case";
 import type { PasswordResetUseCase } from "../../application/use-cases/password-reset.use-case";
 import type { BillingUseCase } from "../../application/use-cases/billing.use-case";
-import type { HumanCheck } from "../../../../shared-kernel/human-check";
-import "../../../../interface/request-context";
+import type { HumanCheck } from "#src/shared-kernel/human-check";
+import "#src/interface/request-context";
 
 const studioParams = z.object({ studioId: z.string().uuid() });
 const memberParams = studioParams.extend({ memberId: z.string().uuid() });

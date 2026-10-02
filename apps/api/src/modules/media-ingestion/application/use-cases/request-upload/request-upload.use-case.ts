@@ -1,9 +1,9 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { ConflictError, NotFoundError, type ApplicationError } from "../../../../../shared-kernel/errors";
-import type { PlanFeatureDirectory } from "../../../../../shared-kernel/plan-features";
-import type { ProjectRepository } from "../../../domain/project-repository";
-import type { PhotoRepository } from "../../../domain/photo-repository";
-import { Photo } from "../../../domain/photo";
+import { ConflictError, NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
+import type { PlanFeatureDirectory } from "#src/shared-kernel/plan-features";
+import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
+import { Photo } from "#src/modules/media-ingestion/domain/photo";
 import type { ObjectStorage } from "../../ports/object-storage";
 
 const UPLOAD_URL_TTL_SECONDS = 15 * 60;

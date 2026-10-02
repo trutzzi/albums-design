@@ -1,1 +1,1 @@
-export type { JobQueue } from "../../../../shared-kernel/job-queue";
+export type { JobQueue } from "#src/shared-kernel/job-queue";

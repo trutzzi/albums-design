@@ -1,13 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { sendApplicationError } from "../../../../interface/error-translator";
+import { sendApplicationError } from "#src/interface/error-translator";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { ReviewSessionRepository } from "../../domain/review-session-repository";
 import type { OpenReviewSessionUseCase } from "../../application/use-cases/open-review-session.use-case";
 import type { ReviewPortalUseCase } from "../../application/use-cases/review-portal.use-case";
 import type { AlbumFeedbackUseCase } from "../../application/use-cases/album-feedback.use-case";
 import type { ReviewAccessUseCase } from "../../application/use-cases/review-access.use-case";
-import { grantFrom } from "../../../../interface/client-errors";
+import { grantFrom } from "#src/interface/client-errors";
 
 const albumParams = z.object({ albumId: z.string().uuid() });
 const tokenParams = z.object({ token: z.string().min(10) });

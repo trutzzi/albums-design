@@ -1,5 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { ApplicationError, NotFoundError, ValidationError } from "../../../../shared-kernel/errors";
+import { ApplicationError, NotFoundError, ValidationError } from "#src/shared-kernel/errors";
 import type { StudioRepository, SubscriptionRepository } from "../../domain/repositories";
 import type { BillingEvent, BillingGateway, PaidPlanCode } from "../ports/billing-gateway";
 

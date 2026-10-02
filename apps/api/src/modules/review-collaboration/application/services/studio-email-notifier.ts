@@ -1,9 +1,10 @@
-import type { EmailSender } from "../../../../shared-kernel/email";
+import type { EmailSender } from "#src/shared-kernel/email";
 import type { DownloadNotifier, StudioContacts } from "../ports/delivery-gateway";
 import type { PickNotifier } from "../ports/pick-gateway";
 import type { ReviewNotifier } from "../ports/album-gateway";
 import type { ClientContactDirectory } from "../ports/client-contact";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
+import { escapeHtml } from "#src/shared-kernel/html";
 
 /**
  * Tells the studio's owners by email when a client does something that needs
@@ -97,13 +98,6 @@ export class StudioEmailNotifier implements PickNotifier, DownloadNotifier, Revi
   }
 }
 
-export function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 /** Romanian counts 2–19 plainly and from 20 up (and at 100, 101…) needs "de": "3 fotografii", "25 de fotografii". */
 export function roPhotos(count: number): string {

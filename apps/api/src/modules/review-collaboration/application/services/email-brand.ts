@@ -1,5 +1,6 @@
 import type { ClientBrandingDTO } from "@albumflow/contracts";
-import type { InlineImage } from "../../../../shared-kernel/email";
+import type { InlineImage } from "#src/shared-kernel/email";
+import { escapeHtml } from "#src/shared-kernel/html";
 
 /** The house colour, for studios whose plan does not include their own branding. */
 export const ALBUMFLOW_ACCENT = "#ad5522";
@@ -47,10 +48,6 @@ export function emailBrandFor(studioName: string | undefined, branding: ClientBr
 }
 
 const FONT = "-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif";
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
 
 /** A short note to a client in the studio's look: logo or name on top, a band of its colour, the text. */
 export function brandedNoteHtml(brand: EmailBrand, paragraphs: string[]): string {

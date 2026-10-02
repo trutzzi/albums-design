@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { AttemptLimiter } from "../../../../shared-kernel/attempt-limiter";
-import { UnauthorizedError, ValidationError, type ApplicationError } from "../../../../shared-kernel/errors";
-import { signJwt, verifyJwt } from "../../../../shared-kernel/jwt";
-import { hashPassword } from "../../../../shared-kernel/password-hasher";
+import { AttemptLimiter } from "#src/shared-kernel/attempt-limiter";
+import { UnauthorizedError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
+import { signJwt, verifyJwt } from "#src/shared-kernel/jwt";
+import { hashPassword } from "#src/shared-kernel/password-hasher";
 import type { StudioMemberRepository } from "../../domain/repositories";
 import type { PasswordResetMailer, ResetLanguage } from "../services/password-reset.mailer";
 import { issueSession } from "./login.use-case";

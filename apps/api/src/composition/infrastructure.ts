@@ -13,6 +13,13 @@ import { OffsiteDatabaseBackups } from "../infrastructure/backup/offsite-databas
 import { S3ObjectStorage } from "../modules/media-ingestion/infrastructure/storage/s3-object-storage";
 import { BullMqJobQueue } from "../modules/media-ingestion/infrastructure/queue/bullmq-job-queue";
 import { S3PhotoByteSource } from "../modules/photo-intelligence/infrastructure/storage/s3-photo-byte-source";
+import { S3ExportStorage } from "../modules/export-print/infrastructure/storage/s3-export-storage";
+import { DrizzleStatsSource } from "../modules/platform-admin/infrastructure/stats-sources";
+import { LiveDependencyProbe } from "../modules/platform-admin/infrastructure/dependency-probes";
+import { DrizzleResourceOwnership } from "../infrastructure/persistence/drizzle-resource-ownership";
+import { buildBillingGateway } from "../infrastructure/billing/build-billing-gateway";
+import { QUEUES } from "../shared-kernel/job-queue";
+import type { ModuleInfrastructure } from "./ports";
 
 export function redisConnectionFrom(url: string): ConnectionOptions {
   const parsed = new URL(url);
@@ -26,6 +33,7 @@ export function redisConnectionFrom(url: string): ConnectionOptions {
 /**
  * The process-wide adapters every module shares: logging, the database, object storage,
  * the queue and outbound email. Built once per process; nothing here knows about a use case.
+ * The production family of `ModuleInfrastructure` — the demo's is `buildInMemoryAdapters`.
  */
 export function buildInfrastructure(env: Env, service: "api" | "worker") {
   const { db, close: closeDb } = createDatabase(env.DATABASE_URL);
@@ -64,7 +72,7 @@ export function buildInfrastructure(env: Env, service: "api" | "worker") {
   // behaves exactly as it did before this tier existed.
   const { provider: permanentStorage, signer: mediaUrlSigner } = buildStorage(env);
 
-  return {
+  const infrastructure = {
     env,
     logger,
     pinoLogger,
@@ -86,7 +94,22 @@ export function buildInfrastructure(env: Env, service: "api" | "worker") {
       permanentStorage && env.BACKUP_DIR
         ? new OffsiteDatabaseBackups(permanentStorage, env.BACKUP_DIR, env.BACKUP_KEEP)
         : undefined,
+    exportStorage: new S3ExportStorage(s3, env.S3_BUCKET, presignS3),
+    billingGateway: buildBillingGateway(env),
+    statsSource: new DrizzleStatsSource(db),
+    dependencyProbe: new LiveDependencyProbe(db, () => jobQueue.counts(Object.values(QUEUES))),
+    systemConfig: {
+      mode: "production" as const,
+      storage: env.STORAGE_PROVIDER,
+      email: env.EMAIL_PROVIDER,
+      billing: env.BILLING_PROVIDER,
+      vision: env.VISION_PROVIDER,
+      errorMonitoring: Boolean(env.SENTRY_DSN),
+    },
+    resourceOwnership: new DrizzleResourceOwnership(db),
   };
+  // Production extras (the database handle, Redis, pino) ride along; the modules see only the ports.
+  return infrastructure satisfies ModuleInfrastructure;
 }
 
 export type Infrastructure = ReturnType<typeof buildInfrastructure>;

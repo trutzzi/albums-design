@@ -1,6 +1,6 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { ProjectRepository } from "../../../media-ingestion/domain/project-repository";
-import type { AlbumRepository } from "../../../album-composition/domain/album-repository";
+import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
+import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
 import type { ClientContact, ClientContactDirectory } from "../../application/ports/client-contact";
 
 /**

@@ -1,5 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { NotFoundError, type ApplicationError } from "../../../../shared-kernel/errors";
+import { NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
 import type { ExportJob } from "../../domain/export-job";
 import type { ExportJobRepository } from "../../domain/export-job-repository";
 import { findPrintProfile } from "../../domain/print-profile";

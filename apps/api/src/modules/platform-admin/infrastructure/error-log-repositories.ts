@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, ilike, inArray, lt, or, sql, type SQL } from "drizzle-orm";
-import type { Database } from "../../../db/client";
-import type { ErrorEvent } from "../../../shared-kernel/error-sink";
+import type { Database } from "#src/db/client";
+import type { ErrorEvent } from "#src/shared-kernel/error-sink";
 import {
   fingerprintOf,
   type ErrorIssue,

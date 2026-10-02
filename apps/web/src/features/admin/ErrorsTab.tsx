@@ -7,7 +7,7 @@ import {
   type AdminErrorIssue,
   type ErrorIssueStatus,
   type ErrorSource,
-} from "../../lib/api";
+} from "@/shared/api";
 
 const SOURCE_LABELS: Record<ErrorSource, string> = { api: "API", worker: "Worker" };
 const STATUS_LABELS: Record<ErrorIssueStatus, string> = { OPEN: "Open", RESOLVED: "Resolved" };

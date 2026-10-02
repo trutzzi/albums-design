@@ -1,7 +1,7 @@
-import type { JobQueue } from "../../../../shared-kernel/job-queue";
-import { QUEUES } from "../../../../shared-kernel/job-queue";
+import type { JobQueue } from "#src/shared-kernel/job-queue";
+import { QUEUES } from "#src/shared-kernel/job-queue";
 import type { ReviewNotifier } from "../../application/ports/album-gateway";
-import { consoleLogger, type Logger } from "../../../../shared-kernel/logger";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
 /**
  * When a client approves an album, the photos placed on it are the "selected"

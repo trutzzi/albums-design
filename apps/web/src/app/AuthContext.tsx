@@ -5,8 +5,8 @@ import {
   registerAccount as registerRequest,
   resetPassword as resetPasswordRequest,
   verifyEmail as verifyEmailRequest,
-} from "../lib/api";
-import { clearSession, loadSession, saveSession, type StoredSession } from "../lib/auth-storage";
+} from "@/shared/api";
+import { clearSession, loadSession, saveSession, type StoredSession } from "@/shared/lib/auth-storage";
 
 interface AuthContextValue {
   /** True once a real person has logged in — false for the baked-in demo key. */

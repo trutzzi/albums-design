@@ -1,10 +1,10 @@
 import { Result } from "@albumflow/domain-kernel";
-import { ValidationError, type ApplicationError } from "../../../../../shared-kernel/errors";
+import { ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import {
   MAX_SLOTS_PER_SPREAD,
   rankTemplates,
   type CandidatePhoto,
-} from "../../../domain/layout-planner";
+} from "#src/modules/album-composition/domain/layout-planner";
 import type { AnalysedPhotoDirectory } from "../../ports/directories";
 
 export interface SuggestLayoutsCommand {

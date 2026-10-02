@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { sendApplicationError } from "../../../../interface/error-translator";
-import { authenticatedStudioId } from "../../../../interface/tenancy";
+import { sendApplicationError } from "#src/interface/error-translator";
+import { authenticatedStudioId } from "#src/interface/tenancy";
 import type {
   AdminAccess,
   AdminDashboardUseCase,
@@ -10,7 +10,7 @@ import type {
 } from "../../application/use-cases/admin.use-cases";
 import type { DeleteStudioUseCase } from "../../application/use-cases/studio-deletion.use-cases";
 import type { ErrorInboxUseCase } from "../../application/use-cases/error-inbox.use-case";
-import "../../../../interface/request-context";
+import "#src/interface/request-context";
 
 const kinds = z.enum(["IDEA", "PROBLEM", "QUESTION", "PRAISE"]);
 const statuses = z.enum(["NEW", "IN_PROGRESS", "RESOLVED"]);

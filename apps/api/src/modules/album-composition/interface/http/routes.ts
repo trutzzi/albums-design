@@ -1,9 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { sendApplicationError } from "../../../../interface/error-translator";
+import { sendApplicationError } from "#src/interface/error-translator";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { albumEditSchema, generateAlbumSchema, suggestLayoutsSchema } from "@albumflow/contracts";
-import { NotFoundError } from "../../../../shared-kernel/errors";
+import { NotFoundError } from "#src/shared-kernel/errors";
 import type { Album } from "../../domain/album";
 import type { AlbumRepository } from "../../domain/album-repository";
 import { LAYOUT_TEMPLATES } from "../../domain/layout-template";
