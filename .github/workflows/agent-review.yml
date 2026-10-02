@@ -117,6 +117,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # The action refuses to run a review workflow that differs from the default branch's
+          # (so a PR cannot rewrite its own reviewer). That PR gets no review: warn, don't fail.
+          default="${{ github.event.repository.default_branch }}"
+          git fetch -q origin "$default"
+          if ! git diff --quiet "origin/$default" HEAD -- .github/workflows/agent-review.yml; then
+            echo "::warning::Agent review skipped: this PR changes the review workflow itself. It runs on PRs once this is merged."
+            echo "### ${{ matrix.reviewer }} — skipped (this PR changes the review workflow)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           body=$(gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --json comments \
             | jq -r --arg m "$MARKER" '[.comments[] | select(.body | startswith($m))] | last | .body // ""')
           verdict=$(printf '%s\n' "$body" | grep -m1 '^Verdict:' || true)
