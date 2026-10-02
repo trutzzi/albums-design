@@ -20,7 +20,8 @@ env:
 
 jobs:
   verify:
-    name: Typecheck, test, build
+    # The same gates as `pnpm verify` (scripts/verify.sh), one step each so a failure is easy to find.
+    name: Format, lint, types, tests + coverage, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,11 +37,18 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Format (Prettier)
+        run: pnpm format:check
+
+      - name: Lint (ESLint)
+        run: pnpm lint
+
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Test
-        run: pnpm test
+      # Fails below 80% of lines, branches or functions in the code the tests load.
+      - name: Test with coverage
+        run: pnpm test:coverage
 
       - name: Build
         run: pnpm build

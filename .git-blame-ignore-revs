@@ -1,0 +1,3 @@
+# Format-only commits: `git blame` skips them (git config blame.ignoreRevsFile .git-blame-ignore-revs; GitHub does it automatically).
+# Prettier across the whole codebase
+56f261a2af4bef0543c96402c5bb874fcbf3cc5f
