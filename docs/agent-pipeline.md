@@ -7,14 +7,22 @@
 
 | Stage | Where | What it does | Can it change `main`? |
 |---|---|---|---|
-| Writer | Claude Code, `/ship` (`.claude/skills/ship`) | Branches from `main`, writes the change with tests, asks first if it needs a design change | No |
+| Writer | Claude Code, `/ship` (`.claude/skills/ship`) | Branches from `main`, writes the change with tests as a senior engineer for the area, self-reviews against the checklists, asks first if it needs a design change | No |
 | Quality gate | `pnpm verify` (`scripts/verify.sh`) | Prettier, ESLint, types, tests with ≥80% coverage, build, migrations | — |
 | Pull request | `gh pr create` | Fills `.github/pull_request_template.md` | No |
 | CI | `.github/workflows/ci.yml` | The same gates, plus Docker images and the end-to-end smoke test | — |
-| Reviewer | `.github/workflows/agent-review.yml` | Reads the diff cold, comments inline, posts a verdict: ✅ READY, ⚠️ SUGGESTIONS or ⛔ BLOCKING (red check) | No — read and comment only |
+| Reviewers | `.github/workflows/agent-review.yml` | Specialists chosen by the files changed — **frontend** (`apps/web/`) and **backend / architect** (everything else; prose-only PRs get none). Each reads the diff cold, comments inline and posts its own verdict: ✅ READY, ⚠️ SUGGESTIONS or ⛔ BLOCKING (red check) | No — read and comment only |
 | You | GitHub | Read the review, then merge or close | Yes |
 
-Patterns: pipes and filters (each stage passes the work on or stops it), quality gate (one command, locally and in CI), maker–checker (the reviewer did not write the code and cannot change it), human-in-the-loop (only you merge).
+Review standards live in one place, `.github/review-checklists/`, read by the writer and the reviewers alike:
+
+- `frontend.md` — senior React review: hooks and re-renders, state placement, loading/error/empty states, accessibility, every string in EN and RO, feature-folder structure.
+- `backend.md` — senior architect review: ports & adapters boundaries, `Result` handling, tenancy and auth, safe migrations, N+1 and slow work off the request path, error logging.
+- `clean-code.md` — naming, duplication, function size, dead code, why-comments. Always suggestions; never blocking.
+
+Edit a checklist and both agents follow it from the next run.
+
+Patterns: strategy by path (a specialist reviewer per area), pipes and filters (each stage passes the work on or stops it), quality gate (one command, locally and in CI), maker–checker (the reviewer did not write the code and cannot change it), human-in-the-loop (only you merge).
 
 ## Guards against an agent merging
 

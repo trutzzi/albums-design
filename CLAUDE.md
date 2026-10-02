@@ -21,5 +21,6 @@ Photographers upload a shoot, clients pick photos, an album is generated and edi
 - Tests use Node's test runner (`node --test`): API tests in `apps/api/test/`, web logic tests beside the code as `*.test.ts`.
 - Log failures through the `Logger` port with context; `error` level reaches the admin Errors tab and Sentry.
 - Comments explain why, not what. Keep every existing feature working.
+- Review standards — for writing and reviewing alike — are in `.github/review-checklists/`: `frontend.md` (apps/web), `backend.md` (everything else), `clean-code.md` (every change; suggestions, never blocking).
 - Before a design change (new pattern, dependency, schema or visible UX change): describe it, name the pattern, ask the owner.
 - Agents never merge, approve, push to `main` or force-push; the owner merges, and merging to `main` deploys.

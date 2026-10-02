@@ -21,6 +21,7 @@ Your job ends when the pull request is open. You never merge, approve, push to `
 
 ## 2. Understand before writing
 
+- Work as a senior engineer for the area you touch: frontend for `apps/web/`, backend architect for everything else. The standards are the reviewers' checklists in `.github/review-checklists/` — `frontend.md`, `backend.md`, and `clean-code.md` for every change. Read the ones that apply now, not after.
 - Read `CLAUDE.md` and the code the task touches; follow the patterns already there.
 - If the task is ambiguous, or doing it well needs a design change (a new pattern, a new dependency, a schema change, a visible UX change), stop and ask first: describe the change, name the design pattern, and wait for approval. Keep every existing feature working.
 
@@ -38,9 +39,9 @@ Run `pnpm verify --fix` (if `pnpm` is missing: `npx -y pnpm@9.15.0 verify --fix`
 - On failure: fix the cause (never by deleting or weakening a test, lowering a threshold, or adding an eslint-disable without a written reason), then run it again.
 - At most **3** fix rounds. Still red after that: stop, do not open a PR, and report what fails and why.
 
-## 5. Check your own diff
+## 5. Review your own diff as the reviewers will
 
-`git diff origin/main...HEAD` (plus uncommitted work). Remove anything unrelated to the task, debug output, and commented-out code. No secrets, tokens or `.env` values.
+Read `git diff origin/main...HEAD` (plus uncommitted work) against each checklist that applies, item by item, and fix what you find — the same specialist reviewers will read this PR next. Remove anything unrelated to the task, debug output and commented-out code. No secrets, tokens or `.env` values. If you changed code, run `pnpm verify` again.
 
 ## 6. Commit, push, open the PR
 
