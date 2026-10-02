@@ -48,9 +48,21 @@ import { InsertSpreadModal } from "@/features/album-editor/components/InsertSpre
 const EDITOR_TOUR: TourStep[] = [
   { target: '[data-tour="editor-cover"]', titleKey: "tour.editor.cover.title", bodyKey: "tour.editor.cover.body" },
   { target: '[data-tour="editor-spread"]', titleKey: "tour.editor.spread.title", bodyKey: "tour.editor.spread.body" },
-  { target: '[data-tour="editor-spread-actions"]', titleKey: "tour.editor.actions.title", bodyKey: "tour.editor.actions.body" },
-  { target: '[data-tour="editor-layouts"]', titleKey: "tour.editor.layouts.title", bodyKey: "tour.editor.layouts.body" },
-  { target: '[data-tour="editor-sidebar"]', titleKey: "tour.editor.sidebar.title", bodyKey: "tour.editor.sidebar.body" },
+  {
+    target: '[data-tour="editor-spread-actions"]',
+    titleKey: "tour.editor.actions.title",
+    bodyKey: "tour.editor.actions.body",
+  },
+  {
+    target: '[data-tour="editor-layouts"]',
+    titleKey: "tour.editor.layouts.title",
+    bodyKey: "tour.editor.layouts.body",
+  },
+  {
+    target: '[data-tour="editor-sidebar"]',
+    titleKey: "tour.editor.sidebar.title",
+    bodyKey: "tour.editor.sidebar.body",
+  },
   { target: '[data-tour="editor-tools"]', titleKey: "tour.editor.tools.title", bodyKey: "tour.editor.tools.body" },
   { target: '[data-tour="editor-strip"]', titleKey: "tour.editor.strip.title", bodyKey: "tour.editor.strip.body" },
   { target: '[data-tour="editor-check"]', titleKey: "tour.editor.check.title", bodyKey: "tour.editor.check.body" },
@@ -154,7 +166,8 @@ export function AlbumEditorPage() {
   // Every photo id placed on any spread, so the tray can flag a photo that's
   // already in the album rather than let it be added a second time by mistake.
   const usedPhotoIds = useMemo(
-    () => new Set((current?.spreads ?? []).flatMap((spread) => spread.placements.map((placement) => placement.photoId))),
+    () =>
+      new Set((current?.spreads ?? []).flatMap((spread) => spread.placements.map((placement) => placement.photoId))),
     [current],
   );
   const clientPickedIds = useMemo(
@@ -166,7 +179,13 @@ export function AlbumEditorPage() {
       ),
     [pickSessions.data],
   );
-  const tray = usePhotoTray({ photos: photos.data, analyses: analyses.data, analysisByPhoto, clientPickedIds, usedPhotoIds });
+  const tray = usePhotoTray({
+    photos: photos.data,
+    analyses: analyses.data,
+    analysisByPhoto,
+    clientPickedIds,
+    usedPhotoIds,
+  });
 
   const issues = useMemo(
     () =>
@@ -182,7 +201,10 @@ export function AlbumEditorPage() {
   );
   const issueCounts = useMemo(() => issuesBySpread(issues), [issues]);
   const needsAttention = issues.filter((issue) => issue.severity !== "info").length;
-  const chapters = useMemo(() => chapterStarts(current?.spreads ?? [], analysisByPhoto), [current?.spreads, analysisByPhoto]);
+  const chapters = useMemo(
+    () => chapterStarts(current?.spreads ?? [], analysisByPhoto),
+    [current?.spreads, analysisByPhoto],
+  );
 
   // Every callback below is passed to a memoised child, so each one must keep its
   // identity across renders or the memo boundary buys nothing.
@@ -238,12 +260,14 @@ export function AlbumEditorPage() {
   );
   const resetFrames = useCallback((spreadIndex: number) => runEdit({ type: "RESET_FRAMES", spreadIndex }), [runEdit]);
   const setSpreadTreatment = useCallback(
-    (spreadIndex: number, treatment: PhotoTreatment) => runEdit({ type: "SET_SPREAD_TREATMENT", spreadIndex, treatment }),
+    (spreadIndex: number, treatment: PhotoTreatment) =>
+      runEdit({ type: "SET_SPREAD_TREATMENT", spreadIndex, treatment }),
     [runEdit],
   );
   const removeSpread = useCallback((index: number) => runEdit({ type: "REMOVE_SPREAD", index }), [runEdit]);
   const dropPhotoInSlot = useCallback(
-    (spreadIndex: number, slotId: string, photoId: string) => runEdit({ type: "SWAP_PHOTO", spreadIndex, slotId, photoId }),
+    (spreadIndex: number, slotId: string, photoId: string) =>
+      runEdit({ type: "SWAP_PHOTO", spreadIndex, slotId, photoId }),
     [runEdit],
   );
   const setSlotTreatment = useCallback(
@@ -289,7 +313,9 @@ export function AlbumEditorPage() {
   const feedbackPhotoNumber = useCallback(
     (spreadIndex: number, slotId: string) => {
       const spread = spreadsRef.current?.[spreadIndex];
-      const index = spread ? (templateById.get(spread.templateId)?.slots.findIndex((slot) => slot.id === slotId) ?? -1) : -1;
+      const index = spread
+        ? (templateById.get(spread.templateId)?.slots.findIndex((slot) => slot.id === slotId) ?? -1)
+        : -1;
       return index === -1 ? undefined : index + 1;
     },
     [templateById],
@@ -576,7 +602,12 @@ export function AlbumEditorPage() {
         </main>
 
         <aside className="sidebar">
-          <div className="sidebar__tabs" role="tablist" aria-label={t("album.sidebar.label")} data-tour="editor-sidebar">
+          <div
+            className="sidebar__tabs"
+            role="tablist"
+            aria-label={t("album.sidebar.label")}
+            data-tour="editor-sidebar"
+          >
             {(
               [
                 ["photos", t("album.sidebar.photos"), 0],
@@ -614,9 +645,13 @@ export function AlbumEditorPage() {
             onClearPicked={() => setPicked([])}
             onAddPicked={() => layouts.addAsSpread.mutate(picked, { onSuccess: () => setPicked([]) })}
             addingPicked={layouts.addAsSpread.isPending}
-            errors={[layouts.addAsSpread, layouts.shuffle, layouts.addPhoto, layouts.removePhoto, layouts.movePhoto].map(
-              (mutation) => (mutation.isError ? (mutation.error as Error) : null),
-            )}
+            errors={[
+              layouts.addAsSpread,
+              layouts.shuffle,
+              layouts.addPhoto,
+              layouts.removePhoto,
+              layouts.movePhoto,
+            ].map((mutation) => (mutation.isError ? (mutation.error as Error) : null))}
             onPhotoClick={trayPhotoClick}
             analysisByPhoto={analysisByPhoto}
             rankedCount={analyses.data?.length ?? 0}

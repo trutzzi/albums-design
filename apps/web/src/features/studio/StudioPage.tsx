@@ -18,7 +18,6 @@ import { ClientBrandBar } from "@/shared/ui/ClientBrand";
 import { PlanUpsell } from "@/shared/ui/PlanUpsell";
 import { PlanPrice } from "@/shared/ui/LaunchOffer";
 
-
 export function StudioPage() {
   const { studioId } = useAuth();
   const { t, language, setLanguage } = useLanguage();
@@ -68,9 +67,7 @@ export function StudioPage() {
           <h1>{studio.name}</h1>
           <p className="muted">{studio.ownerEmail}</p>
         </div>
-        <span className={`chip chip--${subscription.status.toLowerCase()}`}>
-          {subscription.planName}
-        </span>
+        <span className={`chip chip--${subscription.status.toLowerCase()}`}>{subscription.planName}</span>
       </header>
 
       <section className="panel">
@@ -89,9 +86,7 @@ export function StudioPage() {
             {t("studio.usage", {
               used: subscription.albumsUsed,
               included:
-                subscription.albumsIncluded === null
-                  ? t("studio.usage.unlimited")
-                  : subscription.albumsIncluded,
+                subscription.albumsIncluded === null ? t("studio.usage.unlimited") : subscription.albumsIncluded,
             })}
             {subscription.albumsRemaining !== null &&
               t("studio.usage.remaining", { count: subscription.albumsRemaining })}
@@ -100,7 +95,9 @@ export function StudioPage() {
         {subscription.watermarkDrafts && <p className="notice">{t("studio.watermarkNotice")}</p>}
         {subscription.watermarkExports && <p className="notice">{t("studio.watermarkExportsNotice")}</p>}
         {subscription.status === "PAST_DUE" && <p className="notice notice--danger">{t("studio.billing.pastDue")}</p>}
-        {subscription.status === "CANCELLED" && <p className="notice notice--danger">{t("studio.billing.cancelled")}</p>}
+        {subscription.status === "CANCELLED" && (
+          <p className="notice notice--danger">{t("studio.billing.cancelled")}</p>
+        )}
       </section>
 
       <section className="panel">
@@ -133,7 +130,11 @@ export function StudioPage() {
         {manageBilling.isError && <p className="error">{(manageBilling.error as Error).message}</p>}
       </section>
 
-      <BrandingPanel overview={overview.data} studioId={studioId} onSaved={(updated) => queryClient.setQueryData(["studio", studioId], updated)} />
+      <BrandingPanel
+        overview={overview.data}
+        studioId={studioId}
+        onSaved={(updated) => queryClient.setQueryData(["studio", studioId], updated)}
+      />
 
       <section className="panel">
         <div className="panel__head">
@@ -160,10 +161,7 @@ export function StudioPage() {
           <p className="muted">
             {t("studio.team.seats", {
               used: subscription.seatsUsed,
-              included:
-                subscription.seatsIncluded === null
-                  ? t("studio.usage.unlimited")
-                  : subscription.seatsIncluded,
+              included: subscription.seatsIncluded === null ? t("studio.usage.unlimited") : subscription.seatsIncluded,
             })}
           </p>
         </div>

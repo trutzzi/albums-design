@@ -76,7 +76,11 @@ export function CoverPreview({
           src={previewUrl}
           alt=""
           className="cover-preview__photo"
-          style={crop && imageAspect ? { ...cropToStyle(crop, imageAspect, aspectRatio), inset: "auto", objectFit: "fill" } : undefined}
+          style={
+            crop && imageAspect
+              ? { ...cropToStyle(crop, imageAspect, aspectRatio), inset: "auto", objectFit: "fill" }
+              : undefined
+          }
           onLoad={(event) => {
             const { naturalWidth, naturalHeight } = event.currentTarget;
             if (naturalWidth && naturalHeight) setImageAspect(naturalWidth / naturalHeight);
@@ -89,7 +93,10 @@ export function CoverPreview({
       )}
       <div
         className="cover-preview__text"
-        style={{ top: `${titleTop * 100}%`, ...textStyle({ size: "title", align: "center" }, albumStyle, aspectRatio, color) }}
+        style={{
+          top: `${titleTop * 100}%`,
+          ...textStyle({ size: "title", align: "center" }, albumStyle, aspectRatio, color),
+        }}
       >
         {cover.title}
       </div>
@@ -146,9 +153,7 @@ export function CoverEditor({
           type="button"
           className="button"
           disabled={locked}
-          onClick={() =>
-            onChange({ layout: "photo", photoId: null, crop: FULL_CROP, title: albumTitle, subtitle: "" })
-          }
+          onClick={() => onChange({ layout: "photo", photoId: null, crop: FULL_CROP, title: albumTitle, subtitle: "" })}
         >
           {t("cover.add")}
         </button>
@@ -164,7 +169,9 @@ export function CoverEditor({
         aspectRatio={aspectRatio}
         previewUrl={cover.photoId ? previewUrlFor(cover.photoId) : null}
         focus={cover.photoId ? focusFor?.(cover.photoId) : null}
-        onPhotoDrop={locked ? undefined : (photoId) => onChange({ ...cover, layout: "photo", photoId, crop: FULL_CROP })}
+        onPhotoDrop={
+          locked ? undefined : (photoId) => onChange({ ...cover, layout: "photo", photoId, crop: FULL_CROP })
+        }
       />
       <div className="cover-editor__fields">
         <h2>{t("cover.title")}</h2>

@@ -71,7 +71,10 @@ export class ConfirmUploadUseCase {
       try {
         await this.jobs.enqueue(STORAGE_QUEUE, "store-original", { photoId: photo.id.toString() });
       } catch (error) {
-        this.logger.warn("could not queue the long-term copy of an upload", { photoId: photo.id.toString(), err: error });
+        this.logger.warn("could not queue the long-term copy of an upload", {
+          photoId: photo.id.toString(),
+          err: error,
+        });
       }
     }
 

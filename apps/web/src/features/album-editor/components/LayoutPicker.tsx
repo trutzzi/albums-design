@@ -28,14 +28,10 @@ export const LayoutPicker = memo(function LayoutPicker({
 }: LayoutPickerProps) {
   const { t } = useLanguage();
   const options =
-    photoCount === null
-      ? templates
-      : templates.filter((template) => template.slots.length === photoCount);
+    photoCount === null ? templates : templates.filter((template) => template.slots.length === photoCount);
 
   if (options.length === 0) {
-    return (
-      <p className="muted">{t("spread.layoutPicker.noneFit", { count: photoCount ?? 0 })}</p>
-    );
+    return <p className="muted">{t("spread.layoutPicker.noneFit", { count: photoCount ?? 0 })}</p>;
   }
 
   return (

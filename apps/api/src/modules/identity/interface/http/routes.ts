@@ -56,7 +56,10 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
     if (deps.humanCheck && !(await deps.humanCheck.verify(captchaToken, request.ip))) {
       return reply
         .code(400)
-        .send({ code: "HUMAN_CHECK_FAILED", message: "Please complete the check that you are not a robot, then try again." });
+        .send({
+          code: "HUMAN_CHECK_FAILED",
+          message: "Please complete the check that you are not a robot, then try again.",
+        });
     }
     const result = await deps.register.execute({ ...body, ip: request.ip });
     if (result.isFailure) return sendApplicationError(reply, result.getError());
@@ -180,4 +183,3 @@ function toPlanDto(plan: (typeof PLANS)[keyof typeof PLANS]) {
     maxPhotosPerShoot: Number.isFinite(plan.maxPhotosPerShoot) ? plan.maxPhotosPerShoot : null,
   };
 }
-

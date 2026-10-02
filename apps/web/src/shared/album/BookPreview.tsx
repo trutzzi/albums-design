@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AlbumCoverDTO, AlbumDTO, AlbumStyleDTO, LayoutTemplateDTO, PhotoFocus, TextBlockDTO } from "@albumflow/contracts";
+import type {
+  AlbumCoverDTO,
+  AlbumDTO,
+  AlbumStyleDTO,
+  LayoutTemplateDTO,
+  PhotoFocus,
+  TextBlockDTO,
+} from "@albumflow/contracts";
 import { SpreadCanvas, type SpreadPlacement } from "./SpreadCanvas";
 import { CoverPreview } from "./CoverEditor";
 import { useLanguage } from "@/shared/i18n/LanguageContext";

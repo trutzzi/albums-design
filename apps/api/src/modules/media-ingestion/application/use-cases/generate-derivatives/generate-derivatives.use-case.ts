@@ -40,9 +40,7 @@ export class GenerateDerivativesUseCase {
     private readonly previewLongEdge: number = DERIVATIVE_SPECS.preview.longestEdge,
   ) {}
 
-  async execute(
-    command: GenerateDerivativesCommand,
-  ): Promise<Result<GenerateDerivativesResult, ApplicationError>> {
+  async execute(command: GenerateDerivativesCommand): Promise<Result<GenerateDerivativesResult, ApplicationError>> {
     const photo = await this.photos.findById(UniqueEntityId.create(command.photoId));
     if (!photo) return Result.failure(new NotFoundError("Photo", command.photoId));
 

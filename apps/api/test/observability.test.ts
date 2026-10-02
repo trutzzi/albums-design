@@ -54,7 +54,11 @@ describe("request ids", () => {
     const kept = await app.inject({ method: "GET", url: "/rejected", headers: { "x-request-id": "edge-1234abcd" } });
     assert.equal(kept.headers["x-request-id"], "edge-1234abcd");
 
-    const replaced = await app.inject({ method: "GET", url: "/rejected", headers: { "x-request-id": "bad id\nforged log line" } });
+    const replaced = await app.inject({
+      method: "GET",
+      url: "/rejected",
+      headers: { "x-request-id": "bad id\nforged log line" },
+    });
     assert.notEqual(replaced.headers["x-request-id"], "bad id\nforged log line");
   });
 });
@@ -144,7 +148,9 @@ describe("ErrorReportingLogger", () => {
   it("reports error entries and nothing below", () => {
     const reported: { error: unknown; context: unknown }[] = [];
     const inner = new RecordingLogger();
-    const logger = new ErrorReportingLogger(inner, (error, context) => reported.push({ error, context })).child({ component: "email" });
+    const logger = new ErrorReportingLogger(inner, (error, context) => reported.push({ error, context })).child({
+      component: "email",
+    });
     const cause = new Error("smtp down");
 
     logger.warn("degraded", { projectId: "p" });
@@ -154,7 +160,11 @@ describe("ErrorReportingLogger", () => {
     assert.equal(inner.entries.length, 3, "every entry still reaches the log");
     assert.equal(reported.length, 2);
     assert.equal(reported[0]!.error, cause);
-    assert.deepEqual(reported[0]!.context, { component: "email", projectId: "p", message: "could not email the studio" });
+    assert.deepEqual(reported[0]!.context, {
+      component: "email",
+      projectId: "p",
+      message: "could not email the studio",
+    });
     assert.ok(reported[1]!.error instanceof Error);
     assert.equal((reported[1]!.error as Error).message, "no exception, still an incident");
   });
@@ -164,8 +174,16 @@ describe("FallbackVisionClassifier", () => {
   it("warns when the provider fails instead of falling back silently", async () => {
     const logger = new RecordingLogger();
     const classifier = new FallbackVisionClassifier(
-      { classify: async () => { throw new Error("connection refused"); }, isAvailable: async () => false },
-      { classify: async () => ({ category: "DETAIL", confidence: 0.3, faceCount: 0, faceQuality: 0 }), isAvailable: async () => true },
+      {
+        classify: async () => {
+          throw new Error("connection refused");
+        },
+        isAvailable: async () => false,
+      },
+      {
+        classify: async () => ({ category: "DETAIL", confidence: 0.3, faceCount: 0, faceQuality: 0 }),
+        isAvailable: async () => true,
+      },
       logger,
     );
     const verdict = await classifier.classify({ bytes: Buffer.alloc(0), metrics: {} as never });

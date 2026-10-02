@@ -8,9 +8,7 @@ export class S3PhotoByteSource implements PhotoByteSource {
   ) {}
 
   async read(storageKey: string): Promise<Uint8Array> {
-    const object = await this.client.send(
-      new GetObjectCommand({ Bucket: this.bucket, Key: storageKey }),
-    );
+    const object = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: storageKey }));
     if (!object.Body) throw new Error(`Object ${storageKey} has no body.`);
     const chunks: Uint8Array[] = [];
     for await (const chunk of object.Body as AsyncIterable<Uint8Array>) chunks.push(chunk);

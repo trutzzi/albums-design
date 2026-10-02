@@ -130,4 +130,3 @@ export function registerPlatformAdminRoutes(app: FastifyInstance, deps: Platform
     });
   });
 }
-

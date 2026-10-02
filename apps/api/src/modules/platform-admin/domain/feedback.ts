@@ -68,7 +68,11 @@ export interface FeedbackRepository {
   save(feedback: Feedback): Promise<void>;
   findById(id: string): Promise<Feedback | undefined>;
   /** Newest first. */
-  list(filter: { status?: FeedbackStatus | undefined; kind?: FeedbackKind | undefined; limit: number }): Promise<Feedback[]>;
+  list(filter: {
+    status?: FeedbackStatus | undefined;
+    kind?: FeedbackKind | undefined;
+    limit: number;
+  }): Promise<Feedback[]>;
   /** Unresolved items, and the average rating over the given window. */
   summary(since: Date): Promise<{ open: number; newCount: number; averageRating: number | null; ratings: number }>;
   deleteByStudioId(studioId: string): Promise<void>;

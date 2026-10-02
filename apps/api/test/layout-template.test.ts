@@ -42,11 +42,7 @@ describe("layout template geometry", () => {
         for (let j = i + 1; j < template.slots.length; j += 1) {
           const a = template.slots[i]!;
           const b = template.slots[j]!;
-          assert.equal(
-            overlaps(a, b),
-            false,
-            `${template.id}: ${a.id} overlaps ${b.id}`,
-          );
+          assert.equal(overlaps(a, b), false, `${template.id}: ${a.id} overlaps ${b.id}`);
         }
       }
     }
@@ -107,10 +103,7 @@ describe("layout template geometry", () => {
         if (gaps.length < 2) continue;
         const widest = Math.max(...gaps);
         const narrowest = Math.min(...gaps);
-        assert.ok(
-          widest - narrowest < 0.005,
-          `${template.id} has uneven gutters in one row: ${gaps.join(", ")}`,
-        );
+        assert.ok(widest - narrowest < 0.005, `${template.id} has uneven gutters in one row: ${gaps.join(", ")}`);
       }
     }
   });

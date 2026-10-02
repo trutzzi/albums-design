@@ -34,9 +34,7 @@ export class DeleteAlbumUseCase {
     const exports = await this.exportJobs.findByAlbumId(id);
     if (exports.some((job) => job.status === "QUEUED" || job.status === "RENDERING")) {
       return Result.failure(
-        new ConflictError(
-          "This album has an export still in progress — wait for it to finish first.",
-        ),
+        new ConflictError("This album has an export still in progress — wait for it to finish first."),
       );
     }
 

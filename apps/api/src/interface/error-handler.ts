@@ -23,20 +23,19 @@ export function registerErrorHandler(app: FastifyInstance, options: ErrorHandler
     if (error instanceof ZodError) {
       // Paths and issue codes only: a message can echo back what the client sent.
       request.log.info(
-        { code: "BAD_REQUEST", issues: error.issues.map((issue) => `${issue.path.join(".") || "(body)"}: ${issue.code}`) },
+        {
+          code: "BAD_REQUEST",
+          issues: error.issues.map((issue) => `${issue.path.join(".") || "(body)"}: ${issue.code}`),
+        },
         "request validation failed",
       );
-      return reply
-        .code(400)
-        .send({ code: "BAD_REQUEST", message: error.issues.map((i) => i.message).join(", ") });
+      return reply.code(400).send({ code: "BAD_REQUEST", message: error.issues.map((i) => i.message).join(", ") });
     }
 
     const clientError = clientErrorFrom(error);
     if (clientError) {
       request.log.info({ code: clientError.code, statusCode: clientError.status }, "request rejected");
-      return reply
-        .code(clientError.status)
-        .send({ code: clientError.code, message: clientError.message });
+      return reply.code(clientError.status).send({ code: clientError.code, message: clientError.message });
     }
 
     const route = request.routeOptions.url ?? redactUrl(request.url);

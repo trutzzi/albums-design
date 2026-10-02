@@ -135,7 +135,7 @@ describe("the invitation email itself", () => {
   });
 
   it("escapes what the photographer typed before putting it in the HTML", async () => {
-    await mailer.send({ ...base, kind: "pick", clientName: '<img src=x onerror=alert(1)>' });
+    await mailer.send({ ...base, kind: "pick", clientName: "<img src=x onerror=alert(1)>" });
     const mail = post.sent.at(-1)!;
     assert.ok(!mail.html!.includes("<img src=x"));
     assert.ok(mail.html!.includes("&lt;img"));

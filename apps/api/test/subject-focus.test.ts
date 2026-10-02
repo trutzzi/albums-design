@@ -16,7 +16,9 @@ async function photoWithSubjectAt(width: number, height: number, cx: number, cy:
       pixels[i + 2] = 125;
     }
   }
-  return sharp(pixels, { raw: { width, height, channels: 3 } }).jpeg().toBuffer();
+  return sharp(pixels, { raw: { width, height, channels: 3 } })
+    .jpeg()
+    .toBuffer();
 }
 
 // sharp scores the photo in coarse regions, so the point it reports can sit up to about a

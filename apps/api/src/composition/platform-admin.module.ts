@@ -15,7 +15,16 @@ import type { MediaIngestionModule } from "./media-ingestion.module";
 
 /** Platform admin: in-app feedback, the operator dashboard, and account housekeeping. */
 export function buildPlatformAdminModule(
-  { env, logger, emailSender, permanentStorage, errorLog, statsSource, dependencyProbe, systemConfig }: ModuleInfrastructure,
+  {
+    env,
+    logger,
+    emailSender,
+    permanentStorage,
+    errorLog,
+    statsSource,
+    dependencyProbe,
+    systemConfig,
+  }: ModuleInfrastructure,
   { members, studios, subscriptions, projects, feedback: feedbackRepository }: Repositories,
   { deleteProject }: Pick<MediaIngestionModule, "deleteProject">,
 ) {

@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-export const SUPPORTED_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/tiff",
-  "image/webp",
-] as const;
+export const SUPPORTED_MIME_TYPES = ["image/jpeg", "image/png", "image/tiff", "image/webp"] as const;
 
 /** Ceiling for a single original. Servers must size their body limits from this. */
 export const MAX_UPLOAD_BYTES = 75 * 1024 * 1024;
@@ -13,11 +8,7 @@ export const MAX_UPLOAD_BYTES = 75 * 1024 * 1024;
 export const requestUploadSchema = z.object({
   fileName: z.string().min(1).max(255),
   mimeType: z.enum(SUPPORTED_MIME_TYPES),
-  byteSize: z
-    .number()
-    .int()
-    .positive()
-    .max(MAX_UPLOAD_BYTES, "Files over 75MB are not accepted."),
+  byteSize: z.number().int().positive().max(MAX_UPLOAD_BYTES, "Files over 75MB are not accepted."),
 });
 export type RequestUploadInput = z.infer<typeof requestUploadSchema>;
 
@@ -39,13 +30,7 @@ export const confirmUploadSchema = z.object({
 // guaranteed to have it filled in.
 export type ConfirmUploadInput = z.input<typeof confirmUploadSchema>;
 
-export const photoStatusSchema = z.enum([
-  "PENDING_UPLOAD",
-  "UPLOADED",
-  "ANALYSIS_QUEUED",
-  "ANALYSED",
-  "FAILED",
-]);
+export const photoStatusSchema = z.enum(["PENDING_UPLOAD", "UPLOADED", "ANALYSIS_QUEUED", "ANALYSED", "FAILED"]);
 export type PhotoStatus = z.infer<typeof photoStatusSchema>;
 
 export const photoDtoSchema = z.object({

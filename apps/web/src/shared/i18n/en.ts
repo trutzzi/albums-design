@@ -29,8 +29,7 @@ export const en: Record<string, string> = {
   "auth.login.createAccount": "Create an account",
   "auth.login.seeChangelog": "See what's new in AlbumFlow",
   "auth.register.title": "Create your account",
-  "auth.register.subtitle":
-    "Your own studio, your own subscription, your own shoots — nobody else can see them.",
+  "auth.register.subtitle": "Your own studio, your own subscription, your own shoots — nobody else can see them.",
   "auth.register.name": "Your name (or studio name)",
   "auth.register.email": "Email",
   "auth.register.password": "Password",
@@ -43,7 +42,8 @@ export const en: Record<string, string> = {
   "auth.confirm.required": "Confirm your email address first — open the link we sent when you signed up.",
   "auth.confirm.title": "Confirming your email",
   "auth.confirm.checking": "One moment…",
-  "auth.confirm.missingToken": "This link is incomplete. Open the full link from the email, or sign in to get a new one.",
+  "auth.confirm.missingToken":
+    "This link is incomplete. Open the full link from the email, or sign in to get a new one.",
   "auth.register.submitting": "Creating account…",
   "auth.register.haveAccount": "Already have an account?",
   "auth.register.login": "Log in",
@@ -54,7 +54,8 @@ export const en: Record<string, string> = {
   "auth.forgot.email": "Email",
   "auth.forgot.submit": "Send reset link",
   "auth.forgot.submitting": "Sending…",
-  "auth.forgot.sent": "If an account exists for {email}, a reset link is on its way. It works for one hour — check your spam folder if it hasn't arrived in a few minutes.",
+  "auth.forgot.sent":
+    "If an account exists for {email}, a reset link is on its way. It works for one hour — check your spam folder if it hasn't arrived in a few minutes.",
   "auth.forgot.back": "Back to log in",
   "auth.reset.title": "Choose a new password",
   "auth.reset.password": "New password",
@@ -105,7 +106,8 @@ export const en: Record<string, string> = {
   "ai.status.online": "AI: online",
   "ai.status.online.title": "The local AI photo classifier is reachable — uploads get real AI-scored categories.",
   "ai.status.offline": "AI: offline",
-  "ai.status.offline.title": "The local AI photo classifier can't be reached right now — uploads still work, using basic (non-AI) analysis instead.",
+  "ai.status.offline.title":
+    "The local AI photo classifier can't be reached right now — uploads still work, using basic (non-AI) analysis instead.",
   "project.upload.useAi": "Use AI photo analysis",
   "project.upload.useAi.unavailable": "The local AI server isn't reachable right now, so this is turned off.",
   "ai.consent.title": "Local AI processing",
@@ -138,8 +140,10 @@ export const en: Record<string, string> = {
   "project.step.delivery.active": "Link active",
   "project.step.delivery.downloaded": "Downloaded",
   "project.next.title": "What to do next",
-  "project.next.upload": "Add the photos from this shoot — drop your culled selects and each one is scored as it arrives.",
-  "project.next.processing": "Your photos are being prepared ({done} of {total}). Meanwhile you can invite your client to choose favourites.",
+  "project.next.upload":
+    "Add the photos from this shoot — drop your culled selects and each one is scored as it arrives.",
+  "project.next.processing":
+    "Your photos are being prepared ({done} of {total}). Meanwhile you can invite your client to choose favourites.",
   "project.next.start": "Your photos are ready. Let your client choose favourites, or build the album straight away.",
   "project.next.waitingPicks": "Waiting for {name} to send their favourites — you'll get an email when they do.",
   "project.next.picksIn": "{name} sent their favourites. Build the album from them.",
@@ -187,7 +191,8 @@ export const en: Record<string, string> = {
   "studio.usage.remaining": " · {count} remaining",
   "studio.watermarkNotice": "Drafts carry a watermark on this plan until you export.",
   "branding.title": "Client branding",
-  "branding.proOnly": "With Studio Pro, your clients see your own logo, name and colour on album reviews, photo selections and downloads — no AlbumFlow in sight. Write to us at contact@valentintruta.ro to switch.",
+  "branding.proOnly":
+    "With Studio Pro, your clients see your own logo, name and colour on album reviews, photo selections and downloads — no AlbumFlow in sight. Write to us at contact@valentintruta.ro to switch.",
   "branding.intro": "What your clients see on album reviews, photo selections and downloads instead of AlbumFlow.",
   "branding.name": "Name shown to clients",
   "branding.accent": "Accent colour",
@@ -215,10 +220,13 @@ export const en: Record<string, string> = {
   "studio.plan.noWatermark": "Clean client proofs",
   "studio.plan.watermarkedExports": "Watermarked PDF exports — for testing only",
   "studio.plan.current": "Current plan",
-  "studio.plan.contact": "Every new studio starts on Studio. To move to another plan, write to us at contact@valentintruta.ro and we'll switch it for you.",
+  "studio.plan.contact":
+    "Every new studio starts on Studio. To move to another plan, write to us at contact@valentintruta.ro and we'll switch it for you.",
   "studio.billing.manage": "Manage billing",
-  "studio.billing.pastDue": "Your last payment failed, so new albums are paused. Update your card under Manage billing.",
-  "studio.billing.cancelled": "This subscription is cancelled. Write to us at contact@valentintruta.ro to start generating albums again.",
+  "studio.billing.pastDue":
+    "Your last payment failed, so new albums are paused. Update your card under Manage billing.",
+  "studio.billing.cancelled":
+    "This subscription is cancelled. Write to us at contact@valentintruta.ro to start generating albums again.",
   "studio.team.title": "Team",
   "studio.team.seats": "{used} of {included} seats",
   "studio.team.invitePending": " · invite pending",
@@ -242,15 +250,15 @@ export const en: Record<string, string> = {
   "changelog.item.guides.desc":
     "See exactly where a spread gets trimmed and how much margin to leave around faces and text, based on real print-lab profiles — or your own custom bleed and safe-margin numbers.",
   "changelog.item.guides.how":
-    "Toggle \"Guides\" in the album editor toolbar, then pick a print profile (or Custom) from the popup.",
+    'Toggle "Guides" in the album editor toolbar, then pick a print profile (or Custom) from the popup.',
   "changelog.item.guidesSnap": "Snap to print guides",
   "changelog.item.guidesSnap.desc":
     "Resizing a photo frame now snaps to the trim and safe-area lines too, not just other frames.",
-  "changelog.item.guidesSnap.how": "Turn on both \"Snap\" and \"Guides\", then drag a frame's corner near a guide line.",
+  "changelog.item.guidesSnap.how": 'Turn on both "Snap" and "Guides", then drag a frame\'s corner near a guide line.',
   "changelog.item.traySort": "Sort the photo tray",
   "changelog.item.traySort.desc":
-    "Sort your uploaded photos by score, category, original filename, or a new \"similarity\" grouping that clusters photos taken in the same setting.",
-  "changelog.item.traySort.how": "Use the \"Sort by\" dropdown above the photo tray in the album editor.",
+    'Sort your uploaded photos by score, category, original filename, or a new "similarity" grouping that clusters photos taken in the same setting.',
+  "changelog.item.traySort.how": 'Use the "Sort by" dropdown above the photo tray in the album editor.',
   "changelog.item.trayHover": "A friendlier tray",
   "changelog.item.trayHover.desc":
     "Hover any photo in the tray to see its score, category, and rank. Photos already used in the album are dimmed with a checkmark.",
@@ -258,7 +266,7 @@ export const en: Record<string, string> = {
   "changelog.item.deleteShoot": "Delete a shoot",
   "changelog.item.deleteShoot.desc":
     "Remove an entire shoot — its photos, every album built from it, and their exports — in one place, with a confirmation before anything is lost.",
-  "changelog.item.deleteShoot.how": "Open a shoot and click \"Delete shoot\" in the header.",
+  "changelog.item.deleteShoot.how": 'Open a shoot and click "Delete shoot" in the header.',
   "changelog.item.undoRedo": "Undo & redo",
   "changelog.item.undoRedo.desc":
     "Every edit to an album — moving a photo, resizing a frame, reshuffling a spread — can now be undone and redone.",
@@ -266,17 +274,19 @@ export const en: Record<string, string> = {
   "changelog.item.dragMove": "Drag a photo to move it",
   "changelog.item.dragMove.desc":
     "Drag a photo already on a spread toward one of its edges to swap it with the neighbouring photo in that direction.",
-  "changelog.item.dragMove.how": "Pick up a photo already placed on a spread and drag it toward the edge you want it to move.",
+  "changelog.item.dragMove.how":
+    "Pick up a photo already placed on a spread and drag it toward the edge you want it to move.",
   "changelog.item.snapRuler": "Snap & ruler toggles",
   "changelog.item.snapRuler.desc":
     "Resizing a frame can snap to page edges, the centre, and other frames — or not. A centimetre grid can sit behind every spread for checking alignment by eye.",
-  "changelog.item.snapRuler.how": "Toggle \"Snap\" and \"Ruler\" in the album editor toolbar.",
+  "changelog.item.snapRuler.how": 'Toggle "Snap" and "Ruler" in the album editor toolbar.',
   "changelog.item.deleteAlbum": "Delete an album",
-  "changelog.item.deleteAlbum.desc": "Remove a single album — its spreads, exports, and review links — with a confirmation first.",
-  "changelog.item.deleteAlbum.how": "Open the album and click \"Delete album\" in its header.",
+  "changelog.item.deleteAlbum.desc":
+    "Remove a single album — its spreads, exports, and review links — with a confirmation first.",
+  "changelog.item.deleteAlbum.how": 'Open the album and click "Delete album" in its header.',
   "changelog.item.stickyToolbar": "Toolbar stays put while you scroll",
   "changelog.item.stickyToolbar.desc":
-    "The Ruler, Snap, Guides toggles and \"Mark ready for review\" stay visible at the top of a long album instead of scrolling out of view.",
+    'The Ruler, Snap, Guides toggles and "Mark ready for review" stay visible at the top of a long album instead of scrolling out of view.',
   "changelog.item.stickyToolbar.how": "Nothing to do — scroll down any album and the toolbar follows.",
   "changelog.item.greeting": "A personal touch",
   "changelog.item.greeting.desc": "The header now greets you by name, with a message that matches the time of day.",
@@ -292,7 +302,7 @@ export const en: Record<string, string> = {
   "changelog.item.printSize.desc":
     "Pick from popular album sizes in centimetres — 20×20, 25×25, 30×40, and more — or enter your own custom width and height. The chosen size is shown highlighted right in the album editor.",
   "changelog.item.printSize.how":
-    "Pick a print size in the \"Generate an album\" panel before generating — the size then shows next to the album's title.",
+    'Pick a print size in the "Generate an album" panel before generating — the size then shows next to the album\'s title.',
   "changelog.item.dragBetweenSpreads": "Move a photo between spreads",
   "changelog.item.dragBetweenSpreads.desc":
     "Drag a photo from one spread and drop it onto a slot on a different spread — the two photos swap places, each keeping its own framing and colour treatment.",
@@ -301,8 +311,7 @@ export const en: Record<string, string> = {
   "changelog.item.insertSpread": "Insert a spread anywhere",
   "changelog.item.insertSpread.desc":
     "Add a brand-new spread between two existing ones, not just at the end — and choose any layout for it, since it has no photos yet to narrow the choice down.",
-  "changelog.item.insertSpread.how":
-    "Click the small + button that appears just below any spread.",
+  "changelog.item.insertSpread.how": "Click the small + button that appears just below any spread.",
   "changelog.item.toolbarBelow": "Clearer photo editing toolbar",
   "changelog.item.toolbarBelow.desc":
     "The zoom, black & white, and remove controls for a selected photo now sit just below it instead of over it, so a small photo is never hidden behind them.",
@@ -319,12 +328,12 @@ export const en: Record<string, string> = {
   "changelog.item.contactPage": "A place to reach us",
   "changelog.item.contactPage.desc":
     "A short contact page with an email address for questions, feedback, or feature requests.",
-  "changelog.item.contactPage.how": "Click \"Contact\" in the header, from anywhere in the app.",
+  "changelog.item.contactPage.how": 'Click "Contact" in the header, from anywhere in the app.',
   "changelog.item.aiAnalysis": "AI-powered photo analysis (opt-in)",
   "changelog.item.aiAnalysis.desc":
     "Turn on AI analysis to categorise your photos with far more accuracy — recognising portraits, couples, groups, ceremonies, and more. It's entirely optional, clearly labelled when it's actually available, and your photos are never sent to a third party or kept afterwards.",
   "changelog.item.aiAnalysis.how":
-    "Toggle \"Use AI photo analysis\" above the upload area and agree to the short disclaimer, then upload as usual. The \"AI: online/offline\" badge next to it always shows whether it's available right now.",
+    'Toggle "Use AI photo analysis" above the upload area and agree to the short disclaimer, then upload as usual. The "AI: online/offline" badge next to it always shows whether it\'s available right now.',
   // --- Client photo selection ---------------------------------------
   "project.picks.title": "Client photo selection",
   "project.picks.intro": "Share a link so your client can choose their favourite photos before you design the album.",
@@ -351,7 +360,8 @@ export const en: Record<string, string> = {
   "pick.error.title": "This link isn't working",
   "pick.error.hint": "Ask your photographer for a fresh link.",
   "pick.eyebrow": "Photo selection for {name}",
-  "pick.intro": "Tap the heart on the photos you'd like in your album. You can change your mind until you send your selection.",
+  "pick.intro":
+    "Tap the heart on the photos you'd like in your album. You can change your mind until you send your selection.",
   "pick.counter": "{count} picked",
   "pick.counterLimit": "{count} of {limit} picked",
   "pick.filter.all": "All photos ({count})",
@@ -364,7 +374,8 @@ export const en: Record<string, string> = {
   "pick.submit": "Send my selection",
   "pick.submitting": "Sending…",
   "pick.confirm.title": "Send your selection?",
-  "pick.confirm.body": "Your photographer will receive {count} photos. You won't be able to change them afterwards unless your photographer reopens your selection.",
+  "pick.confirm.body":
+    "Your photographer will receive {count} photos. You won't be able to change them afterwards unless your photographer reopens your selection.",
   "pick.confirm.yes": "Yes, send it",
   "pick.done.title": "Thank you, {name}!",
   "pick.done.body": "Your photographer has your {count} picks and will design your album from them.",
@@ -373,20 +384,28 @@ export const en: Record<string, string> = {
   "pick.lightbox.next": "Next photo",
   "pick.language": "Language",
   "changelog.item.clientPicks": "Client photo selection",
-  "changelog.item.clientPicks.desc": "Send your client a private, password-protected link to a gallery where they tap a heart on their favourite photos and send you the selection. You can then build the album from exactly those photos. Picked photos are also kept safely on long-term storage, while everything else can expire after delivery.",
-  "changelog.item.clientPicks.how": "Open a shoot, find \"Client photo selection\", enter the client's name (and an optional photo limit) and create the link. When your client has sent their picks, press \"Build album from picks\".",
+  "changelog.item.clientPicks.desc":
+    "Send your client a private, password-protected link to a gallery where they tap a heart on their favourite photos and send you the selection. You can then build the album from exactly those photos. Picked photos are also kept safely on long-term storage, while everything else can expire after delivery.",
+  "changelog.item.clientPicks.how":
+    'Open a shoot, find "Client photo selection", enter the client\'s name (and an optional photo limit) and create the link. When your client has sent their picks, press "Build album from picks".',
   "landing.feature.picks.title": "Let clients pick their photos",
-  "landing.feature.picks.desc": "Share a private, password-protected gallery link. Your client browses in a swipe-through slideshow, hearts their favourites on any device and sends the selection — you get an email, and can build the album from exactly those photos.",
+  "landing.feature.picks.desc":
+    "Share a private, password-protected gallery link. Your client browses in a swipe-through slideshow, hearts their favourites on any device and sends the selection — you get an email, and can build the album from exactly those photos.",
   "theme.toDark": "Switch to dark theme",
   "theme.toLight": "Switch to light theme",
   "changelog.item.darkTheme": "Dark theme",
-  "changelog.item.darkTheme.desc": "A dark colour scheme that is easier on the eyes when you work late. It follows your device's setting by default and remembers your choice. Album pages stay light, exactly as they will print.",
-  "changelog.item.darkTheme.how": "Press the moon (or sun) icon in the top bar to switch. Clients get the same button on their selection page.",
+  "changelog.item.darkTheme.desc":
+    "A dark colour scheme that is easier on the eyes when you work late. It follows your device's setting by default and remembers your choice. Album pages stay light, exactly as they will print.",
+  "changelog.item.darkTheme.how":
+    "Press the moon (or sun) icon in the top bar to switch. Clients get the same button on their selection page.",
   "project.delivery.title": "Deliver the photos to your client",
-  "project.delivery.needsStudio": "Client download links come with the Studio plan. Write to us at contact@valentintruta.ro to move to Studio.",
+  "project.delivery.needsStudio":
+    "Client download links come with the Studio plan. Write to us at contact@valentintruta.ro to move to Studio.",
   "project.limit.count": "{count} / {limit} photos — the limit per shoot on your plan",
-  "project.limit.reached": "Your plan allows {limit} photos per shoot, so {skipped} photo(s) were not uploaded. Write to us at contact@valentintruta.ro to move to Studio for unlimited photos.",
-  "project.delivery.intro": "Send a link where your client can download every photo in full size. The link works for a limited time, and you get an email as soon as they download.",
+  "project.limit.reached":
+    "Your plan allows {limit} photos per shoot, so {skipped} photo(s) were not uploaded. Write to us at contact@valentintruta.ro to move to Studio for unlimited photos.",
+  "project.delivery.intro":
+    "Send a link where your client can download every photo in full size. The link works for a limited time, and you get an email as soon as they download.",
   "project.delivery.clientName": "Client name",
   "project.delivery.days": "Available for (days)",
   "project.delivery.create": "Create download link",
@@ -411,20 +430,27 @@ export const en: Record<string, string> = {
   "download.available": "Your photos are available until {date} — {days} days left.",
   "download.missing": "Photos no longer available and not included: {count}.",
   "download.button": "Download all photos ({size})",
-  "download.started": "Your download has started. Large files can take a while — keep this page open until it finishes.",
+  "download.started":
+    "Your download has started. Large files can take a while — keep this page open until it finishes.",
   "download.confirm.title": "Download all photos?",
   "download.confirm.available": "Your photos are available to download until {date} ({days} days left).",
-  "download.confirm.deleted": "After that date they are permanently deleted and cannot be recovered, so save the file somewhere safe.",
+  "download.confirm.deleted":
+    "After that date they are permanently deleted and cannot be recovered, so save the file somewhere safe.",
   "download.confirm.size": "You will get one ZIP file with all your full-size photos (photos: {count}, about {size}).",
   "download.confirm.yes": "Yes, start the download",
   "changelog.item.delivery": "Deliver all photos to your client",
-  "changelog.item.delivery.desc": "Send your client a link to download every photo at full size as one ZIP. Before downloading, they see a confirmation that the photos are only available for a limited time (30 days by default, and you choose the period). You get an email when they download, and again if they download a second time.",
-  "changelog.item.delivery.how": "Open a shoot, find \"Deliver the photos to your client\", enter the client's name and how many days the link should work, and create the link. The photos are kept until the link expires. The email settings are in the server configuration.",
+  "changelog.item.delivery.desc":
+    "Send your client a link to download every photo at full size as one ZIP. Before downloading, they see a confirmation that the photos are only available for a limited time (30 days by default, and you choose the period). You get an email when they download, and again if they download a second time.",
+  "changelog.item.delivery.how":
+    'Open a shoot, find "Deliver the photos to your client", enter the client\'s name and how many days the link should work, and create the link. The photos are kept until the link expires. The email settings are in the server configuration.',
   "changelog.item.pickEmail": "Email when a client sends their picks",
-  "changelog.item.pickEmail.desc": "When your client finishes choosing photos and sends their selection, you now get an email straight away, so you know it is time to design the album.",
-  "changelog.item.pickEmail.how": "Nothing to do — it works once email is configured on the server, and it is sent to the owner of the studio.",
+  "changelog.item.pickEmail.desc":
+    "When your client finishes choosing photos and sends their selection, you now get an email straight away, so you know it is time to design the album.",
+  "changelog.item.pickEmail.how":
+    "Nothing to do — it works once email is configured on the server, and it is sent to the owner of the studio.",
   "landing.feature.delivery.title": "Deliver every photo, on a deadline",
-  "landing.feature.delivery.desc": "Give clients one link to look through every photo in a gallery, then download them all at full size as a single ZIP — available for the period you choose, with a clear confirmation before they start.",
+  "landing.feature.delivery.desc":
+    "Give clients one link to look through every photo in a gallery, then download them all at full size as a single ZIP — available for the period you choose, with a clear confirmation before they start.",
   "access.gate.title": "This link is protected",
   "access.gate.hint": "Enter the password your photographer sent you.",
   "access.gate.password": "Password",
@@ -436,7 +462,8 @@ export const en: Record<string, string> = {
   "access.details.open": "Link & password",
   "access.details.title": "Link and password",
   "access.details.loading": "Loading…",
-  "access.details.legacy": "This link was created before its details could be saved, so they can't be shown. Create a new link to get one you can view again.",
+  "access.details.legacy":
+    "This link was created before its details could be saved, so they can't be shown. Create a new link to get one you can view again.",
   "access.details.link": "Link",
   "access.details.password": "Password",
   "access.details.copyLink": "Copy link",
@@ -444,28 +471,39 @@ export const en: Record<string, string> = {
   "access.details.copyBoth": "Copy link and password",
   "access.details.copied": "Copied!",
   "access.details.message": "Link: {link}\nPassword: {password}",
-  "access.details.note": "Send both to your client — anyone with the link and the password can open it. Capitals and dashes don't matter when typing the password.",
+  "access.details.note":
+    "Send both to your client — anyone with the link and the password can open it. Capitals and dashes don't matter when typing the password.",
   "slideshow.counter": "{index} / {total}",
   "download.grid.title": "Look through your photos",
-  "download.grid.hint": "Tap any photo to open it, then swipe or use the arrows to move between them. These are previews — the download has every photo at full size.",
+  "download.grid.hint":
+    "Tap any photo to open it, then swipe or use the arrows to move between them. These are previews — the download has every photo at full size.",
   "changelog.item.clientPasswords": "Password for every client link",
-  "changelog.item.clientPasswords.desc": "Photo selection, album review and download links now each get an automatic password. Your client opens the link, types the password, and only then sees the photos. You can look up both the link and the password again, any time, in a details window — and copy them together as a message ready to send.",
-  "changelog.item.clientPasswords.how": "When you create a selection, review or download link, the password is shown with it. Later, press \"Link & password\" next to the link to see and copy both. Links created earlier keep working without a password.",
+  "changelog.item.clientPasswords.desc":
+    "Photo selection, album review and download links now each get an automatic password. Your client opens the link, types the password, and only then sees the photos. You can look up both the link and the password again, any time, in a details window — and copy them together as a message ready to send.",
+  "changelog.item.clientPasswords.how":
+    'When you create a selection, review or download link, the password is shown with it. Later, press "Link & password" next to the link to see and copy both. Links created earlier keep working without a password.',
   "changelog.item.downloadGallery": "Browse the photos before downloading",
-  "changelog.item.downloadGallery.desc": "Before downloading, your client can look through every photo in a grid that fits any phone or screen, open one to see it full screen, and swipe (or use the arrows) to move between them — like a slideshow. The one-click download of everything at full size is right there when they are ready.",
+  "changelog.item.downloadGallery.desc":
+    "Before downloading, your client can look through every photo in a grid that fits any phone or screen, open one to see it full screen, and swipe (or use the arrows) to move between them — like a slideshow. The one-click download of everything at full size is right there when they are ready.",
   "changelog.item.downloadGallery.how": "Nothing to set up: the gallery appears on every download link.",
   "landing.feature.links.title": "Private, password-protected links",
-  "landing.feature.links.desc": "Every selection, review and download link gets its own automatic password. You can look up the link and password again any time, and copy both as a message ready to send.",
+  "landing.feature.links.desc":
+    "Every selection, review and download link gets its own automatic password. You can look up the link and password again any time, and copy both as a message ready to send.",
   "landing.feature.alerts.title": "Know the moment clients act",
-  "landing.feature.alerts.desc": "Get an email when a client sends their picks or downloads their photos, so you never have to chase or wonder.",
+  "landing.feature.alerts.desc":
+    "Get an email when a client sends their picks or downloads their photos, so you never have to chase or wonder.",
   "landing.feature.mobile.title": "Made for your clients' phones",
-  "landing.feature.mobile.desc": "Galleries adapt to any screen, with a full-screen slideshow you swipe through — your clients can browse, pick and download from their phone.",
+  "landing.feature.mobile.desc":
+    "Galleries adapt to any screen, with a full-screen slideshow you swipe through — your clients can browse, pick and download from their phone.",
   "landing.feature.dark.title": "Easy on the eyes",
-  "landing.feature.dark.desc": "A dark theme for late-night editing sessions. It follows your device and remembers your choice.",
+  "landing.feature.dark.desc":
+    "A dark theme for late-night editing sessions. It follows your device and remembers your choice.",
   "landing.steps.pick.title": "2. Let clients choose",
-  "landing.steps.pick.desc": "Send a private, password-protected gallery link. Your client hearts their favourites and sends the selection — you're emailed straight away.",
+  "landing.steps.pick.desc":
+    "Send a private, password-protected gallery link. Your client hearts their favourites and sends the selection — you're emailed straight away.",
   "landing.steps.deliver.title": "5. Deliver the photos",
-  "landing.steps.deliver.desc": "Send a download link with a deadline. Clients browse the gallery, then download everything at full size — and you're notified.",
+  "landing.steps.deliver.desc":
+    "Send a download link with a deadline. Clients browse the gallery, then download everything at full size — and you're notified.",
   "changelog.release.sep20.heading": "From shoot to delivery: client picks, passwords & downloads",
   "album.photoTray.filter.show": "Show",
   "album.photoTray.filter.type": "Photo type",
@@ -485,8 +523,10 @@ export const en: Record<string, string> = {
   "album.photoTray.category.RECEPTION": "Reception",
   "album.photoTray.category.CANDID": "Candid",
   "changelog.item.trayFilters": "Filter the photo tray",
-  "changelog.item.trayFilters.desc": "In the album editor you can now narrow the photo tray to what you need: only the photos your client picked (marked with a heart), photos not yet in the album, photos already used, or the album-worthy ones. Combine it with a photo type — portrait, ceremony, reception… — or search by file name.",
-  "changelog.item.trayFilters.how": "Use the menus and the search box above the photo tray. \"Client picks\" shows what your clients sent in their selection. Press \"Clear filters\" to see everything again.",
+  "changelog.item.trayFilters.desc":
+    "In the album editor you can now narrow the photo tray to what you need: only the photos your client picked (marked with a heart), photos not yet in the album, photos already used, or the album-worthy ones. Combine it with a photo type — portrait, ceremony, reception… — or search by file name.",
+  "changelog.item.trayFilters.how":
+    'Use the menus and the search box above the photo tray. "Client picks" shows what your clients sent in their selection. Press "Clear filters" to see everything again.',
   "album.photoTray.chip.all": "All",
   "album.photoTray.chip.picks": "Picks",
   "album.photoTray.chip.unused": "Unused",
@@ -498,7 +538,8 @@ export const en: Record<string, string> = {
   "album.photoTray.view.l": "Large thumbnails",
   "album.photoTray.view.wider": "Wider tray — more photos across",
   "album.photoTray.view.narrower": "Narrower tray",
-  "album.photoTray.noSelections": "No client has sent a selection for this shoot yet. Send them a selection link from the shoot page.",
+  "album.photoTray.noSelections":
+    "No client has sent a selection for this shoot yet. Send them a selection link from the shoot page.",
   "album.sidebar.label": "Album tools",
   "album.sidebar.photos": "Photos",
   "album.sidebar.review": "Review",
@@ -507,14 +548,20 @@ export const en: Record<string, string> = {
   "nav.menu.open": "Menu",
   "nav.menu.close": "Close menu",
   "changelog.item.responsive": "Works on phones and tablets",
-  "changelog.item.responsive.desc": "The whole app now fits smaller screens. On a phone the top bar folds into a menu button, pages no longer scroll sideways, and buttons and panels wrap neatly instead of running off the edge — including the album editor. Client links (selection, review and download) already worked well on phones and still do.",
-  "changelog.item.responsive.how": "Nothing to set up. Open AlbumFlow on your phone or tablet and tap the menu button (three lines) in the top right to reach Shoots, Studio, What's new and Contact.",
-  "pick.processing": "Still preparing {count} more photos — they will appear here by themselves. You can start choosing now.",
-  "download.processing": "Still preparing {count} more photos for the gallery. They are already included in the download.",
+  "changelog.item.responsive.desc":
+    "The whole app now fits smaller screens. On a phone the top bar folds into a menu button, pages no longer scroll sideways, and buttons and panels wrap neatly instead of running off the edge — including the album editor. Client links (selection, review and download) already worked well on phones and still do.",
+  "changelog.item.responsive.how":
+    "Nothing to set up. Open AlbumFlow on your phone or tablet and tap the menu button (three lines) in the top right to reach Shoots, Studio, What's new and Contact.",
+  "pick.processing":
+    "Still preparing {count} more photos — they will appear here by themselves. You can start choosing now.",
+  "download.processing":
+    "Still preparing {count} more photos for the gallery. They are already included in the download.",
   "pick.step.shortlist": "Mark what you like",
   "pick.step.final": "Choose the final photos",
-  "pick.shortlist.intro": "Go through all the photos and tap the heart on anything you might want. There's no limit here — you'll narrow it down in the next step.",
-  "pick.final.intro": "Now choose up to {limit} for your album, from the {shortlisted} you marked. Tap a heart to choose, tap again to undo.",
+  "pick.shortlist.intro":
+    "Go through all the photos and tap the heart on anything you might want. There's no limit here — you'll narrow it down in the next step.",
+  "pick.final.intro":
+    "Now choose up to {limit} for your album, from the {shortlisted} you marked. Tap a heart to choose, tap again to undo.",
   "pick.final.introNoLimit": "Now choose the ones for your album, from the {shortlisted} you marked.",
   "pick.counter.shortlisted": "{count} marked",
   "pick.continue": "Continue with {count}",
@@ -529,8 +576,10 @@ export const en: Record<string, string> = {
   "project.picks.step.shortlist": "Step 1 of 2: marking possibilities",
   "project.picks.step.final": "Step 2 of 2: choosing the final photos",
   "changelog.item.twoStepPicks": "Two-step photo selection for clients",
-  "changelog.item.twoStepPicks.desc": "Choosing 60 photos out of 2,000 in one go is where clients get stuck. Now they do it in two steps: first they go through the whole shoot and mark anything they might want, with no limit at all; then they see only those photos and narrow them down to your limit. They can step back and forth until they send it, and you see both numbers.",
-  "changelog.item.twoStepPicks.how": "Nothing to set up — every selection link works this way. If what they marked already fits your limit, it is carried over for them, so there is no second round of tapping.",
+  "changelog.item.twoStepPicks.desc":
+    "Choosing 60 photos out of 2,000 in one go is where clients get stuck. Now they do it in two steps: first they go through the whole shoot and mark anything they might want, with no limit at all; then they see only those photos and narrow them down to your limit. They can step back and forth until they send it, and you see both numbers.",
+  "changelog.item.twoStepPicks.how":
+    "Nothing to set up — every selection link works this way. If what they marked already fits your limit, it is carried over for them, so there is no second round of tapping.",
   "client.email": "Client email",
   "client.email.placeholder": "name@example.com",
   "client.sendEmail": "Email the link to the client",
@@ -543,8 +592,10 @@ export const en: Record<string, string> = {
   "client.send.done": "Sent to {email}",
   "client.send.hint": "The client gets the link and the password in one email. Replies come to you.",
   "changelog.item.clientEmails": "Email a link straight to your client",
-  "changelog.item.clientEmails.desc": "When you create a selection, review or download link, AlbumFlow can email it to your client for you, with the link and the password in one message. The shoot remembers your client’s name and email, so you type them once instead of on every link, and each link shows who it was last sent to and when. You can resend at any time from the \"Link & password\" window.",
-  "changelog.item.clientEmails.how": "Add the client’s email on the shoot (or the first time you create a link), tick \"Email the link to the client\", and pick the language. Sending is never automatic, and it needs email configured on the server.",
+  "changelog.item.clientEmails.desc":
+    'When you create a selection, review or download link, AlbumFlow can email it to your client for you, with the link and the password in one message. The shoot remembers your client’s name and email, so you type them once instead of on every link, and each link shows who it was last sent to and when. You can resend at any time from the "Link & password" window.',
+  "changelog.item.clientEmails.how":
+    'Add the client’s email on the shoot (or the first time you create a link), tick "Email the link to the client", and pick the language. Sending is never automatic, and it needs email configured on the server.',
   "project.upload.title": "Uploading photos",
   "project.upload.progress": "{done} of {total} uploaded",
   "project.upload.failed": "{count} failed",
@@ -552,8 +603,10 @@ export const en: Record<string, string> = {
   "project.upload.cancelling": "Stopping…",
   "project.upload.cancelledFile": "Cancelled",
   "changelog.item.uploadProgress": "Upload progress, with a cancel that cleans up",
-  "changelog.item.uploadProgress.desc": "Uploading a big shoot now shows a progress bar with how many photos are done, and holds the rest of the page until it finishes, so nothing is clicked half way through. Cancel stops it, and any photo whose upload had not finished is removed rather than left behind as an invisible half-photo. Photos that did finish are kept.",
-  "changelog.item.uploadProgress.how": "Drop your photos in as usual. Press Cancel to stop; the browser also warns you before leaving the page mid-upload.",
+  "changelog.item.uploadProgress.desc":
+    "Uploading a big shoot now shows a progress bar with how many photos are done, and holds the rest of the page until it finishes, so nothing is clicked half way through. Cancel stops it, and any photo whose upload had not finished is removed rather than left behind as an invisible half-photo. Photos that did finish are kept.",
+  "changelog.item.uploadProgress.how":
+    "Drop your photos in as usual. Press Cancel to stop; the browser also warns you before leaving the page mid-upload.",
   "projects.subtitleCount": "{count} shoots",
   "projects.search": "Search shoots",
   "projects.search.none": "No shoot matches that.",
@@ -561,7 +614,8 @@ export const en: Record<string, string> = {
   "projects.new.clientName": "Client name (optional)",
   "projects.new.clientNamePlaceholder": "Elena & Radu",
   "projects.empty.title": "Start with your first shoot",
-  "projects.empty.body": "A shoot holds the photos of one wedding or event, the albums you build from them, and the links you send your client.",
+  "projects.empty.body":
+    "A shoot holds the photos of one wedding or event, the albums you build from them, and the links you send your client.",
   "projects.empty.cta": "Create a shoot",
   "projects.card.noPhotos": "No photos yet",
   "projects.card.created": "Created {date}",
@@ -574,12 +628,14 @@ export const en: Record<string, string> = {
   "changelog.item.launch": "AlbumFlow launches",
   "changelog.item.launch.desc":
     "Upload a shoot, let AlbumFlow score and categorise every photo, generate a draft album automatically, fine-tune the layout, collect client feedback, and export a print-ready PDF.",
-  "changelog.item.launch.how": "Create a shoot, drop in your photos, and click \"Generate draft\" once analysis finishes.",
+  "changelog.item.launch.how":
+    'Create a shoot, drop in your photos, and click "Generate draft" once analysis finishes.',
 
   // --- Landing page -------------------------------------------------------
   "landing.kicker": "For wedding & event photographers",
   "landing.hero.title": "From memory card to happy client — in one workflow",
-  "landing.hero.subtitle": "AlbumFlow covers the whole job. It scores your photos, lets clients pick their favourites, builds the spreads, gets the sign-off and delivers every photo on a deadline — so you spend less time on admin and more time behind the camera.",
+  "landing.hero.subtitle":
+    "AlbumFlow covers the whole job. It scores your photos, lets clients pick their favourites, builds the spreads, gets the sign-off and delivers every photo on a deadline — so you spend less time on admin and more time behind the camera.",
   "landing.hero.cta.primary": "Get started free",
   "landing.hero.cta.secondary": "Log in",
   "landing.features.heading": "Everything a photographer needs, nothing they don't",
@@ -603,7 +659,8 @@ export const en: Record<string, string> = {
   "landing.feature.sizes.desc":
     "Square, portrait, or landscape, from 20×20 to 30×40 cm — or set your own custom size in one click.",
   "landing.feature.review.title": "Client-ready reviews",
-  "landing.feature.review.desc": "Share a private, password-protected link, collect feedback spread by spread, and export a print-ready PDF the moment it's approved.",
+  "landing.feature.review.desc":
+    "Share a private, password-protected link, collect feedback spread by spread, and export a print-ready PDF the moment it's approved.",
   "landing.feature.language.title": "Speak your language",
   "landing.feature.language.desc":
     "The whole app — this page included — works in English and Romanian, switchable any time.",
@@ -612,9 +669,11 @@ export const en: Record<string, string> = {
   "landing.steps.upload.desc":
     "Drop in a folder of JPEGs — AlbumFlow analyses every one while you get on with your day.",
   "landing.steps.design.title": "3. Design the album",
-  "landing.steps.design.desc": "Build from your client's picks. Accept the layout AlbumFlow suggests, or drag, resize, and rearrange until it's exactly right.",
+  "landing.steps.design.desc":
+    "Build from your client's picks. Accept the layout AlbumFlow suggests, or drag, resize, and rearrange until it's exactly right.",
   "landing.steps.approve.title": "4. Get the sign-off",
-  "landing.steps.approve.desc": "Share a password-protected review link with your client, resolve their notes, and export a print-ready PDF.",
+  "landing.steps.approve.desc":
+    "Share a password-protected review link with your client, resolve their notes, and export a print-ready PDF.",
   "landing.cta.heading": "Ready to run your next shoot from start to delivery?",
   "landing.cta.subtitle": "Create a free account and upload your first shoot in minutes.",
   "landing.cta.button": "Create your free account",
@@ -667,12 +726,14 @@ export const en: Record<string, string> = {
   "check.title": "Album check",
   "check.allGood": "Everything looks ready: no low-resolution photos, empty slots, repeats or faces in the fold.",
   "check.summary": "{errors} to fix and {warnings} to look at before sending this to your client or the lab.",
-  "check.lowResolution.error": "This photo prints at only {dpi} dpi — it will look pixelated. Use it smaller, or pick another (aim for {min}+).",
+  "check.lowResolution.error":
+    "This photo prints at only {dpi} dpi — it will look pixelated. Use it smaller, or pick another (aim for {min}+).",
   "check.lowResolution.warning": "This photo prints at {dpi} dpi and may look soft this large (aim for {min}+).",
   "check.emptySlot": "An empty slot — drop a photo into it or pick a layout with fewer photos.",
   "check.usedTwice": "This photo is also on spread {other}.",
   "check.nearDuplicate": "Almost the same moment as a photo on spread {other} — keep the stronger one?",
-  "check.faceOnFold": "A face lands in the fold between the pages, where the binding will hide it. Move or reframe the photo.",
+  "check.faceOnFold":
+    "A face lands in the fold between the pages, where the binding will hide it. Move or reframe the photo.",
   "check.unusedBest": "{count} of the shoot's best photos are not in the album yet.",
   "check.onSpread": "Spread {number}",
   "check.goTo": "Show me",
@@ -705,9 +766,11 @@ export const en: Record<string, string> = {
   "tip.preview": "See the album full screen, one spread at a time, as your client will",
   "tip.check": "Low-resolution photos, empty slots, repeats and faces in the fold — before it goes out",
   "tour.editor.strip.title": "Every spread at a glance",
-  "tour.editor.strip.body": "Click a spread to jump to it, drag one onto another to reorder, or drop a photo from the tray onto one. Dots mark things the album check found.",
+  "tour.editor.strip.body":
+    "Click a spread to jump to it, drag one onto another to reorder, or drop a photo from the tray onto one. Dots mark things the album check found.",
   "tour.editor.check.title": "Check before you send",
-  "tour.editor.check.body": "One click lists photos too small to print well, empty slots, repeats and faces lost in the fold — each with a button that takes you there.",
+  "tour.editor.check.body":
+    "One click lists photos too small to print well, empty slots, repeats and faces lost in the fold — each with a button that takes you there.",
   "spread.tools.label": "Photo tools",
   "spread.zoomIn": "Zoom in",
   "spread.zoomOut": "Zoom out",
@@ -754,8 +817,7 @@ export const en: Record<string, string> = {
   "spread.resetFraming": "Reset",
   "spread.removePhoto": "Remove",
   "spread.removePhoto.title.canRemove": "Remove this photo from the spread",
-  "spread.removePhoto.title.lastPhoto":
-    "A spread needs at least one photo — remove the whole spread instead",
+  "spread.removePhoto.title.lastPhoto": "A spread needs at least one photo — remove the whole spread instead",
   "spread.slot.landscape": "landscape",
   "spread.slot.portrait": "portrait",
   "spread.slot.square": "square",
@@ -764,8 +826,7 @@ export const en: Record<string, string> = {
   "spread.layoutPicker.noneFit": "No other layout holds {count} photos.",
   "spread.insert.title": "Insert a new spread here",
   "spread.insert.modal.title": "Choose a layout",
-  "spread.insert.modal.body":
-    "Pick a layout for the new spread — you can add photos to it afterwards.",
+  "spread.insert.modal.body": "Pick a layout for the new spread — you can add photos to it afterwards.",
 
   // --- Layout template names -------------------------------------------
   "template.hero-full-bleed": "Full bleed hero",
@@ -882,7 +943,8 @@ export const en: Record<string, string> = {
   "text.align.right": "Align right",
   "text.remove": "Delete",
   "style.title": "Album style",
-  "style.intro": "One look for every spread: paper colour, space around the photos and the typeface. The client proof and the printed PDF follow it.",
+  "style.intro":
+    "One look for every spread: paper colour, space around the photos and the typeface. The client proof and the printed PDF follow it.",
   "style.preset.classic": "Classic",
   "style.preset.modern": "Modern",
   "style.preset.fine-art": "Fine art",
@@ -895,7 +957,8 @@ export const en: Record<string, string> = {
   "style.font": "Typeface",
   "style.keyline": "Thin keyline around each photo",
   "cover.title": "Cover",
-  "cover.intro": "A front cover prints as its own page ahead of the spreads: a photo with the couple's names, or the title alone.",
+  "cover.intro":
+    "A front cover prints as its own page ahead of the spreads: a photo with the couple's names, or the title alone.",
   "cover.add": "Add a cover",
   "cover.heading": "Title",
   "cover.subtitle": "Subtitle",
@@ -906,7 +969,8 @@ export const en: Record<string, string> = {
   "cover.dropPhoto": "Drag a photo from the tray here",
   "cover.remove": "Remove cover",
   "onboarding.title": "Get your first album out",
-  "onboarding.subtitle": "Three steps from memory card to a spread-by-spread album. This list ticks itself off as you go.",
+  "onboarding.subtitle":
+    "Three steps from memory card to a spread-by-spread album. This list ticks itself off as you go.",
   "onboarding.dismiss": "Hide",
   "onboarding.shoot.title": "Create a shoot",
   "onboarding.shoot.body": "One wedding or event: its photos, the albums you build from them and the links you send.",
@@ -915,7 +979,8 @@ export const en: Record<string, string> = {
   "onboarding.upload.body": "Drop in the culled photos. Each one is scored for sharpness, exposure and composition.",
   "onboarding.upload.cta": "Upload photos",
   "onboarding.album.title": "Generate the album",
-  "onboarding.album.body": "AlbumFlow lays the spreads out for you. Add a cover and a title page, then send the proof to your client.",
+  "onboarding.album.body":
+    "AlbumFlow lays the spreads out for you. Add a cover and a title page, then send the proof to your client.",
   "onboarding.album.cta": "Build the album",
   "common.close": "Close",
   "nav.admin": "Admin",
@@ -933,20 +998,24 @@ export const en: Record<string, string> = {
   "feedbackForm.rating": "How happy are you with AlbumFlow? (optional)",
   "feedbackForm.send": "Send",
   "feedbackForm.sending": "Sending…",
-  "feedbackForm.thanks": "Thank you — it went straight to the people who build AlbumFlow. If you asked something, we'll reply by email.",
+  "feedbackForm.thanks":
+    "Thank you — it went straight to the people who build AlbumFlow. If you asked something, we'll reply by email.",
   "nav.guide": "Guide",
   "launch.title": "Launch prices — yours to keep",
   "launch.body": "To celebrate the launch, every plan costs less for studios that join before {date}:",
-  "launch.keep": "You joined in time, so these prices stay yours for as long as your studio stays with us — even after the offer ends.",
+  "launch.keep":
+    "You joined in time, so these prices stay yours for as long as your studio stays with us — even after the offer ends.",
   "launch.regular": "Regular price {price} € per month",
   "launch.done": "Great",
   "launch.studioNote": "Launch prices: your studio joined during the launch offer and keeps these prices for good.",
   "upsell.includedIn": "Included in {plan} — €{price}/month (you are on {current})",
   "upsell.cta": "Ask to upgrade to {plan}",
   "upsell.downloadLinks.title": "Deliver every photo with one link",
-  "upsell.downloadLinks.body": "Send your client a private link to download all photos at full size, and get an email when they do.",
+  "upsell.downloadLinks.body":
+    "Send your client a private link to download all photos at full size, and get an email when they do.",
   "upsell.branding.title": "Your brand on every client page and email",
-  "upsell.branding.body": "Your logo, colour and studio name on proofs, selections, downloads and emails — with no mention of AlbumFlow.",
+  "upsell.branding.body":
+    "Your logo, colour and studio name on proofs, selections, downloads and emails — with no mention of AlbumFlow.",
   "upsell.photos.title": "Unlimited photos per shoot",
   "upsell.photos.body": "Upload whole weddings without counting — every shoot holds as many photos as you need.",
   "upsell.watermark.title": "Proofs without a watermark",
@@ -993,43 +1062,59 @@ export const en: Record<string, string> = {
   "tip.removeSpread": "Remove this spread from the album",
   "tip.manageBilling": "Change plan, update your card or download invoices",
   "tour.shoots.new.title": "Start with a shoot",
-  "tour.shoots.new.body": "A shoot is one wedding or event. It keeps its photos, the albums you build from them and every link you send the client in one place.",
+  "tour.shoots.new.body":
+    "A shoot is one wedding or event. It keeps its photos, the albums you build from them and every link you send the client in one place.",
   "tour.shoots.checklist.title": "Your first album in three steps",
-  "tour.shoots.checklist.body": "This checklist follows your progress and shows the next thing to do. Hide it whenever you like.",
+  "tour.shoots.checklist.body":
+    "This checklist follows your progress and shows the next thing to do. Hide it whenever you like.",
   "tour.shoots.grid.title": "All your shoots",
-  "tour.shoots.grid.body": "Open a shoot to upload photos, build albums and send links. The cover photo helps you find it at a glance.",
+  "tour.shoots.grid.body":
+    "Open a shoot to upload photos, build albums and send links. The cover photo helps you find it at a glance.",
   "tour.shoots.studio.title": "Your studio",
   "tour.shoots.studio.body": "Your plan and usage, your team and the app language live here.",
   "tour.shoots.feedback.title": "Tell us anything",
   "tour.shoots.feedback.body": "An idea, a problem or a question — it goes straight to the people who build AlbumFlow.",
   "tour.shoots.guide.title": "See this again",
-  "tour.shoots.guide.body": "Every main page has a short guide like this one. Open it here whenever you need a reminder.",
+  "tour.shoots.guide.body":
+    "Every main page has a short guide like this one. Open it here whenever you need a reminder.",
   "tour.project.upload.title": "1. Upload your selects",
-  "tour.project.upload.body": "Drag the photos you culled onto this area, or click it to choose files. Each one is scored for sharpness, exposure and composition as it arrives.",
+  "tour.project.upload.body":
+    "Drag the photos you culled onto this area, or click it to choose files. Each one is scored for sharpness, exposure and composition as it arrives.",
   "tour.project.photos.title": "2. Check the photos",
   "tour.project.photos.body": "Every upload shows up here with its score. Click one to see it large.",
   "tour.project.picks.title": "3. Let your client choose (optional)",
-  "tour.project.picks.body": "Send a private gallery link: your client hearts their favourites on their phone, and you get an email when they send the selection.",
+  "tour.project.picks.body":
+    "Send a private gallery link: your client hearts their favourites on their phone, and you get an email when they send the selection.",
   "tour.project.generate.title": "4. Build the album",
-  "tour.project.generate.body": "Pick the album size and generate: AlbumFlow lays out a complete draft — from your best photos, or exactly the ones your client chose.",
+  "tour.project.generate.body":
+    "Pick the album size and generate: AlbumFlow lays out a complete draft — from your best photos, or exactly the ones your client chose.",
   "tour.project.delivery.title": "5. Deliver the photos",
-  "tour.project.delivery.body": "When the job is done, send a download link: your client gets every photo at full size, until the date you choose.",
+  "tour.project.delivery.body":
+    "When the job is done, send a download link: your client gets every photo at full size, until the date you choose.",
   "tour.editor.cover.title": "The cover",
-  "tour.editor.cover.body": "Add a cover with the couple's names. Drag a photo from the tray onto it, or choose a title-only cover.",
+  "tour.editor.cover.body":
+    "Add a cover with the couple's names. Drag a photo from the tray onto it, or choose a title-only cover.",
   "tour.editor.spread.title": "Edit a spread",
-  "tour.editor.spread.body": "Click a photo to zoom and reframe it, drag its corners to resize, or drag it onto another photo to swap them. Drop tray photos straight onto a slot.",
+  "tour.editor.spread.body":
+    "Click a photo to zoom and reframe it, drag its corners to resize, or drag it onto another photo to swap them. Drop tray photos straight onto a slot.",
   "tour.editor.actions.title": "Spread tools",
-  "tour.editor.actions.body": "Reorder spreads, try a new design, add a photo or words, switch to black & white. Hover any button to see what it does.",
+  "tour.editor.actions.body":
+    "Reorder spreads, try a new design, add a photo or words, switch to black & white. Hover any button to see what it does.",
   "tour.editor.layouts.title": "Layouts",
-  "tour.editor.layouts.body": "These are the layouts that fit this many photos. Click one to rearrange the spread instantly.",
+  "tour.editor.layouts.body":
+    "These are the layouts that fit this many photos. Click one to rearrange the spread instantly.",
   "tour.editor.sidebar.title": "Photos, design, review, export",
-  "tour.editor.sidebar.body": "Photos: your tray. Design: the album's paper colour, spacing and typeface. Review: send a proof and read your client's notes. Export: the print-ready PDF.",
+  "tour.editor.sidebar.body":
+    "Photos: your tray. Design: the album's paper colour, spacing and typeface. Review: send a proof and read your client's notes. Export: the print-ready PDF.",
   "tour.editor.tools.title": "Undo and precision tools",
-  "tour.editor.tools.body": "Undo and redo any change. The ruler, snapping and print guides help you line things up for the lab.",
+  "tour.editor.tools.body":
+    "Undo and redo any change. The ruler, snapping and print guides help you line things up for the lab.",
   "tour.editor.ready.title": "Send it to your client",
-  "tour.editor.ready.body": "When it's ready, mark it and share a review link from the Review tab. Your client comments spread by spread and approves — then you export the PDF.",
+  "tour.editor.ready.body":
+    "When it's ready, mark it and share a review link from the Review tab. Your client comments spread by spread and approves — then you export the PDF.",
   "spread.move": "Move",
-  "spread.move.title": "Drag to move this photo anywhere on the spread — it snaps to the page edges, the centre and other photos. Arrow keys nudge it.",
+  "spread.move.title":
+    "Drag to move this photo anywhere on the spread — it snaps to the page edges, the centre and other photos. Arrow keys nudge it.",
   "review.opening": "Opening your album…",
   "review.broken.title": "This link isn't working",
   "review.broken.body": "Ask your photographer for a fresh link.",

@@ -25,7 +25,11 @@ export class MediaIngestionDeliveryGateway implements DeliveryGateway {
   async loadProject(projectId: string) {
     const project = await this.projects.findById(UniqueEntityId.create(projectId));
     if (!project) return undefined;
-    return { id: project.id.toString(), name: project.name, branding: (await this.branding?.forProject(projectId)) ?? null };
+    return {
+      id: project.id.toString(),
+      name: project.name,
+      branding: (await this.branding?.forProject(projectId)) ?? null,
+    };
   }
 
   async listDeliverable(projectId: string) {

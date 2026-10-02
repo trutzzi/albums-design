@@ -41,7 +41,9 @@ export class StoreOriginalUseCase {
       }
 
       if (!(await this.staging.headObject(key))) {
-        return Result.failure(new ConflictError(`the original of ${photo.fileName} is no longer staged and is not on long-term storage`));
+        return Result.failure(
+          new ConflictError(`the original of ${photo.fileName} is no longer staged and is not on long-term storage`),
+        );
       }
       const body = await this.staging.getObject(key);
       await this.permanent.upload(key, body, { contentType: photo.mimeType });

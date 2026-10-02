@@ -24,11 +24,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = { en, ro }
  * so it can be unit tested without rendering anything: falls back to
  * English, then to the key itself, and replaces `{name}`-style placeholders.
  */
-export function translate(
-  language: Language,
-  key: string,
-  vars?: Record<string, string | number>,
-): string {
+export function translate(language: Language, key: string, vars?: Record<string, string | number>): string {
   const dictionary = TRANSLATIONS[language];
   const template = dictionary[key] ?? TRANSLATIONS.en[key] ?? key;
   if (!vars) return template;

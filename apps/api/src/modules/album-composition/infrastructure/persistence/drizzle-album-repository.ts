@@ -48,10 +48,7 @@ export class DrizzleAlbumRepository implements AlbumRepository {
   }
 
   async findByProjectId(projectId: UniqueEntityId): Promise<Album[]> {
-    const rows = await this.db
-      .select()
-      .from(albums)
-      .where(eq(albums.projectId, projectId.toString()));
+    const rows = await this.db.select().from(albums).where(eq(albums.projectId, projectId.toString()));
     return rows.map(toDomain);
   }
 
@@ -60,7 +57,12 @@ export class DrizzleAlbumRepository implements AlbumRepository {
     const rows = await this.db
       .select({ projectId: albums.projectId, total: count() })
       .from(albums)
-      .where(inArray(albums.projectId, projectIds.map((id) => id.toString())))
+      .where(
+        inArray(
+          albums.projectId,
+          projectIds.map((id) => id.toString()),
+        ),
+      )
       .groupBy(albums.projectId);
     return Object.fromEntries(rows.map((row) => [row.projectId, Number(row.total)]));
   }

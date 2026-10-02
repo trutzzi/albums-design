@@ -1,11 +1,6 @@
 import type { ClientBrandingDTO } from "@albumflow/contracts";
 import { Result } from "@albumflow/domain-kernel";
-import {
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-  type ApplicationError,
-} from "#src/shared-kernel/errors";
+import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import {
   PickClosedError,
   PickExpiredError,
@@ -99,11 +94,7 @@ export class PickPortalUseCase {
    * One tap on a photo. Which list it lands in follows the step the client is on, so the
    * page cannot put a photo in the wrong one — the shortlist in step 1, the final picks in step 2.
    */
-  async setPick(
-    token: string,
-    photoId: string,
-    picked: boolean,
-  ): Promise<Result<PickState, ApplicationError>> {
+  async setPick(token: string, photoId: string, picked: boolean): Promise<Result<PickState, ApplicationError>> {
     const found = await this.resolve(token);
     if (found.isFailure) return Result.failure(found.getError());
     const session = found.getValue();

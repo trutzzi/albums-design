@@ -1,19 +1,10 @@
 import { hasLaunchPrice, monthlyPriceFor } from "../../domain/plan";
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import {
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-  type ApplicationError,
-} from "#src/shared-kernel/errors";
+import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import type { PlanCode } from "../../domain/plan";
 import type { LogoProcessor } from "../ports/logo-processor";
 import { ForbiddenError } from "./billing.use-case";
-import type {
-  StudioMemberRepository,
-  StudioRepository,
-  SubscriptionRepository,
-} from "../../domain/repositories";
+import type { StudioMemberRepository, StudioRepository, SubscriptionRepository } from "../../domain/repositories";
 import { Studio } from "../../domain/studio";
 import { StudioMember, type StudioRole } from "../../domain/studio-member";
 import { Subscription } from "../../domain/subscription";
@@ -168,7 +159,10 @@ export class StudioAdministrationUseCase {
       return Result.failure(new ForbiddenError("Only the studio owner can change its branding."));
     }
     const id = UniqueEntityId.create(studioId);
-    const [studio, subscription] = await Promise.all([this.studios.findById(id), this.subscriptions.findByStudioId(id)]);
+    const [studio, subscription] = await Promise.all([
+      this.studios.findById(id),
+      this.subscriptions.findByStudioId(id),
+    ]);
     if (!studio || !subscription) return Result.failure(new NotFoundError("Studio", studioId));
     if (!subscription.plan.whiteLabelReview) {
       return Result.failure(new ConflictError("Your own branding on client pages comes with the Studio Pro plan."));
@@ -190,10 +184,7 @@ export class StudioAdministrationUseCase {
     return this.overview(studioId);
   }
 
-  async removeMember(
-    studioId: string,
-    memberId: string,
-  ): Promise<Result<null, ApplicationError>> {
+  async removeMember(studioId: string, memberId: string): Promise<Result<null, ApplicationError>> {
     const member = await this.members.findById(UniqueEntityId.create(memberId));
     if (!member || member.studioId.toString() !== studioId) {
       return Result.failure(new NotFoundError("Member", memberId));

@@ -17,12 +17,7 @@ export const RESIZE_CORNERS: ResizeCorner[] = ["nw", "ne", "sw", "se"];
  * opposite corner is the anchor, which is what makes the gesture feel like grabbing
  * the paper rather than nudging a value.
  */
-export function resizeFrame(
-  frame: SlotFrame,
-  corner: ResizeCorner,
-  dx: number,
-  dy: number,
-): SlotFrame {
+export function resizeFrame(frame: SlotFrame, corner: ResizeCorner, dx: number, dy: number): SlotFrame {
   const left = frame.x;
   const top = frame.y;
   const right = frame.x + frame.width;
@@ -77,11 +72,7 @@ export function collectSnapTargets(rects: readonly SlotFrame[]): SnapTargets {
  * ones). The trim line needs no separate target: it sits exactly at the
  * spread's own edges, already covered by `collectSnapTargets`'s {0, 1}.
  */
-export function collectPrintGuideTargets(
-  pageWidthMm: number,
-  pageHeightMm: number,
-  safeMarginMm: number,
-): SnapTargets {
+export function collectPrintGuideTargets(pageWidthMm: number, pageHeightMm: number, safeMarginMm: number): SnapTargets {
   if (safeMarginMm <= 0 || pageWidthMm <= 0 || pageHeightMm <= 0) return { x: [], y: [] };
   const spreadWidthMm = pageWidthMm * 2;
   const insetX = safeMarginMm / spreadWidthMm;

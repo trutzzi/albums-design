@@ -81,13 +81,7 @@ function column(
   }));
 }
 
-function grid(
-  id: string,
-  name: string,
-  columns: number,
-  rows: number,
-  prefers: SlotOrientation,
-): LayoutTemplate {
+function grid(id: string, name: string, columns: number, rows: number, prefers: SlotOrientation): LayoutTemplate {
   const usableWidth = 1 - MARGIN * 2 - GUTTER * (columns - 1);
   const usableHeight = 1 - MARGIN * 2 - GUTTER * (rows - 1);
   const cellWidth = usableWidth / columns;
@@ -620,19 +614,13 @@ export const LAYOUT_TEMPLATES: readonly LayoutTemplate[] = [
     id: "two-over-four",
     name: "Two over four",
     fullBleed: false,
-    slots: [
-      ...row("t", 2, MARGIN, 0.08, 0.88, 0.42, "LANDSCAPE"),
-      ...row("b", 4, MARGIN, 0.54, 0.88, 0.38, "SQUARE"),
-    ],
+    slots: [...row("t", 2, MARGIN, 0.08, 0.88, 0.42, "LANDSCAPE"), ...row("b", 4, MARGIN, 0.54, 0.88, 0.38, "SQUARE")],
   },
   {
     id: "four-over-two",
     name: "Four over two",
     fullBleed: false,
-    slots: [
-      ...row("t", 4, MARGIN, 0.08, 0.88, 0.38, "SQUARE"),
-      ...row("b", 2, MARGIN, 0.5, 0.88, 0.42, "LANDSCAPE"),
-    ],
+    slots: [...row("t", 4, MARGIN, 0.08, 0.88, 0.38, "SQUARE"), ...row("b", 2, MARGIN, 0.5, 0.88, 0.42, "LANDSCAPE")],
   },
 
   // --- seven photos ------------------------------------------------------
@@ -703,10 +691,7 @@ export const LAYOUT_TEMPLATES: readonly LayoutTemplate[] = [
     id: "two-over-six",
     name: "Two over six",
     fullBleed: false,
-    slots: [
-      ...row("t", 2, MARGIN, 0.08, 0.88, 0.4, "LANDSCAPE"),
-      ...row("b", 6, MARGIN, 0.54, 0.88, 0.34, "PORTRAIT"),
-    ],
+    slots: [...row("t", 2, MARGIN, 0.08, 0.88, 0.4, "LANDSCAPE"), ...row("b", 6, MARGIN, 0.54, 0.88, 0.34, "PORTRAIT")],
   },
 
   // --- nine photos -------------------------------------------------------

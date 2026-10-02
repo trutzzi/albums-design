@@ -98,7 +98,6 @@ export class StudioEmailNotifier implements PickNotifier, DownloadNotifier, Revi
   }
 }
 
-
 /** Romanian counts 2–19 plainly and from 20 up (and at 100, 101…) needs "de": "3 fotografii", "25 de fotografii". */
 export function roPhotos(count: number): string {
   if (count === 1) return "1 fotografie";

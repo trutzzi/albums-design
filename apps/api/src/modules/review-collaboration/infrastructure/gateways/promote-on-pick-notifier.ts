@@ -22,7 +22,10 @@ export class PromoteOnPickNotifier implements PickNotifier {
     try {
       await this.jobs.enqueue(QUEUES.storage, "promote-picked", { projectId: params.projectId });
     } catch (error) {
-      this.logger.warn("could not queue long-term promotion for client picks", { projectId: params.projectId, err: error });
+      this.logger.warn("could not queue long-term promotion for client picks", {
+        projectId: params.projectId,
+        err: error,
+      });
     }
   }
 }

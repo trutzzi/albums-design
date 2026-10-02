@@ -1,6 +1,4 @@
-import type {
-  ClientBrandingDTO,
-} from "@albumflow/contracts";
+import type { ClientBrandingDTO } from "@albumflow/contracts";
 import { request } from "./http";
 import type { InvitationInput, InvitationOutcome } from "./review";
 

@@ -129,10 +129,7 @@ describe("variety and rhythm", () => {
   it("lands within one spread of the requested length", () => {
     for (const target of [5, 10, 15, 20]) {
       const actual = planAlbum(shoot, { targetSpreads: target }).length;
-      assert.ok(
-        Math.abs(actual - target) <= 1,
-        `asked for ${target} spreads, produced ${actual}`,
-      );
+      assert.ok(Math.abs(actual - target) <= 1, `asked for ${target} spreads, produced ${actual}`);
     }
   });
 
@@ -145,11 +142,7 @@ describe("variety and rhythm", () => {
       const areas = template.slots.map((slot) => slot.width * slot.height);
       const largest = areas.indexOf(Math.max(...areas));
       const scores = spread.placements.map((p) => scoreOf.get(p.photoId) ?? 0);
-      assert.equal(
-        scores[largest],
-        Math.max(...scores),
-        `${spread.templateId} put a weaker frame in its biggest slot`,
-      );
+      assert.equal(scores[largest], Math.max(...scores), `${spread.templateId} put a weaker frame in its biggest slot`);
     }
   });
 });
@@ -184,10 +177,7 @@ describe("planAlbum", () => {
   });
 
   it("never places a photo that failed the quality bar", () => {
-    const mixed = [
-      ...shoot,
-      photo({ photoId: "rejected", score: 20, capturedAt: BASE + 999 * 60_000 }),
-    ];
+    const mixed = [...shoot, photo({ photoId: "rejected", score: 20, capturedAt: BASE + 999 * 60_000 })];
     const placed = new Set(
       planAlbum(mixed, { targetSpreads: 8 }).flatMap((spread) =>
         spread.placements.map((placement) => placement.photoId),

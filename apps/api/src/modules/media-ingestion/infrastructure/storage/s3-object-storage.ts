@@ -6,11 +6,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type {
-  ObjectHead,
-  ObjectStorageWithBody,
-  PresignedUpload,
-} from "../../application/ports/object-storage";
+import type { ObjectHead, ObjectStorageWithBody, PresignedUpload } from "../../application/ports/object-storage";
 
 export interface S3ObjectStorageConfig {
   bucket: string;
@@ -65,9 +61,7 @@ export class S3ObjectStorage implements ObjectStorageWithBody {
   }
 
   async getObject(key: string): Promise<Buffer> {
-    const result = await this.client.send(
-      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-    );
+    const result = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
     const body = result.Body;
     if (!body) throw new Error(`No object stored at ${key}`);
     return Buffer.from(await body.transformToByteArray());

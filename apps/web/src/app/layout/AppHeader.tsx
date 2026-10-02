@@ -41,9 +41,7 @@ export function AppHeader() {
   });
   const firstName = auth.name.trim().split(/\s+/)[0];
   const greeting =
-    auth.isAuthenticated && firstName
-      ? `${t(greetingKeyForHour(new Date().getHours()))}, ${firstName} 👋`
-      : null;
+    auth.isAuthenticated && firstName ? `${t(greetingKeyForHour(new Date().getHours()))}, ${firstName} 👋` : null;
 
   // Navigating anywhere (including back/forward) leaves the menu closed.
   useEffect(() => {

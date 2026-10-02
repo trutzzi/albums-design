@@ -32,7 +32,10 @@ export class DrizzleFeedbackRepository implements FeedbackRepository {
     await this.db
       .insert(feedback)
       .values(row)
-      .onConflictDoUpdate({ target: feedback.id, set: { status: row.status, adminNote: row.adminNote, updatedAt: row.updatedAt } });
+      .onConflictDoUpdate({
+        target: feedback.id,
+        set: { status: row.status, adminNote: row.adminNote, updatedAt: row.updatedAt },
+      });
   }
 
   async findById(id: string): Promise<Feedback | undefined> {
@@ -40,7 +43,11 @@ export class DrizzleFeedbackRepository implements FeedbackRepository {
     return row ? toDomain(row) : undefined;
   }
 
-  async list(filter: { status?: FeedbackStatus | undefined; kind?: FeedbackKind | undefined; limit: number }): Promise<Feedback[]> {
+  async list(filter: {
+    status?: FeedbackStatus | undefined;
+    kind?: FeedbackKind | undefined;
+    limit: number;
+  }): Promise<Feedback[]> {
     const conditions: SQL[] = [];
     if (filter.status) conditions.push(eq(feedback.status, filter.status));
     if (filter.kind) conditions.push(eq(feedback.kind, filter.kind));
@@ -66,7 +73,8 @@ export class DrizzleFeedbackRepository implements FeedbackRepository {
     return {
       open: Number(open?.total ?? 0),
       newCount: Number(fresh?.total ?? 0),
-      averageRating: rated?.average === null || rated?.average === undefined ? null : Math.round(Number(rated.average) * 10) / 10,
+      averageRating:
+        rated?.average === null || rated?.average === undefined ? null : Math.round(Number(rated.average) * 10) / 10,
       ratings: Number(rated?.total ?? 0),
     };
   }
@@ -108,9 +116,16 @@ export class InMemoryFeedbackRepository implements FeedbackRepository {
     return this.items.get(id);
   }
 
-  async list(filter: { status?: FeedbackStatus | undefined; kind?: FeedbackKind | undefined; limit: number }): Promise<Feedback[]> {
+  async list(filter: {
+    status?: FeedbackStatus | undefined;
+    kind?: FeedbackKind | undefined;
+    limit: number;
+  }): Promise<Feedback[]> {
     return [...this.items.values()]
-      .filter((item) => (!filter.status || item.status === filter.status) && (!filter.kind || item.snapshot.kind === filter.kind))
+      .filter(
+        (item) =>
+          (!filter.status || item.status === filter.status) && (!filter.kind || item.snapshot.kind === filter.kind),
+      )
       .sort((a, b) => b.snapshot.createdAt.getTime() - a.snapshot.createdAt.getTime())
       .slice(0, filter.limit);
   }

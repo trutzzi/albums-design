@@ -139,4 +139,3 @@ export function registerMediaIngestionRoutes(app: FastifyInstance, deps: MediaIn
     return reply.code(204).send();
   });
 }
-

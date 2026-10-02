@@ -47,14 +47,10 @@ export class DeleteProjectUseCase {
     if (!project) return Result.failure(new NotFoundError("Project", command.projectId));
 
     const albums = await this.albums.findByProjectId(id);
-    const exportsByAlbum = await Promise.all(
-      albums.map((album) => this.exportJobs.findByAlbumId(album.id)),
-    );
+    const exportsByAlbum = await Promise.all(albums.map((album) => this.exportJobs.findByAlbumId(album.id)));
     if (exportsByAlbum.some((jobs) => jobs.some((job) => job.status === "QUEUED" || job.status === "RENDERING"))) {
       return Result.failure(
-        new ConflictError(
-          "This shoot has an album with an export still in progress — wait for it to finish first.",
-        ),
+        new ConflictError("This shoot has an album with an export still in progress — wait for it to finish first."),
       );
     }
 

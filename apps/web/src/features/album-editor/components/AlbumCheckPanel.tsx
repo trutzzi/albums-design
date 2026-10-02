@@ -72,7 +72,11 @@ export function AlbumCheckPanel({
             const thumb = photoId ? thumbnailUrlFor(photoId) : null;
             return (
               <li key={index} className={`album-check__item album-check__item--${issue.severity}`}>
-                {thumb ? <img src={thumb} alt="" className="album-check__thumb" /> : <span className="album-check__thumb" />}
+                {thumb ? (
+                  <img src={thumb} alt="" className="album-check__thumb" />
+                ) : (
+                  <span className="album-check__thumb" />
+                )}
                 <span className="album-check__text">
                   {"spreadIndex" in issue && (
                     <strong>{t("check.onSpread", { number: issue.spreadIndex + 1 })} · </strong>

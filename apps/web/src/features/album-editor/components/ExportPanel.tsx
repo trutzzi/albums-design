@@ -14,7 +14,10 @@ export function ExportPanel({ albumId, hidden }: { albumId: string; hidden: bool
   });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["exports", albumId] });
   const startExport = useMutation({ mutationFn: () => requestExport(albumId), onSuccess: refresh });
-  const removeExport = useMutation({ mutationFn: (exportJobId: string) => deleteExport(exportJobId), onSuccess: refresh });
+  const removeExport = useMutation({
+    mutationFn: (exportJobId: string) => deleteExport(exportJobId),
+    onSuccess: refresh,
+  });
 
   return (
     <section className={`panel ${hidden ? "is-hidden" : ""}`}>

@@ -52,13 +52,7 @@ export function triageFeedback(
 }
 
 export type FunnelStep =
-  | "signedUp"
-  | "createdShoot"
-  | "uploadedPhotos"
-  | "builtAlbum"
-  | "sentForReview"
-  | "approved"
-  | "exported";
+  "signedUp" | "createdShoot" | "uploadedPhotos" | "builtAlbum" | "sentForReview" | "approved" | "exported";
 
 export interface BusinessStats {
   generatedAt: string;
@@ -105,7 +99,14 @@ export interface SystemStats {
     database: { ok: boolean; latencyMs: number | null };
     queues: { name: string; waiting: number; active: number; delayed: number; failed: number; completed: number }[];
   };
-  config: { mode: "production" | "demo"; storage: string; email: string; billing: string; vision: string; errorMonitoring: boolean };
+  config: {
+    mode: "production" | "demo";
+    storage: string;
+    email: string;
+    billing: string;
+    vision: string;
+    errorMonitoring: boolean;
+  };
   /** The long-term store's space; `null` when there is none (STORAGE_PROVIDER=none). */
   storageSpace:
     | { provider: string; usedBytes: number; totalBytes: number | null; checkedAt: string }

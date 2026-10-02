@@ -53,7 +53,10 @@ export class StorePendingOriginalsUseCase {
           failedThisRun.add(photo.id.toString());
           summary.failed++;
           // The next run retries it; the run summary reports the failure count.
-          this.logger.warn("could not store an original long-term", { photoId: photo.id.toString(), reason: result.getError().message });
+          this.logger.warn("could not store an original long-term", {
+            photoId: photo.id.toString(),
+            reason: result.getError().message,
+          });
         } else if (result.getValue() === "stored") summary.stored++;
         else if (result.getValue() === "already-stored") summary.alreadyStored++;
         else {

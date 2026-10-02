@@ -72,7 +72,10 @@ export type AuthSession = z.infer<typeof authSessionSchema>;
  */
 export const studioBrandingSchema = z.object({
   displayName: z.string().trim().max(80),
-  accent: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Colours are #rrggbb.").nullable(),
+  accent: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Colours are #rrggbb.")
+    .nullable(),
   /** A data: URL; the server shrinks it to a small PNG before storing it. `null` removes the logo. */
   logo: z.string().max(3_000_000).nullable(),
 });

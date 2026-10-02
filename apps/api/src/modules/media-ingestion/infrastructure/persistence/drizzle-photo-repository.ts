@@ -58,7 +58,15 @@ export class DrizzlePhotoRepository implements PhotoRepository {
     await this.db
       .update(photos)
       .set({ selectedAt: at })
-      .where(and(inArray(photos.id, ids.map((id) => id.toString())), isNull(photos.selectedAt)));
+      .where(
+        and(
+          inArray(
+            photos.id,
+            ids.map((id) => id.toString()),
+          ),
+          isNull(photos.selectedAt),
+        ),
+      );
   }
 
   async markFullResStored(id: UniqueEntityId, at: Date): Promise<void> {
@@ -66,10 +74,7 @@ export class DrizzlePhotoRepository implements PhotoRepository {
   }
 
   async markStagedOriginalPurged(id: UniqueEntityId, at: Date): Promise<void> {
-    await this.db
-      .update(photos)
-      .set({ stagedOriginalPurgedAt: at })
-      .where(eq(photos.id, id.toString()));
+    await this.db.update(photos).set({ stagedOriginalPurgedAt: at }).where(eq(photos.id, id.toString()));
   }
 
   async findAwaitingLongTermStorage(limit: number): Promise<Photo[]> {
@@ -77,11 +82,7 @@ export class DrizzlePhotoRepository implements PhotoRepository {
       .select()
       .from(photos)
       .where(
-        and(
-          ne(photos.status, "PENDING_UPLOAD"),
-          isNull(photos.fullResStoredAt),
-          isNull(photos.stagedOriginalPurgedAt),
-        ),
+        and(ne(photos.status, "PENDING_UPLOAD"), isNull(photos.fullResStoredAt), isNull(photos.stagedOriginalPurgedAt)),
       )
       .orderBy(asc(photos.createdAt))
       .limit(limit);
@@ -95,7 +96,10 @@ export class DrizzlePhotoRepository implements PhotoRepository {
       .from(photos)
       .where(
         and(
-          inArray(photos.projectId, projectIds.map((id) => id.toString())),
+          inArray(
+            photos.projectId,
+            projectIds.map((id) => id.toString()),
+          ),
           ne(photos.status, "PENDING_UPLOAD"),
         ),
       )
@@ -111,7 +115,10 @@ export class DrizzlePhotoRepository implements PhotoRepository {
       .from(photos)
       .where(
         and(
-          inArray(photos.projectId, projectIds.map((id) => id.toString())),
+          inArray(
+            photos.projectId,
+            projectIds.map((id) => id.toString()),
+          ),
           eq(photos.hasDerivatives, true),
         ),
       )
@@ -130,7 +137,12 @@ export class DrizzlePhotoRepository implements PhotoRepository {
     const rows = await this.db
       .select()
       .from(photos)
-      .where(inArray(photos.id, ids.map((id) => id.toString())));
+      .where(
+        inArray(
+          photos.id,
+          ids.map((id) => id.toString()),
+        ),
+      );
     return rows.map((row) => this.toDomain(row));
   }
 

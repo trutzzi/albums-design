@@ -38,11 +38,7 @@ export class DrizzleExportJobRepository implements ExportJobRepository {
   }
 
   async findById(id: UniqueEntityId): Promise<ExportJob | undefined> {
-    const [row] = await this.db
-      .select()
-      .from(exportJobs)
-      .where(eq(exportJobs.id, id.toString()))
-      .limit(1);
+    const [row] = await this.db.select().from(exportJobs).where(eq(exportJobs.id, id.toString())).limit(1);
     return row ? toDomain(row) : undefined;
   }
 

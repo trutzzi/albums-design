@@ -55,7 +55,11 @@ export const PageStrip = memo(function PageStrip({
   }, [currentIndex]);
 
   return (
-    <nav className={`page-strip ${collapsed ? "page-strip--collapsed" : ""}`} aria-label={t("strip.label")} data-tour="editor-strip">
+    <nav
+      className={`page-strip ${collapsed ? "page-strip--collapsed" : ""}`}
+      aria-label={t("strip.label")}
+      data-tour="editor-strip"
+    >
       <button
         type="button"
         className="page-strip__toggle"
@@ -140,10 +144,16 @@ export const PageStrip = memo(function PageStrip({
                   <span className="page-strip__number">{index + 1}</span>
                   {spread.locked && <span aria-label={t("spread.lock.badge")}>🔒</span>}
                   {issues && issues.errors > 0 && (
-                    <span className="page-strip__dot page-strip__dot--error" title={t("strip.issues", { count: issues.errors + issues.warnings })} />
+                    <span
+                      className="page-strip__dot page-strip__dot--error"
+                      title={t("strip.issues", { count: issues.errors + issues.warnings })}
+                    />
                   )}
                   {issues && issues.errors === 0 && issues.warnings > 0 && (
-                    <span className="page-strip__dot page-strip__dot--warning" title={t("strip.issues", { count: issues.warnings })} />
+                    <span
+                      className="page-strip__dot page-strip__dot--warning"
+                      title={t("strip.issues", { count: issues.warnings })}
+                    />
                   )}
                   {comments > 0 && (
                     <span className="page-strip__comments" title={t("strip.comments", { count: comments })}>

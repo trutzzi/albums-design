@@ -19,15 +19,15 @@ export class StoragePhotoPreviewResolver implements PhotoPreviewResolver {
     if (unique.length === 0) return new Map();
     // One query for the whole album: the review page used to load each placed photo on its own.
     const photos = await this.photos.findByIds(unique.map((id) => UniqueEntityId.create(id)));
-    const entries = await Promise.all(photos.map(async (photo) => [photo.id.toString(), await this.urlFor(photo)] as const));
+    const entries = await Promise.all(
+      photos.map(async (photo) => [photo.id.toString(), await this.urlFor(photo)] as const),
+    );
     return new Map(entries);
   }
 
   private urlFor(photo: Photo): Promise<string> {
     // Clients review on phones over mobile data; the original is for the printer.
-    const key = photo.hasDerivatives
-      ? photo.storageKey.derivative("preview")
-      : photo.storageKey;
+    const key = photo.hasDerivatives ? photo.storageKey.derivative("preview") : photo.storageKey;
     if (photo.permanentDerivatives && this.permanent) {
       return this.permanent.getUrl(key.toString(), { expiresInSeconds: PREVIEW_TTL_SECONDS });
     }

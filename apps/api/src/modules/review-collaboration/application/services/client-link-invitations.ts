@@ -80,7 +80,11 @@ export class ClientLinkInvitations {
       return { sentTo: command.to };
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown error";
-      this.logger.error("could not send a client link invitation", { kind: command.kind, projectId: command.projectId, err: error });
+      this.logger.error("could not send a client link invitation", {
+        kind: command.kind,
+        projectId: command.projectId,
+        err: error,
+      });
       return { error: reason };
     }
   }

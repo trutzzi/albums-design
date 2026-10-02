@@ -26,9 +26,7 @@ function album(watermark?: string): RenderableAlbum {
     spreads: [
       {
         templateId: "hero-full-bleed",
-        placements: [
-          { slotId: "hero", photoId: "p1", crop: { x: 0, y: 0, width: 1, height: 1 }, treatment: "COLOR" },
-        ],
+        placements: [{ slotId: "hero", photoId: "p1", crop: { x: 0, y: 0, width: 1, height: 1 }, treatment: "COLOR" }],
       },
     ],
   };

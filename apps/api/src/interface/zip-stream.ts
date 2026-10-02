@@ -25,11 +25,7 @@ export interface ZipEntry {
  * Resolves `true` only when every entry was written and the archive finalised,
  * so a caller can tell a finished delivery from a dropped connection.
  */
-export async function streamZip(
-  output: Writable,
-  entries: ZipEntry[],
-  isAborted: () => boolean,
-): Promise<boolean> {
+export async function streamZip(output: Writable, entries: ZipEntry[], isAborted: () => boolean): Promise<boolean> {
   const archive = new ZipArchive({ store: true });
   let failure: Error | undefined;
   archive.on("error", (error: Error) => {

@@ -1,14 +1,6 @@
 import { sql } from "drizzle-orm";
 import type { Database } from "#src/db/client";
-import {
-  albums,
-  exportJobs,
-  pickSessions,
-  projects,
-  reviewSessions,
-  studios,
-  subscriptions,
-} from "#src/db/schema";
+import { albums, exportJobs, pickSessions, projects, reviewSessions, studios, subscriptions } from "#src/db/schema";
 import type { StatsInput } from "../domain/business-stats";
 import { dayKey } from "../domain/business-stats";
 import type { StatsSource } from "../application/ports/stats-source";
@@ -37,7 +29,11 @@ export class DrizzleStatsSource implements StatsSource {
           .select({ id: albums.id, projectId: albums.projectId, status: albums.status, createdAt: albums.createdAt })
           .from(albums),
         this.db
-          .select({ albumId: reviewSessions.albumId, status: reviewSessions.status, createdAt: reviewSessions.createdAt })
+          .select({
+            albumId: reviewSessions.albumId,
+            status: reviewSessions.status,
+            createdAt: reviewSessions.createdAt,
+          })
           .from(reviewSessions),
         this.db.select({ projectId: pickSessions.projectId, status: pickSessions.status }).from(pickSessions),
         this.db

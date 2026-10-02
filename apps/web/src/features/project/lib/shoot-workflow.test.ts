@@ -25,9 +25,19 @@ describe("where a shoot stands", () => {
   });
 
   it("waits on the client, then points at their picks", () => {
-    const waiting = shootWorkflow({ ...empty, uploaded: 5, analysed: 5, picks: [{ status: "OPEN", clientName: "Ana" }] });
+    const waiting = shootWorkflow({
+      ...empty,
+      uploaded: 5,
+      analysed: 5,
+      picks: [{ status: "OPEN", clientName: "Ana" }],
+    });
     assert.deepEqual(waiting.next.text, { key: "project.next.waitingPicks", params: { name: "Ana" } });
-    const received = shootWorkflow({ ...empty, uploaded: 5, analysed: 5, picks: [{ status: "SUBMITTED", clientName: "Ana" }] });
+    const received = shootWorkflow({
+      ...empty,
+      uploaded: 5,
+      analysed: 5,
+      picks: [{ status: "SUBMITTED", clientName: "Ana" }],
+    });
     assert.equal(received.steps.selection.done, true);
     assert.deepEqual(received.next.actions, ["seePicks"]);
   });

@@ -15,7 +15,12 @@ import {
   slugify,
   uniqueEntryNames,
 } from "../src/modules/review-collaboration/application/use-cases/download-portal.use-case";
-import { StudioEmailNotifier, enPhotos, formatBytes, roPhotos } from "../src/modules/review-collaboration/application/services/studio-email-notifier";
+import {
+  StudioEmailNotifier,
+  enPhotos,
+  formatBytes,
+  roPhotos,
+} from "../src/modules/review-collaboration/application/services/studio-email-notifier";
 import {
   CompositePickNotifier,
   IdentityStudioContacts,
@@ -73,7 +78,9 @@ async function world() {
   const project = Project.create({ studioId: studio, name: "Elena & Radu", type: "WEDDING" });
   await projects.save(project);
   await members.save(StudioMember.invite({ studioId: studio, email: "owner@studio.ro", name: "Owner", role: "OWNER" }));
-  await members.save(StudioMember.invite({ studioId: studio, email: "editor@studio.ro", name: "Editor", role: "EDITOR" }));
+  await members.save(
+    StudioMember.invite({ studioId: studio, email: "editor@studio.ro", name: "Editor", role: "EDITOR" }),
+  );
 
   const contents = new Map<string, Buffer>();
   async function addPhoto(name: string, options: { purged?: boolean; stored?: boolean } = {}) {
@@ -100,15 +107,35 @@ async function world() {
   const gateway = new MediaIngestionDeliveryGateway(projects, photos, staging, permanent);
   const sent: EmailMessage[] = [];
   const sender: EmailSender = { id: "test", send: async (message) => void sent.push(message) };
-  const email = new StudioEmailNotifier(sender, new IdentityStudioContacts(projects, members), "https://app.example.test", silentLogger);
-  return { staging, permanent, photos, projects, members, sessions, project, addPhoto, gateway, sent, sender, email, contents };
+  const email = new StudioEmailNotifier(
+    sender,
+    new IdentityStudioContacts(projects, members),
+    "https://app.example.test",
+    silentLogger,
+  );
+  return {
+    staging,
+    permanent,
+    photos,
+    projects,
+    members,
+    sessions,
+    project,
+    addPhoto,
+    gateway,
+    sent,
+    sender,
+    email,
+    contents,
+  };
 }
 
 const noopNotifier: DownloadNotifier = { photosDownloaded: async () => {} };
 
 describe("DownloadSession", () => {
   const open = (ttlDays?: number) =>
-    DownloadSession.open({ projectId: UniqueEntityId.create(), clientName: "Elena", ...(ttlDays ? { ttlDays } : {}) }).session;
+    DownloadSession.open({ projectId: UniqueEntityId.create(), clientName: "Elena", ...(ttlDays ? { ttlDays } : {}) })
+      .session;
 
   it("is available for 30 days by default", () => {
     const session = open();
@@ -157,11 +184,20 @@ describe("DownloadSession", () => {
 
 describe("zip entry naming", () => {
   it("keeps distinct names and numbers the duplicates", () => {
-    assert.deepEqual(uniqueEntryNames(["a.jpg", "b.jpg", "A.JPG", "a.jpg"]), ["a.jpg", "b.jpg", "A (2).JPG", "a (3).jpg"]);
+    assert.deepEqual(uniqueEntryNames(["a.jpg", "b.jpg", "A.JPG", "a.jpg"]), [
+      "a.jpg",
+      "b.jpg",
+      "A (2).JPG",
+      "a (3).jpg",
+    ]);
   });
 
   it("never lets a name climb out of the archive", () => {
-    assert.deepEqual(uniqueEntryNames(["../../etc/passwd", "dir\\evil.jpg", ""]), [".._.._etc_passwd".replace(/^\.+/, ""), "dir_evil.jpg", "photo"]);
+    assert.deepEqual(uniqueEntryNames(["../../etc/passwd", "dir\\evil.jpg", ""]), [
+      ".._.._etc_passwd".replace(/^\.+/, ""),
+      "dir_evil.jpg",
+      "photo",
+    ]);
   });
 
   it("makes a safe ASCII file name from a shoot title", () => {
@@ -238,14 +274,23 @@ describe("photographer's download-link administration", () => {
   it("refuses a shoot that does not exist", async () => {
     const w = await world();
     const admin = new DownloadSessionAdminUseCase(w.sessions, w.gateway);
-    assert.equal((await admin.open({ projectId: UniqueEntityId.create().toString(), clientName: "X" })).getError().code, "NOT_FOUND");
+    assert.equal(
+      (await admin.open({ projectId: UniqueEntityId.create().toString(), clientName: "X" })).getError().code,
+      "NOT_FOUND",
+    );
   });
 });
 
 describe("client download portal", () => {
-  async function opened(w: Awaited<ReturnType<typeof world>>, notifier: DownloadNotifier = noopNotifier, ttlDays?: number) {
+  async function opened(
+    w: Awaited<ReturnType<typeof world>>,
+    notifier: DownloadNotifier = noopNotifier,
+    ttlDays?: number,
+  ) {
     const admin = new DownloadSessionAdminUseCase(w.sessions, w.gateway);
-    const link = (await admin.open({ projectId: w.project.id.toString(), clientName: "Elena", ...(ttlDays ? { ttlDays } : {}) })).getValue();
+    const link = (
+      await admin.open({ projectId: w.project.id.toString(), clientName: "Elena", ...(ttlDays ? { ttlDays } : {}) })
+    ).getValue();
     return { link, portal: new DownloadPortalUseCase(w.sessions, w.gateway, notifier, silentLogger) };
   }
 
@@ -259,7 +304,10 @@ describe("client download portal", () => {
     assert.equal(view.projectName, "Elena & Radu");
     assert.equal(view.photoCount, 2);
     assert.equal(view.daysLeft, 30);
-    assert.equal(view.totalBytes, [...w.contents.values()].reduce((sum, b) => sum + b.byteLength, 0));
+    assert.equal(
+      view.totalBytes,
+      [...w.contents.values()].reduce((sum, b) => sum + b.byteLength, 0),
+    );
   });
 
   it("refuses an unknown, revoked or expired link", async () => {
@@ -278,7 +326,13 @@ describe("client download portal", () => {
     await w2.addPhoto("a.jpg");
     const second = await opened(w2, noopNotifier, 1);
     [...w2.sessions.items.values()][0]!.recordDownload();
-    const later = new DownloadPortalUseCase(w2.sessions, w2.gateway, noopNotifier, silentLogger, () => new Date(Date.now() + 2 * DAY));
+    const later = new DownloadPortalUseCase(
+      w2.sessions,
+      w2.gateway,
+      noopNotifier,
+      silentLogger,
+      () => new Date(Date.now() + 2 * DAY),
+    );
     const expired = await later.prepare(second.link.token);
     assert.equal(expired.getError().code, "CONFLICT");
     assert.match(expired.getError().message, /expired/);
@@ -316,7 +370,11 @@ describe("client download portal", () => {
     const portal = new DownloadPortalUseCase(
       w.sessions,
       w.gateway,
-      { photosDownloaded: async () => { throw new Error("mail server down"); } },
+      {
+        photosDownloaded: async () => {
+          throw new Error("mail server down");
+        },
+      },
       logged,
     );
     const prepared = (await portal.prepare(link.token)).getValue();
@@ -453,14 +511,26 @@ describe("emails to the studio", () => {
 
   it("says when it is a repeat download", async () => {
     const w = await world();
-    await w.email.photosDownloaded({ projectId: w.project.id.toString(), sessionId: "s", clientName: "E", photoCount: 1, byteSize: 1, downloadNumber: 3 });
+    await w.email.photosDownloaded({
+      projectId: w.project.id.toString(),
+      sessionId: "s",
+      clientName: "E",
+      photoCount: 1,
+      byteSize: 1,
+      downloadNumber: 3,
+    });
     assert.match(w.sent[0]!.text, /a 3-a oară/);
     assert.match(w.sent[0]!.text, /download #3/);
   });
 
   it("tells the owners when a client sends their picks", async () => {
     const w = await world();
-    await w.email.picksSubmitted({ projectId: w.project.id.toString(), sessionId: "s", clientName: "Elena", photoIds: ["a", "b", "c"] });
+    await w.email.picksSubmitted({
+      projectId: w.project.id.toString(),
+      sessionId: "s",
+      clientName: "Elena",
+      photoIds: ["a", "b", "c"],
+    });
     const mail = w.sent[0]!;
     assert.deepEqual(mail.to, ["owner@studio.ro"]);
     assert.match(mail.subject, /a trimis selecția foto \/ sent their photo selection/);
@@ -484,12 +554,19 @@ describe("emails to the studio", () => {
     const w = await world();
     const logged = new RecordingLogger();
     const failing = new StudioEmailNotifier(
-      { id: "x", send: async () => { throw new Error("smtp down"); } },
+      {
+        id: "x",
+        send: async () => {
+          throw new Error("smtp down");
+        },
+      },
       new IdentityStudioContacts(w.projects, w.members),
       "https://app.example.test",
       logged,
     );
-    await assert.doesNotReject(failing.picksSubmitted({ projectId: w.project.id.toString(), sessionId: "s", clientName: "E", photoIds: ["a"] }));
+    await assert.doesNotReject(
+      failing.picksSubmitted({ projectId: w.project.id.toString(), sessionId: "s", clientName: "E", photoIds: ["a"] }),
+    );
     assert.equal(logged.problems.length, 1);
     assert.equal(logged.problems[0]!.level, "error");
 
@@ -511,9 +588,15 @@ describe("emails to the studio", () => {
     await studios.save(studio);
     const project = Project.create({ studioId: studio.id, name: "Shoot", type: "WEDDING" });
     await w.projects.save(project);
-    await w.members.save(StudioMember.invite({ studioId: studio.id, email: "trutzzi@yahoo.ro", name: "Owner", role: "OWNER" }));
-    await w.members.save(StudioMember.invite({ studioId: studio.id, email: "second-owner@studio.ro", name: "Second", role: "OWNER" }));
-    await w.members.save(StudioMember.invite({ studioId: studio.id, email: "viewer@studio.ro", name: "Viewer", role: "VIEWER" }));
+    await w.members.save(
+      StudioMember.invite({ studioId: studio.id, email: "trutzzi@yahoo.ro", name: "Owner", role: "OWNER" }),
+    );
+    await w.members.save(
+      StudioMember.invite({ studioId: studio.id, email: "second-owner@studio.ro", name: "Second", role: "OWNER" }),
+    );
+    await w.members.save(
+      StudioMember.invite({ studioId: studio.id, email: "viewer@studio.ro", name: "Viewer", role: "VIEWER" }),
+    );
 
     const contacts = await new IdentityStudioContacts(w.projects, w.members, studios).forProject(project.id.toString());
     assert.deepEqual(contacts?.ownerEmails, ["Trutzzi@Yahoo.ro", "second-owner@studio.ro"]);
@@ -523,7 +606,11 @@ describe("emails to the studio", () => {
     const calls: string[] = [];
     const composite = new CompositePickNotifier(
       [
-        { picksSubmitted: async () => { throw new Error("boom"); } },
+        {
+          picksSubmitted: async () => {
+            throw new Error("boom");
+          },
+        },
         { picksSubmitted: async () => void calls.push("second") },
       ],
       silentLogger,
@@ -585,7 +672,8 @@ describe("real SMTP delivery", () => {
       allowInsecureAuth: true,
       disabledCommands: ["STARTTLS"],
       onAuth(auth, _session, callback) {
-        if (auth.username === "notify@studio.ro" && auth.password === "app-password") callback(null, { user: auth.username });
+        if (auth.username === "notify@studio.ro" && auth.password === "app-password")
+          callback(null, { user: auth.username });
         else callback(new Error("Invalid login"));
       },
       onData(stream, session, callback) {
@@ -616,7 +704,12 @@ describe("real SMTP delivery", () => {
         from: "AlbumFlow <notify@studio.ro>",
       });
       const w = await world();
-      const notifier = new StudioEmailNotifier(sender, new IdentityStudioContacts(w.projects, w.members), "https://app.example.test", failOnProblem);
+      const notifier = new StudioEmailNotifier(
+        sender,
+        new IdentityStudioContacts(w.projects, w.members),
+        "https://app.example.test",
+        failOnProblem,
+      );
       await notifier.photosDownloaded({
         projectId: w.project.id.toString(),
         sessionId: "s",
@@ -702,8 +795,13 @@ describe("real SMTP delivery", () => {
 
 describe("email settings", () => {
   const base = {
-    DATABASE_URL: "x", REDIS_URL: "x", S3_ENDPOINT: "x", S3_BUCKET: "x",
-    S3_ACCESS_KEY_ID: "x", S3_SECRET_ACCESS_KEY: "x", JWT_SECRET: "x".repeat(32),
+    DATABASE_URL: "x",
+    REDIS_URL: "x",
+    S3_ENDPOINT: "x",
+    S3_BUCKET: "x",
+    S3_ACCESS_KEY_ID: "x",
+    S3_SECRET_ACCESS_KEY: "x",
+    JWT_SECRET: "x".repeat(32),
   };
 
   it("defaults to logging only, so nothing sends mail unless configured", () => {
@@ -712,18 +810,40 @@ describe("email settings", () => {
   });
 
   it("builds an SMTP sender from settings, and refuses a half-configured one", () => {
-    const configured = loadEnv({ ...base, EMAIL_PROVIDER: "smtp", SMTP_HOST: "smtp.example.test", MAIL_FROM: "a@b.ro" });
+    const configured = loadEnv({
+      ...base,
+      EMAIL_PROVIDER: "smtp",
+      SMTP_HOST: "smtp.example.test",
+      MAIL_FROM: "a@b.ro",
+    });
     assert.equal(configured.SMTP_PORT, 587);
     assert.equal(configured.SMTP_SECURE, false);
     assert.equal(buildEmailSender(configured).id, "smtp");
-    assert.equal(loadEnv({ ...base, EMAIL_PROVIDER: "smtp", SMTP_HOST: "h", MAIL_FROM: "a@b.ro", SMTP_SECURE: "true" }).SMTP_SECURE, true);
+    assert.equal(
+      loadEnv({ ...base, EMAIL_PROVIDER: "smtp", SMTP_HOST: "h", MAIL_FROM: "a@b.ro", SMTP_SECURE: "true" })
+        .SMTP_SECURE,
+      true,
+    );
     assert.throws(() => buildEmailSender(loadEnv({ ...base, EMAIL_PROVIDER: "smtp" })), /SMTP_HOST, MAIL_FROM/);
   });
 
   it("refuses to try a login with no password, since a server would lock repeated failures out", () => {
-    const noPassword = loadEnv({ ...base, EMAIL_PROVIDER: "smtp", SMTP_HOST: "h", MAIL_FROM: "a@b.ro", SMTP_USER: "app@x.ro" });
+    const noPassword = loadEnv({
+      ...base,
+      EMAIL_PROVIDER: "smtp",
+      SMTP_HOST: "h",
+      MAIL_FROM: "a@b.ro",
+      SMTP_USER: "app@x.ro",
+    });
     assert.throws(() => buildEmailSender(noPassword), /SMTP_PASSWORD is empty/);
-    const ok = loadEnv({ ...base, EMAIL_PROVIDER: "smtp", SMTP_HOST: "h", MAIL_FROM: "a@b.ro", SMTP_USER: "app@x.ro", SMTP_PASSWORD: "p" });
+    const ok = loadEnv({
+      ...base,
+      EMAIL_PROVIDER: "smtp",
+      SMTP_HOST: "h",
+      MAIL_FROM: "a@b.ro",
+      SMTP_USER: "app@x.ro",
+      SMTP_PASSWORD: "p",
+    });
     assert.equal(buildEmailSender(ok).id, "smtp");
   });
 });
@@ -738,16 +858,24 @@ describe("originals are kept while a download link is active", () => {
     await exportJobs.save(
       ExportJob.reconstitute(
         {
-          albumId: album.id, printProfileId: "lab-standard-300", status: "READY", storageKey: "exports/x.pdf",
-          byteSize: 1, pageCount: 1, failureReason: undefined,
-          requestedAt: new Date(now.getTime() - 40 * DAY), completedAt: new Date(now.getTime() - 40 * DAY),
+          albumId: album.id,
+          printProfileId: "lab-standard-300",
+          status: "READY",
+          storageKey: "exports/x.pdf",
+          byteSize: 1,
+          pageCount: 1,
+          failureReason: undefined,
+          requestedAt: new Date(now.getTime() - 40 * DAY),
+          completedAt: new Date(now.getTime() - 40 * DAY),
         },
         UniqueEntityId.create(),
       ),
     );
     const placements = new AlbumCompositionPlacementDirectory(albums);
     return new PurgeExpiredOriginalsUseCase(
-      w.projects, w.photos, w.staging,
+      w.projects,
+      w.photos,
+      w.staging,
       new ExportPrintDeliveryDirectory(exportJobs, albums),
       placements,
       new PromoteSelectedPhotosUseCase(w.photos, w.staging, w.permanent, placements),
@@ -761,9 +889,11 @@ describe("originals are kept while a download link is active", () => {
   it("skips the shoot while a link is active, and sweeps it once the link is revoked", async () => {
     const w = await world();
     const photo = await w.addPhoto("a.jpg");
-    await new (await import("../src/modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case")).GenerateDerivativesUseCase(
-      w.photos, w.staging, { resize: async (b: Buffer) => b } as never, w.permanent,
-    ).execute({ photoId: photo.id.toString() }).catch(() => undefined);
+    await new (
+      await import("../src/modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case")
+    ).GenerateDerivativesUseCase(w.photos, w.staging, { resize: async (b: Buffer) => b } as never, w.permanent)
+      .execute({ photoId: photo.id.toString() })
+      .catch(() => undefined);
     const admin = new DownloadSessionAdminUseCase(w.sessions, w.gateway);
     const link = (await admin.open({ projectId: w.project.id.toString(), clientName: "E" })).getValue();
 

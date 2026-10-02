@@ -1,12 +1,7 @@
 import { index, integer, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { albums } from "../../../album-composition/infrastructure/persistence/schema";
 
-export const exportStatusEnum = pgEnum("export_status", [
-  "QUEUED",
-  "RENDERING",
-  "READY",
-  "FAILED",
-]);
+export const exportStatusEnum = pgEnum("export_status", ["QUEUED", "RENDERING", "READY", "FAILED"]);
 
 export const exportJobs = pgTable(
   "export_jobs",

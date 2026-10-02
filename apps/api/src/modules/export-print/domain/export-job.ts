@@ -19,10 +19,7 @@ export class ExportJob extends AggregateRoot<ExportJobProps> {
     super(props, id);
   }
 
-  static request(
-    params: { albumId: UniqueEntityId; printProfileId: string },
-    id?: UniqueEntityId,
-  ): ExportJob {
+  static request(params: { albumId: UniqueEntityId; printProfileId: string }, id?: UniqueEntityId): ExportJob {
     return new ExportJob(
       {
         albumId: params.albumId,

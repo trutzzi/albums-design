@@ -75,7 +75,10 @@ export function PhotoBrowser({
   }, [galleryPhotos, filter, sort, clientPicked]);
 
   const viewable = useMemo(
-    () => shown.flatMap((photo) => (photo.previewUrl ? [{ id: photo.id, fileName: photo.fileName, previewUrl: photo.previewUrl }] : [])),
+    () =>
+      shown.flatMap((photo) =>
+        photo.previewUrl ? [{ id: photo.id, fileName: photo.fileName, previewUrl: photo.previewUrl }] : [],
+      ),
     [shown],
   );
   const lightboxIndex = lightboxId ? viewable.findIndex((photo) => photo.id === lightboxId) : -1;
@@ -101,7 +104,10 @@ export function PhotoBrowser({
             </div>
             <label className="photo-toolbar__sort">
               {t("project.photos.sort")}{" "}
-              <select value={sort} onChange={(event) => onViewChange({ ...view, sort: event.target.value as PhotoSort })}>
+              <select
+                value={sort}
+                onChange={(event) => onViewChange({ ...view, sort: event.target.value as PhotoSort })}
+              >
                 <option value="name">{t("project.photos.sort.name")}</option>
                 <option value="score">{t("project.photos.sort.score")}</option>
               </select>
@@ -126,7 +132,9 @@ export function PhotoBrowser({
               </span>
             ) : null
           }
-          placeholder={(photo) => <div className="gallery__placeholder">{photo.status.toLowerCase().replace(/_/g, " ")}</div>}
+          placeholder={(photo) => (
+            <div className="gallery__placeholder">{photo.status.toLowerCase().replace(/_/g, " ")}</div>
+          )}
           caption={(photo) => (
             <>
               <span className="photo-card__name">{photo.fileName}</span>

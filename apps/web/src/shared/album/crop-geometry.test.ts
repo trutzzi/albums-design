@@ -1,14 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  MAX_ZOOM,
-  baseCrop,
-  clampCrop,
-  cropToStyle,
-  pannedCrop,
-  withZoom,
-  zoomOf,
-} from "./crop-geometry";
+import { MAX_ZOOM, baseCrop, clampCrop, cropToStyle, pannedCrop, withZoom, zoomOf } from "./crop-geometry";
 
 const FULL = { x: 0, y: 0, width: 1, height: 1 };
 
@@ -44,10 +36,7 @@ describe("baseCrop", () => {
     ]) {
       const crop = baseCrop(imageAspect as number, slotAspect as number);
       const printed = ((crop.width as number) * (imageAspect as number)) / ((crop.height as number) / 1);
-      assert.ok(
-        Math.abs(printed / (imageAspect as number) - crop.width / crop.height) < 1e-9,
-        "crop aspect drifted",
-      );
+      assert.ok(Math.abs(printed / (imageAspect as number) - crop.width / crop.height) < 1e-9, "crop aspect drifted");
     }
   });
 });

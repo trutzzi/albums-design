@@ -21,11 +21,9 @@ export class S3ExportStorage implements ExportStorage {
   }
 
   async presignGet(key: string, expiresInSeconds: number): Promise<string> {
-    return getSignedUrl(
-      this.presignClient,
-      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-      { expiresIn: expiresInSeconds },
-    );
+    return getSignedUrl(this.presignClient, new GetObjectCommand({ Bucket: this.bucket, Key: key }), {
+      expiresIn: expiresInSeconds,
+    });
   }
 
   async delete(key: string): Promise<void> {

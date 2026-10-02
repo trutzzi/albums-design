@@ -14,12 +14,7 @@ import type { Subscription } from "#src/modules/identity/domain/subscription";
 import type { Studio } from "#src/modules/identity/domain/studio";
 import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
 import { computeBusinessStats, type BusinessStats } from "../../domain/business-stats";
-import {
-  Feedback,
-  type FeedbackKind,
-  type FeedbackRepository,
-  type FeedbackStatus,
-} from "../../domain/feedback";
+import { Feedback, type FeedbackKind, type FeedbackRepository, type FeedbackStatus } from "../../domain/feedback";
 import type { DependencyProbe, StatsSource } from "../ports/stats-source";
 import type { HttpStats, RequestMetrics } from "#src/interface/request-metrics";
 import type { StorageProvider } from "#src/shared-kernel/storage-provider";
@@ -125,7 +120,10 @@ export class FeedbackUseCase {
     return Result.success({ id: item.id.toString() });
   }
 
-  async list(filter: { status?: FeedbackStatus | undefined; kind?: FeedbackKind | undefined }): Promise<FeedbackView[]> {
+  async list(filter: {
+    status?: FeedbackStatus | undefined;
+    kind?: FeedbackKind | undefined;
+  }): Promise<FeedbackView[]> {
     const items = await this.feedback.list({ ...filter, limit: 200 });
     const names = new Map<string, string | undefined>();
     for (const studioId of new Set(items.map((item) => item.snapshot.studioId))) {
@@ -252,7 +250,10 @@ export class StudioPlansUseCase {
   async assign(studioId: string, planCode: PlanCode): Promise<Result<StudioPlanView, ApplicationError>> {
     if (!PLANS[planCode]) return Result.failure(new ValidationError(`Unknown plan ${planCode}.`));
     const id = UniqueEntityId.create(studioId);
-    const [studio, subscription] = await Promise.all([this.studios.findById(id), this.subscriptions.findByStudioId(id)]);
+    const [studio, subscription] = await Promise.all([
+      this.studios.findById(id),
+      this.subscriptions.findByStudioId(id),
+    ]);
     if (!studio || !subscription) return Result.failure(new NotFoundError("Studio", studioId));
     subscription.assignPlan(planCode);
     await this.subscriptions.save(subscription);
@@ -297,7 +298,14 @@ export interface SystemStats {
     database: { ok: boolean; latencyMs: number | null };
     queues: Awaited<ReturnType<DependencyProbe["queues"]>>;
   };
-  config: { mode: "production" | "demo"; storage: string; email: string; billing: string; vision: string; errorMonitoring: boolean };
+  config: {
+    mode: "production" | "demo";
+    storage: string;
+    email: string;
+    billing: string;
+    vision: string;
+    errorMonitoring: boolean;
+  };
   storageSpace: StorageSpace;
   http: HttpStats;
 }
@@ -331,9 +339,9 @@ export class AdminDashboardUseCase {
     return value;
   }
 
-  async business(now: Date = new Date()): Promise<
-    BusinessStats & { feedback: Awaited<ReturnType<FeedbackRepository["summary"]>> }
-  > {
+  async business(
+    now: Date = new Date(),
+  ): Promise<BusinessStats & { feedback: Awaited<ReturnType<FeedbackRepository["summary"]>> }> {
     const [input, feedback] = await Promise.all([
       this.stats.load(),
       this.feedback.summary(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)),

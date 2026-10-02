@@ -12,10 +12,18 @@ import { tip } from "@/shared/lib/tip";
 
 const SHOOTS_TOUR: TourStep[] = [
   { target: '[data-tour="new-shoot"]', titleKey: "tour.shoots.new.title", bodyKey: "tour.shoots.new.body" },
-  { target: '[data-tour="getting-started"]', titleKey: "tour.shoots.checklist.title", bodyKey: "tour.shoots.checklist.body" },
+  {
+    target: '[data-tour="getting-started"]',
+    titleKey: "tour.shoots.checklist.title",
+    bodyKey: "tour.shoots.checklist.body",
+  },
   { target: '[data-tour="shoot-grid"]', titleKey: "tour.shoots.grid.title", bodyKey: "tour.shoots.grid.body" },
   { target: '[data-tour="nav-studio"]', titleKey: "tour.shoots.studio.title", bodyKey: "tour.shoots.studio.body" },
-  { target: '[data-tour="nav-feedback"]', titleKey: "tour.shoots.feedback.title", bodyKey: "tour.shoots.feedback.body" },
+  {
+    target: '[data-tour="nav-feedback"]',
+    titleKey: "tour.shoots.feedback.title",
+    bodyKey: "tour.shoots.feedback.body",
+  },
   { target: '[data-tour="nav-guide"]', titleKey: "tour.shoots.guide.title", bodyKey: "tour.shoots.guide.body" },
 ];
 
@@ -95,10 +103,7 @@ export function ProjectsPage() {
     const needle = search.trim().toLowerCase();
     if (!needle) return all;
     return all.filter((project) =>
-      [project.name, project.clientName ?? "", typeLabel(project.type)]
-        .join(" ")
-        .toLowerCase()
-        .includes(needle),
+      [project.name, project.clientName ?? "", typeLabel(project.type)].join(" ").toLowerCase().includes(needle),
     );
   }, [all, search, typeLabel]);
 
@@ -260,7 +265,9 @@ export function ProjectsPage() {
                 {project.albumCount > 0 && ` · ${countLabel(project.albumCount, "projects.card.albums")}`}
               </p>
               <p className="muted shoot-card__date">
-                {project.eventDate ? formatDate(project.eventDate) : t("projects.card.created", { date: formatDate(project.createdAt) })}
+                {project.eventDate
+                  ? formatDate(project.eventDate)
+                  : t("projects.card.created", { date: formatDate(project.createdAt) })}
               </p>
             </div>
           </Link>

@@ -23,10 +23,7 @@ describe("environment configuration", () => {
   });
 
   it("still refuses a migration with no database at all", () => {
-    assert.throws(
-      () => loadDatabaseEnv({} as NodeJS.ProcessEnv),
-      /DATABASE_URL/,
-    );
+    assert.throws(() => loadDatabaseEnv({} as NodeJS.ProcessEnv), /DATABASE_URL/);
   });
 
   it("holds the server to the full configuration", () => {

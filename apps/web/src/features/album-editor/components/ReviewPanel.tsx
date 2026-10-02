@@ -33,7 +33,11 @@ export function ReviewPanel({ albumId, hidden }: { albumId: string; hidden: bool
       setLink(`${window.location.origin}/review/${session.token}`);
       setPassword(session.password ?? null);
       setEmailNote(
-        session.emailSentTo ? { sentTo: session.emailSentTo } : session.emailError ? { error: session.emailError } : null,
+        session.emailSentTo
+          ? { sentTo: session.emailSentTo }
+          : session.emailError
+            ? { error: session.emailError }
+            : null,
       );
       void queryClient.invalidateQueries({ queryKey: ["reviews", albumId] });
       void queryClient.invalidateQueries({ queryKey: ["album", albumId] });
@@ -83,7 +87,12 @@ export function ReviewPanel({ albumId, hidden }: { albumId: string; hidden: bool
             <option value="ro">Română</option>
           </select>
         </div>
-        <button type="button" className="button button--primary" disabled={share.isPending} onClick={() => share.mutate()}>
+        <button
+          type="button"
+          className="button button--primary"
+          disabled={share.isPending}
+          onClick={() => share.mutate()}
+        >
           {share.isPending ? t("album.review.creating") : t("album.review.createLink")}
         </button>
         {emailNote?.sentTo && (

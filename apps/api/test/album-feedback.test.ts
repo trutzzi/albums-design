@@ -45,17 +45,12 @@ describe("the photographer reading client feedback", () => {
     bride.addComment({ spreadIndex: 1, body: "Too dark", authorName: "Maria" });
     groom.addComment({ spreadIndex: 0, body: "Love this one", authorName: "Andrei" });
 
-    const result = await new AlbumFeedbackUseCase(await repositoryWith(bride, groom)).list(
-      ALBUM.toString(),
-    );
+    const result = await new AlbumFeedbackUseCase(await repositoryWith(bride, groom)).list(ALBUM.toString());
     assert.ok(result.isSuccess);
     const value = result.getValue();
 
     assert.equal(value.comments.length, 2);
-    assert.deepEqual(
-      value.comments.map((comment) => comment.clientName).sort(),
-      ["Andrei", "Maria"],
-    );
+    assert.deepEqual(value.comments.map((comment) => comment.clientName).sort(), ["Andrei", "Maria"]);
     assert.equal(value.sessions.length, 2);
   });
 
@@ -66,9 +61,7 @@ describe("the photographer reading client feedback", () => {
     session.addComment({ spreadIndex: 9, body: "nine", authorName: "Maria" });
     session.resolveComment(first.id);
 
-    const result = await new AlbumFeedbackUseCase(await repositoryWith(session)).list(
-      ALBUM.toString(),
-    );
+    const result = await new AlbumFeedbackUseCase(await repositoryWith(session)).list(ALBUM.toString());
     assert.ok(result.isSuccess);
     assert.deepEqual(
       result.getValue().comments.map((comment) => comment.body),
@@ -98,10 +91,7 @@ describe("the photographer reading client feedback", () => {
     const comment = session.addComment({ spreadIndex: 0, body: "Tiny crop nit", authorName: "Maria" });
     session.approve();
 
-    const result = await new AlbumFeedbackUseCase(await repositoryWith(session)).resolve(
-      ALBUM.toString(),
-      comment.id,
-    );
+    const result = await new AlbumFeedbackUseCase(await repositoryWith(session)).resolve(ALBUM.toString(), comment.id);
     // Approval closes the client's ability to comment, not the photographer's
     // ability to tidy up afterwards.
     assert.ok(result.isSuccess);
@@ -118,9 +108,7 @@ describe("the photographer reading client feedback", () => {
   });
 
   it("reports an album nobody has reviewed as empty rather than failing", async () => {
-    const result = await new AlbumFeedbackUseCase(new InMemoryReviewSessionRepository()).list(
-      ALBUM.toString(),
-    );
+    const result = await new AlbumFeedbackUseCase(new InMemoryReviewSessionRepository()).list(ALBUM.toString());
     assert.ok(result.isSuccess);
     assert.deepEqual(result.getValue().comments, []);
     assert.equal(result.getValue().openCount, 0);

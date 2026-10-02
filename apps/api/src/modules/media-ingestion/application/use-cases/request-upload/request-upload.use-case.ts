@@ -50,7 +50,9 @@ export class RequestUploadUseCase {
       const existing = await this.photos.findByProjectId(projectId);
       if (existing.length >= limit) {
         return Result.failure(
-          new ConflictError(`Your plan allows ${limit} photos per shoot. Contact us to move to the Studio plan for unlimited photos.`),
+          new ConflictError(
+            `Your plan allows ${limit} photos per shoot. Contact us to move to the Studio plan for unlimited photos.`,
+          ),
         );
       }
     }

@@ -1,9 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import {
-  ConflictError,
-  NotFoundError,
-  type ApplicationError,
-} from "#src/shared-kernel/errors";
+import { ConflictError, NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
 import type { ExportJobRepository } from "../../domain/export-job-repository";
 import type { ExportStorage } from "../ports/album-pdf-renderer";
 
@@ -31,9 +27,7 @@ export class DeleteExportUseCase {
     if (!job) return Result.failure(new NotFoundError("Export job", command.exportJobId));
 
     if (job.status === "QUEUED" || job.status === "RENDERING") {
-      return Result.failure(
-        new ConflictError("This export is still in progress — wait for it to finish first."),
-      );
+      return Result.failure(new ConflictError("This export is still in progress — wait for it to finish first."));
     }
 
     if (job.storageKey) {

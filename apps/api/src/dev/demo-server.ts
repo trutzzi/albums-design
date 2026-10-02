@@ -98,7 +98,8 @@ async function main() {
     if (jobName === "store-original" && storeOriginal) {
       const result = await storeOriginal.execute({ photoId: String(payload.photoId) });
       if (result.isFailure) console.error(`  long-term storage: ${result.getError().message}`);
-      else if (result.getValue() === "stored") console.log(`  long-term storage: original ${String(payload.photoId).slice(0, 8)} stored`);
+      else if (result.getValue() === "stored")
+        console.log(`  long-term storage: original ${String(payload.photoId).slice(0, 8)} stored`);
       return;
     }
     if (!promoteSelected) return;

@@ -36,9 +36,7 @@ export class OpenReviewSessionUseCase {
     private readonly contacts?: ClientContactDirectory,
   ) {}
 
-  async execute(
-    command: OpenReviewSessionCommand,
-  ): Promise<Result<OpenReviewSessionResult, ApplicationError>> {
+  async execute(command: OpenReviewSessionCommand): Promise<Result<OpenReviewSessionResult, ApplicationError>> {
     const album = await this.albums.load(command.albumId);
     if (!album) return Result.failure(new NotFoundError("Album", command.albumId));
 

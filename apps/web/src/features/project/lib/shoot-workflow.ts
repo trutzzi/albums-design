@@ -81,11 +81,20 @@ export function shootWorkflow({ uploaded, analysed, albums, picks, deliveries }:
           : firstAlbum
             ? { text: { key: "project.next.editAlbum" }, actions: ["openAlbum"], albumId: firstAlbum.id }
             : submittedPick
-              ? { text: { key: "project.next.picksIn", params: { name: submittedPick.clientName } }, actions: ["seePicks"] }
+              ? {
+                  text: { key: "project.next.picksIn", params: { name: submittedPick.clientName } },
+                  actions: ["seePicks"],
+                }
               : openPick
-                ? { text: { key: "project.next.waitingPicks", params: { name: openPick.clientName } }, actions: ["toAlbum"] }
+                ? {
+                    text: { key: "project.next.waitingPicks", params: { name: openPick.clientName } },
+                    actions: ["toAlbum"],
+                  }
                 : analysed < uploaded
-                  ? { text: { key: "project.next.processing", params: { done: analysed, total: uploaded } }, actions: ["toSelection"] }
+                  ? {
+                      text: { key: "project.next.processing", params: { done: analysed, total: uploaded } },
+                      actions: ["toSelection"],
+                    }
                   : { text: { key: "project.next.start" }, actions: ["toSelection", "toAlbum"] };
 
   return { steps, next };

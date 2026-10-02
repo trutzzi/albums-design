@@ -65,13 +65,7 @@ export const spreadSchema = z.object({
 });
 export type SpreadDTO = z.infer<typeof spreadSchema>;
 
-export const albumStatusSchema = z.enum([
-  "DRAFT",
-  "IN_REVIEW",
-  "CHANGES_REQUESTED",
-  "APPROVED",
-  "EXPORTED",
-]);
+export const albumStatusSchema = z.enum(["DRAFT", "IN_REVIEW", "CHANGES_REQUESTED", "APPROVED", "EXPORTED"]);
 export type AlbumStatus = z.infer<typeof albumStatusSchema>;
 
 export const albumFormatSchema = z.object({
@@ -231,7 +225,10 @@ export const albumEditSchema = z.discriminatedUnion("type", [
     type: z.literal("SET_FRAMES"),
     spreadIndex: z.number().int().min(0),
     /** Several photos resized in one gesture — dragging the line between them. */
-    frames: z.array(z.object({ slotId: z.string(), frame: slotFrameSchema })).min(1).max(MAX_PHOTOS_PER_SPREAD_LIMIT),
+    frames: z
+      .array(z.object({ slotId: z.string(), frame: slotFrameSchema }))
+      .min(1)
+      .max(MAX_PHOTOS_PER_SPREAD_LIMIT),
   }),
   /** Flips the layout left-to-right; the photos themselves are never flipped. */
   z.object({ type: z.literal("MIRROR_SPREAD"), spreadIndex: z.number().int().min(0) }),
@@ -437,8 +434,16 @@ export function fillSpread(slots: readonly NormalisedRect[]): NormalisedRect[] {
     // Growing into a wide gap must not turn a square into a landscape: hold each photo
     // within FULL_MAX_STRETCH of the shape its template gave it.
     const shape = slots[index]!.width / slots[index]!.height;
-    const sideways = keepWithin(slot.width, growLeft + growRight, (slot.height + growUp + growDown) * shape * FULL_MAX_STRETCH);
-    const upright = keepWithin(slot.height, growUp + growDown, ((slot.width + (growLeft + growRight) * sideways) / shape) * FULL_MAX_STRETCH);
+    const sideways = keepWithin(
+      slot.width,
+      growLeft + growRight,
+      (slot.height + growUp + growDown) * shape * FULL_MAX_STRETCH,
+    );
+    const upright = keepWithin(
+      slot.height,
+      growUp + growDown,
+      ((slot.width + (growLeft + growRight) * sideways) / shape) * FULL_MAX_STRETCH,
+    );
     return {
       x: slot.x - growLeft * sideways,
       y: slot.y - growUp * upright,

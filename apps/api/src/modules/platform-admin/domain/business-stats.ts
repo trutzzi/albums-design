@@ -45,7 +45,8 @@ export interface BusinessStats {
   daily: { day: string; signups: number; photos: number; albums: number }[];
 }
 
-export type FunnelStep = "signedUp" | "createdShoot" | "uploadedPhotos" | "builtAlbum" | "sentForReview" | "approved" | "exported";
+export type FunnelStep =
+  "signedUp" | "createdShoot" | "uploadedPhotos" | "builtAlbum" | "sentForReview" | "approved" | "exported";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -91,14 +92,18 @@ export function computeBusinessStats(input: StatsInput, now: Date = new Date()):
     { step: "createdShoot", studios: distinct(input.projects.map((project) => project.studioId)) },
     {
       step: "uploadedPhotos",
-      studios: distinct(input.photoDays.filter((row) => row.count > 0).map((row) => studioOfProject.get(row.projectId))),
+      studios: distinct(
+        input.photoDays.filter((row) => row.count > 0).map((row) => studioOfProject.get(row.projectId)),
+      ),
     },
     { step: "builtAlbum", studios: distinct(input.albums.map((album) => studioOfProject.get(album.projectId))) },
     { step: "sentForReview", studios: distinct(input.reviews.map((review) => studioOfAlbum(review.albumId))) },
     {
       step: "approved",
       studios: distinct(
-        input.albums.filter((album) => approvedStatuses.has(album.status)).map((album) => studioOfProject.get(album.projectId)),
+        input.albums
+          .filter((album) => approvedStatuses.has(album.status))
+          .map((album) => studioOfProject.get(album.projectId)),
       ),
     },
     {
@@ -137,7 +142,10 @@ export function computeBusinessStats(input: StatsInput, now: Date = new Date()):
     activeStudios: { d7: activeIn(7), d30: activeIn(30) },
     revenue: {
       // Each studio at what it actually pays: early studios keep their launch price.
-      mrrEur: paying.reduce((sum, sub) => sum + monthlyPriceFor(PLANS[sub.planCode], joined.get(sub.studioId) ?? now), 0),
+      mrrEur: paying.reduce(
+        (sum, sub) => sum + monthlyPriceFor(PLANS[sub.planCode], joined.get(sub.studioId) ?? now),
+        0,
+      ),
       payingStudios: paying.length,
       trialToPaidPct: total === 0 ? 0 : Math.round((paying.length / total) * 1000) / 10,
       pastDue: input.subscriptions.filter((sub) => sub.status === "PAST_DUE").length,

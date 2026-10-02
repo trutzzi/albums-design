@@ -18,8 +18,8 @@ export function PrintGuidesModal({ guides }: { guides: PrintGuides }) {
       >
         <h2 id="guides-profile-title">Choose a print profile</h2>
         <p>
-          The trim line and safe-area guides come from a print profile's bleed and margin — pick the one this album
-          will actually be printed with.
+          The trim line and safe-area guides come from a print profile's bleed and margin — pick the one this album will
+          actually be printed with.
         </p>
         {guides.profiles.isLoading && <p className="muted">Loading print profiles…</p>}
         <ul className="print-profile-options">

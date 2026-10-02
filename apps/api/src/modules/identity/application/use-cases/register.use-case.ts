@@ -9,11 +9,7 @@ import {
 } from "#src/shared-kernel/errors";
 import { hashPassword } from "#src/shared-kernel/password-hasher";
 import { signJwt, verifyJwt } from "#src/shared-kernel/jwt";
-import type {
-  StudioMemberRepository,
-  StudioRepository,
-  SubscriptionRepository,
-} from "../../domain/repositories";
+import type { StudioMemberRepository, StudioRepository, SubscriptionRepository } from "../../domain/repositories";
 import { Studio } from "../../domain/studio";
 import { StudioMember } from "../../domain/studio-member";
 import { Subscription } from "../../domain/subscription";

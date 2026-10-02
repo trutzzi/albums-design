@@ -94,7 +94,21 @@ async function world() {
   const placements = new AlbumCompositionPlacementDirectory(albums);
   const promoter = new PromoteSelectedPhotosUseCase(photos, staging, permanent, placements);
 
-  return { signer, permanent, staging, photos, projects, albums, exportJobs, project, addPhoto, albumWith, placements, promoter, original };
+  return {
+    signer,
+    permanent,
+    staging,
+    photos,
+    projects,
+    albums,
+    exportJobs,
+    project,
+    addPhoto,
+    albumWith,
+    placements,
+    promoter,
+    original,
+  };
 }
 
 function deliveredExport(albumId: UniqueEntityId, completedAt: Date, status: "READY" | "FAILED" = "READY") {
@@ -181,7 +195,9 @@ describe("tier 1 — previews go to long-term storage, originals stay in staging
     await new GenerateDerivativesUseCase(w.photos, w.staging, new SharpImageResizer(), w.permanent).execute({
       photoId: photo.id.toString(),
     });
-    const url = (await new StoragePhotoPreviewResolver(w.photos, w.staging, w.permanent).previewUrls([photo.id.toString()])).get(photo.id.toString());
+    const url = (
+      await new StoragePhotoPreviewResolver(w.photos, w.staging, w.permanent).previewUrls([photo.id.toString()])
+    ).get(photo.id.toString());
     assert.ok(url?.startsWith("https://api.example.test/media/"));
   });
 });
@@ -189,16 +205,27 @@ describe("tier 1 — previews go to long-term storage, originals stay in staging
 describe("tier 2 — promoting only the selected originals", () => {
   it("copies exactly the photos placed on the album, at the same key", async () => {
     const w = await world();
-    const [chosenA, chosenB, unchosen] = [await w.addPhoto("a.jpg"), await w.addPhoto("b.jpg"), await w.addPhoto("c.jpg")];
+    const [chosenA, chosenB, unchosen] = [
+      await w.addPhoto("a.jpg"),
+      await w.addPhoto("b.jpg"),
+      await w.addPhoto("c.jpg"),
+    ];
     const album = await w.albumWith([chosenA.id.toString(), chosenB.id.toString()]);
 
     const result = await w.promoter.execute({ albumId: album.id.toString() });
     assert.ok(result.isSuccess);
     assert.equal(result.getValue().promoted, 2);
 
-    assert.deepEqual(await w.permanent.head(chosenA.storageKey.toString()), { key: chosenA.storageKey.toString(), size: w.original.byteLength });
+    assert.deepEqual(await w.permanent.head(chosenA.storageKey.toString()), {
+      key: chosenA.storageKey.toString(),
+      size: w.original.byteLength,
+    });
     assert.ok(await w.permanent.head(chosenB.storageKey.toString()));
-    assert.equal(await w.permanent.head(unchosen.storageKey.toString()), undefined, "an unselected photo must never be copied");
+    assert.equal(
+      await w.permanent.head(unchosen.storageKey.toString()),
+      undefined,
+      "an unselected photo must never be copied",
+    );
 
     const stored = await w.photos.findById(chosenA.id);
     assert.ok(stored?.selectedAt && stored.fullResStoredAt);
@@ -288,10 +315,20 @@ describe("retention — expiring staged originals after delivery", () => {
 
     assert.equal(summary.purged, 2);
     assert.equal(w.staging.objects.has(unchosen.storageKey.toString()), false);
-    assert.equal(w.staging.objects.has(chosen.storageKey.toString()), false, "staging copy of a selected photo is redundant once stored long-term");
-    assert.ok(await w.permanent.head(chosen.storageKey.toString()), "the selected original survives on long-term storage");
+    assert.equal(
+      w.staging.objects.has(chosen.storageKey.toString()),
+      false,
+      "staging copy of a selected photo is redundant once stored long-term",
+    );
+    assert.ok(
+      await w.permanent.head(chosen.storageKey.toString()),
+      "the selected original survives on long-term storage",
+    );
     assert.equal(await w.permanent.head(unchosen.storageKey.toString()), undefined);
-    assert.ok(await w.permanent.head(unchosen.storageKey.derivative("preview").toString()), "previews outlive the purge");
+    assert.ok(
+      await w.permanent.head(unchosen.storageKey.derivative("preview").toString()),
+      "previews outlive the purge",
+    );
     assert.ok((await w.photos.findById(unchosen.id))?.stagedOriginalPurgedAt);
   });
 
@@ -301,11 +338,18 @@ describe("retention — expiring staged originals after delivery", () => {
     const album = await w.albumWith([placed.id.toString()]);
     const now = new Date();
     await w.exportJobs.save(deliveredExport(album.id, new Date(now.getTime() - 40 * DAY)));
-    assert.equal((await w.photos.findById(placed.id))?.fullResStoredAt, undefined, "no approval ever triggered a promotion");
+    assert.equal(
+      (await w.photos.findById(placed.id))?.fullResStoredAt,
+      undefined,
+      "no approval ever triggered a promotion",
+    );
 
     await (await purger(w, now)).execute();
 
-    assert.ok(await w.permanent.head(placed.storageKey.toString()), "the only full-res copy must exist before staging is emptied");
+    assert.ok(
+      await w.permanent.head(placed.storageKey.toString()),
+      "the only full-res copy must exist before staging is emptied",
+    );
   });
 
   it("holds back a placed photo it could not confirm on long-term storage", async () => {
@@ -379,7 +423,10 @@ describe("retention — expiring staged originals after delivery", () => {
 
   it("does not hide a genuine staging failure when long-term storage has no copy either", async () => {
     const w = await world();
-    await assert.rejects(() => new TieredPhotoByteSource(w.staging, w.permanent).read("studios/x/projects/y/originals/none.jpg"), /No object/);
+    await assert.rejects(
+      () => new TieredPhotoByteSource(w.staging, w.permanent).read("studios/x/projects/y/originals/none.jpg"),
+      /No object/,
+    );
   });
 });
 
@@ -399,7 +446,11 @@ describe("approval trigger", () => {
     const logged = new RecordingLogger();
     const notifier = new PromoteOnApprovalNotifier(
       { clientDecided: async () => {} },
-      { enqueue: async () => { throw new Error("redis down"); } },
+      {
+        enqueue: async () => {
+          throw new Error("redis down");
+        },
+      },
       logged,
     );
     await notifier.clientDecided({ ...decision, decision: "APPROVED" });
@@ -415,7 +466,9 @@ describe("project deletion", () => {
       photoId: photo.id.toString(),
     });
     await w.permanent.upload(photo.storageKey.toString(), Buffer.from("full"), { contentType: "image/jpeg" });
-    await w.permanent.upload("studios/other/projects/keep/originals/k.jpg", Buffer.from("k"), { contentType: "image/jpeg" });
+    await w.permanent.upload("studios/other/projects/keep/originals/k.jpg", Buffer.from("k"), {
+      contentType: "image/jpeg",
+    });
 
     const result = await new DeleteProjectUseCase(
       w.projects,
@@ -459,7 +512,9 @@ describe("GET /media/:token", () => {
     const { server, w, key } = await app();
     const good = (await w.permanent.getUrl(key, { expiresInSeconds: 60 })).split("/media/")[1]!;
     const forged = `${good.slice(0, -3)}abc`;
-    const expired = (await new MediaUrlSigner("test-secret-test-secret-test-secret-123", "https://x").sign(key, -10)).split("/media/")[1]!;
+    const expired = (
+      await new MediaUrlSigner("test-secret-test-secret-test-secret-123", "https://x").sign(key, -10)
+    ).split("/media/")[1]!;
     for (const token of [forged, expired, "not.a.token"]) {
       assert.equal((await server.inject({ method: "GET", url: `/media/${token}` })).statusCode, 403, token);
     }

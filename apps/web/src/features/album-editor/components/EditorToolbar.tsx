@@ -91,7 +91,12 @@ export function EditorToolbar(props: {
       >
         {t("album.redo")}
       </button>
-      <Toggle label={t("album.ruler")} tip={t("tip.ruler")} checked={props.showRuler} onChange={props.onShowRulerChange} />
+      <Toggle
+        label={t("album.ruler")}
+        tip={t("tip.ruler")}
+        checked={props.showRuler}
+        onChange={props.onShowRulerChange}
+      />
       <Toggle label={t("album.snap")} tip={t("tip.snap")} checked={props.snapEnabled} onChange={props.onSnapChange} />
       <Toggle
         label={t("album.guides")}
@@ -109,7 +114,13 @@ export function EditorToolbar(props: {
       )}
       <span className={`chip chip--${props.status.toLowerCase()}`}>{props.status}</span>
       {props.locked ? (
-        <button type="button" className="button" onClick={props.onReopen} data-tour="editor-ready" {...tip(t("tip.reopen"))}>
+        <button
+          type="button"
+          className="button"
+          onClick={props.onReopen}
+          data-tour="editor-ready"
+          {...tip(t("tip.reopen"))}
+        >
           {t("album.reopen")}
         </button>
       ) : (

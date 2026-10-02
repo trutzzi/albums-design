@@ -29,8 +29,7 @@ export function ReviewPage() {
   });
 
   const decide = useMutation({
-    mutationFn: (decision: "APPROVED" | "CHANGES_REQUESTED") =>
-      submitReviewDecision(token, decision),
+    mutationFn: (decision: "APPROVED" | "CHANGES_REQUESTED") => submitReviewDecision(token, decision),
     onSuccess: (updated) => queryClient.setQueryData(["review", token], updated),
   });
 
@@ -100,12 +99,14 @@ export function ReviewPage() {
           previewUrlFor={(photoId) =>
             album.cover?.photoId === photoId
               ? album.cover.previewUrl
-              : album.spreads.flatMap((spread) => spread.placements).find((placement) => placement.photoId === photoId)?.previewUrl
+              : album.spreads.flatMap((spread) => spread.placements).find((placement) => placement.photoId === photoId)
+                  ?.previewUrl
           }
           focusFor={(photoId) =>
             album.cover?.photoId === photoId
               ? album.cover.focus
-              : album.spreads.flatMap((spread) => spread.placements).find((placement) => placement.photoId === photoId)?.focus
+              : album.spreads.flatMap((spread) => spread.placements).find((placement) => placement.photoId === photoId)
+                  ?.focus
           }
           onClose={() => setAsBook(false)}
         />
@@ -126,28 +127,14 @@ export function ReviewPage() {
         </section>
       )}
 
-      {!closed && (
-        <p className="muted review__hint">
-          {t("review.hint")}
-        </p>
-      )}
+      {!closed && <p className="muted review__hint">{t("review.hint")}</p>}
 
-      {session.status === "APPROVED" && (
-        <p className="notice notice--good">
-          {t("review.approved")}
-        </p>
-      )}
-      {session.status === "CHANGES_REQUESTED" && (
-        <p className="notice">
-          {t("review.changesSent")}
-        </p>
-      )}
+      {session.status === "APPROVED" && <p className="notice notice--good">{t("review.approved")}</p>}
+      {session.status === "CHANGES_REQUESTED" && <p className="notice">{t("review.changesSent")}</p>}
 
       <div className="spreads">
         {album.spreads.map((spread, spreadIndex) => {
-          const spreadComments = session.comments.filter(
-            (item) => item.spreadIndex === spreadIndex,
-          );
+          const spreadComments = session.comments.filter((item) => item.spreadIndex === spreadIndex);
           const template = templateById.get(spread.templateId);
           // Photos are numbered in the layout's reading order — the numbers on the badges.
           const photoNumber = (slotId: string) => (template?.slots.findIndex((slot) => slot.id === slotId) ?? -1) + 1;
@@ -183,9 +170,7 @@ export function ReviewPage() {
                   previewUrlFor={(photoId) =>
                     spread.placements.find((placement) => placement.photoId === photoId)?.previewUrl
                   }
-                  focusFor={(photoId) =>
-                    spread.placements.find((placement) => placement.photoId === photoId)?.focus
-                  }
+                  focusFor={(photoId) => spread.placements.find((placement) => placement.photoId === photoId)?.focus}
                   aspectRatio={aspectRatio}
                   pageWidthMm={album.format.pageWidthMm}
                   pageHeightMm={album.format.pageHeightMm}
@@ -195,7 +180,9 @@ export function ReviewPage() {
               <div className="comments">
                 {spreadComments.map((item) => (
                   <p key={item.id} className={item.resolved ? "comment comment--resolved" : "comment"}>
-                    {item.slotId && <span className="comment__pin">{t("review.photo", { number: photoNumber(item.slotId) })}</span>}
+                    {item.slotId && (
+                      <span className="comment__pin">{t("review.photo", { number: photoNumber(item.slotId) })}</span>
+                    )}
                     <strong>{item.authorName}:</strong> {item.body}
                   </p>
                 ))}
@@ -225,9 +212,7 @@ export function ReviewPage() {
                       id={`comment-${spreadIndex}`}
                       value={draft[spreadIndex] ?? ""}
                       placeholder={pinnedSlot ? t("review.placeholder.photo") : t("review.placeholder")}
-                      onChange={(event) =>
-                        setDraft((prev) => ({ ...prev, [spreadIndex]: event.target.value }))
-                      }
+                      onChange={(event) => setDraft((prev) => ({ ...prev, [spreadIndex]: event.target.value }))}
                     />
                     <button type="submit" className="button button--small">
                       {t("review.addNote")}

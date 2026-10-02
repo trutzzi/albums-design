@@ -1,6 +1,4 @@
-import type {
-  StudioBrandingInput,
-} from "@albumflow/contracts";
+import type { StudioBrandingInput } from "@albumflow/contracts";
 import { request } from "./http";
 
 // --- Studio & billing ------------------------------------------------------

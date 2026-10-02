@@ -27,10 +27,7 @@ export class QualityScore extends ValueObject<QualityComponents & { overall: num
       faceQuality: clamp(components.faceQuality),
     };
     const overall = Math.round(
-      (Object.keys(WEIGHTS) as (keyof QualityComponents)[]).reduce(
-        (sum, key) => sum + clamped[key] * WEIGHTS[key],
-        0,
-      ),
+      (Object.keys(WEIGHTS) as (keyof QualityComponents)[]).reduce((sum, key) => sum + clamped[key] * WEIGHTS[key], 0),
     );
     return new QualityScore({ ...clamped, overall });
   }

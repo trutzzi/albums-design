@@ -15,7 +15,12 @@ import { AlbumCompositionPlacementDirectory } from "../src/modules/media-ingesti
 import { ExportPrintDeliveryDirectory } from "../src/modules/media-ingestion/infrastructure/gateways/delivery-gateway";
 import { ReviewCollaborationClientPickDirectory } from "../src/modules/media-ingestion/infrastructure/gateways/client-pick-gateway";
 import { GenerateAlbumUseCase } from "../src/modules/album-composition/application/use-cases/generate-album/generate-album.use-case";
-import { PickSession, PickClosedError, PickLimitError, PickStageError } from "../src/modules/review-collaboration/domain/pick-session";
+import {
+  PickSession,
+  PickClosedError,
+  PickLimitError,
+  PickStageError,
+} from "../src/modules/review-collaboration/domain/pick-session";
 import { PickSessionAdminUseCase } from "../src/modules/review-collaboration/application/use-cases/open-pick-session.use-case";
 import { PickPortalUseCase } from "../src/modules/review-collaboration/application/use-cases/pick-portal.use-case";
 import type { PickNotifier } from "../src/modules/review-collaboration/application/ports/pick-gateway";
@@ -106,14 +111,32 @@ async function world() {
   }
 
   return {
-    permanent, staging, photos, projects, albums, exportJobs, pickSessions, project, addPhoto,
-    gateway, admin, portal, notified, promoter, clientPicks, placements, openLink, markAndContinue, original,
+    permanent,
+    staging,
+    photos,
+    projects,
+    albums,
+    exportJobs,
+    pickSessions,
+    project,
+    addPhoto,
+    gateway,
+    admin,
+    portal,
+    notified,
+    promoter,
+    clientPicks,
+    placements,
+    openLink,
+    markAndContinue,
+    original,
   };
 }
 
 describe("PickSession", () => {
   const open = (pickLimit?: number) =>
-    PickSession.open({ projectId: UniqueEntityId.create(), clientName: "Elena", ...(pickLimit ? { pickLimit } : {}) }).session;
+    PickSession.open({ projectId: UniqueEntityId.create(), clientName: "Elena", ...(pickLimit ? { pickLimit } : {}) })
+      .session;
   /** Step 1 with room to spare, then straight on to step 2 — the usual way a session gets there. */
   const atFinal = (ids: string[], pickLimit?: number) => {
     const session = open(pickLimit);
@@ -465,7 +488,11 @@ describe("picks and the two-tier storage pipeline", () => {
     const w = await world();
     const jobs = new InMemoryJobQueue();
     const a = await w.addPhoto("a.jpg");
-    const portal = new PickPortalUseCase(w.pickSessions, w.gateway, new PromoteOnPickNotifier({ picksSubmitted: async () => {} }, jobs));
+    const portal = new PickPortalUseCase(
+      w.pickSessions,
+      w.gateway,
+      new PromoteOnPickNotifier({ picksSubmitted: async () => {} }, jobs),
+    );
     const link = await w.openLink();
     await portal.setPick(link.token, a.id.toString(), true);
     await portal.setStage(link.token, "FINAL");
@@ -476,7 +503,11 @@ describe("picks and the two-tier storage pipeline", () => {
       payload: { projectId: w.project.id.toString() },
     });
 
-    const failing = { enqueue: async () => { throw new Error("redis down"); } } as unknown as InMemoryJobQueue;
+    const failing = {
+      enqueue: async () => {
+        throw new Error("redis down");
+      },
+    } as unknown as InMemoryJobQueue;
     const logged = new RecordingLogger();
     const resilient = new PickPortalUseCase(
       w.pickSessions,
@@ -536,7 +567,10 @@ describe("picks and the two-tier storage pipeline", () => {
     const summary = await sweep.execute();
 
     assert.equal(summary.purged, 2);
-    assert.ok(await w.permanent.head(picked.storageKey.toString()), "the picked original was saved before its staged copy was deleted");
+    assert.ok(
+      await w.permanent.head(picked.storageKey.toString()),
+      "the picked original was saved before its staged copy was deleted",
+    );
     assert.equal(w.staging.objects.has(picked.storageKey.toString()), false);
     assert.equal(await w.permanent.head(rest.storageKey.toString()), undefined);
   });

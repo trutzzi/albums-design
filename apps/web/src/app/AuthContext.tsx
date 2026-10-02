@@ -17,7 +17,12 @@ interface AuthContextValue {
   name: string;
   login: (email: string, password: string) => Promise<void>;
   /** Creates the account and emails its confirmation link; it does not sign in. */
-  register: (name: string, email: string, password: string, extra?: { language?: "en" | "ro"; website?: string; captchaToken?: string }) => Promise<void>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    extra?: { language?: "en" | "ro"; website?: string; captchaToken?: string },
+  ) => Promise<void>;
   /** Opens the account from the emailed link and signs straight in. */
   verifyEmail: (token: string) => Promise<void>;
   /** Sets a new password from an emailed reset link and signs straight in. */

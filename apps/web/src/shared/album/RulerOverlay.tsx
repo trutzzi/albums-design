@@ -67,12 +67,7 @@ export const RulerOverlay = memo(function RulerOverlay({ widthMm, heightMm }: Ru
   }
 
   return (
-    <svg
-      className="ruler-overlay"
-      viewBox={`0 0 ${widthCm} ${heightCm}`}
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
+    <svg className="ruler-overlay" viewBox={`0 0 ${widthCm} ${heightCm}`} preserveAspectRatio="none" aria-hidden="true">
       {verticals}
       {horizontals}
     </svg>

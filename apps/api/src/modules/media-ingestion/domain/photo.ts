@@ -2,12 +2,7 @@ import { AggregateRoot, UniqueEntityId } from "@albumflow/domain-kernel";
 import { StorageKey } from "./value-objects/storage-key";
 import { PhotoUploaded } from "./events/photo-uploaded";
 
-export type PhotoStatus =
-  | "PENDING_UPLOAD"
-  | "UPLOADED"
-  | "ANALYSIS_QUEUED"
-  | "ANALYSED"
-  | "FAILED";
+export type PhotoStatus = "PENDING_UPLOAD" | "UPLOADED" | "ANALYSIS_QUEUED" | "ANALYSED" | "FAILED";
 
 export interface PhotoProps {
   projectId: UniqueEntityId;

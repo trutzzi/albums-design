@@ -12,10 +12,7 @@ export interface PhotoIntelligenceDependencies {
   visionClassifier: VisionClassifier;
 }
 
-export function registerPhotoIntelligenceRoutes(
-  app: FastifyInstance,
-  deps: PhotoIntelligenceDependencies,
-): void {
+export function registerPhotoIntelligenceRoutes(app: FastifyInstance, deps: PhotoIntelligenceDependencies): void {
   // Polled by the frontend to show whether AI-backed photo analysis is
   // actually reachable right now (relevant once VISION_PROVIDER is "ollama" —
   // a heuristic or cloud classifier is never "offline" in a way worth

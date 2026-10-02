@@ -133,12 +133,15 @@ export function useAlbumDraft(albumId: string, album: AlbumDTO | undefined) {
 
   const changeCrop = useCallback(
     (spreadIndex: number, slotId: string, crop: Crop, commitNow: boolean) => {
-      setDraft((current) =>
-        current &&
-        updateSpread(current, spreadIndex, (spread) => ({
-          ...spread,
-          placements: spread.placements.map((placement) => (placement.slotId === slotId ? { ...placement, crop } : placement)),
-        })),
+      setDraft(
+        (current) =>
+          current &&
+          updateSpread(current, spreadIndex, (spread) => ({
+            ...spread,
+            placements: spread.placements.map((placement) =>
+              placement.slotId === slotId ? { ...placement, crop } : placement,
+            ),
+          })),
       );
       sendWhenSettled(pendingCrop, () => runEdit({ type: "SET_CROP", spreadIndex, slotId, crop }), commitNow, 400);
     },
@@ -147,12 +150,15 @@ export function useAlbumDraft(albumId: string, album: AlbumDTO | undefined) {
 
   const changeFrame = useCallback(
     (spreadIndex: number, slotId: string, frame: SlotFrame, commitNow: boolean) => {
-      setDraft((current) =>
-        current &&
-        updateSpread(current, spreadIndex, (spread) => ({
-          ...spread,
-          placements: spread.placements.map((placement) => (placement.slotId === slotId ? { ...placement, frame } : placement)),
-        })),
+      setDraft(
+        (current) =>
+          current &&
+          updateSpread(current, spreadIndex, (spread) => ({
+            ...spread,
+            placements: spread.placements.map((placement) =>
+              placement.slotId === slotId ? { ...placement, frame } : placement,
+            ),
+          })),
       );
       sendWhenSettled(pendingFrame, () => runEdit({ type: "SET_FRAME", spreadIndex, slotId, frame }), commitNow, 400);
     },
@@ -162,15 +168,16 @@ export function useAlbumDraft(albumId: string, album: AlbumDTO | undefined) {
   const changeFrames = useCallback(
     (spreadIndex: number, frames: { slotId: string; frame: SlotFrame }[], commitNow: boolean) => {
       const bySlot = new Map(frames.map((entry) => [entry.slotId, entry.frame]));
-      setDraft((current) =>
-        current &&
-        updateSpread(current, spreadIndex, (spread) => ({
-          ...spread,
-          placements: spread.placements.map((placement) => {
-            const frame = bySlot.get(placement.slotId);
-            return frame ? { ...placement, frame } : placement;
-          }),
-        })),
+      setDraft(
+        (current) =>
+          current &&
+          updateSpread(current, spreadIndex, (spread) => ({
+            ...spread,
+            placements: spread.placements.map((placement) => {
+              const frame = bySlot.get(placement.slotId);
+              return frame ? { ...placement, frame } : placement;
+            }),
+          })),
       );
       sendWhenSettled(pendingFrames, () => runEdit({ type: "SET_FRAMES", spreadIndex, frames }), commitNow, 400);
     },
@@ -181,12 +188,13 @@ export function useAlbumDraft(albumId: string, album: AlbumDTO | undefined) {
   // gets the block once it settles.
   const changeText = useCallback(
     (spreadIndex: number, block: TextBlockDTO, commitNow: boolean) => {
-      setDraft((current) =>
-        current &&
-        updateSpread(current, spreadIndex, (spread) => ({
-          ...spread,
-          texts: (spread.texts ?? []).map((item) => (item.id === block.id ? block : item)),
-        })),
+      setDraft(
+        (current) =>
+          current &&
+          updateSpread(current, spreadIndex, (spread) => ({
+            ...spread,
+            texts: (spread.texts ?? []).map((item) => (item.id === block.id ? block : item)),
+          })),
       );
       sendWhenSettled(pendingText, () => runEdit({ type: "SET_TEXT_BLOCK", spreadIndex, block }), commitNow, 600);
     },

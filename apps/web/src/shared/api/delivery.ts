@@ -1,6 +1,4 @@
-import type {
-  ClientBrandingDTO,
-} from "@albumflow/contracts";
+import type { ClientBrandingDTO } from "@albumflow/contracts";
 import { loadGrant } from "@/shared/lib/client-grants";
 import { API_URL, request } from "./http";
 import type { InvitationInput, InvitationOutcome } from "./review";

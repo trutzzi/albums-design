@@ -1,10 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import {
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-  type ApplicationError,
-} from "#src/shared-kernel/errors";
+import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import type { AlbumCoverDTO, AlbumStyleDTO, SpreadDTO, TextBlockDTO } from "@albumflow/contracts";
 import {
   Album,
@@ -52,10 +47,7 @@ export type AlbumEditCommand =
 export class EditAlbumUseCase {
   constructor(private readonly albums: AlbumRepository) {}
 
-  async execute(
-    albumId: string,
-    command: AlbumEditCommand,
-  ): Promise<Result<Album, ApplicationError>> {
+  async execute(albumId: string, command: AlbumEditCommand): Promise<Result<Album, ApplicationError>> {
     const album = await this.albums.findById(UniqueEntityId.create(albumId));
     if (!album) return Result.failure(new NotFoundError("Album", albumId));
 

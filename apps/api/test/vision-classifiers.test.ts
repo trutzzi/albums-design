@@ -4,7 +4,10 @@ import sharp from "sharp";
 import { FallbackVisionClassifier } from "../src/modules/photo-intelligence/infrastructure/vision/fallback-vision-classifier";
 import { OllamaVisionClassifier } from "../src/modules/photo-intelligence/infrastructure/vision/ollama-vision-classifier";
 import { HeuristicVisionClassifier } from "../src/modules/photo-intelligence/infrastructure/vision/heuristic-vision-classifier";
-import type { VisionClassifier, VisionVerdict } from "../src/modules/photo-intelligence/application/ports/vision-classifier";
+import type {
+  VisionClassifier,
+  VisionVerdict,
+} from "../src/modules/photo-intelligence/application/ports/vision-classifier";
 
 const SOME_VERDICT: VisionVerdict = {
   category: "PORTRAIT",
@@ -58,18 +61,21 @@ describe("FallbackVisionClassifier", () => {
 
 describe("OllamaVisionClassifier", () => {
   it("parses a valid verdict out of Ollama's response envelope", async (t) => {
-    t.mock.method(globalThis, "fetch", async () =>
-      new Response(
-        JSON.stringify({
-          response: JSON.stringify({
-            category: "CEREMONY",
-            confidence: 0.72,
-            face_count: 2,
-            face_quality: 55,
+    t.mock.method(
+      globalThis,
+      "fetch",
+      async () =>
+        new Response(
+          JSON.stringify({
+            response: JSON.stringify({
+              category: "CEREMONY",
+              confidence: 0.72,
+              face_count: 2,
+              face_quality: 55,
+            }),
           }),
-        }),
-        { status: 200 },
-      ),
+          { status: 200 },
+        ),
     );
 
     const classifier = new OllamaVisionClassifier();
@@ -89,13 +95,16 @@ describe("OllamaVisionClassifier", () => {
   });
 
   it("accepts a category in the wrong case rather than rejecting it — a real model returned lowercase", async (t) => {
-    t.mock.method(globalThis, "fetch", async () =>
-      new Response(
-        JSON.stringify({
-          response: JSON.stringify({ category: "portrait", confidence: 0.9, face_count: 1, face_quality: 80 }),
-        }),
-        { status: 200 },
-      ),
+    t.mock.method(
+      globalThis,
+      "fetch",
+      async () =>
+        new Response(
+          JSON.stringify({
+            response: JSON.stringify({ category: "portrait", confidence: 0.9, face_count: 1, face_quality: 80 }),
+          }),
+          { status: 200 },
+        ),
     );
 
     const classifier = new OllamaVisionClassifier();
@@ -109,10 +118,18 @@ describe("OllamaVisionClassifier", () => {
   });
 
   it("rejects a category Ollama invented that isn't in the known list", async (t) => {
-    t.mock.method(globalThis, "fetch", async () =>
-      new Response(JSON.stringify({ response: JSON.stringify({ category: "PARTY", confidence: 0.5, face_count: 0, face_quality: 0 }) }), {
-        status: 200,
-      }),
+    t.mock.method(
+      globalThis,
+      "fetch",
+      async () =>
+        new Response(
+          JSON.stringify({
+            response: JSON.stringify({ category: "PARTY", confidence: 0.5, face_count: 0, face_quality: 0 }),
+          }),
+          {
+            status: 200,
+          },
+        ),
     );
 
     const classifier = new OllamaVisionClassifier();

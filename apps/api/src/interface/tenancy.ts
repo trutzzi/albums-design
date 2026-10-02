@@ -93,7 +93,8 @@ function ownerLookup(
   if (params.projectId !== undefined) return { id: params.projectId, owner: (id) => ownership.studioOfProject(id) };
   if (params.photoId !== undefined) return { id: params.photoId, owner: (id) => ownership.studioOfPhoto(id) };
   if (params.albumId !== undefined) return { id: params.albumId, owner: (id) => ownership.studioOfAlbum(id) };
-  if (params.exportJobId !== undefined) return { id: params.exportJobId, owner: (id) => ownership.studioOfExportJob(id) };
+  if (params.exportJobId !== undefined)
+    return { id: params.exportJobId, owner: (id) => ownership.studioOfExportJob(id) };
   return undefined;
 }
 

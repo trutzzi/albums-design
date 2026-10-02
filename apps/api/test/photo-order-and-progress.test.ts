@@ -18,7 +18,9 @@ async function world() {
   const projects = new InMemoryProjectRepository();
   const project = Project.create({ studioId: UniqueEntityId.create(), name: "Shoot", type: "WEDDING" });
   await projects.save(project);
-  const jpeg = await sharp({ create: { width: 800, height: 600, channels: 3, background: "#456" } }).jpeg().toBuffer();
+  const jpeg = await sharp({ create: { width: 800, height: 600, channels: 3, background: "#456" } })
+    .jpeg()
+    .toBuffer();
 
   async function add(fileName: string, state: "processed" | "uploaded" | "pending" = "uploaded") {
     const photo = Photo.requestUpload({
@@ -34,7 +36,9 @@ async function world() {
     }
     await photos.save(photo);
     if (state === "processed") {
-      await new GenerateDerivativesUseCase(photos, staging, new SharpImageResizer()).execute({ photoId: photo.id.toString() });
+      await new GenerateDerivativesUseCase(photos, staging, new SharpImageResizer()).execute({
+        photoId: photo.id.toString(),
+      });
     }
     return photo;
   }
@@ -47,7 +51,10 @@ const SCRAMBLED = ["DSC_0010.jpg", "DSC_0002.jpg", "DSC_0100.jpg", "DSC_0001.jpg
 describe("natural file-name order", () => {
   it("sorts by the numbers in names, ignores case, and is deterministic for identical names", () => {
     const rows = ["IMG_10.jpg", "img_2.JPG", "IMG_1.jpg"].map((fileName, i) => ({ fileName, id: `id${i}` }));
-    assert.deepEqual(rows.sort(compareFileNames).map((r) => r.fileName), ["IMG_1.jpg", "img_2.JPG", "IMG_10.jpg"]);
+    assert.deepEqual(
+      rows.sort(compareFileNames).map((r) => r.fileName),
+      ["IMG_1.jpg", "img_2.JPG", "IMG_10.jpg"],
+    );
     assert.ok(compareFileNames({ fileName: "a.jpg", id: "1" }, { fileName: "a.jpg", id: "2" }) < 0);
   });
 });
@@ -57,7 +64,10 @@ describe("photo listing order", () => {
     const w = await world();
     for (const n of SCRAMBLED) await w.add(n);
     const views = await w.list.execute(w.project.id.toString());
-    assert.deepEqual(views.map((v) => v.fileName), SORTED);
+    assert.deepEqual(
+      views.map((v) => v.fileName),
+      SORTED,
+    );
   });
 
   it("gives the client's gallery the same order", async () => {
@@ -65,7 +75,10 @@ describe("photo listing order", () => {
     for (const n of SCRAMBLED) await w.add(n, "processed");
     const gateway = new MediaIngestionPickGateway(w.projects, w.photos, w.list);
     const shown = await gateway.listPhotos(w.project.id.toString());
-    assert.deepEqual(shown.map((p) => p.fileName), SORTED);
+    assert.deepEqual(
+      shown.map((p) => p.fileName),
+      SORTED,
+    );
   });
 
   it("puts the download zip in the same order", async () => {
@@ -73,7 +86,10 @@ describe("photo listing order", () => {
     for (const n of SCRAMBLED) await w.add(n);
     const gateway = new MediaIngestionDeliveryGateway(w.projects, w.photos, w.staging);
     const { available } = await gateway.listDeliverable(w.project.id.toString());
-    assert.deepEqual(available.map((p) => p.fileName), SORTED);
+    assert.deepEqual(
+      available.map((p) => p.fileName),
+      SORTED,
+    );
   });
 });
 
@@ -93,7 +109,9 @@ describe("client gallery progress", () => {
 describe("display copies", () => {
   it("still produces a 1600px preview and a 400px thumbnail with the same proportions", async () => {
     const w = await world();
-    const big = await sharp({ create: { width: 4000, height: 3000, channels: 3, background: "#a55" } }).jpeg().toBuffer();
+    const big = await sharp({ create: { width: 4000, height: 3000, channels: 3, background: "#a55" } })
+      .jpeg()
+      .toBuffer();
     const photo = Photo.requestUpload({
       projectId: w.project.id,
       studioId: w.project.studioId,

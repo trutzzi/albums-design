@@ -60,13 +60,23 @@ describe("ErrorRecordingLogger", () => {
     const [occurrence] = log.occurrenceRows;
     assert.equal(occurrence?.requestId, "abc-12345678");
     assert.match(occurrence?.stack ?? "", /Caused by: Error: socket closed/);
-    assert.deepEqual(occurrence?.context, { method: "GET", route: "/review/:token", photos: 12 }, "credentials never stored");
+    assert.deepEqual(
+      occurrence?.context,
+      { method: "GET", route: "/review/:token", photos: 12 },
+      "credentials never stored",
+    );
   });
 
   it("names a worker job by queue and job, and a component otherwise", () => {
     const at = new Date();
-    assert.equal(toErrorEvent("worker", "job failed", { queue: "storage", job: "store-original" }, at).location, "storage › store-original");
-    assert.equal(toErrorEvent("api", "could not email the studio", { component: "studio-email" }, at).location, "studio-email");
+    assert.equal(
+      toErrorEvent("worker", "job failed", { queue: "storage", job: "store-original" }, at).location,
+      "storage › store-original",
+    );
+    assert.equal(
+      toErrorEvent("api", "could not email the studio", { component: "studio-email" }, at).location,
+      "studio-email",
+    );
     assert.equal(toErrorEvent("api", "unhandled promise rejection", { err: "plain string" }, at).errorType, "string");
   });
 
@@ -87,8 +97,15 @@ describe("ErrorRecordingLogger", () => {
       logger.error("second");
     });
     await settle();
-    assert.equal(inner.entries.filter((entry) => entry.level === "error").length, 2, "the log line itself is never lost");
-    assert.equal(inner.problems.filter((entry) => entry.message === "could not write to the admin error log").length, 1);
+    assert.equal(
+      inner.entries.filter((entry) => entry.level === "error").length,
+      2,
+      "the log line itself is never lost",
+    );
+    assert.equal(
+      inner.problems.filter((entry) => entry.message === "could not write to the admin error log").length,
+      1,
+    );
   });
 
   it("drops entries rather than piling them up when writes back up", async () => {
@@ -139,7 +156,9 @@ describe("the error log", () => {
     const log = new InMemoryErrorLogRepository();
     const inbox = new ErrorInboxUseCase(log, 30);
     await log.record(event({ requestId: "0eab690a-a47e-4330-ab60-108a8d4cfa7b" }));
-    await log.record(event({ title: "could not email the studio", location: "studio-email", errorMessage: "smtp down" }));
+    await log.record(
+      event({ title: "could not email the studio", location: "studio-email", errorMessage: "smtp down" }),
+    );
 
     assert.equal((await inbox.list({ search: " 0eab690a-a47e-4330-ab60-108a8d4cfa7b " }))[0]?.title, "request failed");
     assert.equal((await inbox.list({ search: "SMTP" }))[0]?.location, "studio-email");
@@ -165,8 +184,18 @@ describe("the admin Errors tab API", () => {
   async function app() {
     const members = new InMemoryStudioMemberRepository();
     const { studio } = Studio.create({ name: "Golden Hour", ownerEmail: "owner@studio.test" });
-    const photographer = StudioMember.signUp({ studioId: studio.id, email: "owner@studio.test", name: "Ana", passwordHash: "x" });
-    const admin = StudioMember.signUp({ studioId: studio.id, email: "boss@albumflow.test", name: "Boss", passwordHash: "x" });
+    const photographer = StudioMember.signUp({
+      studioId: studio.id,
+      email: "owner@studio.test",
+      name: "Ana",
+      passwordHash: "x",
+    });
+    const admin = StudioMember.signUp({
+      studioId: studio.id,
+      email: "boss@albumflow.test",
+      name: "Boss",
+      passwordHash: "x",
+    });
     await members.save(photographer);
     await members.save(admin);
     const log = new InMemoryErrorLogRepository();
@@ -200,13 +229,21 @@ describe("the admin Errors tab API", () => {
     const requestId = String(failed.headers["x-request-id"]);
     await settle();
 
-    const list = await server.inject({ method: "GET", url: `/admin/errors?search=${requestId}`, headers: { "x-member": adminId } });
+    const list = await server.inject({
+      method: "GET",
+      url: `/admin/errors?search=${requestId}`,
+      headers: { "x-member": adminId },
+    });
     assert.equal(list.statusCode, 200);
     const [issue] = list.json();
     assert.equal(issue.location, "GET /boom");
     assert.equal(issue.errorMessage, "database exploded");
 
-    const detail = await server.inject({ method: "GET", url: `/admin/errors/${issue.id}`, headers: { "x-member": adminId } });
+    const detail = await server.inject({
+      method: "GET",
+      url: `/admin/errors/${issue.id}`,
+      headers: { "x-member": adminId },
+    });
     assert.equal(detail.json().occurrences[0].requestId, requestId);
     assert.match(detail.json().occurrences[0].stack, /database exploded/);
 

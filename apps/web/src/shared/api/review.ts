@@ -110,7 +110,11 @@ export function getReviewAccess(albumId: string, sessionId: string): Promise<{ t
 }
 
 /** Exchanges the password a client typed for a grant, remembered for this tab. Throws ApiError on a wrong password. */
-export async function unlockClientLink(kind: "review" | "download" | "pick", token: string, password: string): Promise<void> {
+export async function unlockClientLink(
+  kind: "review" | "download" | "pick",
+  token: string,
+  password: string,
+): Promise<void> {
   const { grant } = await request<{ grant: string }>(`/${kind}/${token}/unlock`, {
     method: "POST",
     body: JSON.stringify({ password }),
@@ -161,10 +165,7 @@ export function addReviewComment(
   return request(`/review/${token}/comments`, { method: "POST", body: JSON.stringify(input) });
 }
 
-export function submitReviewDecision(
-  token: string,
-  decision: "APPROVED" | "CHANGES_REQUESTED",
-): Promise<ReviewView> {
+export function submitReviewDecision(token: string, decision: "APPROVED" | "CHANGES_REQUESTED"): Promise<ReviewView> {
   return request(`/review/${token}/decision`, {
     method: "POST",
     body: JSON.stringify({ decision }),

@@ -1,11 +1,7 @@
 import { and, count, desc, eq, ilike, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "#src/db/client";
-import type {
-  StudioMemberRepository,
-  StudioRepository,
-  SubscriptionRepository,
-} from "../../domain/repositories";
+import type { StudioMemberRepository, StudioRepository, SubscriptionRepository } from "../../domain/repositories";
 import { Studio } from "../../domain/studio";
 import { StudioMember } from "../../domain/studio-member";
 import { Subscription } from "../../domain/subscription";
@@ -27,7 +23,12 @@ export class DrizzleStudioRepository implements StudioRepository {
       })
       .onConflictDoUpdate({
         target: studios.id,
-        set: { name: studio.name, ownerEmail: studio.ownerEmail, apiKeyHash: studio.apiKeyHash, ...brandingColumns(studio) },
+        set: {
+          name: studio.name,
+          ownerEmail: studio.ownerEmail,
+          apiKeyHash: studio.apiKeyHash,
+          ...brandingColumns(studio),
+        },
       });
   }
 
@@ -52,7 +53,13 @@ export class DrizzleStudioRepository implements StudioRepository {
     const pattern = term ? `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : undefined;
     const where = pattern ? or(ilike(studios.name, pattern), ilike(studios.ownerEmail, pattern)) : undefined;
     const [rows, [totals]] = await Promise.all([
-      this.db.select().from(studios).where(where).orderBy(desc(studios.createdAt)).limit(query.limit).offset(query.offset),
+      this.db
+        .select()
+        .from(studios)
+        .where(where)
+        .orderBy(desc(studios.createdAt))
+        .limit(query.limit)
+        .offset(query.offset),
       this.db.select({ total: count() }).from(studios).where(where),
     ]);
     return { studios: rows.map(toStudio), total: Number(totals?.total ?? 0) };
@@ -78,10 +85,7 @@ export class DrizzleSubscriptionRepository implements SubscriptionRepository {
       externalCustomerId: subscription.externalCustomerId ?? null,
       externalSubscriptionId: subscription.externalSubscriptionId ?? null,
     };
-    await this.db
-      .insert(subscriptions)
-      .values(row)
-      .onConflictDoUpdate({ target: subscriptions.studioId, set: row });
+    await this.db.insert(subscriptions).values(row).onConflictDoUpdate({ target: subscriptions.studioId, set: row });
   }
 
   async findByStudioId(studioId: UniqueEntityId): Promise<Subscription | undefined> {
@@ -159,19 +163,12 @@ export class DrizzleStudioMemberRepository implements StudioMemberRepository {
   }
 
   async findById(id: UniqueEntityId): Promise<StudioMember | undefined> {
-    const [row] = await this.db
-      .select()
-      .from(studioMembers)
-      .where(eq(studioMembers.id, id.toString()))
-      .limit(1);
+    const [row] = await this.db.select().from(studioMembers).where(eq(studioMembers.id, id.toString())).limit(1);
     return row ? toMember(row) : undefined;
   }
 
   async listByStudioId(studioId: UniqueEntityId): Promise<StudioMember[]> {
-    const rows = await this.db
-      .select()
-      .from(studioMembers)
-      .where(eq(studioMembers.studioId, studioId.toString()));
+    const rows = await this.db.select().from(studioMembers).where(eq(studioMembers.studioId, studioId.toString()));
     return rows.map(toMember);
   }
 
@@ -180,11 +177,7 @@ export class DrizzleStudioMemberRepository implements StudioMemberRepository {
   }
 
   async findByEmail(email: string): Promise<StudioMember | undefined> {
-    const [row] = await this.db
-      .select()
-      .from(studioMembers)
-      .where(eq(studioMembers.email, email))
-      .limit(1);
+    const [row] = await this.db.select().from(studioMembers).where(eq(studioMembers.email, email)).limit(1);
     return row ? toMember(row) : undefined;
   }
 

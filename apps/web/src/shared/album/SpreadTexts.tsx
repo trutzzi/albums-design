@@ -184,7 +184,11 @@ function TextTools({
   return (
     <div
       className="text-tools"
-      style={{ left: `${block.x * 100}%`, top: `${(block.y + block.height) * 100}%`, width: `${Math.max(block.width, 0.34) * 100}%` }}
+      style={{
+        left: `${block.x * 100}%`,
+        top: `${(block.y + block.height) * 100}%`,
+        width: `${Math.max(block.width, 0.34) * 100}%`,
+      }}
       onClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
     >
@@ -233,7 +237,11 @@ function TextTools({
           </button>
         ))}
         {onRemove && (
-          <button type="button" className="slot-tools__button slot-tools__button--danger" onClick={() => onRemove(block.id)}>
+          <button
+            type="button"
+            className="slot-tools__button slot-tools__button--danger"
+            onClick={() => onRemove(block.id)}
+          >
             {t("text.remove")}
           </button>
         )}
