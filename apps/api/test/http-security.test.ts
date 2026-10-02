@@ -60,6 +60,7 @@ describe("HTTP security boundary", () => {
 
     // Stand-ins for the real routes: the guards run before any of them.
     app.get("/projects/:projectId/photos", async () => ({ ok: true }));
+    app.post("/projects/:projectId/photos/retry-analysis", async () => ({ queued: 0 }));
     app.get("/albums/:albumId", async () => ({ ok: true }));
     app.get("/studios/:studioId", async () => ({ ok: true }));
     app.post("/studios/:studioId/projects/:projectId/photos", async () => ({ ok: true }));
@@ -102,6 +103,15 @@ describe("HTTP security boundary", () => {
     const response = await app.inject({
       method: "GET",
       url: `/projects/${projectB.id}/photos`,
+      headers: auth(keyA),
+    });
+    assert.equal(response.statusCode, 404);
+  });
+
+  it("does not let a studio retry analysis on another studio's shoot", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: `/projects/${projectB.id}/photos/retry-analysis`,
       headers: auth(keyA),
     });
     assert.equal(response.statusCode, 404);

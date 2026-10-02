@@ -46,6 +46,15 @@ export class DrizzlePhotoRepository implements PhotoRepository {
     await this.db.update(photos).set({ status }).where(eq(photos.id, id.toString()));
   }
 
+  async updateStatusIf(id: UniqueEntityId, from: PhotoStatus[], to: PhotoStatus): Promise<boolean> {
+    const moved = await this.db
+      .update(photos)
+      .set({ status: to })
+      .where(and(eq(photos.id, id.toString()), inArray(photos.status, from)))
+      .returning({ id: photos.id });
+    return moved.length > 0;
+  }
+
   async markDerivativesReady(id: UniqueEntityId, options: { permanent?: boolean } = {}): Promise<void> {
     await this.db
       .update(photos)

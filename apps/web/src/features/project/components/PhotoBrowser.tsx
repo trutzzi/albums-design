@@ -8,6 +8,9 @@ const PHOTO_FILTERS = ["all", "worthy", "picked", "processing"] as const;
 type PhotoFilter = (typeof PHOTO_FILTERS)[number];
 type PhotoSort = "name" | "score";
 
+/** Still being analysed: no result yet, and analysis has not given up on it. */
+const isProcessing = (photo: { analysis?: unknown; status: string }) => !photo.analysis && photo.status !== "FAILED";
+
 /** How the photos are narrowed and ordered. Held by the page, so it survives a step change. */
 export interface PhotoView {
   filter: PhotoFilter;
@@ -53,7 +56,7 @@ export function PhotoBrowser({
       all: galleryPhotos.length,
       worthy: galleryPhotos.filter((photo) => photo.analysis?.albumWorthy).length,
       picked: galleryPhotos.filter((photo) => clientPicked.has(photo.id)).length,
-      processing: galleryPhotos.filter((photo) => !photo.analysis).length,
+      processing: galleryPhotos.filter(isProcessing).length,
     }),
     [galleryPhotos, clientPicked],
   );
@@ -65,7 +68,7 @@ export function PhotoBrowser({
         : filter === "picked"
           ? clientPicked.has(photo.id)
           : filter === "processing"
-            ? !photo.analysis
+            ? isProcessing(photo)
             : true,
     );
     // The server already lists photos in file-name order.

@@ -6,8 +6,10 @@ import { Project } from "../src/modules/media-ingestion/domain/project";
 import { ListStudioProjectsUseCase } from "../src/modules/media-ingestion/application/use-cases/list-studio-projects/list-studio-projects.use-case";
 import { MediaIngestionPhotoLifecycle } from "../src/modules/photo-intelligence/infrastructure/gateways/photo-lifecycle-gateway";
 import { RecordAnalysisFailureUseCase } from "../src/modules/photo-intelligence/application/use-cases/record-analysis-failure/record-analysis-failure.use-case";
+import { RetryFailedAnalysesUseCase } from "../src/modules/media-ingestion/application/use-cases/retry-failed-analyses/retry-failed-analyses.use-case";
 import {
   InMemoryAlbumRepository,
+  InMemoryJobQueue,
   InMemoryObjectStorage,
   InMemoryPhotoRepository,
   InMemoryProjectRepository,
@@ -34,9 +36,13 @@ async function world() {
     return photo;
   }
 
+  const jobs = new InMemoryJobQueue();
   return {
     photos,
+    jobs,
+    projectId: project.id.toString(),
     queuedPhoto,
+    retry: new RetryFailedAnalysesUseCase(photos, jobs),
     lifecycle: new MediaIngestionPhotoLifecycle(photos),
     recordFailure: new RecordAnalysisFailureUseCase(new MediaIngestionPhotoLifecycle(photos)),
     shoots: () =>
@@ -80,5 +86,53 @@ describe("a photo whose analysis gave up for good", () => {
     const w = await world();
     const result = await w.recordFailure.execute({ photoId: UniqueEntityId.create().toString() });
     assert.ok(result.isSuccess);
+  });
+});
+
+describe("retrying analysis for a shoot's failed photos", () => {
+  it("queues each failed photo again, with the built-in analysis", async () => {
+    const w = await world();
+    const failed = await w.queuedPhoto("001.jpg");
+    await w.recordFailure.execute({ photoId: failed.id.toString() });
+    const analysed = await w.queuedPhoto("002.jpg");
+    await w.lifecycle.markAnalysed(analysed.id.toString());
+
+    const result = await w.retry.execute({ projectId: w.projectId });
+
+    assert.deepEqual(result.getValue(), { queued: 1 });
+    assert.equal((await w.photos.findById(failed.id))?.status, "ANALYSIS_QUEUED");
+    assert.equal((await w.photos.findById(analysed.id))?.status, "ANALYSED", "an analysed photo is not redone");
+    assert.deepEqual(
+      w.jobs.drain("photo-intelligence").map((job) => [job.name, job.payload.photoId, job.payload.useAi]),
+      [["analyze-photo", failed.id.toString(), false]],
+    );
+    assert.equal((await w.shoots())[0]?.processingCount, 1, "the card shows progress again");
+  });
+
+  it("queues a photo once, however often retry is pressed", async () => {
+    const w = await world();
+    const failed = await w.queuedPhoto("001.jpg");
+    await w.recordFailure.execute({ photoId: failed.id.toString() });
+
+    await w.retry.execute({ projectId: w.projectId });
+    const second = await w.retry.execute({ projectId: w.projectId });
+
+    assert.deepEqual(second.getValue(), { queued: 0 });
+    assert.equal(w.jobs.drain("photo-intelligence").length, 1);
+  });
+
+  it("only ever moves a failed photo back to the queue", () => {
+    const photo = Photo.requestUpload({
+      projectId: UniqueEntityId.create(),
+      studioId: UniqueEntityId.create(),
+      fileName: "001.jpg",
+      mimeType: "image/jpeg",
+      byteSize: 1000,
+    });
+    photo.markUploaded({ byteSize: 1000 });
+    assert.throws(() => photo.retryAnalysis());
+    photo.markFailed();
+    photo.retryAnalysis();
+    assert.equal(photo.status, "ANALYSIS_QUEUED");
   });
 });

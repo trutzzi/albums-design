@@ -22,6 +22,7 @@ import { useAlbumSize } from "@/features/project/hooks/useAlbumSize";
 import { useClientContact } from "@/features/project/hooks/useClientContact";
 import { PhotoUploader } from "@/features/project/components/PhotoUploader";
 import { UploadProgress } from "@/features/project/components/UploadProgress";
+import { FailedAnalysisNotice } from "@/features/project/components/FailedAnalysisNotice";
 import { DEFAULT_PHOTO_VIEW, PhotoBrowser, type PhotoView } from "@/features/project/components/PhotoBrowser";
 import { SelectionPanel } from "@/features/project/components/SelectionPanel";
 import { AlbumPanel } from "@/features/project/components/AlbumPanel";
@@ -258,6 +259,7 @@ export function ProjectPage() {
               photoCount={uploadedCount}
               photoLimit={photoLimit}
             />
+            <FailedAnalysisNotice projectId={projectId} failedCount={failedAnalysis} />
             <PhotoBrowser
               photos={photos.data ?? []}
               analyses={analyses.data ?? []}

@@ -112,6 +112,11 @@ export const ro: Record<string, string> = {
   "ai.status.offline.title":
     "Clasificatorul AI local nu poate fi contactat momentan — încărcarea funcționează în continuare, folosind analiza de bază (fără AI).",
   "project.upload.useAi": "Folosește analiza AI a fotografiilor",
+  "project.analysisFailed.body":
+    "Analiza a eșuat pentru {count} dintre fotografii, așa că nu sunt incluse în punctaj și în albumul automat.",
+  "project.analysisFailed.retry": "Reîncearcă analiza",
+  "project.analysisFailed.retrying": "Se pun în coadă…",
+  "project.analysisFailed.error": "Nu au putut fi puse din nou în coadă. Încearcă din nou peste puțin timp.",
   "project.upload.useAi.unavailable": "Serverul AI local nu poate fi contactat momentan, așa că este dezactivat.",
   "ai.consent.title": "Procesare AI locală",
   "ai.consent.body":

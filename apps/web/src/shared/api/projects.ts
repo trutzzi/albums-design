@@ -73,6 +73,11 @@ export function listProjectPhotos(projectId: string): Promise<PhotoDTO[]> {
   return request(`/projects/${projectId}/photos`);
 }
 
+/** Queues the shoot's photos whose analysis failed for another try; returns how many were queued. */
+export function retryFailedAnalyses(projectId: string): Promise<{ queued: number }> {
+  return request(`/projects/${projectId}/photos/retry-analysis`, { method: "POST" });
+}
+
 // --- Photo intelligence ----------------------------------------------------
 
 export function listProjectAnalyses(projectId: string): Promise<PhotoAnalysisDTO[]> {

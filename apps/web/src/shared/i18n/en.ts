@@ -109,6 +109,11 @@ export const en: Record<string, string> = {
   "ai.status.offline.title":
     "The local AI photo classifier can't be reached right now — uploads still work, using basic (non-AI) analysis instead.",
   "project.upload.useAi": "Use AI photo analysis",
+  "project.analysisFailed.body":
+    "Analysis failed for {count} of your photos, so they are left out of scoring and the automatic album.",
+  "project.analysisFailed.retry": "Retry analysis",
+  "project.analysisFailed.retrying": "Queuing…",
+  "project.analysisFailed.error": "Could not queue them again. Try once more in a moment.",
   "project.upload.useAi.unavailable": "The local AI server isn't reachable right now, so this is turned off.",
   "ai.consent.title": "Local AI processing",
   "ai.consent.body":

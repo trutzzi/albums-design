@@ -31,6 +31,11 @@ export interface PhotoRepository {
    * ordinary MVCC regardless of which one commits first.
    */
   updateStatus(id: UniqueEntityId, status: PhotoStatus): Promise<void>;
+  /**
+   * Moves a photo to `to` only if its status is still one of `from`, in one atomic write;
+   * true when it moved. Two jobs racing on the same photo cannot undo each other.
+   */
+  updateStatusIf(id: UniqueEntityId, from: PhotoStatus[], to: PhotoStatus): Promise<boolean>;
   markDerivativesReady(id: UniqueEntityId, options?: { permanent?: boolean }): Promise<void>;
   /** Only sets `selectedAt` where it is still empty, so the first selection time is kept. */
   markSelected(ids: UniqueEntityId[], at: Date): Promise<void>;

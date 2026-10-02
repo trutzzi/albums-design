@@ -82,18 +82,25 @@ async function main() {
     }
   });
   queue.on(QUEUES.photoIntelligence, async (_jobName, payload) => {
-    const result = await analyzePhoto.execute({
-      photoId: String(payload.photoId),
-      projectId: String(payload.projectId),
-      storageKey: String(payload.storageKey),
-      useAi: Boolean(payload.useAi),
-    });
-    // In-process jobs are not retried, so a failed analysis is final.
-    if (result.isFailure) {
-      console.error(`  analysis failed ${String(payload.photoId).slice(0, 8)}: ${result.getError().message}`);
-      await recordAnalysisFailure.execute({ photoId: String(payload.photoId) });
-      return;
+    const photoId = String(payload.photoId);
+    // In-process jobs are not retried, so a failed analysis is final — whether the use case
+    // returned a failure or threw (an unreadable image throws from the decoder).
+    const gaveUp = async (reason: string) => {
+      console.error(`  analysis failed ${photoId.slice(0, 8)}: ${reason}`);
+      await recordAnalysisFailure.execute({ photoId });
+    };
+    let result;
+    try {
+      result = await analyzePhoto.execute({
+        photoId,
+        projectId: String(payload.projectId),
+        storageKey: String(payload.storageKey),
+        useAi: Boolean(payload.useAi),
+      });
+    } catch (error) {
+      return gaveUp(error instanceof Error ? error.message : String(error));
     }
+    if (result.isFailure) return gaveUp(result.getError().message);
     const analysis = result.getValue();
     console.log(
       `  analysed ${analysis.photoId.toString().slice(0, 8)} → ${analysis.score.overall}/100 ${analysis.category} ${analysis.orientation}`,

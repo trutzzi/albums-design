@@ -102,6 +102,12 @@ export class InMemoryPhotoRepository implements PhotoRepository {
   // field named, leaving whatever else is stored untouched — so a test
   // exercising two interleaved "workers" against this double sees the same
   // safety real Postgres gives the production repository.
+  async updateStatusIf(id: UniqueEntityId, from: Photo["status"][], to: Photo["status"]) {
+    const stored = this.items.get(id.toString());
+    if (!stored || !from.includes(stored.status)) return false;
+    await this.updateStatus(id, to);
+    return true;
+  }
   async updateStatus(id: UniqueEntityId, status: Photo["status"]) {
     const stored = this.items.get(id.toString());
     if (!stored) return;
