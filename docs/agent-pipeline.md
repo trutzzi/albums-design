@@ -32,7 +32,7 @@ Patterns: strategy by path (a specialist reviewer per area), pipes and filters (
 ## One-time setup
 
 1. **GitHub CLI** — `brew install gh`, then `gh auth login` (GitHub.com, HTTPS, browser).
-2. **Reviewer token** — run `claude setup-token` (uses your Claude subscription; install the CLI first with `npm install -g @anthropic-ai/claude-code` if `claude` is not found) and save it as the repository secret `CLAUDE_CODE_OAUTH_TOKEN`: GitHub → Settings → Secrets and variables → Actions → New repository secret. An `ANTHROPIC_API_KEY` secret works instead (billed per use). Without either, the reviewer step is skipped with a warning.
+2. **Reviewer token** — run `claude setup-token` (uses your Claude subscription; install the CLI first with `npm install -g @anthropic-ai/claude-code` if `claude` is not found) and save it as the repository secret `CLAUDE_CODE_OAUTH_TOKEN`: GitHub → Settings → Secrets and variables → Actions → New repository secret. To use a paid `ANTHROPIC_API_KEY` instead, swap the credential line in `agent-review.yml` (see the comment there). Without the secret, the reviewer step is skipped with a warning.
 3. **Claude GitHub app** — install https://github.com/apps/claude on this repository, so the reviewer can comment.
 4. **Branch protection** — require a pull request and green CI to change `main`, for admins too:
 
