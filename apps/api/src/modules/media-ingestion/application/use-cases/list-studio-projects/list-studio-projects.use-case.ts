@@ -21,6 +21,8 @@ export interface ProjectSummaryView {
   createdAt: string;
   /** Photos that finished uploading. */
   photoCount: number;
+  /** Of those, the ones still being analysed — the card shows progress while this is above 0. */
+  processingCount: number;
   albumCount: number;
   /** A photo to show on the card. Null while a shoot is still empty or being processed. */
   coverThumbnailUrl: string | null;
@@ -65,7 +67,8 @@ export class ListStudioProjectsUseCase {
       clientName: project.clientName ?? null,
       clientEmail: project.clientEmail ?? null,
       createdAt: project.createdAt.toISOString(),
-      photoCount: photoCounts[project.id.toString()] ?? 0,
+      photoCount: photoCounts[project.id.toString()]?.total ?? 0,
+      processingCount: photoCounts[project.id.toString()]?.processing ?? 0,
       albumCount: albumCounts[project.id.toString()] ?? 0,
       coverThumbnailUrl: covers[index] ?? null,
     }));

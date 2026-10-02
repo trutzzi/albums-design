@@ -618,6 +618,7 @@ export const en: Record<string, string> = {
     "A shoot holds the photos of one wedding or event, the albums you build from them, and the links you send your client.",
   "projects.empty.cta": "Create a shoot",
   "projects.card.noPhotos": "No photos yet",
+  "projects.card.analysing": "{done} / {total} analysed",
   "projects.card.created": "Created {date}",
   "projects.card.photos.one": "1 photo",
   "projects.card.photos.other": "{count} photos",

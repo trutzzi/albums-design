@@ -1,6 +1,13 @@
 import type { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Photo, PhotoStatus } from "./photo";
 
+export interface ShootPhotoCounts {
+  /** Photos that finished uploading. */
+  total: number;
+  /** Of those, the ones whose analysis has not finished yet (uploaded or queued). */
+  processing: number;
+}
+
 export interface PhotoRepository {
   save(photo: Photo): Promise<void>;
   findById(id: UniqueEntityId): Promise<Photo | undefined>;
@@ -35,8 +42,11 @@ export interface PhotoRepository {
    * ones whose staged original was already purged, are never returned.
    */
   findAwaitingLongTermStorage(limit: number): Promise<Photo[]>;
-  /** How many photos each shoot has, in one query — the shoots list must not load every row to count. */
-  countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, number>>;
+  /**
+   * How many photos each shoot has, and how many of those are still being processed, in one
+   * query — the shoots list must not load every row to count. Shoots with no photos are absent.
+   */
+  countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, ShootPhotoCounts>>;
   /**
    * The photo that represents each shoot in a list — the first one with display copies, by
    * file name — keyed by project id, in one query. Shoots with no such photo are absent.

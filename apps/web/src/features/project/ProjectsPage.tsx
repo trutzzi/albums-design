@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import type { ProjectSummaryDTO, ProjectType } from "@albumflow/contracts";
 import { createProject, listProjects } from "@/shared/api";
+import { analysisProgress, shootsRefreshInterval } from "@/features/project/lib/shoot-progress";
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { GettingStarted, onboardingDismissed } from "@/features/project/components/GettingStarted";
@@ -55,6 +56,8 @@ export function ProjectsPage() {
   const projects = useQuery({
     queryKey: ["projects", studioId],
     queryFn: () => listProjects(studioId),
+    // Cards of shoots still being analysed show live progress.
+    refetchInterval: (query) => shootsRefreshInterval(query.state.data),
   });
 
   const create = useMutation({
@@ -86,6 +89,19 @@ export function ProjectsPage() {
     const lastTwo = count % 100;
     const many = language === "ro" && (lastTwo === 0 || lastTwo >= 20);
     return t(many ? `${base}.many` : `${base}.other`, { count: count.toLocaleString(locale) });
+  };
+  /** "180 / 248 analysed" while the shoot's photos are being analysed, then the plain total. */
+  const renderPhotoCount = (project: ProjectSummaryDTO) => {
+    const progress = analysisProgress(project);
+    if (progress) {
+      return t("projects.card.analysing", {
+        done: progress.done.toLocaleString(locale),
+        total: progress.total.toLocaleString(locale),
+      });
+    }
+    return project.photoCount > 0
+      ? countLabel(project.photoCount, "projects.card.photos")
+      : t("projects.card.noPhotos");
   };
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
@@ -259,9 +275,7 @@ export function ProjectsPage() {
               <h3>{project.name}</h3>
               {project.clientName && <p className="shoot-card__client">{project.clientName}</p>}
               <p className="muted shoot-card__meta">
-                {project.photoCount > 0
-                  ? countLabel(project.photoCount, "projects.card.photos")
-                  : t("projects.card.noPhotos")}
+                {renderPhotoCount(project)}
                 {project.albumCount > 0 && ` · ${countLabel(project.albumCount, "projects.card.albums")}`}
               </p>
               <p className="muted shoot-card__date">

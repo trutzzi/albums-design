@@ -33,6 +33,8 @@ export type ProjectDTO = z.infer<typeof projectDtoSchema>;
 /** A shoot as the list shows it: enough to recognise the card without opening it. */
 export const projectSummaryDtoSchema = projectDtoSchema.extend({
   photoCount: z.number().int().min(0),
+  /** Photos still being analysed; the card shows progress while this is above 0. */
+  processingCount: z.number().int().min(0),
   albumCount: z.number().int().min(0),
   coverThumbnailUrl: z.string().nullable(),
 });

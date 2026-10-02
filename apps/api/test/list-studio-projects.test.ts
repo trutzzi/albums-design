@@ -71,6 +71,36 @@ describe("the shoots list a photographer lands on", () => {
     assert.ok(summary?.coverThumbnailUrl, "a shoot with processed photos shows one on its card");
   });
 
+  it("reports how many photos are still being analysed, so the card can show progress", async () => {
+    const w = await world();
+    const project = await w.addProject("Nunta Ioana");
+    await w.addPhoto(project, "001.jpg"); // uploaded, not queued yet
+    const queued = await w.addPhoto(project, "002.jpg");
+    queued.markAnalysisQueued();
+    await w.photos.save(queued);
+    const analysed = await w.addPhoto(project, "003.jpg");
+    analysed.markAnalysisQueued();
+    analysed.markAnalysed();
+    await w.photos.save(analysed);
+    // A failed analysis is finished: it must not leave the card stuck at "3 / 4".
+    const failed = await w.addPhoto(project, "004.jpg");
+    failed.markFailed();
+    await w.photos.save(failed);
+    await w.addPhoto(project, "005.jpg", { uploaded: false });
+
+    const [summary] = await w.list.execute(w.studioId.toString());
+    assert.equal(summary?.photoCount, 4);
+    assert.equal(summary?.processingCount, 2);
+  });
+
+  it("reports nothing in progress for an empty shoot", async () => {
+    const w = await world();
+    await w.addProject("Empty");
+    const [summary] = await w.list.execute(w.studioId.toString());
+    assert.equal(summary?.photoCount, 0);
+    assert.equal(summary?.processingCount, 0);
+  });
+
   it("does not count photos that are still uploading", async () => {
     const w = await world();
     const project = await w.addProject("Botez Maria");

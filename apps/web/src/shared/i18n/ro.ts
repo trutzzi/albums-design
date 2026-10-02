@@ -625,6 +625,7 @@ export const ro: Record<string, string> = {
     "O sesiune conține fotografiile unei nunți sau unui eveniment, albumele create din ele și linkurile pe care le trimiți clientului.",
   "projects.empty.cta": "Creează o sesiune",
   "projects.card.noPhotos": "Încă nicio fotografie",
+  "projects.card.analysing": "{done} / {total} analizate",
   "projects.card.created": "Creată pe {date}",
   "projects.card.photos.one": "1 fotografie",
   "projects.card.photos.other": "{count} fotografii",
