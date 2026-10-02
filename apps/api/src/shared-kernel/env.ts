@@ -131,11 +131,34 @@ const envSchema = z.object({
  */
 const databaseEnvSchema = envSchema.pick({ DATABASE_URL: true });
 
+/**
+ * What the application modules read — no database, Redis or S3 — so the in-memory demo
+ * server validates its settings with the same rules and defaults as production.
+ */
+const appSettingsSchema = envSchema.pick({
+  JWT_SECRET: true,
+  WEB_ORIGIN: true,
+  TURNSTILE_SECRET_KEY: true,
+  LONG_TERM_ORIGINALS: true,
+  ORIGINAL_RETENTION_DAYS: true,
+  PREVIEW_LONG_EDGE: true,
+  VISION_PROVIDER: true,
+  ANTHROPIC_API_KEY: true,
+  OLLAMA_BASE_URL: true,
+  OLLAMA_MODEL: true,
+  ADMIN_EMAILS: true,
+  ERROR_LOG_RETENTION_DAYS: true,
+});
+
 export type Env = z.infer<typeof envSchema>;
 export type DatabaseEnv = z.infer<typeof databaseEnvSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   return parseOrThrow(envSchema, source);
+}
+
+export function loadAppSettings(source: NodeJS.ProcessEnv = process.env): z.infer<typeof appSettingsSchema> {
+  return parseOrThrow(appSettingsSchema, source);
 }
 
 export function loadDatabaseEnv(source: NodeJS.ProcessEnv = process.env): DatabaseEnv {

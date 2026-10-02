@@ -1,5 +1,6 @@
 import type { EmailSender } from "#src/shared-kernel/email";
 import type { EmailBrand } from "./email-brand";
+import { escapeHtml } from "#src/shared-kernel/html";
 
 export type InvitationKind = "pick" | "review" | "download";
 /** The photographer's own app language — they know which one their client reads. */
@@ -237,13 +238,6 @@ function renderHtml(invitation: Invitation, copy: Copy): string {
 </body></html>`;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 /**
  * The email a photographer sends their client with a selection, review or download link.

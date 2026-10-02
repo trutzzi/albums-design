@@ -1,7 +1,4 @@
-import { QUEUES } from "../shared-kernel/job-queue";
 import { RequestMetrics } from "../interface/request-metrics";
-import { DrizzleStatsSource } from "../modules/platform-admin/infrastructure/stats-sources";
-import { LiveDependencyProbe } from "../modules/platform-admin/infrastructure/dependency-probes";
 import {
   AdminAccess,
   AdminDashboardUseCase,
@@ -13,13 +10,12 @@ import {
   PurgeUnconfirmedSignupsUseCase,
 } from "../modules/platform-admin/application/use-cases/studio-deletion.use-cases";
 import { ErrorInboxUseCase } from "../modules/platform-admin/application/use-cases/error-inbox.use-case";
-import type { Infrastructure } from "./infrastructure";
-import type { Repositories } from "./repositories";
+import type { ModuleInfrastructure, Repositories } from "./ports";
 import type { MediaIngestionModule } from "./media-ingestion.module";
 
 /** Platform admin: in-app feedback, the operator dashboard, and account housekeeping. */
 export function buildPlatformAdminModule(
-  { env, logger, db, emailSender, jobQueue, permanentStorage, errorLog }: Infrastructure,
+  { env, logger, emailSender, permanentStorage, errorLog, statsSource, dependencyProbe, systemConfig }: ModuleInfrastructure,
   { members, studios, subscriptions, projects, feedback: feedbackRepository }: Repositories,
   { deleteProject }: Pick<MediaIngestionModule, "deleteProject">,
 ) {
@@ -47,18 +43,11 @@ export function buildPlatformAdminModule(
       logger.child({ component: "feedback" }),
     ),
     adminDashboard: new AdminDashboardUseCase(
-      new DrizzleStatsSource(db),
+      statsSource,
       feedbackRepository,
-      new LiveDependencyProbe(db, () => jobQueue.counts(Object.values(QUEUES))),
+      dependencyProbe,
       requestMetrics,
-      {
-        mode: "production",
-        storage: env.STORAGE_PROVIDER,
-        email: env.EMAIL_PROVIDER,
-        billing: env.BILLING_PROVIDER,
-        vision: env.VISION_PROVIDER,
-        errorMonitoring: Boolean(env.SENTRY_DSN),
-      },
+      systemConfig,
       permanentStorage,
     ),
     studioPlans: new StudioPlansUseCase(studios, subscriptions, members, projects),

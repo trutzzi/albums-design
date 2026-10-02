@@ -15,14 +15,13 @@ import { ExportPrintDeliveryDirectory } from "../modules/media-ingestion/infrast
 import { ReviewCollaborationClientPickDirectory } from "../modules/media-ingestion/infrastructure/gateways/client-pick-gateway";
 import { ReviewCollaborationDownloadHolds } from "../modules/media-ingestion/infrastructure/gateways/download-hold-gateway";
 import type { MediaIngestionDependencies } from "../modules/media-ingestion/interface/http/routes";
-import type { Infrastructure } from "./infrastructure";
-import type { Repositories } from "./repositories";
+import type { ModuleInfrastructure, Repositories } from "./ports";
 import type { IdentityModule } from "./identity.module";
 import type { ExportPrintModule } from "./export-print.module";
 
 /** Media ingestion: shoots, uploads, display copies, and the two-tier storage pipeline. */
 export function buildMediaIngestionModule(
-  { env, logger, storage, jobQueue, permanentStorage }: Infrastructure,
+  { env, logger, storage, jobQueue, permanentStorage }: ModuleInfrastructure,
   repos: Repositories,
   { planFeatures, exportStorage }: Pick<IdentityModule, "planFeatures"> & Pick<ExportPrintModule, "exportStorage">,
 ) {

@@ -5,11 +5,10 @@ import { buildVisionClassifier } from "../modules/photo-intelligence/infrastruct
 import { MediaIngestionPhotoLifecycle } from "../modules/photo-intelligence/infrastructure/gateways/photo-lifecycle-gateway";
 import { AnalysisPhotoFocusDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-focus-directory";
 import { AnalysisPhotoDimensionsDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-dimensions-directory";
-import type { Infrastructure } from "./infrastructure";
-import type { Repositories } from "./repositories";
+import type { ModuleInfrastructure, Repositories } from "./ports";
 
 /** Photo intelligence: scoring and categorising each upload, and where its subject sits. */
-export function buildPhotoIntelligenceModule({ env, logger, byteSource }: Infrastructure, { analyses, photos }: Repositories) {
+export function buildPhotoIntelligenceModule({ env, logger, byteSource }: ModuleInfrastructure, { analyses, photos }: Repositories) {
   const visionClassifier = buildVisionClassifier({
     provider: env.VISION_PROVIDER,
     anthropicApiKey: env.ANTHROPIC_API_KEY,
