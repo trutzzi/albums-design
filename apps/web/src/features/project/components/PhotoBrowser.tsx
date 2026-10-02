@@ -63,7 +63,7 @@ export function PhotoBrowser({
       processing: galleryPhotos.filter(isProcessing).length,
       failed: failedCount,
     }),
-    [galleryPhotos, clientPicked],
+    [galleryPhotos, clientPicked, failedCount],
   );
 
   const shown = useMemo(() => {

@@ -111,6 +111,7 @@ export const en: Record<string, string> = {
   "project.upload.useAi": "Use AI photo analysis",
   "project.analysisFailed.body":
     "Analysis failed for {count} of your photos, so they are left out of scoring and the automatic album.",
+  "project.analysisFailed.one": "Analysis failed for 1 photo, so it is left out of scoring and the automatic album.",
   "project.analysisFailed.retry": "Retry analysis",
   "project.analysisFailed.retrying": "Queuing…",
   "project.analysisFailed.nothing": "Nothing left to retry — these photos are already queued.",

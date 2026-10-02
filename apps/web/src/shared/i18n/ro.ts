@@ -114,6 +114,8 @@ export const ro: Record<string, string> = {
   "project.upload.useAi": "Folosește analiza AI a fotografiilor",
   "project.analysisFailed.body":
     "Analiza a eșuat pentru {count} dintre fotografii, așa că nu sunt incluse în punctaj și în albumul automat.",
+  "project.analysisFailed.one":
+    "Analiza a eșuat pentru o fotografie, așa că nu este inclusă în punctaj și în albumul automat.",
   "project.analysisFailed.retry": "Reîncearcă analiza",
   "project.analysisFailed.retrying": "Se pun în coadă…",
   "project.analysisFailed.nothing": "Nu mai e nimic de reîncercat — fotografiile sunt deja în coadă.",
