@@ -83,7 +83,6 @@ describe("layout suggestions for a hand-picked set", () => {
       photo({ photoId: "star", score: 96 }),
       photo({ photoId: "middling", score: 74 }),
     ];
-    const scoreOf = new Map(photos.map((p) => [p.photoId, p.score]));
 
     const result = await new SuggestLayoutsUseCase(directory(photos)).execute({
       projectId: PROJECT,

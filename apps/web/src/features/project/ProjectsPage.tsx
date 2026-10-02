@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import type { ProjectSummaryDTO, ProjectType } from "@albumflow/contracts";
@@ -64,8 +64,10 @@ export function ProjectsPage() {
     },
   });
 
-  const typeLabel = (type: ProjectType) =>
-    t(TYPES.find((option) => option.value === type)?.labelKey ?? type);
+  const typeLabel = useCallback(
+    (type: ProjectType) => t(TYPES.find((option) => option.value === type)?.labelKey ?? type),
+    [t],
+  );
   const locale = language === "ro" ? "ro-RO" : "en-GB";
   /**
    * "1 album" but "5 albums" — and Romanian needs a third form from twenty up
@@ -80,7 +82,7 @@ export function ProjectsPage() {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
 
-  const all = projects.data ?? [];
+  const all = useMemo(() => projects.data ?? [], [projects.data]);
 
   // A studio with no shoots yet is shown the whole journey first, once; the page's own
   // guided tour waits until that closes, so two overlays never stack.
@@ -98,7 +100,7 @@ export function ProjectsPage() {
         .toLowerCase()
         .includes(needle),
     );
-  }, [all, search]);
+  }, [all, search, typeLabel]);
 
   const newShootForm = (
     <form

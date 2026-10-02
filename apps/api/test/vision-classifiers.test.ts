@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it, mock } from "node:test";
+import { describe, it } from "node:test";
 import sharp from "sharp";
 import { FallbackVisionClassifier } from "../src/modules/photo-intelligence/infrastructure/vision/fallback-vision-classifier";
 import { OllamaVisionClassifier } from "../src/modules/photo-intelligence/infrastructure/vision/ollama-vision-classifier";

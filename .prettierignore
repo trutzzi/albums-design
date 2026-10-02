@@ -1,0 +1,13 @@
+# Generated or vendored
+node_modules
+dist
+coverage
+.turbo
+pnpm-lock.yaml
+apps/api/drizzle
+apps/web/public
+*.tsbuildinfo
+# Prose and static marketing pages keep their hand-written layout
+*.md
+marketing
+docs
