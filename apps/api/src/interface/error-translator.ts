@@ -15,6 +15,8 @@ const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   FORBIDDEN: 403,
   EMAIL_NOT_VERIFIED: 403,
   TOO_MANY_ATTEMPTS: 429,
+  // The job queue is down: not the client's mistake, and worth retrying shortly.
+  RETRY_NOT_QUEUED: 503,
 };
 
 export function httpStatusFor(error: ApplicationError): number {

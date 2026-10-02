@@ -22,6 +22,8 @@ export function FailedAnalysisNotice({ projectId, failedCount }: { projectId: st
     <div className="notice" role="status">
       <p>{t("project.analysisFailed.body", { count: failedCount })}</p>
       {retry.isError && <p className="error">{t("project.analysisFailed.error")}</p>}
+      {/* Another tab or a second click got there first: say so instead of doing nothing. */}
+      {retry.data?.queued === 0 && <p className="muted">{t("project.analysisFailed.nothing")}</p>}
       <button type="button" className="button button--small" disabled={retry.isPending} onClick={() => retry.mutate()}>
         {retry.isPending ? t("project.analysisFailed.retrying") : t("project.analysisFailed.retry")}
       </button>

@@ -121,6 +121,28 @@ describe("retrying analysis for a shoot's failed photos", () => {
     assert.equal(w.jobs.drain("photo-intelligence").length, 1);
   });
 
+  it("puts the photo back to failed when the job cannot be queued, so it is never left waiting on nothing", async () => {
+    const w = await world();
+    const failed = await w.queuedPhoto("001.jpg");
+    await w.recordFailure.execute({ photoId: failed.id.toString() });
+    const errors: string[] = [];
+    const brokenQueue = {
+      enqueue: async () => {
+        throw new Error("redis down");
+      },
+    };
+    const logger = { ...console, error: (message: string) => void errors.push(message), child: () => logger };
+    const retry = new RetryFailedAnalysesUseCase(w.photos, brokenQueue, logger as never);
+
+    const result = await retry.execute({ projectId: w.projectId });
+
+    assert.ok(result.isFailure);
+    assert.equal(result.getError().code, "RETRY_NOT_QUEUED");
+    assert.equal((await w.photos.findById(failed.id))?.status, "FAILED");
+    assert.equal((await w.shoots())[0]?.processingCount, 0, "the card does not start waiting");
+    assert.equal(errors.length, 1, "the outage is logged at error level");
+  });
+
   it("only ever moves a failed photo back to the queue", () => {
     const photo = Photo.requestUpload({
       projectId: UniqueEntityId.create(),

@@ -81,7 +81,7 @@ export function buildMediaIngestionModule(
     listStudioProjects: new ListStudioProjectsUseCase(projects, photos, albums, storage, permanentStorage, storageLog),
     listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
     deleteProject,
-    retryFailedAnalyses: new RetryFailedAnalysesUseCase(photos, jobQueue),
+    retryFailedAnalyses: new RetryFailedAnalysesUseCase(photos, jobQueue, storageLog),
     projects,
   };
 

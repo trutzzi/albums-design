@@ -4,7 +4,7 @@ import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { PhotoGallery } from "@/shared/ui/PhotoGallery";
 import { PhotoLightbox } from "@/shared/ui/PhotoLightbox";
 
-const PHOTO_FILTERS = ["all", "worthy", "picked", "processing"] as const;
+const PHOTO_FILTERS = ["all", "worthy", "picked", "processing", "failed"] as const;
 type PhotoFilter = (typeof PHOTO_FILTERS)[number];
 type PhotoSort = "name" | "score";
 
@@ -57,6 +57,7 @@ export function PhotoBrowser({
       worthy: galleryPhotos.filter((photo) => photo.analysis?.albumWorthy).length,
       picked: galleryPhotos.filter((photo) => clientPicked.has(photo.id)).length,
       processing: galleryPhotos.filter(isProcessing).length,
+      failed: galleryPhotos.filter((photo) => photo.status === "FAILED").length,
     }),
     [galleryPhotos, clientPicked],
   );
@@ -69,7 +70,9 @@ export function PhotoBrowser({
           ? clientPicked.has(photo.id)
           : filter === "processing"
             ? isProcessing(photo)
-            : true,
+            : filter === "failed"
+              ? photo.status === "FAILED"
+              : true,
     );
     // The server already lists photos in file-name order.
     return sort === "score"
@@ -93,7 +96,7 @@ export function PhotoBrowser({
         {photos.length > 0 && (
           <div className="photo-toolbar">
             <div className="photo-toolbar__filters" role="group" aria-label={t("project.photos.filterLabel")}>
-              {PHOTO_FILTERS.map((option) => (
+              {PHOTO_FILTERS.filter((option) => option !== "failed" || counts.failed > 0).map((option) => (
                 <button
                   key={option}
                   type="button"
@@ -135,9 +138,7 @@ export function PhotoBrowser({
               </span>
             ) : null
           }
-          placeholder={(photo) => (
-            <div className="gallery__placeholder">{photo.status.toLowerCase().replace(/_/g, " ")}</div>
-          )}
+          placeholder={(photo) => <div className="gallery__placeholder">{t(`photo.status.${photo.status}`)}</div>}
           caption={(photo) => (
             <>
               <span className="photo-card__name">{photo.fileName}</span>
@@ -146,7 +147,7 @@ export function PhotoBrowser({
                   {photo.analysis.overall} · {photo.analysis.category.toLowerCase()}
                 </span>
               ) : (
-                <span className="muted">{photo.status.toLowerCase().replace(/_/g, " ")}</span>
+                <span className="muted">{t(`photo.status.${photo.status}`)}</span>
               )}
             </>
           )}
