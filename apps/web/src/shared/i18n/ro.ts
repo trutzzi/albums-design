@@ -112,6 +112,19 @@ export const ro: Record<string, string> = {
   "ai.status.offline.title":
     "Clasificatorul AI local nu poate fi contactat momentan — încărcarea funcționează în continuare, folosind analiza de bază (fără AI).",
   "project.upload.useAi": "Folosește analiza AI a fotografiilor",
+  "project.analysisFailed.body":
+    "Analiza a eșuat pentru {count} dintre fotografii, așa că nu sunt incluse în punctaj și în albumul automat.",
+  "project.analysisFailed.one":
+    "Analiza a eșuat pentru o fotografie, așa că nu este inclusă în punctaj și în albumul automat.",
+  "project.analysisFailed.retry": "Reîncearcă analiza",
+  "project.analysisFailed.retrying": "Se pun în coadă…",
+  "project.analysisFailed.nothing": "Nu mai e nimic de reîncercat — fotografiile sunt deja în coadă.",
+  "project.analysisFailed.error": "Nu au putut fi puse din nou în coadă. Încearcă din nou peste puțin timp.",
+  "photo.status.PENDING_UPLOAD": "se încarcă",
+  "photo.status.UPLOADED": "încărcată",
+  "photo.status.ANALYSIS_QUEUED": "în analiză",
+  "photo.status.ANALYSED": "analizată",
+  "photo.status.FAILED": "analiză eșuată",
   "project.upload.useAi.unavailable": "Serverul AI local nu poate fi contactat momentan, așa că este dezactivat.",
   "ai.consent.title": "Procesare AI locală",
   "ai.consent.body":
@@ -164,6 +177,7 @@ export const ro: Record<string, string> = {
   "project.photos.filter.worthy": "Bune pentru album ({count})",
   "project.photos.filter.picked": "Alese de client ({count})",
   "project.photos.filter.processing": "În procesare ({count})",
+  "project.photos.filter.failed": "Analiză eșuată ({count})",
   "project.photos.sort": "Sortare",
   "project.photos.sort.name": "Nume fișier",
   "project.photos.sort.score": "Cele mai bune întâi",
@@ -625,6 +639,7 @@ export const ro: Record<string, string> = {
     "O sesiune conține fotografiile unei nunți sau unui eveniment, albumele create din ele și linkurile pe care le trimiți clientului.",
   "projects.empty.cta": "Creează o sesiune",
   "projects.card.noPhotos": "Încă nicio fotografie",
+  "projects.card.analysing": "{done} / {total} analizate",
   "projects.card.created": "Creată pe {date}",
   "projects.card.photos.one": "1 fotografie",
   "projects.card.photos.other": "{count} fotografii",

@@ -17,4 +17,10 @@ export class MediaIngestionPhotoLifecycle implements PhotoLifecycle {
     photo.markAnalysed();
     await this.photos.updateStatus(id, photo.status);
   }
+
+  async markAnalysisFailed(photoId: string): Promise<void> {
+    // Only a photo still waiting on analysis, checked in the same write: a success that
+    // lands at the same moment is never overwritten, and a missing photo is a no-op.
+    await this.photos.updateStatusIf(UniqueEntityId.create(photoId), ["UPLOADED", "ANALYSIS_QUEUED"], "FAILED");
+  }
 }

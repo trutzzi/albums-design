@@ -1,6 +1,6 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { Photo } from "../modules/media-ingestion/domain/photo";
-import type { PhotoRepository } from "../modules/media-ingestion/domain/photo-repository";
+import type { PhotoRepository, ShootPhotoCounts } from "../modules/media-ingestion/domain/photo-repository";
 import type { Project } from "../modules/media-ingestion/domain/project";
 import type { ProjectRepository } from "../modules/media-ingestion/domain/project-repository";
 import type {
@@ -109,6 +109,12 @@ export class InMemoryPhotoRepository implements PhotoRepository {
     (updated as unknown as { props: { status: Photo["status"] } }).props.status = status;
     this.items.set(id.toString(), updated);
   }
+  async updateStatusIf(id: UniqueEntityId, from: Photo["status"][], to: Photo["status"]) {
+    const stored = this.items.get(id.toString());
+    if (!stored || !from.includes(stored.status)) return false;
+    await this.updateStatus(id, to);
+    return true;
+  }
   async markDerivativesReady(id: UniqueEntityId, options: { permanent?: boolean } = {}) {
     await this.mutate(id, (photo) => photo.markDerivativesReady(options));
   }
@@ -123,11 +129,13 @@ export class InMemoryPhotoRepository implements PhotoRepository {
   }
   async countByProjectIds(projectIds: UniqueEntityId[]) {
     const wanted = new Set(projectIds.map((id) => id.toString()));
-    const counts: Record<string, number> = {};
+    const counts: Record<string, ShootPhotoCounts> = {};
     for (const photo of this.items.values()) {
       const key = photo.projectId.toString();
       if (!wanted.has(key) || photo.status === "PENDING_UPLOAD") continue;
-      counts[key] = (counts[key] ?? 0) + 1;
+      const shoot = (counts[key] ??= { total: 0, processing: 0 });
+      shoot.total += 1;
+      if (photo.status === "UPLOADED" || photo.status === "ANALYSIS_QUEUED") shoot.processing += 1;
     }
     return counts;
   }

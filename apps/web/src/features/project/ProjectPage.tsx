@@ -22,6 +22,7 @@ import { useAlbumSize } from "@/features/project/hooks/useAlbumSize";
 import { useClientContact } from "@/features/project/hooks/useClientContact";
 import { PhotoUploader } from "@/features/project/components/PhotoUploader";
 import { UploadProgress } from "@/features/project/components/UploadProgress";
+import { FailedAnalysisNotice } from "@/features/project/components/FailedAnalysisNotice";
 import { DEFAULT_PHOTO_VIEW, PhotoBrowser, type PhotoView } from "@/features/project/components/PhotoBrowser";
 import { SelectionPanel } from "@/features/project/components/SelectionPanel";
 import { AlbumPanel } from "@/features/project/components/AlbumPanel";
@@ -129,6 +130,7 @@ export function ProjectPage() {
 
   const uploadedCount = photos.data?.length ?? 0;
   const analysed = analyses.data?.length ?? 0;
+  const failedAnalysis = (photos.data ?? []).filter((photo) => photo.status === "FAILED").length;
   const albumWorthy = (analyses.data ?? []).filter((analysis) => analysis.albumWorthy).length;
 
   const upload = usePhotoUpload({ studioId, projectId, useAi, photoLimit, photoCount: uploadedCount });
@@ -157,6 +159,7 @@ export function ProjectPage() {
   const workflow = shootWorkflow({
     uploaded: uploadedCount,
     analysed,
+    failed: failedAnalysis,
     albums: albums.data ?? [],
     picks: pickSessions.data ?? [],
     deliveries: downloadSessions.data ?? [],
@@ -256,6 +259,7 @@ export function ProjectPage() {
               photoCount={uploadedCount}
               photoLimit={photoLimit}
             />
+            <FailedAnalysisNotice projectId={projectId} failedCount={failedAnalysis} />
             <PhotoBrowser
               photos={photos.data ?? []}
               analyses={analyses.data ?? []}

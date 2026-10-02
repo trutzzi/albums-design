@@ -131,6 +131,14 @@ export class Photo extends AggregateRoot<PhotoProps> {
     this.props.status = "FAILED";
   }
 
+  /** A photo whose analysis gave up can be queued again — and only such a photo. */
+  retryAnalysis(): void {
+    if (this.props.status !== "FAILED") {
+      throw new InvalidPhotoStateTransitionError(this.props.status, "ANALYSIS_QUEUED");
+    }
+    this.props.status = "ANALYSIS_QUEUED";
+  }
+
   get projectId(): UniqueEntityId {
     return this.props.projectId;
   }

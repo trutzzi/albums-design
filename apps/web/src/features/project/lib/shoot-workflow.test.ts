@@ -18,6 +18,12 @@ describe("where a shoot stands", () => {
     assert.deepEqual(next.actions, ["toSelection"]);
   });
 
+  it("counts photos whose analysis failed as processed, so the shoot does not wait for them forever", () => {
+    const { steps, next } = shootWorkflow({ ...empty, uploaded: 10, analysed: 9, failed: 1 });
+    assert.equal(steps.photos.done, true);
+    assert.deepEqual(next.actions, ["toSelection", "toAlbum"]);
+  });
+
   it("offers picks or the album once every photo is ready", () => {
     const { steps, next } = shootWorkflow({ ...empty, uploaded: 10, analysed: 10 });
     assert.equal(steps.photos.done, true);

@@ -13,6 +13,7 @@ import type { ListStudioProjectsUseCase } from "../../application/use-cases/list
 import type { ConfirmUploadUseCase } from "../../application/use-cases/confirm-upload/confirm-upload.use-case";
 import type { ListProjectPhotosUseCase } from "../../application/use-cases/list-project-photos/list-project-photos.use-case";
 import type { DeleteProjectUseCase } from "../../application/use-cases/delete-project/delete-project.use-case";
+import type { RetryFailedAnalysesUseCase } from "../../application/use-cases/retry-failed-analyses/retry-failed-analyses.use-case";
 
 const projectParamsSchema = z.object({
   studioId: z.string().uuid(),
@@ -37,6 +38,7 @@ export interface MediaIngestionDependencies {
   listProjectPhotos: ListProjectPhotosUseCase;
   listStudioProjects: ListStudioProjectsUseCase;
   deleteProject: DeleteProjectUseCase;
+  retryFailedAnalyses: RetryFailedAnalysesUseCase;
   projects: ProjectRepository;
 }
 
@@ -130,6 +132,14 @@ export function registerMediaIngestionRoutes(app: FastifyInstance, deps: MediaIn
   app.get("/projects/:projectId/photos", async (request) => {
     const params = listPhotosParamsSchema.parse(request.params);
     return deps.listProjectPhotos.execute(params.projectId);
+  });
+
+  // The tenancy guard checks :projectId belongs to the caller's studio before this runs.
+  app.post("/projects/:projectId/photos/retry-analysis", async (request, reply) => {
+    const params = listPhotosParamsSchema.parse(request.params);
+    const result = await deps.retryFailedAnalyses.execute({ projectId: params.projectId });
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return result.getValue();
   });
 
   app.delete("/projects/:projectId", async (request, reply) => {

@@ -4,9 +4,12 @@ import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { PhotoGallery } from "@/shared/ui/PhotoGallery";
 import { PhotoLightbox } from "@/shared/ui/PhotoLightbox";
 
-const PHOTO_FILTERS = ["all", "worthy", "picked", "processing"] as const;
+const PHOTO_FILTERS = ["all", "worthy", "picked", "processing", "failed"] as const;
 type PhotoFilter = (typeof PHOTO_FILTERS)[number];
 type PhotoSort = "name" | "score";
+
+/** Still being analysed: no result yet, and analysis has not given up on it. */
+const isProcessing = (photo: { analysis?: unknown; status: string }) => !photo.analysis && photo.status !== "FAILED";
 
 /** How the photos are narrowed and ordered. Held by the page, so it survives a step change. */
 export interface PhotoView {
@@ -31,7 +34,11 @@ export function PhotoBrowser({
   onViewChange: (view: PhotoView) => void;
 }) {
   const { t } = useLanguage();
-  const { filter, sort } = view;
+  const { sort } = view;
+  const failedCount = photos.filter((photo) => photo.status === "FAILED").length;
+  // The "failed" chip disappears once a retry succeeds; fall back to all photos rather
+  // than leave an empty gallery with no chip selected.
+  const filter: PhotoFilter = view.filter === "failed" && failedCount === 0 ? "all" : view.filter;
   const [lightboxId, setLightboxId] = useState<string | null>(null);
 
   const galleryPhotos = useMemo(() => {
@@ -53,9 +60,10 @@ export function PhotoBrowser({
       all: galleryPhotos.length,
       worthy: galleryPhotos.filter((photo) => photo.analysis?.albumWorthy).length,
       picked: galleryPhotos.filter((photo) => clientPicked.has(photo.id)).length,
-      processing: galleryPhotos.filter((photo) => !photo.analysis).length,
+      processing: galleryPhotos.filter(isProcessing).length,
+      failed: failedCount,
     }),
-    [galleryPhotos, clientPicked],
+    [galleryPhotos, clientPicked, failedCount],
   );
 
   const shown = useMemo(() => {
@@ -65,8 +73,10 @@ export function PhotoBrowser({
         : filter === "picked"
           ? clientPicked.has(photo.id)
           : filter === "processing"
-            ? !photo.analysis
-            : true,
+            ? isProcessing(photo)
+            : filter === "failed"
+              ? photo.status === "FAILED"
+              : true,
     );
     // The server already lists photos in file-name order.
     return sort === "score"
@@ -90,7 +100,7 @@ export function PhotoBrowser({
         {photos.length > 0 && (
           <div className="photo-toolbar">
             <div className="photo-toolbar__filters" role="group" aria-label={t("project.photos.filterLabel")}>
-              {PHOTO_FILTERS.map((option) => (
+              {PHOTO_FILTERS.filter((option) => option !== "failed" || counts.failed > 0).map((option) => (
                 <button
                   key={option}
                   type="button"
@@ -132,9 +142,7 @@ export function PhotoBrowser({
               </span>
             ) : null
           }
-          placeholder={(photo) => (
-            <div className="gallery__placeholder">{photo.status.toLowerCase().replace(/_/g, " ")}</div>
-          )}
+          placeholder={(photo) => <div className="gallery__placeholder">{t(`photo.status.${photo.status}`)}</div>}
           caption={(photo) => (
             <>
               <span className="photo-card__name">{photo.fileName}</span>
@@ -143,7 +151,7 @@ export function PhotoBrowser({
                   {photo.analysis.overall} · {photo.analysis.category.toLowerCase()}
                 </span>
               ) : (
-                <span className="muted">{photo.status.toLowerCase().replace(/_/g, " ")}</span>
+                <span className="muted">{t(`photo.status.${photo.status}`)}</span>
               )}
             </>
           )}

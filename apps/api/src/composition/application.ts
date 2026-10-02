@@ -58,6 +58,7 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     purgeExpiredOriginals: ingestion.purgeExpiredOriginals,
     analyses: repos.analyses,
     analyzePhoto: intelligence.analyzePhoto,
+    recordAnalysisFailure: intelligence.recordAnalysisFailure,
     visionClassifier: intelligence.visionClassifier,
     albums: repos.albums,
     suggestLayouts: composition.suggestLayouts,

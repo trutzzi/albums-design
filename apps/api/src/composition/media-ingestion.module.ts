@@ -2,6 +2,7 @@ import { RequestUploadUseCase } from "../modules/media-ingestion/application/use
 import { AbandonUploadUseCase } from "../modules/media-ingestion/application/use-cases/abandon-upload/abandon-upload.use-case";
 import { ListStudioProjectsUseCase } from "../modules/media-ingestion/application/use-cases/list-studio-projects/list-studio-projects.use-case";
 import { ConfirmUploadUseCase } from "../modules/media-ingestion/application/use-cases/confirm-upload/confirm-upload.use-case";
+import { RetryFailedAnalysesUseCase } from "../modules/media-ingestion/application/use-cases/retry-failed-analyses/retry-failed-analyses.use-case";
 import { ListProjectPhotosUseCase } from "../modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
 import { DeleteProjectUseCase } from "../modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
 import { GenerateDerivativesUseCase } from "../modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
@@ -80,6 +81,7 @@ export function buildMediaIngestionModule(
     listStudioProjects: new ListStudioProjectsUseCase(projects, photos, albums, storage, permanentStorage, storageLog),
     listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
     deleteProject,
+    retryFailedAnalyses: new RetryFailedAnalysesUseCase(photos, jobQueue, storageLog),
     projects,
   };
 

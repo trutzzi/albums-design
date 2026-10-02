@@ -4,4 +4,6 @@
  */
 export interface PhotoLifecycle {
   markAnalysed(photoId: string): Promise<void>;
+  /** Analysis gave up on this photo for good. A photo already analysed is left as it is. */
+  markAnalysisFailed(photoId: string): Promise<void>;
 }

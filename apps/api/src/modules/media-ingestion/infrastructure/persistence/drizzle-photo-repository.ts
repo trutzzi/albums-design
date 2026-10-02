@@ -1,7 +1,7 @@
-import { and, asc, count, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "#src/db/client";
-import type { PhotoRepository } from "../../domain/photo-repository";
+import type { PhotoRepository, ShootPhotoCounts } from "../../domain/photo-repository";
 import { Photo, type PhotoStatus } from "../../domain/photo";
 import { StorageKey } from "../../domain/value-objects/storage-key";
 import { photos } from "./schema";
@@ -44,6 +44,15 @@ export class DrizzlePhotoRepository implements PhotoRepository {
 
   async updateStatus(id: UniqueEntityId, status: PhotoStatus): Promise<void> {
     await this.db.update(photos).set({ status }).where(eq(photos.id, id.toString()));
+  }
+
+  async updateStatusIf(id: UniqueEntityId, from: PhotoStatus[], to: PhotoStatus): Promise<boolean> {
+    const moved = await this.db
+      .update(photos)
+      .set({ status: to })
+      .where(and(eq(photos.id, id.toString()), inArray(photos.status, from)))
+      .returning({ id: photos.id });
+    return moved.length > 0;
   }
 
   async markDerivativesReady(id: UniqueEntityId, options: { permanent?: boolean } = {}): Promise<void> {
@@ -89,10 +98,14 @@ export class DrizzlePhotoRepository implements PhotoRepository {
     return rows.map((row) => this.toDomain(row));
   }
 
-  async countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, number>> {
+  async countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, ShootPhotoCounts>> {
     if (projectIds.length === 0) return {};
     const rows = await this.db
-      .select({ projectId: photos.projectId, total: count() })
+      .select({
+        projectId: photos.projectId,
+        total: count(),
+        processing: sql<number>`count(*) filter (where ${photos.status} in ('UPLOADED', 'ANALYSIS_QUEUED'))`,
+      })
       .from(photos)
       .where(
         and(
@@ -104,7 +117,9 @@ export class DrizzlePhotoRepository implements PhotoRepository {
         ),
       )
       .groupBy(photos.projectId);
-    return Object.fromEntries(rows.map((row) => [row.projectId, Number(row.total)]));
+    return Object.fromEntries(
+      rows.map((row) => [row.projectId, { total: Number(row.total), processing: Number(row.processing) }]),
+    );
   }
 
   async findCoverPhotos(projectIds: UniqueEntityId[]): Promise<Map<string, Photo>> {

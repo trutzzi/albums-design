@@ -10,3 +10,7 @@ apps/web/dist/
 apps/api/dist/
 apps/worker/dist/
 *.tsbuildinfo
+
+# Screenshots from local checks never belong at the repo root.
+/*.png
+/*.jpg
