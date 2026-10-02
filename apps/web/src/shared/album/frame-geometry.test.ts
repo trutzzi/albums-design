@@ -142,8 +142,7 @@ describe("collectSnapTargets", () => {
 
   it("adds every rectangle's own edges, not just its origin", () => {
     const targets = collectSnapTargets([{ x: 0.1, y: 0.3, width: 0.2, height: 0.15 }]);
-    const has = (values: number[], expected: number) =>
-      values.some((v) => Math.abs(v - expected) < 1e-9);
+    const has = (values: number[], expected: number) => values.some((v) => Math.abs(v - expected) < 1e-9);
     assert.ok(has(targets.x, 0.1), "left edge missing");
     assert.ok(has(targets.x, 0.3), "right edge (x + width) missing");
     assert.ok(has(targets.y, 0.3), "top edge missing");
@@ -262,10 +261,7 @@ describe("mergeSnapTargets", () => {
   });
 
   it("lets a resize actually snap to a merged-in guide line", () => {
-    const targets = mergeSnapTargets(
-      collectSnapTargets([]),
-      collectPrintGuideTargets(150, 200, 5),
-    );
+    const targets = mergeSnapTargets(collectSnapTargets([]), collectPrintGuideTargets(150, 200, 5));
     // Drag the frame's left edge to just short of the safe-area line at x = 5/300.
     const nudged = resizeFrameSnapped(FRAME, "nw", -0.2 + 5 / 300 + 0.002, 0, targets);
     near(nudged.x, 5 / 300, "left edge snapped to the safe-area guide");

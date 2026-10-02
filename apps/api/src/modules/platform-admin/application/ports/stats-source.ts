@@ -10,5 +10,7 @@ export interface DependencyProbe {
   /** Round-trip time of a trivial query, or `null` when the database cannot be reached. */
   databaseLatencyMs(): Promise<number | null>;
   /** Jobs per state for each background queue; empty when jobs run inline (demo mode). */
-  queues(): Promise<{ name: string; waiting: number; active: number; delayed: number; failed: number; completed: number }[]>;
+  queues(): Promise<
+    { name: string; waiting: number; active: number; delayed: number; failed: number; completed: number }[]
+  >;
 }

@@ -10,7 +10,11 @@ export interface StudioRepository {
   /** Every studio, newest first — the platform admin's list. */
   listAll(): Promise<Studio[]>;
   /** One page of studios, newest first, optionally matching a name or owner email. */
-  listPage(query: { search?: string | undefined; offset: number; limit: number }): Promise<{ studios: Studio[]; total: number }>;
+  listPage(query: {
+    search?: string | undefined;
+    offset: number;
+    limit: number;
+  }): Promise<{ studios: Studio[]; total: number }>;
   delete(id: UniqueEntityId): Promise<void>;
 }
 

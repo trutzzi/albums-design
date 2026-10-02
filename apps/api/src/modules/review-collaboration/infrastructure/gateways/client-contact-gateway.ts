@@ -30,10 +30,7 @@ export class ProjectClientContactDirectory implements ClientContactDirectory {
     return this.forProject(album.projectId.toString());
   }
 
-  async remember(
-    projectId: string,
-    contact: { name?: string | undefined; email?: string | undefined },
-  ): Promise<void> {
+  async remember(projectId: string, contact: { name?: string | undefined; email?: string | undefined }): Promise<void> {
     if (!contact.name?.trim() && !contact.email?.trim()) return;
     const project = await this.projects.findById(UniqueEntityId.create(projectId));
     if (!project) return;

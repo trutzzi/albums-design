@@ -7,21 +7,17 @@ import type { FastifyInstance } from "fastify";
  * schema answer instead, so a caller gets a real validation message or a 200.
  */
 export function acceptEmptyJsonBody(app: FastifyInstance): void {
-  app.addContentTypeParser(
-    "application/json",
-    { parseAs: "string" },
-    (_request, body: string, done) => {
-      if (body === undefined || body === null || body.trim() === "") {
-        done(null, {});
-        return;
-      }
-      try {
-        done(null, JSON.parse(body));
-      } catch (error) {
-        const failure = error as Error & { statusCode?: number };
-        failure.statusCode = 400;
-        done(failure, undefined);
-      }
-    },
-  );
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (_request, body: string, done) => {
+    if (body === undefined || body === null || body.trim() === "") {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(body));
+    } catch (error) {
+      const failure = error as Error & { statusCode?: number };
+      failure.statusCode = 400;
+      done(failure, undefined);
+    }
+  });
 }

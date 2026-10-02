@@ -76,7 +76,9 @@ describe("the album a client reviews", () => {
       spreads: [
         {
           templateId: "single",
-          placements: [{ slotId: "s0", photoId: UniqueEntityId.create().toString(), crop: FULL_CROP, treatment: "COLOR" }],
+          placements: [
+            { slotId: "s0", photoId: UniqueEntityId.create().toString(), crop: FULL_CROP, treatment: "COLOR" },
+          ],
         },
       ],
     });

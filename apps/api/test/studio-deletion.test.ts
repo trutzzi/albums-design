@@ -38,12 +38,17 @@ function world() {
   const access = new AdminAccess(members, ["boss@albumflow.test"]);
   const deleteStudio = new DeleteStudioUseCase(studios, subscriptions, members, projects, shoots, feedback, access);
 
-  async function studio(email: string, options: { confirmed?: boolean; signedUpHoursAgo?: number; shoots?: number } = {}) {
+  async function studio(
+    email: string,
+    options: { confirmed?: boolean; signedUpHoursAgo?: number; shoots?: number } = {},
+  ) {
     const { studio } = Studio.create({ name: email.split("@")[0]!, ownerEmail: email });
     await studios.save(studio);
     await subscriptions.save(Subscription.startDefault(studio.id));
     const member = StudioMember.signUp({ studioId: studio.id, email, name: "Owner", passwordHash: "x" });
-    (member as unknown as { props: { invitedAt: Date } }).props.invitedAt = new Date(Date.now() - (options.signedUpHoursAgo ?? 1) * HOUR);
+    (member as unknown as { props: { invitedAt: Date } }).props.invitedAt = new Date(
+      Date.now() - (options.signedUpHoursAgo ?? 1) * HOUR,
+    );
     if (options.confirmed) member.markEmailVerified();
     await members.save(member);
     for (let index = 0; index < (options.shoots ?? 0); index++) {
@@ -60,7 +65,14 @@ describe("deleting a studio", () => {
     const target = await w.studio("spam@admin.com", { shoots: 2 });
     const keep = await w.studio("ana@studio.ro", { confirmed: true });
     await w.feedback.save(
-      Feedback.submit({ studioId: target.id.toString(), memberId: undefined, authorName: "x", authorEmail: "spam@admin.com", kind: "IDEA", message: "hi" }),
+      Feedback.submit({
+        studioId: target.id.toString(),
+        memberId: undefined,
+        authorName: "x",
+        authorEmail: "spam@admin.com",
+        kind: "IDEA",
+        message: "hi",
+      }),
     );
 
     const result = await w.deleteStudio.execute(target.id.toString());

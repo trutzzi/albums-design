@@ -50,9 +50,7 @@ describe("JWT sign/verify", () => {
   it("rejects a tampered payload even if the signature parses", () => {
     const token = signJwt({ sub: "member-1", role: "OWNER" }, SECRET, 3600);
     const [header, , signature] = token.split(".");
-    const forgedBody = Buffer.from(JSON.stringify({ sub: "member-1", role: "ADMIN" })).toString(
-      "base64url",
-    );
+    const forgedBody = Buffer.from(JSON.stringify({ sub: "member-1", role: "ADMIN" })).toString("base64url");
     assert.equal(verifyJwt(`${header}.${forgedBody}.${signature}`, SECRET), undefined);
   });
 
@@ -138,7 +136,11 @@ describe("registering a personal account", () => {
     const { register, signUpConfirmed } = fixtures();
     await signUpConfirmed("alex@example.com", "hunter2hunter2");
 
-    const result = await register.execute({ name: "Someone else", email: "alex@example.com", password: "differentpass" });
+    const result = await register.execute({
+      name: "Someone else",
+      email: "alex@example.com",
+      password: "differentpass",
+    });
     assert.ok(result.isFailure);
     assert.equal(result.getError().code, "CONFLICT");
   });
@@ -155,12 +157,27 @@ describe("registering a personal account", () => {
   it("stops one address from creating accounts in bulk", async () => {
     const { register } = fixtures();
     for (let index = 0; index < 5; index++) {
-      const ok = await register.execute({ name: "Bot", email: `bot${index}@spam.test`, password: "password123", ip: "203.0.113.9" });
+      const ok = await register.execute({
+        name: "Bot",
+        email: `bot${index}@spam.test`,
+        password: "password123",
+        ip: "203.0.113.9",
+      });
       assert.ok(ok.isSuccess);
     }
-    const blocked = await register.execute({ name: "Bot", email: "bot9@spam.test", password: "password123", ip: "203.0.113.9" });
+    const blocked = await register.execute({
+      name: "Bot",
+      email: "bot9@spam.test",
+      password: "password123",
+      ip: "203.0.113.9",
+    });
     assert.equal(blocked.getError().code, "TOO_MANY_ATTEMPTS");
-    const person = await register.execute({ name: "Ana", email: "ana@studio.ro", password: "password123", ip: "198.51.100.4" });
+    const person = await register.execute({
+      name: "Ana",
+      email: "ana@studio.ro",
+      password: "password123",
+      ip: "198.51.100.4",
+    });
     assert.ok(person.isSuccess, "other addresses are unaffected");
   });
 

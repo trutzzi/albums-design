@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import Fastify from "fastify";
-import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { computeBusinessStats, type StatsInput } from "../src/modules/platform-admin/domain/business-stats";
 import { RequestMetrics, percentile } from "../src/interface/request-metrics";
 import { InMemoryFeedbackRepository } from "../src/modules/platform-admin/infrastructure/feedback-repositories";
@@ -86,7 +85,11 @@ describe("business stats", () => {
 
   it("sums monthly revenue from paying, active plans only", () => {
     // Every studio here joined during the launch offer, so each pays its launch price.
-    assert.equal(stats.revenue.mrrEur, PLANS.STUDIO.launchPriceEur + PLANS.STARTER.launchPriceEur, "a past-due Starter is not revenue");
+    assert.equal(
+      stats.revenue.mrrEur,
+      PLANS.STUDIO.launchPriceEur + PLANS.STARTER.launchPriceEur,
+      "a past-due Starter is not revenue",
+    );
     assert.equal(stats.revenue.payingStudios, 2);
     assert.equal(stats.revenue.trialToPaidPct, 50);
     assert.equal(stats.revenue.pastDue, 1);
@@ -148,8 +151,18 @@ describe("feedback and the admin area", () => {
     const { studio } = Studio.create({ name: "Golden Hour", ownerEmail: "owner@studio.test" });
     await studios.save(studio);
     await subscriptions.save(Subscription.startDefault(studio.id));
-    const photographer = StudioMember.signUp({ studioId: studio.id, email: "owner@studio.test", name: "Ana", passwordHash: "x" });
-    const admin = StudioMember.signUp({ studioId: studio.id, email: "Boss@AlbumFlow.test", name: "Boss", passwordHash: "x" });
+    const photographer = StudioMember.signUp({
+      studioId: studio.id,
+      email: "owner@studio.test",
+      name: "Ana",
+      passwordHash: "x",
+    });
+    const admin = StudioMember.signUp({
+      studioId: studio.id,
+      email: "Boss@AlbumFlow.test",
+      name: "Boss",
+      passwordHash: "x",
+    });
     await members.save(photographer);
     await members.save(admin);
 
@@ -163,12 +176,15 @@ describe("feedback and the admin area", () => {
       const member = request.headers["x-member"];
       if (typeof member === "string") request.memberId = member;
     });
-    registerTenancyGuard(server, new RepositoryResourceOwnership({
-      projects: new InMemoryProjectRepository(),
-      photos: new InMemoryPhotoRepository(),
-      albums: new InMemoryAlbumRepository(),
-      exportJobs: new InMemoryExportJobRepository(),
-    }));
+    registerTenancyGuard(
+      server,
+      new RepositoryResourceOwnership({
+        projects: new InMemoryProjectRepository(),
+        photos: new InMemoryPhotoRepository(),
+        albums: new InMemoryAlbumRepository(),
+        exportJobs: new InMemoryExportJobRepository(),
+      }),
+    );
     registerPlatformAdminRoutes(server, {
       access,
       feedback: new FeedbackUseCase(
@@ -225,17 +241,35 @@ describe("feedback and the admin area", () => {
 
   it("refuses empty feedback and impossible ratings", async () => {
     const { server, photographerId } = await app();
-    const empty = await server.inject({ method: "POST", url: "/feedback", headers: { "x-member": photographerId }, payload: { kind: "IDEA", message: "   " } });
-    const rating = await server.inject({ method: "POST", url: "/feedback", headers: { "x-member": photographerId }, payload: { kind: "IDEA", message: "Hi", rating: 9 } });
+    const empty = await server.inject({
+      method: "POST",
+      url: "/feedback",
+      headers: { "x-member": photographerId },
+      payload: { kind: "IDEA", message: "   " },
+    });
+    const rating = await server.inject({
+      method: "POST",
+      url: "/feedback",
+      headers: { "x-member": photographerId },
+      payload: { kind: "IDEA", message: "Hi", rating: 9 },
+    });
     assert.equal(empty.statusCode, 422);
     assert.ok(rating.statusCode >= 400);
   });
 
   it("hides the admin area from everyone but admins", async () => {
     const { server, photographerId, adminId } = await app();
-    const asPhotographer = await server.inject({ method: "GET", url: "/admin/stats/business", headers: { "x-member": photographerId } });
+    const asPhotographer = await server.inject({
+      method: "GET",
+      url: "/admin/stats/business",
+      headers: { "x-member": photographerId },
+    });
     const withApiKey = await server.inject({ method: "GET", url: "/admin/feedback" });
-    const asAdmin = await server.inject({ method: "GET", url: "/admin/stats/business", headers: { "x-member": adminId } });
+    const asAdmin = await server.inject({
+      method: "GET",
+      url: "/admin/stats/business",
+      headers: { "x-member": adminId },
+    });
     assert.equal(asPhotographer.statusCode, 404);
     assert.equal(withApiKey.statusCode, 404);
     assert.equal(asAdmin.statusCode, 200);
@@ -247,7 +281,12 @@ describe("feedback and the admin area", () => {
 
   it("lets an admin triage feedback", async () => {
     const { server, photographerId, adminId } = await app();
-    const created = await server.inject({ method: "POST", url: "/feedback", headers: { "x-member": photographerId }, payload: { kind: "IDEA", message: "Dark theme for proofs" } });
+    const created = await server.inject({
+      method: "POST",
+      url: "/feedback",
+      headers: { "x-member": photographerId },
+      payload: { kind: "IDEA", message: "Dark theme for proofs" },
+    });
     const id = created.json().id;
 
     const updated = await server.inject({
@@ -258,7 +297,11 @@ describe("feedback and the admin area", () => {
     });
     assert.equal(updated.json().status, "IN_PROGRESS");
 
-    const open = await server.inject({ method: "GET", url: "/admin/feedback?status=IN_PROGRESS", headers: { "x-member": adminId } });
+    const open = await server.inject({
+      method: "GET",
+      url: "/admin/feedback?status=IN_PROGRESS",
+      headers: { "x-member": adminId },
+    });
     assert.equal(open.json().length, 1);
     assert.equal(open.json()[0].studioName, "Golden Hour");
 
@@ -275,21 +318,39 @@ describe("feedback and the admin area", () => {
     const studioId = other.id.toString();
     const url = `/admin/studios/${studioId}/plan`;
 
-    const denied = await server.inject({ method: "PUT", url, headers: { "x-member": photographerId }, payload: { planCode: "STUDIO_PRO" } });
+    const denied = await server.inject({
+      method: "PUT",
+      url,
+      headers: { "x-member": photographerId },
+      payload: { planCode: "STUDIO_PRO" },
+    });
     assert.equal(denied.statusCode, 404);
 
     const list = await server.inject({ method: "GET", url: "/admin/studios", headers: { "x-member": adminId } });
-    assert.ok(list.json().studios.every((studio: { planCode: string }) => studio.planCode === "STUDIO"), "new studios start on Studio");
+    assert.ok(
+      list.json().studios.every((studio: { planCode: string }) => studio.planCode === "STUDIO"),
+      "new studios start on Studio",
+    );
     assert.equal(list.json().total, 2);
 
-    const changed = await server.inject({ method: "PUT", url, headers: { "x-member": adminId }, payload: { planCode: "STUDIO_PRO" } });
+    const changed = await server.inject({
+      method: "PUT",
+      url,
+      headers: { "x-member": adminId },
+      payload: { planCode: "STUDIO_PRO" },
+    });
     assert.equal(changed.statusCode, 200, changed.body);
     assert.equal(changed.json().planCode, "STUDIO_PRO");
     assert.equal(changed.json().albumsIncluded, null);
     assert.equal(subscriptions.items.get(studioId)?.planCode, "STUDIO_PRO");
     assert.equal(subscriptions.items.get(studioId)?.status, "ACTIVE");
 
-    const unknown = await server.inject({ method: "PUT", url, headers: { "x-member": adminId }, payload: { planCode: "GOLD" } });
+    const unknown = await server.inject({
+      method: "PUT",
+      url,
+      headers: { "x-member": adminId },
+      payload: { planCode: "GOLD" },
+    });
     assert.notEqual(unknown.statusCode, 200);
   });
 });

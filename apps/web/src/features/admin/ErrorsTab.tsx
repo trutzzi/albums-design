@@ -91,10 +91,14 @@ export function ErrorsTab({ initialSearch = "" }: { initialSearch?: string }) {
       {issues.isLoading && <p className="muted">Loading…</p>}
       {issues.isError && <p className="error">{(issues.error as Error).message}</p>}
       {issues.data?.length === 0 && (
-        <p className="muted">{search ? "No error matches that search." : status === "OPEN" ? "No open errors." : "No errors."}</p>
+        <p className="muted">
+          {search ? "No error matches that search." : status === "OPEN" ? "No open errors." : "No errors."}
+        </p>
       )}
       <ul className="admin-errors">
-        {issues.data?.map((issue) => <ErrorIssueCard key={issue.id} issue={issue} />)}
+        {issues.data?.map((issue) => (
+          <ErrorIssueCard key={issue.id} issue={issue} />
+        ))}
       </ul>
     </>
   );
@@ -103,7 +107,11 @@ export function ErrorsTab({ initialSearch = "" }: { initialSearch?: string }) {
 function ErrorIssueCard({ issue }: { issue: AdminErrorIssue }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const detail = useQuery({ queryKey: ["admin-error", issue.id], queryFn: () => getAdminError(issue.id), enabled: open });
+  const detail = useQuery({
+    queryKey: ["admin-error", issue.id],
+    queryFn: () => getAdminError(issue.id),
+    enabled: open,
+  });
   const update = useMutation({
     mutationFn: (status: ErrorIssueStatus) => setAdminErrorStatus(issue.id, status),
     onSuccess: () => {
@@ -115,7 +123,9 @@ function ErrorIssueCard({ issue }: { issue: AdminErrorIssue }) {
   return (
     <li className={`panel admin-errors__item admin-errors__item--${issue.status.toLowerCase()}`}>
       <div className="admin-errors__meta">
-        <span className={`chip ${issue.status === "OPEN" ? "chip--failed" : "chip--approved"}`}>{STATUS_LABELS[issue.status]}</span>
+        <span className={`chip ${issue.status === "OPEN" ? "chip--failed" : "chip--approved"}`}>
+          {STATUS_LABELS[issue.status]}
+        </span>
         <span className="chip">{SOURCE_LABELS[issue.source]}</span>
         {issue.location && <span className="admin__mono">{issue.location}</span>}
         <span className="muted admin-errors__count">

@@ -75,4 +75,3 @@ function toDto(job: ExportJob) {
     completedAt: job.completedAt?.toISOString() ?? null,
   };
 }
-

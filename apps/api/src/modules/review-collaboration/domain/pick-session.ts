@@ -48,10 +48,7 @@ export interface PickSessionProps {
 }
 
 /** A row written before two-step picking existed carries neither field. */
-export type StoredPickSessionProps = Omit<
-  PickSessionProps,
-  "shortlistedPhotoIds" | "stage" | "firstReachedFinalAt"
-> & {
+export type StoredPickSessionProps = Omit<PickSessionProps, "shortlistedPhotoIds" | "stage" | "firstReachedFinalAt"> & {
   shortlistedPhotoIds?: string[] | undefined;
   stage?: PickStage | undefined;
   firstReachedFinalAt?: Date | undefined;

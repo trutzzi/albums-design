@@ -60,20 +60,14 @@ export class ListProjectPhotosUseCase {
   private async displayUrls(photo: Photo): Promise<[string | null, string | null]> {
     if (photo.status === "PENDING_UPLOAD") return [null, null];
     if (!photo.hasDerivatives) {
-      const original = await this.storage.presignGet(
-        photo.storageKey.toString(),
-        PREVIEW_TTL_SECONDS,
-      );
+      const original = await this.storage.presignGet(photo.storageKey.toString(), PREVIEW_TTL_SECONDS);
       return [original, original];
     }
     const previewKey = photo.storageKey.derivative("preview").toString();
     const thumbKey = photo.storageKey.derivative("thumb").toString();
     if (photo.permanentDerivatives && this.permanent) {
       const options = { expiresInSeconds: PREVIEW_TTL_SECONDS };
-      return Promise.all([
-        this.permanent.getUrl(previewKey, options),
-        this.permanent.getUrl(thumbKey, options),
-      ]);
+      return Promise.all([this.permanent.getUrl(previewKey, options), this.permanent.getUrl(thumbKey, options)]);
     }
     return Promise.all([
       this.storage.presignGet(previewKey, PREVIEW_TTL_SECONDS),

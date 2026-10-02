@@ -41,9 +41,7 @@ export class InMemoryProjectRepository implements ProjectRepository {
     return this.items.get(id.toString());
   }
   async listByStudioId(studioId: UniqueEntityId) {
-    return [...this.items.values()].filter(
-      (project) => project.studioId.toString() === studioId.toString(),
-    );
+    return [...this.items.values()].filter((project) => project.studioId.toString() === studioId.toString());
   }
   async delete(id: UniqueEntityId) {
     this.items.delete(id.toString());
@@ -146,10 +144,7 @@ export class InMemoryPhotoRepository implements PhotoRepository {
   }
   async findAwaitingLongTermStorage(limit: number) {
     return [...this.items.values()]
-      .filter(
-        (photo) =>
-          photo.status !== "PENDING_UPLOAD" && !photo.fullResStoredAt && !photo.stagedOriginalPurgedAt,
-      )
+      .filter((photo) => photo.status !== "PENDING_UPLOAD" && !photo.fullResStoredAt && !photo.stagedOriginalPurgedAt)
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
       .slice(0, limit)
       .map(clonePhoto);
@@ -166,9 +161,7 @@ export class InMemoryPhotoRepository implements PhotoRepository {
   }
 }
 
-export class InMemoryObjectStorage
-  implements ObjectStorageWithBody, PhotoByteSource, ExportStorage
-{
+export class InMemoryObjectStorage implements ObjectStorageWithBody, PhotoByteSource, ExportStorage {
   readonly objects = new Map<string, Uint8Array>();
 
   async presignPut(params: { key: string; expiresInSeconds: number }): Promise<PresignedUpload> {
@@ -230,9 +223,7 @@ export class InMemoryPhotoAnalysisRepository implements PhotoAnalysisRepository 
     return this.items.get(photoId.toString());
   }
   async findByProjectId(projectId: UniqueEntityId) {
-    return [...this.items.values()].filter(
-      (analysis) => analysis.projectId.toString() === projectId.toString(),
-    );
+    return [...this.items.values()].filter((analysis) => analysis.projectId.toString() === projectId.toString());
   }
   async delete(photoId: UniqueEntityId) {
     this.items.delete(photoId.toString());
@@ -248,9 +239,7 @@ export class InMemoryAlbumRepository implements AlbumRepository {
     return this.items.get(id.toString());
   }
   async findByProjectId(projectId: UniqueEntityId) {
-    return [...this.items.values()].filter(
-      (album) => album.projectId.toString() === projectId.toString(),
-    );
+    return [...this.items.values()].filter((album) => album.projectId.toString() === projectId.toString());
   }
   async countByProjectIds(projectIds: UniqueEntityId[]) {
     const wanted = new Set(projectIds.map((id) => id.toString()));
@@ -281,9 +270,7 @@ export class InMemoryReviewSessionRepository implements ReviewSessionRepository 
     return [...this.items.values()].find((session) => session.tokenHash === tokenHash);
   }
   async findByAlbumId(albumId: UniqueEntityId) {
-    return [...this.items.values()].filter(
-      (session) => session.albumId.toString() === albumId.toString(),
-    );
+    return [...this.items.values()].filter((session) => session.albumId.toString() === albumId.toString());
   }
   async delete(id: UniqueEntityId) {
     this.items.delete(id.toString());
@@ -302,9 +289,7 @@ export class InMemoryPickSessionRepository implements PickSessionRepository {
     return [...this.items.values()].find((session) => session.tokenHash === tokenHash);
   }
   async findByProjectId(projectId: UniqueEntityId) {
-    return [...this.items.values()].filter(
-      (session) => session.projectId.toString() === projectId.toString(),
-    );
+    return [...this.items.values()].filter((session) => session.projectId.toString() === projectId.toString());
   }
   async deleteByProjectId(projectId: UniqueEntityId) {
     for (const [id, session] of this.items) {
@@ -325,9 +310,7 @@ export class InMemoryDownloadSessionRepository implements DownloadSessionReposit
     return [...this.items.values()].find((session) => session.tokenHash === tokenHash);
   }
   async findByProjectId(projectId: UniqueEntityId) {
-    return [...this.items.values()].filter(
-      (session) => session.projectId.toString() === projectId.toString(),
-    );
+    return [...this.items.values()].filter((session) => session.projectId.toString() === projectId.toString());
   }
   async deleteByProjectId(projectId: UniqueEntityId) {
     for (const [id, session] of this.items) {
@@ -345,9 +328,7 @@ export class InMemoryExportJobRepository implements ExportJobRepository {
     return this.items.get(id.toString());
   }
   async findByAlbumId(albumId: UniqueEntityId) {
-    return [...this.items.values()].filter(
-      (job) => job.albumId.toString() === albumId.toString(),
-    );
+    return [...this.items.values()].filter((job) => job.albumId.toString() === albumId.toString());
   }
   async findReadyCompletedBefore(cutoff: Date) {
     return [...this.items.values()].filter(
@@ -413,9 +394,7 @@ export class InMemoryStudioMemberRepository implements StudioMemberRepository {
     return this.items.get(id.toString());
   }
   async listByStudioId(studioId: UniqueEntityId) {
-    return [...this.items.values()].filter(
-      (member) => member.studioId.toString() === studioId.toString(),
-    );
+    return [...this.items.values()].filter((member) => member.studioId.toString() === studioId.toString());
   }
   async remove(id: UniqueEntityId) {
     this.items.delete(id.toString());

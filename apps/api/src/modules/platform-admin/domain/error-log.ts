@@ -68,12 +68,18 @@ const NUMBER = /\d+(?:\.\d+)?/g;
  * variable parts of the message (ids, numbers, quoted values) ignored — so one bad photo
  * id per request does not become a thousand separate issues.
  */
-export function fingerprintOf(event: Pick<ErrorEvent, "source" | "title" | "errorType" | "errorMessage" | "location">): string {
+export function fingerprintOf(
+  event: Pick<ErrorEvent, "source" | "title" | "errorType" | "errorMessage" | "location">,
+): string {
   return createHash("sha256")
     .update(
-      [event.source, event.title, event.errorType ?? "", normalizeMessage(event.errorMessage ?? ""), event.location ?? ""].join(
-        "\u0000",
-      ),
+      [
+        event.source,
+        event.title,
+        event.errorType ?? "",
+        normalizeMessage(event.errorMessage ?? ""),
+        event.location ?? "",
+      ].join("\u0000"),
     )
     .digest("hex");
 }

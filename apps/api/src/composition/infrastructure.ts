@@ -41,7 +41,9 @@ export function buildInfrastructure(env: Env, service: "api" | "worker") {
   const errorLog = new DrizzleErrorLogRepository(db);
   // Every `error` entry is also kept in the admin error log and sent to Sentry; classes log
   // through the port and never see either.
-  const logger: Logger = new ErrorReportingLogger(new ErrorRecordingLogger(new PinoLogger(pinoLogger), errorLog, service));
+  const logger: Logger = new ErrorReportingLogger(
+    new ErrorRecordingLogger(new PinoLogger(pinoLogger), errorLog, service),
+  );
 
   const s3Config = {
     endpoint: env.S3_ENDPOINT,
@@ -53,9 +55,7 @@ export function buildInfrastructure(env: Env, service: "api" | "worker") {
     },
   };
   const s3 = new S3Client(s3Config);
-  const presignS3 = env.S3_PUBLIC_ENDPOINT
-    ? new S3Client({ ...s3Config, endpoint: env.S3_PUBLIC_ENDPOINT })
-    : s3;
+  const presignS3 = env.S3_PUBLIC_ENDPOINT ? new S3Client({ ...s3Config, endpoint: env.S3_PUBLIC_ENDPOINT }) : s3;
   const storage = new S3ObjectStorage({
     bucket: env.S3_BUCKET,
     endpoint: env.S3_ENDPOINT,

@@ -3,7 +3,10 @@ import { describe, it } from "node:test";
 import { StudioEmailNotifier } from "../src/modules/review-collaboration/application/services/studio-email-notifier";
 import { ClientConfirmationMailer } from "../src/modules/review-collaboration/application/services/client-confirmation.mailer";
 import { CompositeReviewNotifier } from "../src/modules/review-collaboration/infrastructure/gateways/delivery-gateway";
-import type { ClientContact, ClientContactDirectory } from "../src/modules/review-collaboration/application/ports/client-contact";
+import type {
+  ClientContact,
+  ClientContactDirectory,
+} from "../src/modules/review-collaboration/application/ports/client-contact";
 import type { StudioContacts } from "../src/modules/review-collaboration/application/ports/delivery-gateway";
 import type { EmailMessage, EmailSender } from "../src/shared-kernel/email";
 import { RecordingLogger } from "./support/recording-logger";
@@ -29,7 +32,11 @@ function world(options: { clientEmail?: string | undefined; failSending?: boolea
     remember: async () => {},
   };
   const studios: StudioContacts = {
-    forProject: async () => ({ projectName: "Ana & Radu", ownerEmails: ["owner@studio.ro"], studioName: "Golden Hour" }),
+    forProject: async () => ({
+      projectName: "Ana & Radu",
+      ownerEmails: ["owner@studio.ro"],
+      studioName: "Golden Hour",
+    }),
   };
   const logger = new RecordingLogger();
   return {
@@ -113,7 +120,8 @@ describe("CompositeReviewNotifier", () => {
 });
 
 describe("emails personalised to what the studio's plan includes", () => {
-  const pixel = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+  const pixel =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
 
   function mailer(branding: { name: string; accent: string | null; logo: string | null } | null) {
     const sent: EmailMessage[] = [];
@@ -121,7 +129,13 @@ describe("emails personalised to what the studio's plan includes", () => {
     const client = new ClientConfirmationMailer(
       { id: "test", send: async (message) => void sent.push(message) },
       { forProject: async () => contact, forAlbum: async () => contact, remember: async () => {} },
-      { forProject: async () => ({ projectName: "Ana & Radu", ownerEmails: ["owner@studio.ro"], studioName: "Golden Hour" }) },
+      {
+        forProject: async () => ({
+          projectName: "Ana & Radu",
+          ownerEmails: ["owner@studio.ro"],
+          studioName: "Golden Hour",
+        }),
+      },
       new RecordingLogger(),
       { forProject: async () => branding },
     );

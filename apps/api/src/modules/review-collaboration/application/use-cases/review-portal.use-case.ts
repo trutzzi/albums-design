@@ -1,16 +1,6 @@
 import { Result } from "@albumflow/domain-kernel";
-import {
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-  type ApplicationError,
-} from "#src/shared-kernel/errors";
-import {
-  ReviewClosedError,
-  ReviewExpiredError,
-  hashToken,
-  type ReviewSession,
-} from "../../domain/review-session";
+import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
+import { ReviewClosedError, ReviewExpiredError, hashToken, type ReviewSession } from "../../domain/review-session";
 import type { ReviewSessionRepository } from "../../domain/review-session-repository";
 import type { AlbumGateway, ReviewNotifier, ReviewableAlbum } from "../ports/album-gateway";
 import type { ClientAccessService } from "../services/client-access.service";
@@ -102,10 +92,7 @@ export class ReviewPortalUseCase {
     return Result.success(toView(session, album));
   }
 
-  async decide(
-    token: string,
-    decision: ReviewDecision,
-  ): Promise<Result<ReviewView, ApplicationError>> {
+  async decide(token: string, decision: ReviewDecision): Promise<Result<ReviewView, ApplicationError>> {
     const resolved = await this.resolve(token);
     if (resolved.isFailure) return Result.failure(resolved.getError());
     const { session, album } = resolved.getValue();

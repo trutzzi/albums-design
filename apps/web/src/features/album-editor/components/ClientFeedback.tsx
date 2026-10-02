@@ -37,9 +37,8 @@ export const ClientFeedback = memo(function ClientFeedback({
       <div className="feedback__failed">
         <p className="error">{error.message}</p>
         <p className="muted">
-          Comments could not be loaded, so this list may be incomplete. If the message
-          above says the route was not found, the API is running older code than the
-          editor — restart it and reload.
+          Comments could not be loaded, so this list may be incomplete. If the message above says the route was not
+          found, the API is running older code than the editor — restart it and reload.
         </p>
       </div>
     );
@@ -68,10 +67,7 @@ export const ClientFeedback = memo(function ClientFeedback({
 
       <ul className="feedback__list">
         {[...open, ...done].map((comment) => (
-          <li
-            key={comment.id}
-            className={`feedback__item ${comment.resolved ? "feedback__item--resolved" : ""}`}
-          >
+          <li key={comment.id} className={`feedback__item ${comment.resolved ? "feedback__item--resolved" : ""}`}>
             <div className="feedback__meta">
               <button
                 type="button"

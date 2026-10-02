@@ -23,9 +23,7 @@ function makeAlbum(): Album {
       },
       {
         templateId: "single-centred",
-        placements: [
-          { slotId: "centre", photoId: "photo-c", crop: { x: 0, y: 0, width: 1, height: 1 } },
-        ],
+        placements: [{ slotId: "centre", photoId: "photo-c", crop: { x: 0, y: 0, width: 1, height: 1 } }],
       },
     ],
   });

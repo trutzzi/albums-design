@@ -68,11 +68,29 @@ describe("DigiStorage space", () => {
 describe("storage space on the admin dashboard", () => {
   function dashboard(storage: StorageProvider | undefined, clock: { now: number }) {
     return new AdminDashboardUseCase(
-      { load: async () => ({ studios: [], subscriptions: [], projects: [], photoDays: [], albums: [], reviews: [], picks: [], exports: [] }) },
+      {
+        load: async () => ({
+          studios: [],
+          subscriptions: [],
+          projects: [],
+          photoDays: [],
+          albums: [],
+          reviews: [],
+          picks: [],
+          exports: [],
+        }),
+      },
       new InMemoryFeedbackRepository(),
       new InProcessDependencyProbe(),
       new RequestMetrics(),
-      { mode: "production", storage: "digistorage", email: "smtp", billing: "none", vision: "heuristic", errorMonitoring: false },
+      {
+        mode: "production",
+        storage: "digistorage",
+        email: "smtp",
+        billing: "none",
+        vision: "heuristic",
+        errorMonitoring: false,
+      },
       storage,
       () => clock.now,
     );
@@ -80,7 +98,10 @@ describe("storage space on the admin dashboard", () => {
 
   it("asks the provider at most once every five minutes", async () => {
     let asked = 0;
-    const storage = { id: "digistorage", usage: async () => ({ usedBytes: ++asked, totalBytes: 100 }) } as unknown as StorageProvider;
+    const storage = {
+      id: "digistorage",
+      usage: async () => ({ usedBytes: ++asked, totalBytes: 100 }),
+    } as unknown as StorageProvider;
     const clock = { now: Date.parse("2026-09-30T10:00:00Z") };
     const subject = dashboard(storage, clock);
     await subject.system();
@@ -92,7 +113,10 @@ describe("storage space on the admin dashboard", () => {
   });
 
   it("reports the failure instead of failing the dashboard", async () => {
-    const storage = { id: "digistorage", usage: async () => Promise.reject(new Error("timeout")) } as unknown as StorageProvider;
+    const storage = {
+      id: "digistorage",
+      usage: async () => Promise.reject(new Error("timeout")),
+    } as unknown as StorageProvider;
     const stats = await dashboard(storage, { now: Date.now() }).system();
     assert.equal(stats.storageSpace && "error" in stats.storageSpace ? stats.storageSpace.error : "", "timeout");
   });

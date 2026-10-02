@@ -14,7 +14,11 @@ export interface CreatedLink {
 }
 
 export function noteFrom(session: { emailSentTo?: string | null; emailError?: string | null }): EmailNote | null {
-  return session.emailSentTo ? { sentTo: session.emailSentTo } : session.emailError ? { error: session.emailError } : null;
+  return session.emailSentTo
+    ? { sentTo: session.emailSentTo }
+    : session.emailError
+      ? { error: session.emailError }
+      : null;
 }
 
 /** The outcome of creating a client link: the email note, then the link to copy and its password. */

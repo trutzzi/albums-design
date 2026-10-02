@@ -31,12 +31,7 @@ export function zoomOf(crop: Crop, imageAspect: number, slotAspect: number): num
 }
 
 /** Rescales the crop around its own centre, keeping the subject where the eye left it. */
-export function withZoom(
-  crop: Crop,
-  zoom: number,
-  imageAspect: number,
-  slotAspect: number,
-): Crop {
+export function withZoom(crop: Crop, zoom: number, imageAspect: number, slotAspect: number): Crop {
   const base = baseCrop(imageAspect, slotAspect);
   const safeZoom = clamp(zoom, MIN_ZOOM, MAX_ZOOM);
   const width = base.width / safeZoom;
@@ -47,13 +42,7 @@ export function withZoom(
 }
 
 /** `dx`/`dy` are drag distances as a fraction of the slot's own width and height. */
-export function pannedCrop(
-  crop: Crop,
-  dx: number,
-  dy: number,
-  imageAspect: number,
-  slotAspect: number,
-): Crop {
+export function pannedCrop(crop: Crop, dx: number, dy: number, imageAspect: number, slotAspect: number): Crop {
   const { imageWidth, imageHeight } = displayedSize(crop, imageAspect, slotAspect);
   // Dragging right reveals more of the photo's left edge, so the crop origin moves back.
   return clampCrop({

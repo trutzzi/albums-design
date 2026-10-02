@@ -26,26 +26,48 @@ async function world(plan: PlanCode) {
   await subscriptions.save(subscription);
   const project = Project.create({ studioId: studio.id, name: "Wedding", type: "WEDDING" });
   await projects.save(project);
-  const administration = new StudioAdministrationUseCase(studios, subscriptions, new InMemoryStudioMemberRepository(), new SharpLogoProcessor());
+  const administration = new StudioAdministrationUseCase(
+    studios,
+    subscriptions,
+    new InMemoryStudioMemberRepository(),
+    new SharpLogoProcessor(),
+  );
   const branding = new SubscriptionStudioBrandingDirectory(projects, studios, subscriptions);
-  return { studioId: studio.id.toString(), projectId: project.id.toString(), administration, branding, subscription, subscriptions };
+  return {
+    studioId: studio.id.toString(),
+    projectId: project.id.toString(),
+    administration,
+    branding,
+    subscription,
+    subscriptions,
+  };
 }
 
 async function pngDataUrl(width: number, height: number): Promise<string> {
-  const png = await sharp({ create: { width, height, channels: 4, background: { r: 200, g: 80, b: 30, alpha: 1 } } }).png().toBuffer();
+  const png = await sharp({ create: { width, height, channels: 4, background: { r: 200, g: 80, b: 30, alpha: 1 } } })
+    .png()
+    .toBuffer();
   return `data:image/png;base64,${png.toString("base64")}`;
 }
 
 describe("client branding", () => {
   it("is a Studio Pro feature", async () => {
     const w = await world("STUDIO");
-    const result = await w.administration.setBranding(w.studioId, "OWNER", { displayName: "GH", accent: "#123456", logo: null });
+    const result = await w.administration.setBranding(w.studioId, "OWNER", {
+      displayName: "GH",
+      accent: "#123456",
+      logo: null,
+    });
     assert.equal(result.getError().code, "CONFLICT");
   });
 
   it("only the owner may change it", async () => {
     const w = await world("STUDIO_PRO");
-    const result = await w.administration.setBranding(w.studioId, "EDITOR", { displayName: "GH", accent: null, logo: null });
+    const result = await w.administration.setBranding(w.studioId, "EDITOR", {
+      displayName: "GH",
+      accent: null,
+      logo: null,
+    });
     assert.equal(result.getError().code, "FORBIDDEN");
   });
 
@@ -61,13 +83,21 @@ describe("client branding", () => {
     const meta = await sharp(Buffer.from(stored!.logo!.split(",")[1]!, "base64")).metadata();
     assert.ok(meta.width! <= 600 && meta.height! <= 200, `logo is ${meta.width}×${meta.height}`);
 
-    assert.deepEqual(await w.branding.forProject(w.projectId), { name: "Golden Hour Studio", accent: "#1f6f5c", logo: stored!.logo });
+    assert.deepEqual(await w.branding.forProject(w.projectId), {
+      name: "Golden Hour Studio",
+      accent: "#1f6f5c",
+      logo: stored!.logo,
+    });
   });
 
   it("refuses files that are not images, and never takes SVG", async () => {
     const w = await world("STUDIO_PRO");
     const svg = `data:image/svg+xml;base64,${Buffer.from("<svg onload='alert(1)'/>").toString("base64")}`;
-    const result = await w.administration.setBranding(w.studioId, "OWNER", { displayName: "", accent: null, logo: svg });
+    const result = await w.administration.setBranding(w.studioId, "OWNER", {
+      displayName: "",
+      accent: null,
+      logo: svg,
+    });
     assert.equal(result.getError().code, "VALIDATION_ERROR");
   });
 

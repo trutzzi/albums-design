@@ -196,6 +196,7 @@ export function useSpreadLayouts(options: {
     // Only a head start: if it fails, the first arrow press asks again and shows the error.
     void suggestionsFor(photosInView).catch(() => undefined);
     // Keyed by the photo set rather than the array, which is a new object every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photosInViewKey, suggestionsFor]);
 
   return { addAsSpread, shuffle, addPhoto, removePhoto, movePhoto, cycleDesign, designPositionOf };

@@ -39,17 +39,29 @@ export function GettingStarted({
     {
       key: "shoot",
       done: projects.length > 0,
-      action: <button type="button" className="button button--small button--primary" onClick={onCreateShoot}>{t("onboarding.shoot.cta")}</button>,
+      action: (
+        <button type="button" className="button button--small button--primary" onClick={onCreateShoot}>
+          {t("onboarding.shoot.cta")}
+        </button>
+      ),
     },
     {
       key: "upload",
       done: Boolean(withPhotos),
-      action: first ? <Link className="button button--small button--primary" to={`/projects/${first.id}`}>{t("onboarding.upload.cta")}</Link> : null,
+      action: first ? (
+        <Link className="button button--small button--primary" to={`/projects/${first.id}`}>
+          {t("onboarding.upload.cta")}
+        </Link>
+      ) : null,
     },
     {
       key: "album",
       done: false,
-      action: withPhotos ? <Link className="button button--small button--primary" to={`/projects/${withPhotos.id}`}>{t("onboarding.album.cta")}</Link> : null,
+      action: withPhotos ? (
+        <Link className="button button--small button--primary" to={`/projects/${withPhotos.id}`}>
+          {t("onboarding.album.cta")}
+        </Link>
+      ) : null,
     },
   ];
   const next = steps.find((step) => !step.done)?.key;

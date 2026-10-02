@@ -25,7 +25,11 @@ export function PlanUpsell({ feature }: { feature: UpsellFeature }) {
   const { t } = useLanguage();
   const { studioId } = useAuth();
   const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
-  const studio = useQuery({ queryKey: ["studio", studioId], queryFn: () => getStudioOverview(studioId), enabled: Boolean(studioId) });
+  const studio = useQuery({
+    queryKey: ["studio", studioId],
+    queryFn: () => getStudioOverview(studioId),
+    enabled: Boolean(studioId),
+  });
 
   const current = plans.data?.find((plan) => plan.code === studio.data?.subscription.planCode);
   if (!current || INCLUDES[feature](current)) return null;

@@ -73,14 +73,9 @@ export class AlbumFeedbackUseCase {
    * allowed even once the link is approved or expired — otherwise a finished album
    * would keep an unresolved note forever.
    */
-  async resolve(
-    albumId: string,
-    commentId: string,
-  ): Promise<Result<AlbumFeedback, ApplicationError>> {
+  async resolve(albumId: string, commentId: string): Promise<Result<AlbumFeedback, ApplicationError>> {
     const sessions = await this.sessions.findByAlbumId(UniqueEntityId.create(albumId));
-    const owner = sessions.find((session) =>
-      session.comments.some((comment) => comment.id === commentId),
-    );
+    const owner = sessions.find((session) => session.comments.some((comment) => comment.id === commentId));
     if (!owner) return Result.failure(new NotFoundError("Comment", commentId));
 
     owner.resolveComment(commentId);

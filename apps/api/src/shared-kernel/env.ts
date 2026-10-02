@@ -39,7 +39,12 @@ const envSchema = z.object({
   ADMIN_EMAILS: z
     .string()
     .default("")
-    .transform((value) => value.split(",").map((email) => email.trim()).filter(Boolean)),
+    .transform((value) =>
+      value
+        .split(",")
+        .map((email) => email.trim())
+        .filter(Boolean),
+    ),
   /** Error monitoring. Unset (the default) sends nothing anywhere. */
   SENTRY_DSN: optionalString,
   /** Lowest level written to the log. Every `error` entry also goes to Sentry when SENTRY_DSN is set. */
@@ -53,7 +58,10 @@ const envSchema = z.object({
    * production), so the client address comes from X-Forwarded-For. Left off, anyone
    * reaching the API directly could forge that header to dodge the login lockout.
    */
-  TRUST_PROXY: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
+  TRUST_PROXY: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
   /** Signs and verifies the per-person login JWT. `openssl rand -hex 32`. */
   JWT_SECRET: z.string().min(32),
   VISION_PROVIDER: z.enum(["heuristic", "anthropic", "ollama"]).default("heuristic"),
@@ -93,7 +101,10 @@ const envSchema = z.object({
   SMTP_HOST: optionalString,
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   /** "true" = implicit TLS (usually port 465). A string enum, because z.coerce.boolean() would read "false" as true. */
-  SMTP_SECURE: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
+  SMTP_SECURE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
   SMTP_USER: optionalString,
   SMTP_PASSWORD: optionalString,
   /** The From address, e.g. `AlbumFlow <notifications@yourdomain.ro>`. Must be allowed by your mail server. */
@@ -165,15 +176,10 @@ export function loadDatabaseEnv(source: NodeJS.ProcessEnv = process.env): Databa
   return parseOrThrow(databaseEnvSchema, source);
 }
 
-function parseOrThrow<Schema extends z.ZodTypeAny>(
-  schema: Schema,
-  source: NodeJS.ProcessEnv,
-): z.infer<Schema> {
+function parseOrThrow<Schema extends z.ZodTypeAny>(schema: Schema, source: NodeJS.ProcessEnv): z.infer<Schema> {
   const parsed = schema.safeParse(source);
   if (!parsed.success) {
-    const issues = parsed.error.issues
-      .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
-      .join("\n");
+    const issues = parsed.error.issues.map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`).join("\n");
     throw new Error(`Invalid environment configuration:\n${issues}`);
   }
   return parsed.data;

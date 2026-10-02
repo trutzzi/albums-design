@@ -23,10 +23,7 @@ export class Studio extends AggregateRoot<StudioProps> {
     super(props, id);
   }
 
-  static create(
-    props: { name: string; ownerEmail: string },
-    id?: UniqueEntityId,
-  ): { studio: Studio; apiKey: string } {
+  static create(props: { name: string; ownerEmail: string }, id?: UniqueEntityId): { studio: Studio; apiKey: string } {
     const apiKey = `af_${randomBytes(24).toString("base64url")}`;
     const studio = new Studio(
       {

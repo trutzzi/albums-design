@@ -5,9 +5,7 @@ import type { AlbumPlacementDirectory } from "../../application/ports/album-plac
 
 function placedPhotoIds(album: Album): string[] {
   // Empty slots carry an empty photo id.
-  return album.spreads.flatMap((spread) =>
-    spread.placements.map((placement) => placement.photoId).filter(Boolean),
-  );
+  return album.spreads.flatMap((spread) => spread.placements.map((placement) => placement.photoId).filter(Boolean));
 }
 
 export class AlbumCompositionPlacementDirectory implements AlbumPlacementDirectory {

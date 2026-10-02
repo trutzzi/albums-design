@@ -41,7 +41,10 @@ export function emailBrandFor(studioName: string | undefined, branding: ClientBr
     displayName: branding.name,
     accent: branding.accent ?? ALBUMFLOW_ACCENT,
     logo: match
-      ? { src: `cid:${LOGO_CID}`, image: { cid: LOGO_CID, contentType: match[1]!, content: Buffer.from(match[2]!, "base64") } }
+      ? {
+          src: `cid:${LOGO_CID}`,
+          image: { cid: LOGO_CID, contentType: match[1]!, content: Buffer.from(match[2]!, "base64") },
+        }
       : null,
     poweredBy: false,
   };

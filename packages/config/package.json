@@ -2,5 +2,7 @@
   "name": "@albumflow/config",
   "private": true,
   "version": "1.0.0",
-  "files": ["tsconfig.base.json"]
+  "files": [
+    "tsconfig.base.json"
+  ]
 }

@@ -121,11 +121,7 @@ export class OllamaVisionClassifier implements VisionClassifier {
     }
   }
 
-  private async fetchWithTimeout(
-    path: string,
-    init: RequestInit,
-    timeoutMs: number,
-  ): Promise<Response> {
+  private async fetchWithTimeout(path: string, init: RequestInit, timeoutMs: number): Promise<Response> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {

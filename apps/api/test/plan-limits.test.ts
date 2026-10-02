@@ -32,7 +32,13 @@ async function world(plan: PlanCode, photosAlready = 0) {
   await subscriptions.save(subscription);
   for (let index = 0; index < photosAlready; index++) {
     await photos.save(
-      Photo.requestUpload({ projectId: project.id, studioId, fileName: `p${index}.jpg`, mimeType: "image/jpeg", byteSize: 1000 }),
+      Photo.requestUpload({
+        projectId: project.id,
+        studioId,
+        fileName: `p${index}.jpg`,
+        mimeType: "image/jpeg",
+        byteSize: 1000,
+      }),
     );
   }
   const features = new SubscriptionPlanFeatureDirectory(projects, subscriptions);

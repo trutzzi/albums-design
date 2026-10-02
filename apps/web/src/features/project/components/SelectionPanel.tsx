@@ -64,8 +64,14 @@ export function SelectionPanel({
       void refresh();
     },
   });
-  const reopen = useMutation({ mutationFn: (sessionId: string) => reopenPickSession(projectId, sessionId), onSuccess: refresh });
-  const revoke = useMutation({ mutationFn: (sessionId: string) => revokePickSession(projectId, sessionId), onSuccess: refresh });
+  const reopen = useMutation({
+    mutationFn: (sessionId: string) => reopenPickSession(projectId, sessionId),
+    onSuccess: refresh,
+  });
+  const revoke = useMutation({
+    mutationFn: (sessionId: string) => revokePickSession(projectId, sessionId),
+    onSuccess: refresh,
+  });
   const buildFromPicks = useMutation({
     mutationFn: (session: PickSessionSummary) =>
       generateAlbum(projectId, {

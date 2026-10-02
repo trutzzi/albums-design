@@ -25,7 +25,9 @@ export function startErrorMonitoring(options: {
     // The process guards log and report these themselves (see process-guards.ts); Sentry's
     // own handlers would report each one twice and exit on a schedule of their own.
     integrations: (defaults) =>
-      defaults.filter((integration) => integration.name !== "OnUncaughtException" && integration.name !== "OnUnhandledRejection"),
+      defaults.filter(
+        (integration) => integration.name !== "OnUncaughtException" && integration.name !== "OnUnhandledRejection",
+      ),
   });
   enabled = true;
   return true;

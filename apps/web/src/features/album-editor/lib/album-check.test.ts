@@ -20,7 +20,12 @@ const templates = new Map<string, LayoutTemplateDTO>([
   ],
   [
     "panorama",
-    { id: "panorama", name: "Panorama", fullBleed: true, slots: [{ id: "band", x: 0, y: 0.2, width: 1, height: 0.6, prefers: "LANDSCAPE" }] },
+    {
+      id: "panorama",
+      name: "Panorama",
+      fullBleed: true,
+      slots: [{ id: "band", x: 0, y: 0.2, width: 1, height: 0.6, prefers: "LANDSCAPE" }],
+    },
   ],
 ]);
 
@@ -43,7 +48,10 @@ function analysis(photoId: string, extra: Partial<PhotoAnalysisDTO> = {}): Photo
   };
 }
 
-function run(spreads: { templateId: string; placements: { slotId: string; photoId: string }[] }[], analyses: PhotoAnalysisDTO[]) {
+function run(
+  spreads: { templateId: string; placements: { slotId: string; photoId: string }[] }[],
+  analyses: PhotoAnalysisDTO[],
+) {
   return checkAlbum({
     album: {
       format: { pageWidthMm: 300, pageHeightMm: 300, bleedMm: 3 },
@@ -62,13 +70,32 @@ function run(spreads: { templateId: string; placements: { slotId: string; photoI
 
 describe("checkAlbum", () => {
   it("passes a clean album", () => {
-    const issues = run([{ templateId: "pair", placements: [{ slotId: "left", photoId: "a" }, { slotId: "right", photoId: "b" }] }], [analysis("a"), analysis("b")]);
+    const issues = run(
+      [
+        {
+          templateId: "pair",
+          placements: [
+            { slotId: "left", photoId: "a" },
+            { slotId: "right", photoId: "b" },
+          ],
+        },
+      ],
+      [analysis("a"), analysis("b")],
+    );
     assert.deepEqual(issues, []);
   });
 
   it("flags a photo too small for its printed size", () => {
     const issues = run(
-      [{ templateId: "pair", placements: [{ slotId: "left", photoId: "small" }, { slotId: "right", photoId: "b" }] }],
+      [
+        {
+          templateId: "pair",
+          placements: [
+            { slotId: "left", photoId: "small" },
+            { slotId: "right", photoId: "b" },
+          ],
+        },
+      ],
       [analysis("small", { width: 800, height: 1200 }), analysis("b")],
     );
     const low = issues.find((issue) => issue.kind === "lowResolution");
@@ -79,20 +106,46 @@ describe("checkAlbum", () => {
   it("flags empty slots and a photo used twice", () => {
     const issues = run(
       [
-        { templateId: "pair", placements: [{ slotId: "left", photoId: "a" }, { slotId: "right", photoId: "" }] },
-        { templateId: "pair", placements: [{ slotId: "left", photoId: "a" }, { slotId: "right", photoId: "b" }] },
+        {
+          templateId: "pair",
+          placements: [
+            { slotId: "left", photoId: "a" },
+            { slotId: "right", photoId: "" },
+          ],
+        },
+        {
+          templateId: "pair",
+          placements: [
+            { slotId: "left", photoId: "a" },
+            { slotId: "right", photoId: "b" },
+          ],
+        },
       ],
       [analysis("a"), analysis("b")],
     );
     assert.ok(issues.some((issue) => issue.kind === "emptySlot" && issue.spreadIndex === 0));
-    assert.ok(issues.some((issue) => issue.kind === "usedTwice" && issue.spreadIndex === 1 && issue.otherSpreadIndex === 0));
+    assert.ok(
+      issues.some((issue) => issue.kind === "usedTwice" && issue.spreadIndex === 1 && issue.otherSpreadIndex === 0),
+    );
   });
 
   it("flags two frames of the same moment on neighbouring spreads", () => {
     const issues = run(
       [
-        { templateId: "pair", placements: [{ slotId: "left", photoId: "a" }, { slotId: "right", photoId: "b" }] },
-        { templateId: "pair", placements: [{ slotId: "left", photoId: "c" }, { slotId: "right", photoId: "d" }] },
+        {
+          templateId: "pair",
+          placements: [
+            { slotId: "left", photoId: "a" },
+            { slotId: "right", photoId: "b" },
+          ],
+        },
+        {
+          templateId: "pair",
+          placements: [
+            { slotId: "left", photoId: "c" },
+            { slotId: "right", photoId: "d" },
+          ],
+        },
       ],
       [
         analysis("a", { capturedAt: "2026-06-20T14:00:00.000Z", similarityGroup: 3 }),
@@ -108,14 +161,30 @@ describe("checkAlbum", () => {
   it("flags a face that would land in the binding", () => {
     const issues = run(
       [{ templateId: "panorama", placements: [{ slotId: "band", photoId: "wide" }] }],
-      [analysis("wide", { width: 9000, height: 3000, orientation: "LANDSCAPE", faceCount: 2, focus: { x: 0.5, y: 0.4 } })],
+      [
+        analysis("wide", {
+          width: 9000,
+          height: 3000,
+          orientation: "LANDSCAPE",
+          faceCount: 2,
+          focus: { x: 0.5, y: 0.4 },
+        }),
+      ],
     );
     assert.ok(issues.some((issue) => issue.kind === "faceOnFold"));
   });
 
   it("lists the best photos left out", () => {
     const issues = run(
-      [{ templateId: "pair", placements: [{ slotId: "left", photoId: "a" }, { slotId: "right", photoId: "b" }] }],
+      [
+        {
+          templateId: "pair",
+          placements: [
+            { slotId: "left", photoId: "a" },
+            { slotId: "right", photoId: "b" },
+          ],
+        },
+      ],
       [analysis("a"), analysis("b"), analysis("star", { overall: 95 })],
     );
     const unused = issues.find((issue) => issue.kind === "unusedBest");

@@ -23,10 +23,7 @@ export interface AlbumCompositionDependencies {
   albums: AlbumRepository;
 }
 
-export function registerAlbumCompositionRoutes(
-  app: FastifyInstance,
-  deps: AlbumCompositionDependencies,
-): void {
+export function registerAlbumCompositionRoutes(app: FastifyInstance, deps: AlbumCompositionDependencies): void {
   app.get("/layout-templates", async () => LAYOUT_TEMPLATES);
 
   app.post("/projects/:projectId/spread-suggestions", async (request, reply) => {
@@ -98,4 +95,3 @@ export function toDto(album: Album) {
     updatedAt: album.updatedAt.toISOString(),
   };
 }
-

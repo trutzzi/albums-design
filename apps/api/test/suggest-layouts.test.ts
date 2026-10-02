@@ -23,11 +23,7 @@ const PROJECT = "project-1";
 
 describe("layout suggestions for a hand-picked set", () => {
   it("only offers layouts that hold exactly the chosen number of photos", async () => {
-    const photos = [
-      photo({ photoId: "a" }),
-      photo({ photoId: "b" }),
-      photo({ photoId: "c" }),
-    ];
+    const photos = [photo({ photoId: "a" }), photo({ photoId: "b" }), photo({ photoId: "c" })];
     const result = await new SuggestLayoutsUseCase(directory(photos)).execute({
       projectId: PROJECT,
       photoIds: ["a", "b", "c"],
@@ -50,14 +46,14 @@ describe("layout suggestions for a hand-picked set", () => {
       photoIds: ["a", "b"],
     });
     const scores = result.getValue().map((entry) => entry.fitScore);
-    assert.deepEqual(scores, [...scores].sort((x, y) => y - x));
+    assert.deepEqual(
+      scores,
+      [...scores].sort((x, y) => y - x),
+    );
   });
 
   it("leads with the portrait layout for two portraits", async () => {
-    const photos = [
-      photo({ photoId: "a", orientation: "PORTRAIT" }),
-      photo({ photoId: "b", orientation: "PORTRAIT" }),
-    ];
+    const photos = [photo({ photoId: "a", orientation: "PORTRAIT" }), photo({ photoId: "b", orientation: "PORTRAIT" })];
     const result = await new SuggestLayoutsUseCase(directory(photos)).execute({
       projectId: PROJECT,
       photoIds: ["a", "b"],
@@ -83,7 +79,6 @@ describe("layout suggestions for a hand-picked set", () => {
       photo({ photoId: "star", score: 96 }),
       photo({ photoId: "middling", score: 74 }),
     ];
-    const scoreOf = new Map(photos.map((p) => [p.photoId, p.score]));
 
     const result = await new SuggestLayoutsUseCase(directory(photos)).execute({
       projectId: PROJECT,
@@ -106,9 +101,10 @@ describe("layout suggestions for a hand-picked set", () => {
   });
 
   it("offers full bleed as an option for a single chosen photo", async () => {
-    const result = await new SuggestLayoutsUseCase(
-      directory([photo({ photoId: "solo" })]),
-    ).execute({ projectId: PROJECT, photoIds: ["solo"] });
+    const result = await new SuggestLayoutsUseCase(directory([photo({ photoId: "solo" })])).execute({
+      projectId: PROJECT,
+      photoIds: ["solo"],
+    });
 
     const ids = result.getValue().map((entry) => entry.templateId);
     assert.ok(ids.includes("hero-full-bleed"), `expected full bleed among ${ids}`);

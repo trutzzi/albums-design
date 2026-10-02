@@ -8,7 +8,10 @@ import { AnalysisPhotoDimensionsDirectory } from "../modules/photo-intelligence/
 import type { ModuleInfrastructure, Repositories } from "./ports";
 
 /** Photo intelligence: scoring and categorising each upload, and where its subject sits. */
-export function buildPhotoIntelligenceModule({ env, logger, byteSource }: ModuleInfrastructure, { analyses, photos }: Repositories) {
+export function buildPhotoIntelligenceModule(
+  { env, logger, byteSource }: ModuleInfrastructure,
+  { analyses, photos }: Repositories,
+) {
   const visionClassifier = buildVisionClassifier({
     provider: env.VISION_PROVIDER,
     anthropicApiKey: env.ANTHROPIC_API_KEY,

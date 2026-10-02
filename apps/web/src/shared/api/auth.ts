@@ -1,8 +1,4 @@
-import type {
-  AuthSession,
-  LoginInput,
-  RegisterInput,
-} from "@albumflow/contracts";
+import type { AuthSession, LoginInput, RegisterInput } from "@albumflow/contracts";
 import { request } from "./http";
 
 // --- Auth --------------------------------------------------------------

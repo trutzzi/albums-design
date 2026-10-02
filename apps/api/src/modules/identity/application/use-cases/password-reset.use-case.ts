@@ -19,7 +19,10 @@ const INVALID_LINK = "This reset link is invalid or has already been used. Ask f
  * an older link dies as soon as a newer one is used — with nothing stored.
  */
 function fingerprint(passwordHash: string | undefined): string {
-  return createHash("sha256").update(passwordHash ?? "no-password").digest("base64url").slice(0, 22);
+  return createHash("sha256")
+    .update(passwordHash ?? "no-password")
+    .digest("base64url")
+    .slice(0, 22);
 }
 
 /**

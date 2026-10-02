@@ -93,7 +93,9 @@ export function PhotoUploader({
         ) : (
           <p className="dropzone__title">{t("project.upload.more")}</p>
         )}
-        {photoLimit !== null && <p className="muted">{t("project.limit.count", { count: photoCount, limit: photoLimit })}</p>}
+        {photoLimit !== null && (
+          <p className="muted">{t("project.limit.count", { count: photoCount, limit: photoLimit })}</p>
+        )}
       </section>
 
       {upload.limitNotice && (

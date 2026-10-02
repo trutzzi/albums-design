@@ -31,6 +31,9 @@ describe("streaming a ZIP to a slow client", () => {
     assert.equal(delivered, true);
     assert.ok(received >= 20 * PHOTO, "every photo reached the client");
     // At most what is allowed to wait, plus the photo being read and the one being written.
-    assert.ok(worstLead <= MAX_BUFFERED_BYTES + 2 * PHOTO, `read ${Math.round(worstLead / 1048576)} MB ahead of the client`);
+    assert.ok(
+      worstLead <= MAX_BUFFERED_BYTES + 2 * PHOTO,
+      `read ${Math.round(worstLead / 1048576)} MB ahead of the client`,
+    );
   });
 });

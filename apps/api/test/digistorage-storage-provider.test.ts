@@ -88,16 +88,17 @@ describe("DigiStorageProvider over a real WebDAV server", () => {
 
   it("reports a missing object as undefined and refuses to stream it", async () => {
     assert.equal(await provider.head(`${PROJECT}/originals/nope.jpg`), undefined);
-    await assert.rejects(
-      () => provider.openRead(`${PROJECT}/originals/nope.jpg`),
-      StorageObjectNotFoundError,
-    );
+    await assert.rejects(() => provider.openRead(`${PROJECT}/originals/nope.jpg`), StorageObjectNotFoundError);
   });
 
   it("lists everything under a prefix recursively, with keys relative to the root", async () => {
     await provider.upload("studios/s2/projects/p9/originals/1.jpg", Buffer.from("1"), { contentType: "image/jpeg" });
-    await provider.upload("studios/s2/projects/p9/derivatives/1-preview.jpg", Buffer.from("22"), { contentType: "image/jpeg" });
-    await provider.upload("studios/s2/projects/other/originals/2.jpg", Buffer.from("333"), { contentType: "image/jpeg" });
+    await provider.upload("studios/s2/projects/p9/derivatives/1-preview.jpg", Buffer.from("22"), {
+      contentType: "image/jpeg",
+    });
+    await provider.upload("studios/s2/projects/other/originals/2.jpg", Buffer.from("333"), {
+      contentType: "image/jpeg",
+    });
 
     const listed = await provider.list("studios/s2/projects/p9/");
     assert.deepEqual(
@@ -138,14 +139,20 @@ describe("DigiStorageProvider over a real WebDAV server", () => {
   it("recovers when another process removed the folder this one had cached", async () => {
     const key = "studios/s4/projects/racy/originals/1.jpg";
     await provider.upload(key, Buffer.from("1"), { contentType: "image/jpeg" });
-    await createClient(baseUrl, { username: "someone@example.test", password: "app-password" }).deleteFile("/albumflow/studios/s4/projects/racy");
+    await createClient(baseUrl, { username: "someone@example.test", password: "app-password" }).deleteFile(
+      "/albumflow/studios/s4/projects/racy",
+    );
     await provider.upload(key, Buffer.from("22"), { contentType: "image/jpeg" });
     assert.equal((await provider.head(key))?.size, 2);
   });
 
   it("refuses keys that could escape the root", async () => {
     for (const key of ["../x", "a/../../x", "/abs", "a//b", "", "a\\b"]) {
-      await assert.rejects(() => provider.upload(key, Buffer.from("x"), { contentType: "text/plain" }), /Unsafe storage key/, key);
+      await assert.rejects(
+        () => provider.upload(key, Buffer.from("x"), { contentType: "text/plain" }),
+        /Unsafe storage key/,
+        key,
+      );
     }
   });
 

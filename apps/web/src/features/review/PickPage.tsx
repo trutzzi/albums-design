@@ -46,8 +46,7 @@ export function PickPage() {
   const onShortlist = stage === "SHORTLIST";
 
   const toggle = useMutation({
-    mutationFn: ({ photoId, picked }: { photoId: string; picked: boolean }) =>
-      setPhotoPicked(token, photoId, picked),
+    mutationFn: ({ photoId, picked }: { photoId: string; picked: boolean }) => setPhotoPicked(token, photoId, picked),
     onMutate: async ({ photoId, picked }) => {
       setNotice(null);
       await queryClient.cancelQueries({ queryKey });
@@ -117,11 +116,7 @@ export function PickPage() {
   if (view.isLoading) return <p className="page muted">{t("pick.loading")}</p>;
   if (needsPassword(view.error)) {
     return (
-      <PasswordGate
-        kind="pick"
-        token={token}
-        onUnlocked={() => void queryClient.invalidateQueries({ queryKey })}
-      />
+      <PasswordGate kind="pick" token={token} onUnlocked={() => void queryClient.invalidateQueries({ queryKey })} />
     );
   }
   if (view.isError || !data) {
@@ -217,11 +212,14 @@ export function PickPage() {
 
       {session.status === "SUBMITTED" && (
         <p className="notice notice--good" role="status">
-          <strong>{t("pick.done.title", { name: session.clientName })}</strong>{" "}
-          {t("pick.done.body", { count })}
+          <strong>{t("pick.done.title", { name: session.clientName })}</strong> {t("pick.done.body", { count })}
         </p>
       )}
-      {notice && <p className="error" role="alert">{notice}</p>}
+      {notice && (
+        <p className="error" role="alert">
+          {notice}
+        </p>
+      )}
       {data.processingCount > 0 && (
         <p className="notice" role="status">
           {t("pick.processing", { count: data.processingCount.toLocaleString(language === "ro" ? "ro-RO" : "en-GB") })}
@@ -247,9 +245,7 @@ export function PickPage() {
           className={`pick__filter ${filter === "picked" ? "pick__filter--on" : ""}`}
           onClick={() => setFilter("picked")}
         >
-          {onShortlist
-            ? t("pick.filter.shortlisted", { count: shortlistCount })
-            : t("pick.filter.chosen", { count })}
+          {onShortlist ? t("pick.filter.shortlisted", { count: shortlistCount }) : t("pick.filter.chosen", { count })}
         </button>
       </div>
 
@@ -273,12 +269,7 @@ export function PickPage() {
         {isOpen && (
           <div className="pick__bar-actions">
             {!onShortlist && (
-              <button
-                type="button"
-                className="button"
-                disabled={busy}
-                onClick={() => changeStage.mutate("SHORTLIST")}
-              >
+              <button type="button" className="button" disabled={busy} onClick={() => changeStage.mutate("SHORTLIST")}>
                 {t("pick.back")}
               </button>
             )}

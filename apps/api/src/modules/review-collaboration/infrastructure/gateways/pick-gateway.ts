@@ -23,7 +23,11 @@ export class MediaIngestionPickGateway implements PickGateway {
   async loadProject(projectId: string) {
     const project = await this.projects.findById(UniqueEntityId.create(projectId));
     if (!project) return undefined;
-    return { id: project.id.toString(), name: project.name, branding: (await this.extras.branding?.forProject(projectId)) ?? null };
+    return {
+      id: project.id.toString(),
+      name: project.name,
+      branding: (await this.extras.branding?.forProject(projectId)) ?? null,
+    };
   }
 
   async listPhotos(projectId: string) {

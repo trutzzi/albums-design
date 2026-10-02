@@ -28,7 +28,11 @@ export function ClientLinkForm(props: {
       <div className="pick-create">
         <div className="field">
           <label htmlFor={`${idPrefix}-client-name`}>{props.nameLabel}</label>
-          <input id={`${idPrefix}-client-name`} value={props.name} onChange={(event) => props.onNameChange(event.target.value)} />
+          <input
+            id={`${idPrefix}-client-name`}
+            value={props.name}
+            onChange={(event) => props.onNameChange(event.target.value)}
+          />
         </div>
         <div className="field">
           <label htmlFor={`${idPrefix}-setting`}>{props.setting.label}</label>

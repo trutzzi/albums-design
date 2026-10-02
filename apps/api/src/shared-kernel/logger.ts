@@ -63,10 +63,12 @@ export class ConsoleLogger implements Logger {
     for (const [key, value] of Object.entries(fields)) {
       if (value === undefined) continue;
       // Multi-line text (an email body in demo mode) reads better as an indented block.
-      if (typeof value === "string" && value.includes("\n")) blocks.push(`  ${key}:\n    ${value.split("\n").join("\n    ")}`);
+      if (typeof value === "string" && value.includes("\n"))
+        blocks.push(`  ${key}:\n    ${value.split("\n").join("\n    ")}`);
       else inline.push(`${key}=${typeof value === "string" ? value : JSON.stringify(value)}`);
     }
-    if (err !== undefined) blocks.push(`  ${err instanceof Error ? (err.stack ?? `${err.name}: ${err.message}`) : String(err)}`);
+    if (err !== undefined)
+      blocks.push(`  ${err instanceof Error ? (err.stack ?? `${err.name}: ${err.message}`) : String(err)}`);
     const line = [
       `${new Date().toISOString()} ${level.toUpperCase().padEnd(5)} ${message}${inline.length ? ` ${inline.join(" ")}` : ""}`,
       ...blocks,

@@ -8,9 +8,5 @@ export const QUEUES = {
 } as const;
 
 export interface JobQueue {
-  enqueue<Payload extends Record<string, unknown>>(
-    queueName: string,
-    jobName: string,
-    payload: Payload,
-  ): Promise<void>;
+  enqueue<Payload extends Record<string, unknown>>(queueName: string, jobName: string, payload: Payload): Promise<void>;
 }

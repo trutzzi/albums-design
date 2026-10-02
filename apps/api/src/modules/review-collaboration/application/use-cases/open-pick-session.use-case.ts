@@ -1,10 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import {
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-  type ApplicationError,
-} from "#src/shared-kernel/errors";
+import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import { PickClosedError, PickSession, type PickStatus } from "../../domain/pick-session";
 import type { PickSessionRepository } from "../../domain/pick-session-repository";
 import type { PickStage } from "../../domain/pick-session";
@@ -58,9 +53,7 @@ export class PickSessionAdminUseCase {
     private readonly contacts?: ClientContactDirectory,
   ) {}
 
-  async open(
-    command: OpenPickSessionCommand,
-  ): Promise<
+  async open(command: OpenPickSessionCommand): Promise<
     Result<
       {
         sessionId: string;
@@ -188,9 +181,7 @@ export class PickSessionAdminUseCase {
 
   async list(projectId: string): Promise<PickSessionSummary[]> {
     const sessions = await this.sessions.findByProjectId(UniqueEntityId.create(projectId));
-    return sessions
-      .map(toSummary)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return sessions.map(toSummary).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   reopen(projectId: string, sessionId: string): Promise<Result<PickSessionSummary, ApplicationError>> {

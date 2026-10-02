@@ -16,9 +16,7 @@ interface StoredBlob {
  * over the API's own `/dev-storage` routes, so the browser can PUT an upload and
  * load a preview with no object store running.
  */
-export class LocalBlobStore
-  implements ObjectStorageWithBody, PhotoByteSource, ExportStorage
-{
+export class LocalBlobStore implements ObjectStorageWithBody, PhotoByteSource, ExportStorage {
   private readonly blobs = new Map<string, StoredBlob>();
 
   constructor(private readonly publicBaseUrl: string) {}

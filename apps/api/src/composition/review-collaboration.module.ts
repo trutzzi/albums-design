@@ -19,7 +19,10 @@ import {
   LoggingReviewNotifier,
 } from "../modules/review-collaboration/infrastructure/gateways/album-gateway";
 import { StoragePhotoPreviewResolver } from "../modules/review-collaboration/infrastructure/gateways/photo-preview-resolver";
-import { LoggingPickNotifier, MediaIngestionPickGateway } from "../modules/review-collaboration/infrastructure/gateways/pick-gateway";
+import {
+  LoggingPickNotifier,
+  MediaIngestionPickGateway,
+} from "../modules/review-collaboration/infrastructure/gateways/pick-gateway";
 import {
   CompositePickNotifier,
   CompositeReviewNotifier,
@@ -42,7 +45,8 @@ export function buildReviewCollaborationModule(
     studioBranding,
     photoFocus,
     photoDimensions,
-  }: Pick<IdentityModule, "planFeatures" | "studioBranding"> & Pick<PhotoIntelligenceModule, "photoFocus" | "photoDimensions">,
+  }: Pick<IdentityModule, "planFeatures" | "studioBranding"> &
+    Pick<PhotoIntelligenceModule, "photoFocus" | "photoDimensions">,
 ) {
   const { projects, photos, albums, members, studios, reviewSessions, pickSessions, downloadSessions } = repos;
   const reviewLog = logger.child({ component: "review" });
@@ -88,7 +92,10 @@ export function buildReviewCollaborationModule(
     logger.child({ component: "client-email" }),
     studioBranding,
   );
-  const decided = new CompositeReviewNotifier([new LoggingReviewNotifier(reviewLog), studioEmail, clientEmail], reviewLog);
+  const decided = new CompositeReviewNotifier(
+    [new LoggingReviewNotifier(reviewLog), studioEmail, clientEmail],
+    reviewLog,
+  );
   const reviewNotifier = permanentStorage ? new PromoteOnApprovalNotifier(decided, jobQueue, reviewLog) : decided;
 
   // Client photo selection ("picks"), the step before an album exists.
@@ -99,10 +106,19 @@ export function buildReviewCollaborationModule(
     // The pick page shows the studio's branding too, when its plan includes it.
     { branding: studioBranding, dimensions: photoDimensions },
   );
-  const loggedAndEmailed = new CompositePickNotifier([new LoggingPickNotifier(pickLog), studioEmail, clientEmail], pickLog);
+  const loggedAndEmailed = new CompositePickNotifier(
+    [new LoggingPickNotifier(pickLog), studioEmail, clientEmail],
+    pickLog,
+  );
 
   // Client delivery: a time-limited link that downloads every original as one ZIP.
-  const deliveryGateway = new MediaIngestionDeliveryGateway(projects, photos, storage, permanentStorage, studioBranding);
+  const deliveryGateway = new MediaIngestionDeliveryGateway(
+    projects,
+    photos,
+    storage,
+    permanentStorage,
+    studioBranding,
+  );
 
   return {
     openReviewSession: new OpenReviewSessionUseCase(

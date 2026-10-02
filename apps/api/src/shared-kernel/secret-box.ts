@@ -19,7 +19,9 @@ export class SecretBox {
     const iv = randomBytes(12);
     const cipher = createCipheriv("aes-256-gcm", this.key, iv);
     const data = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
-    return ["v1", iv.toString("base64url"), cipher.getAuthTag().toString("base64url"), data.toString("base64url")].join(".");
+    return ["v1", iv.toString("base64url"), cipher.getAuthTag().toString("base64url"), data.toString("base64url")].join(
+      ".",
+    );
   }
 
   /** `undefined` when the value was not sealed with this key, or was altered. */

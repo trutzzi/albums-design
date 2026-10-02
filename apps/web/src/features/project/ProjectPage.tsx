@@ -36,11 +36,27 @@ const STEP_TOUR_TARGETS: Record<ShootStep, string | undefined> = {
 };
 
 const PROJECT_TOUR: TourStep[] = [
-  { target: '[data-tour="project-upload"]', titleKey: "tour.project.upload.title", bodyKey: "tour.project.upload.body" },
-  { target: '[data-tour="project-photos"]', titleKey: "tour.project.photos.title", bodyKey: "tour.project.photos.body" },
+  {
+    target: '[data-tour="project-upload"]',
+    titleKey: "tour.project.upload.title",
+    bodyKey: "tour.project.upload.body",
+  },
+  {
+    target: '[data-tour="project-photos"]',
+    titleKey: "tour.project.photos.title",
+    bodyKey: "tour.project.photos.body",
+  },
   { target: '[data-tour="project-picks"]', titleKey: "tour.project.picks.title", bodyKey: "tour.project.picks.body" },
-  { target: '[data-tour="project-generate"]', titleKey: "tour.project.generate.title", bodyKey: "tour.project.generate.body" },
-  { target: '[data-tour="project-delivery"]', titleKey: "tour.project.delivery.title", bodyKey: "tour.project.delivery.body" },
+  {
+    target: '[data-tour="project-generate"]',
+    titleKey: "tour.project.generate.title",
+    bodyKey: "tour.project.generate.body",
+  },
+  {
+    target: '[data-tour="project-delivery"]',
+    titleKey: "tour.project.delivery.title",
+    bodyKey: "tour.project.delivery.body",
+  },
 ];
 
 /**
@@ -91,8 +107,7 @@ export function ProjectPage() {
   const photos = useQuery({
     queryKey: ["photos", projectId],
     queryFn: () => listProjectPhotos(projectId),
-    refetchInterval: (query) =>
-      query.state.data?.some((photo) => photo.status !== "ANALYSIS_QUEUED") ? 4000 : 15000,
+    refetchInterval: (query) => (query.state.data?.some((photo) => photo.status !== "ANALYSIS_QUEUED") ? 4000 : 15000),
   });
   const analyses = useQuery({
     queryKey: ["analyses", projectId],

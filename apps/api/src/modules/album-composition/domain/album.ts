@@ -411,12 +411,11 @@ export class Album extends AggregateRoot<AlbumProps> {
     const template = findTemplate(templateId);
     if (!template) throw new Error(`Unknown layout template ${templateId}.`);
 
-    const treatmentOf = new Map(
-      spread.placements.map((placement) => [placement.photoId, placement.treatment]),
-    );
-    const carried = (photoOrder ?? spread.placements.map((placement) => placement.photoId)).map(
-      (photoId) => ({ photoId, treatment: treatmentOf.get(photoId) ?? "COLOR" }),
-    );
+    const treatmentOf = new Map(spread.placements.map((placement) => [placement.photoId, placement.treatment]));
+    const carried = (photoOrder ?? spread.placements.map((placement) => placement.photoId)).map((photoId) => ({
+      photoId,
+      treatment: treatmentOf.get(photoId) ?? "COLOR",
+    }));
     const last = carried[carried.length - 1];
     spread.templateId = templateId;
     // Frames are deliberately not carried: they described the old template's slots.
@@ -478,7 +477,8 @@ export class Album extends AggregateRoot<AlbumProps> {
       throw new Error(`A spread holds at most ${MAX_TEXT_BLOCKS_PER_SPREAD} text blocks.`);
     }
     const placed = { ...block, ...normaliseFrame(block) };
-    spread.texts = existing === -1 ? [...texts, placed] : texts.map((candidate, index) => (index === existing ? placed : candidate));
+    spread.texts =
+      existing === -1 ? [...texts, placed] : texts.map((candidate, index) => (index === existing ? placed : candidate));
     this.touch();
   }
 

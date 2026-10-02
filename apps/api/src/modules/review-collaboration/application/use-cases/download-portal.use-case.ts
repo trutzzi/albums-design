@@ -1,10 +1,6 @@
 import type { ClientBrandingDTO } from "@albumflow/contracts";
 import { Result } from "@albumflow/domain-kernel";
-import {
-  ConflictError,
-  NotFoundError,
-  type ApplicationError,
-} from "#src/shared-kernel/errors";
+import { ConflictError, NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
 import { DownloadUnavailableError, type DownloadSession } from "../../domain/download-session";
 import type { DownloadSessionRepository } from "../../domain/download-session-repository";
 import { hashToken } from "../../domain/review-session";
@@ -123,7 +119,10 @@ export class DownloadPortalUseCase {
           });
         } catch (error) {
           // The client already has their photos; a bookkeeping or mail failure must not matter to them.
-          this.logger.error("could not record or announce a finished download", { sessionId: session.id.toString(), err: error });
+          this.logger.error("could not record or announce a finished download", {
+            sessionId: session.id.toString(),
+            err: error,
+          });
         }
       },
     });
@@ -147,7 +146,11 @@ export function uniqueEntryNames(fileNames: string[]): string[] {
   const seen = new Map<string, number>();
   return fileNames.map((raw) => {
     // Never let a stored name reach into another folder inside the archive.
-    const name = raw.replace(/[\\/]+/g, "_").replace(/^\.+/, "").trim() || "photo";
+    const name =
+      raw
+        .replace(/[\\/]+/g, "_")
+        .replace(/^\.+/, "")
+        .trim() || "photo";
     const key = name.toLowerCase();
     const count = (seen.get(key) ?? 0) + 1;
     seen.set(key, count);

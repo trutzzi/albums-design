@@ -72,11 +72,7 @@ export interface SpreadBlockProps {
    * A photo dragged in from a different spread, dropped on the margins here
    * rather than onto a slot — grows this spread by one instead of swapping.
    */
-  onMovePhotoAsNewPhoto: (
-    fromSpreadIndex: number,
-    fromSlotId: string,
-    toSpreadIndex: number,
-  ) => void;
+  onMovePhotoAsNewPhoto: (fromSpreadIndex: number, fromSlotId: string, toSpreadIndex: number) => void;
   onPickTemplate: (spreadIndex: number, templateId: string) => void;
   /** A tray photo dropped on the margins/gutter, not a specific slot — grows the spread. */
   onAddPhotoDrop: (spreadIndex: number, photoId: string) => void;
@@ -155,27 +151,21 @@ export const SpreadBlock = memo(function SpreadBlock({
 }: SpreadBlockProps) {
   const { t } = useLanguage();
   // Each handler binds this spread's index once, so SpreadCanvas sees stable props.
-  const selectSlot = useCallback(
-    (slotId: string) => onSelectSlot(spreadIndex, slotId),
-    [onSelectSlot, spreadIndex],
-  );
+  const selectSlot = useCallback((slotId: string) => onSelectSlot(spreadIndex, slotId), [onSelectSlot, spreadIndex]);
   const slotDrop = useCallback(
     (slotId: string, photoId: string) => onSlotDrop(spreadIndex, slotId, photoId),
     [onSlotDrop, spreadIndex],
   );
   const cropChange = useCallback(
-    (slotId: string, crop: Crop, commit: boolean) =>
-      onCropChange(spreadIndex, slotId, crop, commit),
+    (slotId: string, crop: Crop, commit: boolean) => onCropChange(spreadIndex, slotId, crop, commit),
     [onCropChange, spreadIndex],
   );
   const treatmentChange = useCallback(
-    (slotId: string, treatment: PhotoTreatment) =>
-      onTreatmentChange(spreadIndex, slotId, treatment),
+    (slotId: string, treatment: PhotoTreatment) => onTreatmentChange(spreadIndex, slotId, treatment),
     [onTreatmentChange, spreadIndex],
   );
   const frameChange = useCallback(
-    (slotId: string, frame: SlotFrame, commit: boolean) =>
-      onFrameChange(spreadIndex, slotId, frame, commit),
+    (slotId: string, frame: SlotFrame, commit: boolean) => onFrameChange(spreadIndex, slotId, frame, commit),
     [onFrameChange, spreadIndex],
   );
   const framesChange = useCallback(
@@ -183,13 +173,11 @@ export const SpreadBlock = memo(function SpreadBlock({
     [onFramesChange, spreadIndex],
   );
   const reorderPlacement = useCallback(
-    (fromSlotId: string, toSlotId: string) =>
-      onReorderPlacement(spreadIndex, fromSlotId, toSlotId),
+    (fromSlotId: string, toSlotId: string) => onReorderPlacement(spreadIndex, fromSlotId, toSlotId),
     [onReorderPlacement, spreadIndex],
   );
   const moveToNeighbor = useCallback(
-    (fromSlotId: string, toSlotId: string) =>
-      onMoveToNeighbor(spreadIndex, fromSlotId, toSlotId),
+    (fromSlotId: string, toSlotId: string) => onMoveToNeighbor(spreadIndex, fromSlotId, toSlotId),
     [onMoveToNeighbor, spreadIndex],
   );
   const movePlacementAcrossSpreads = useCallback(
@@ -198,8 +186,7 @@ export const SpreadBlock = memo(function SpreadBlock({
     [onMovePlacementAcrossSpreads, spreadIndex],
   );
   const movePhotoAsNewPhoto = useCallback(
-    (fromSpreadIndex: number, fromSlotId: string) =>
-      onMovePhotoAsNewPhoto(fromSpreadIndex, fromSlotId, spreadIndex),
+    (fromSpreadIndex: number, fromSlotId: string) => onMovePhotoAsNewPhoto(fromSpreadIndex, fromSlotId, spreadIndex),
     [onMovePhotoAsNewPhoto, spreadIndex],
   );
   const pickTemplate = useCallback(
@@ -211,10 +198,7 @@ export const SpreadBlock = memo(function SpreadBlock({
     (photoId: string) => onAddPhotoDrop(spreadIndex, photoId),
     [onAddPhotoDrop, spreadIndex],
   );
-  const removePhoto = useCallback(
-    (slotId: string) => onRemovePhoto(spreadIndex, slotId),
-    [onRemovePhoto, spreadIndex],
-  );
+  const removePhoto = useCallback((slotId: string) => onRemovePhoto(spreadIndex, slotId), [onRemovePhoto, spreadIndex]);
 
   const replacePhoto = useCallback(
     (slotId: string) => onReplacePhoto(spreadIndex, slotId),
@@ -223,18 +207,12 @@ export const SpreadBlock = memo(function SpreadBlock({
   // The selected photo's tools render into this bar, above the spread, instead of over the photos.
   const [toolsHost, setToolsHost] = useState<HTMLDivElement | null>(null);
 
-  const textSelect = useCallback(
-    (blockId: string) => onTextSelect(spreadIndex, blockId),
-    [onTextSelect, spreadIndex],
-  );
+  const textSelect = useCallback((blockId: string) => onTextSelect(spreadIndex, blockId), [onTextSelect, spreadIndex]);
   const textChange = useCallback(
     (block: TextBlockDTO, commit: boolean) => onTextChange(spreadIndex, block, commit),
     [onTextChange, spreadIndex],
   );
-  const textRemove = useCallback(
-    (blockId: string) => onTextRemove(spreadIndex, blockId),
-    [onTextRemove, spreadIndex],
-  );
+  const textRemove = useCallback((blockId: string) => onTextRemove(spreadIndex, blockId), [onTextRemove, spreadIndex]);
 
   const mono = spreadIsMono(spread.placements);
   // A locked spread keeps its layout: photos can still be framed, nothing else moves.
@@ -247,9 +225,7 @@ export const SpreadBlock = memo(function SpreadBlock({
   // on-screen. That silently hid the bar the moment it fell outside the
   // block's own padding box, so containment is switched off for the one
   // spread currently being edited.
-  const selectedPlacement = spread.placements.find(
-    (placement) => placement.slotId === selectedSlotId,
-  );
+  const selectedPlacement = spread.placements.find((placement) => placement.slotId === selectedSlotId);
   const toolsOpen =
     !locked && (Boolean(selectedPlacement && previewUrlFor(selectedPlacement.photoId)) || selectedTextId !== null);
 
@@ -405,52 +381,52 @@ export const SpreadBlock = memo(function SpreadBlock({
 
       <div ref={setToolsHost} className="spread-block__toolbar" />
       <div data-tour={spreadIndex === 0 ? "editor-spread" : undefined}>
-      <SpreadCanvas
-        spreadIndex={spreadIndex}
-        template={template}
-        placements={spread.placements}
-        previewUrlFor={previewUrlFor}
-        aspectRatio={aspectRatio}
-        pageWidthMm={pageWidthMm}
-        pageHeightMm={pageHeightMm}
-        showRuler={showRuler}
-        showGuides={showGuides}
-        safeMarginMm={safeMarginMm}
-        snapEnabled={snapEnabled}
-        selectedSlotId={selectedSlotId}
-        onSlotClick={locked ? undefined : selectSlot}
-        onSlotDrop={locked ? undefined : slotDrop}
-        onCropChange={locked ? undefined : cropChange}
-        onTreatmentChange={locked ? undefined : treatmentChange}
-        onFrameChange={layoutLocked ? undefined : frameChange}
-        onFramesChange={layoutLocked ? undefined : framesChange}
-        onReorderPlacement={locked ? undefined : reorderPlacement}
-        onMoveToNeighbor={locked ? undefined : moveToNeighbor}
-        onMovePlacementAcrossSpreads={locked ? undefined : movePlacementAcrossSpreads}
-        onMovePhotoAsNewPhoto={layoutLocked ? undefined : movePhotoAsNewPhoto}
-        onAddPhotoDrop={layoutLocked ? undefined : addPhotoDrop}
-        onRemovePhoto={layoutLocked ? undefined : removePhoto}
-        onCloseTools={locked ? undefined : onCloseTools}
-        onReplacePhoto={locked ? undefined : replacePhoto}
-        toolsHost={toolsHost}
-        albumStyle={albumStyle}
-        texts={spread.texts}
-        selectedTextId={selectedTextId}
-        onTextSelect={locked ? undefined : textSelect}
-        onTextChange={locked ? undefined : textChange}
-        onTextRemove={locked ? undefined : textRemove}
-        focusFor={focusFor}
-      />
+        <SpreadCanvas
+          spreadIndex={spreadIndex}
+          template={template}
+          placements={spread.placements}
+          previewUrlFor={previewUrlFor}
+          aspectRatio={aspectRatio}
+          pageWidthMm={pageWidthMm}
+          pageHeightMm={pageHeightMm}
+          showRuler={showRuler}
+          showGuides={showGuides}
+          safeMarginMm={safeMarginMm}
+          snapEnabled={snapEnabled}
+          selectedSlotId={selectedSlotId}
+          onSlotClick={locked ? undefined : selectSlot}
+          onSlotDrop={locked ? undefined : slotDrop}
+          onCropChange={locked ? undefined : cropChange}
+          onTreatmentChange={locked ? undefined : treatmentChange}
+          onFrameChange={layoutLocked ? undefined : frameChange}
+          onFramesChange={layoutLocked ? undefined : framesChange}
+          onReorderPlacement={locked ? undefined : reorderPlacement}
+          onMoveToNeighbor={locked ? undefined : moveToNeighbor}
+          onMovePlacementAcrossSpreads={locked ? undefined : movePlacementAcrossSpreads}
+          onMovePhotoAsNewPhoto={layoutLocked ? undefined : movePhotoAsNewPhoto}
+          onAddPhotoDrop={layoutLocked ? undefined : addPhotoDrop}
+          onRemovePhoto={layoutLocked ? undefined : removePhoto}
+          onCloseTools={locked ? undefined : onCloseTools}
+          onReplacePhoto={locked ? undefined : replacePhoto}
+          toolsHost={toolsHost}
+          albumStyle={albumStyle}
+          texts={spread.texts}
+          selectedTextId={selectedTextId}
+          onTextSelect={locked ? undefined : textSelect}
+          onTextChange={locked ? undefined : textChange}
+          onTextRemove={locked ? undefined : textRemove}
+          focusFor={focusFor}
+        />
       </div>
 
       <div data-tour={spreadIndex === 0 ? "editor-layouts" : undefined}>
-      <LayoutPicker
-        templates={templates}
-        photoCount={spread.placements.length}
-        currentTemplateId={spread.templateId}
-        disabled={layoutLocked}
-        onPick={pickTemplate}
-      />
+        <LayoutPicker
+          templates={templates}
+          photoCount={spread.placements.length}
+          currentTemplateId={spread.templateId}
+          disabled={layoutLocked}
+          onPick={pickTemplate}
+        />
       </div>
     </section>
   );

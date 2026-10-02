@@ -29,7 +29,12 @@ export function buildIdentityModule(
       env.WEB_ORIGIN,
     ),
     login: new LoginUseCase(members, env.JWT_SECRET),
-    passwordReset: new PasswordResetUseCase(members, new PasswordResetMailer(emailSender), env.JWT_SECRET, env.WEB_ORIGIN),
+    passwordReset: new PasswordResetUseCase(
+      members,
+      new PasswordResetMailer(emailSender),
+      env.JWT_SECRET,
+      env.WEB_ORIGIN,
+    ),
     billing: new BillingUseCase(studios, subscriptions, billingGateway, env.WEB_ORIGIN),
     /** Cloudflare Turnstile on signup when TURNSTILE_SECRET_KEY is set; a pass-through otherwise. */
     humanCheck: env.TURNSTILE_SECRET_KEY

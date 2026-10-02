@@ -1,9 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import {
-  NotFoundError,
-  ValidationError,
-  type ApplicationError,
-} from "#src/shared-kernel/errors";
+import { NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import { QUEUES, type JobQueue } from "#src/shared-kernel/job-queue";
 import { ExportJob } from "../../domain/export-job";
 import type { ExportJobRepository } from "../../domain/export-job-repository";
@@ -36,9 +32,7 @@ export class RequestExportUseCase {
       return Result.failure(new ValidationError(`Unknown print profile ${profileId}.`));
     }
 
-    const placed = album.spreads.some((spread) =>
-      spread.placements.some((placement) => placement.photoId !== ""),
-    );
+    const placed = album.spreads.some((spread) => spread.placements.some((placement) => placement.photoId !== ""));
     if (!placed) {
       return Result.failure(new ValidationError("This album has no photos placed yet."));
     }

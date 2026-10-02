@@ -116,7 +116,10 @@ export function moveDivider(
     const target = divider.position + delta;
     let best: number | undefined;
     for (const guide of [...layoutGuides(divider.axis), ...edges]) {
-      if (Math.abs(guide - target) <= SNAP_THRESHOLD && (best === undefined || Math.abs(guide - target) < Math.abs(best - target))) {
+      if (
+        Math.abs(guide - target) <= SNAP_THRESHOLD &&
+        (best === undefined || Math.abs(guide - target) < Math.abs(best - target))
+      ) {
         best = guide;
       }
     }
@@ -133,7 +136,8 @@ export function moveDivider(
     if (!rect) continue;
     result.push({
       slotId: id,
-      frame: divider.axis === "vertical" ? { ...rect, width: rect.width + moved } : { ...rect, height: rect.height + moved },
+      frame:
+        divider.axis === "vertical" ? { ...rect, width: rect.width + moved } : { ...rect, height: rect.height + moved },
     });
   }
   for (const id of divider.after) {

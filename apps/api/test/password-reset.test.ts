@@ -127,7 +127,11 @@ describe("login lockout", () => {
       await login.execute({ email, password: "guess", ip: "203.0.113.9" });
     }
     const fromSameIp = await login.execute({ email: "alex@example.com", password: "original-pass", ip: "203.0.113.9" });
-    const fromElsewhere = await login.execute({ email: "alex@example.com", password: "original-pass", ip: "198.51.100.1" });
+    const fromElsewhere = await login.execute({
+      email: "alex@example.com",
+      password: "original-pass",
+      ip: "198.51.100.1",
+    });
     assert.equal(fromSameIp.getError().code, "TOO_MANY_ATTEMPTS");
     assert.ok(fromElsewhere.isSuccess);
   });

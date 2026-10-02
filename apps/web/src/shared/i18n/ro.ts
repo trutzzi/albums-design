@@ -36,14 +36,16 @@ export const ro: Record<string, string> = {
   "auth.register.password": "Parolă",
   "auth.register.passwordHint": "Minimum 8 caractere.",
   "auth.register.submit": "Creează cont",
-  "auth.confirm.sent": "Aproape gata! Am trimis un link de confirmare la {email}. Deschide-l ca să îți activezi contul.",
+  "auth.confirm.sent":
+    "Aproape gata! Am trimis un link de confirmare la {email}. Deschide-l ca să îți activezi contul.",
   "auth.confirm.spam": "Nu a sosit în câteva minute? Verifică dosarul spam sau trimite-l din nou.",
   "auth.confirm.resend": "Trimite linkul din nou",
   "auth.confirm.resent": "Trimis — verifică-ți emailul",
   "auth.confirm.required": "Confirmă mai întâi adresa de email — deschide linkul trimis la înregistrare.",
   "auth.confirm.title": "Confirmăm adresa de email",
   "auth.confirm.checking": "Un moment…",
-  "auth.confirm.missingToken": "Linkul este incomplet. Deschide linkul complet din email sau autentifică-te ca să primești unul nou.",
+  "auth.confirm.missingToken":
+    "Linkul este incomplet. Deschide linkul complet din email sau autentifică-te ca să primești unul nou.",
   "auth.register.submitting": "Se creează contul…",
   "auth.register.haveAccount": "Ai deja un cont?",
   "auth.register.login": "Autentificare",
@@ -54,7 +56,8 @@ export const ro: Record<string, string> = {
   "auth.forgot.email": "Email",
   "auth.forgot.submit": "Trimite linkul",
   "auth.forgot.submitting": "Se trimite…",
-  "auth.forgot.sent": "Dacă există un cont pentru {email}, linkul de resetare este pe drum. Funcționează o oră — verifică și folderul spam dacă nu a sosit în câteva minute.",
+  "auth.forgot.sent":
+    "Dacă există un cont pentru {email}, linkul de resetare este pe drum. Funcționează o oră — verifică și folderul spam dacă nu a sosit în câteva minute.",
   "auth.forgot.back": "Înapoi la autentificare",
   "auth.reset.title": "Alege o parolă nouă",
   "auth.reset.password": "Parola nouă",
@@ -103,9 +106,11 @@ export const ro: Record<string, string> = {
   "project.uploading": "Se încarcă {count} fișier{plural}…",
   "project.generate.title": "Generează un album",
   "ai.status.online": "AI: online",
-  "ai.status.online.title": "Clasificatorul AI local pentru fotografii este disponibil — fotografiile încărcate primesc categorii reale, evaluate de AI.",
+  "ai.status.online.title":
+    "Clasificatorul AI local pentru fotografii este disponibil — fotografiile încărcate primesc categorii reale, evaluate de AI.",
   "ai.status.offline": "AI: offline",
-  "ai.status.offline.title": "Clasificatorul AI local nu poate fi contactat momentan — încărcarea funcționează în continuare, folosind analiza de bază (fără AI).",
+  "ai.status.offline.title":
+    "Clasificatorul AI local nu poate fi contactat momentan — încărcarea funcționează în continuare, folosind analiza de bază (fără AI).",
   "project.upload.useAi": "Folosește analiza AI a fotografiilor",
   "project.upload.useAi.unavailable": "Serverul AI local nu poate fi contactat momentan, așa că este dezactivat.",
   "ai.consent.title": "Procesare AI locală",
@@ -138,8 +143,10 @@ export const ro: Record<string, string> = {
   "project.step.delivery.active": "Link activ",
   "project.step.delivery.downloaded": "Descărcată",
   "project.next.title": "Ce urmează",
-  "project.next.upload": "Adaugă fotografiile din această sesiune — trage selecțiile finale și fiecare primește un scor pe măsură ce ajunge.",
-  "project.next.processing": "Fotografiile se pregătesc ({done} din {total}). Între timp, poți invita clientul să-și aleagă preferatele.",
+  "project.next.upload":
+    "Adaugă fotografiile din această sesiune — trage selecțiile finale și fiecare primește un scor pe măsură ce ajunge.",
+  "project.next.processing":
+    "Fotografiile se pregătesc ({done} din {total}). Între timp, poți invita clientul să-și aleagă preferatele.",
   "project.next.start": "Fotografiile sunt gata. Lasă clientul să-și aleagă preferatele sau creează albumul direct.",
   "project.next.waitingPicks": "Așteptăm ca {name} să trimită preferatele — vei primi un email când o face.",
   "project.next.picksIn": "{name} a trimis preferatele. Creează albumul din ele.",
@@ -165,7 +172,8 @@ export const ro: Record<string, string> = {
   "project.picks.new": "Link nou de selecție",
   "project.delivery.new": "Link nou de descărcare",
   "project.danger.title": "Șterge această sesiune",
-  "project.danger.body": "Elimină sesiunea cu toate fotografiile, albumele și linkurile pentru client. Acțiunea nu poate fi anulată.",
+  "project.danger.body":
+    "Elimină sesiunea cu toate fotografiile, albumele și linkurile pentru client. Acțiunea nu poate fi anulată.",
 
   // --- Album print-size picker ------------------------------------------
   "dimension.chip": "{width}×{height} cm",
@@ -187,8 +195,10 @@ export const ro: Record<string, string> = {
   "studio.usage.remaining": " · {count} rămase",
   "studio.watermarkNotice": "Schițele au filigran pe acest plan până la export.",
   "branding.title": "Brandingul pentru clienți",
-  "branding.proOnly": "Cu Studio Pro, clienții tăi văd logo-ul, numele și culoarea ta pe paginile de verificare a albumului, de selecție a pozelor și de descărcare — fără AlbumFlow. Scrie-ne la contact@valentintruta.ro ca să treci pe Studio Pro.",
-  "branding.intro": "Ce văd clienții tăi pe paginile de verificare a albumului, de selecție și de descărcare, în locul AlbumFlow.",
+  "branding.proOnly":
+    "Cu Studio Pro, clienții tăi văd logo-ul, numele și culoarea ta pe paginile de verificare a albumului, de selecție a pozelor și de descărcare — fără AlbumFlow. Scrie-ne la contact@valentintruta.ro ca să treci pe Studio Pro.",
+  "branding.intro":
+    "Ce văd clienții tăi pe paginile de verificare a albumului, de selecție și de descărcare, în locul AlbumFlow.",
   "branding.name": "Numele afișat clienților",
   "branding.accent": "Culoarea de accent",
   "branding.accent.reset": "Folosește culoarea implicită",
@@ -215,10 +225,13 @@ export const ro: Record<string, string> = {
   "studio.plan.noWatermark": "Probe pentru client fără filigran",
   "studio.plan.watermarkedExports": "PDF-uri exportate cu filigran — doar pentru test",
   "studio.plan.current": "Planul actual",
-  "studio.plan.contact": "Fiecare studio nou pornește pe Studio. Ca să treci pe alt plan, scrie-ne la contact@valentintruta.ro și îl schimbăm noi pentru tine.",
+  "studio.plan.contact":
+    "Fiecare studio nou pornește pe Studio. Ca să treci pe alt plan, scrie-ne la contact@valentintruta.ro și îl schimbăm noi pentru tine.",
   "studio.billing.manage": "Gestionează facturarea",
-  "studio.billing.pastDue": "Ultima plată a eșuat, așa că albumele noi sunt oprite. Actualizează cardul din Gestionează facturarea.",
-  "studio.billing.cancelled": "Abonamentul este anulat. Scrie-ne la contact@valentintruta.ro ca să generezi din nou albume.",
+  "studio.billing.pastDue":
+    "Ultima plată a eșuat, așa că albumele noi sunt oprite. Actualizează cardul din Gestionează facturarea.",
+  "studio.billing.cancelled":
+    "Abonamentul este anulat. Scrie-ne la contact@valentintruta.ro ca să generezi din nou albume.",
   "studio.team.title": "Echipă",
   "studio.team.seats": "{used} din {included} locuri",
   "studio.team.invitePending": " · invitație în așteptare",
@@ -242,15 +255,17 @@ export const ro: Record<string, string> = {
   "changelog.item.guides.desc":
     "Vezi exact unde se taie o pagină dublă și cât spațiu trebuie lăsat în jurul fețelor și textului, pe baza unor profiluri reale de laborator foto — sau cu propriile tale valori personalizate de tăiere și margine sigură.",
   "changelog.item.guides.how":
-    "Activează \"Ghidaje\" din bara de unelte a editorului de album, apoi alege un profil de tipar (sau Personalizat) din fereastra afișată.",
+    'Activează "Ghidaje" din bara de unelte a editorului de album, apoi alege un profil de tipar (sau Personalizat) din fereastra afișată.',
   "changelog.item.guidesSnap": "Aliniere la ghidajele de tipar",
   "changelog.item.guidesSnap.desc":
     "Redimensionarea unui cadru foto se aliniază acum și la liniile de tăiere și zona sigură, nu doar la alte cadre.",
-  "changelog.item.guidesSnap.how": "Activează atât \"Aliniere\" cât și \"Ghidaje\", apoi trage colțul unui cadru aproape de o linie de ghidaj.",
+  "changelog.item.guidesSnap.how":
+    'Activează atât "Aliniere" cât și "Ghidaje", apoi trage colțul unui cadru aproape de o linie de ghidaj.',
   "changelog.item.traySort": "Sortează fotografiile disponibile",
   "changelog.item.traySort.desc":
-    "Sortează fotografiile încărcate după scor, categorie, numele fișierului original, sau o nouă grupare \"similaritate\" care adună fotografiile făcute în același loc.",
-  "changelog.item.traySort.how": "Folosește lista \"Sortează după\" de deasupra fotografiilor disponibile din editorul de album.",
+    'Sortează fotografiile încărcate după scor, categorie, numele fișierului original, sau o nouă grupare "similaritate" care adună fotografiile făcute în același loc.',
+  "changelog.item.traySort.how":
+    'Folosește lista "Sortează după" de deasupra fotografiilor disponibile din editorul de album.',
   "changelog.item.trayHover": "Fotografii disponibile mai prietenoase",
   "changelog.item.trayHover.desc":
     "Treci cu mouse-ul peste orice fotografie pentru a vedea scorul, categoria și clasamentul ei. Fotografiile deja folosite în album sunt estompate și marcate cu o bifă.",
@@ -258,7 +273,7 @@ export const ro: Record<string, string> = {
   "changelog.item.deleteShoot": "Șterge o sesiune foto",
   "changelog.item.deleteShoot.desc":
     "Elimină o întreagă sesiune foto — fotografiile ei, toate albumele create din ele și exporturile lor — dintr-un singur loc, cu o confirmare înainte de ștergere.",
-  "changelog.item.deleteShoot.how": "Deschide o sesiune foto și apasă \"Șterge sesiunea\" din antet.",
+  "changelog.item.deleteShoot.how": 'Deschide o sesiune foto și apasă "Șterge sesiunea" din antet.',
   "changelog.item.undoRedo": "Anulează și refă",
   "changelog.item.undoRedo.desc":
     "Orice modificare a unui album — mutarea unei fotografii, redimensionarea unui cadru, reorganizarea unei pagini duble — poate fi acum anulată și refăcută.",
@@ -266,23 +281,26 @@ export const ro: Record<string, string> = {
   "changelog.item.dragMove": "Trage o fotografie pentru a o muta",
   "changelog.item.dragMove.desc":
     "Trage o fotografie deja plasată pe o pagină dublă spre una din marginile ei pentru a o interschimba cu fotografia vecină din acea direcție.",
-  "changelog.item.dragMove.how": "Prinde o fotografie deja plasată pe o pagină dublă și trage-o spre marginea în care vrei să o muți.",
+  "changelog.item.dragMove.how":
+    "Prinde o fotografie deja plasată pe o pagină dublă și trage-o spre marginea în care vrei să o muți.",
   "changelog.item.snapRuler": "Comutatoare pentru aliniere și riglă",
   "changelog.item.snapRuler.desc":
     "Redimensionarea unui cadru se poate alinia la marginile paginii, centru și alte cadre — sau nu, alegerea îți aparține. O grilă în centimetri poate sta sub fiecare pagină dublă pentru verificarea alinierii din ochi.",
-  "changelog.item.snapRuler.how": "Activează \"Aliniere\" și \"Riglă\" din bara de unelte a editorului de album.",
+  "changelog.item.snapRuler.how": 'Activează "Aliniere" și "Riglă" din bara de unelte a editorului de album.',
   "changelog.item.deleteAlbum": "Șterge un album",
-  "changelog.item.deleteAlbum.desc": "Elimină un singur album — paginile lui duble, exporturile și linkurile de recenzie — cu o confirmare înainte.",
-  "changelog.item.deleteAlbum.how": "Deschide albumul și apasă \"Șterge albumul\" din antet.",
+  "changelog.item.deleteAlbum.desc":
+    "Elimină un singur album — paginile lui duble, exporturile și linkurile de recenzie — cu o confirmare înainte.",
+  "changelog.item.deleteAlbum.how": 'Deschide albumul și apasă "Șterge albumul" din antet.',
   "changelog.item.stickyToolbar": "Bara de unelte rămâne vizibilă la derulare",
   "changelog.item.stickyToolbar.desc":
-    "Comutatoarele Riglă, Aliniere, Ghidaje și \"Marchează gata pentru recenzie\" rămân vizibile în partea de sus a unui album lung, în loc să dispară la derulare.",
+    'Comutatoarele Riglă, Aliniere, Ghidaje și "Marchează gata pentru recenzie" rămân vizibile în partea de sus a unui album lung, în loc să dispară la derulare.',
   "changelog.item.stickyToolbar.how": "Nimic de făcut — derulează orice album și bara de unelte te urmează.",
   "changelog.item.greeting": "O notă personală",
   "changelog.item.greeting.desc": "Antetul te salută acum pe nume, cu un mesaj potrivit momentului zilei.",
   "changelog.item.greeting.how": "Nimic de făcut — autentifică-te și e deja acolo.",
   "changelog.item.branding": "Identitate vizuală AlbumFlow",
-  "changelog.item.branding.desc": "Un logo și o iconiță adevărate, în antet, pe paginile de autentificare și în tab-ul browserului.",
+  "changelog.item.branding.desc":
+    "Un logo și o iconiță adevărate, în antet, pe paginile de autentificare și în tab-ul browserului.",
   "changelog.item.branding.how": "Uită-te în sus.",
   "changelog.item.language": "AlbumFlow în limba română",
   "changelog.item.language.desc":
@@ -292,7 +310,7 @@ export const ro: Record<string, string> = {
   "changelog.item.printSize.desc":
     "Alege dintre dimensiuni populare de album în centimetri — 20×20, 25×25, 30×40 și altele — sau introdu propria lățime și înălțime. Dimensiunea aleasă este evidențiată chiar în editorul de album.",
   "changelog.item.printSize.how":
-    "Alege o dimensiune de tipar în panoul \"Generează un album\" înainte de generare — dimensiunea apare apoi lângă titlul albumului.",
+    'Alege o dimensiune de tipar în panoul "Generează un album" înainte de generare — dimensiunea apare apoi lângă titlul albumului.',
   "changelog.item.dragBetweenSpreads": "Mută o fotografie între pagini duble",
   "changelog.item.dragBetweenSpreads.desc":
     "Trage o fotografie de pe o pagină dublă și las-o pe un cadru dintr-o altă pagină dublă — cele două fotografii își schimbă locul, fiecare păstrându-și încadrarea și tratamentul de culoare.",
@@ -301,8 +319,7 @@ export const ro: Record<string, string> = {
   "changelog.item.insertSpread": "Inserează o pagină dublă oriunde",
   "changelog.item.insertSpread.desc":
     "Adaugă o pagină dublă complet nouă între două existente, nu doar la final — și alege orice aspect pentru ea, pentru că încă nu are fotografii care să restrângă alegerea.",
-  "changelog.item.insertSpread.how":
-    "Apasă pe micul buton + care apare imediat sub orice pagină dublă.",
+  "changelog.item.insertSpread.how": "Apasă pe micul buton + care apare imediat sub orice pagină dublă.",
   "changelog.item.toolbarBelow": "Bară de unelte mai clară pentru editarea fotografiilor",
   "changelog.item.toolbarBelow.desc":
     "Comenzile de zoom, alb-negru și ștergere pentru o fotografie selectată stau acum chiar sub ea, nu peste ea, astfel încât o fotografie mică nu mai este ascunsă de ele.",
@@ -320,15 +337,16 @@ export const ro: Record<string, string> = {
   "changelog.item.contactPage": "Un loc unde să ne contactezi",
   "changelog.item.contactPage.desc":
     "O pagină de contact scurtă, cu o adresă de email pentru întrebări, feedback sau propuneri de funcționalități.",
-  "changelog.item.contactPage.how": "Apasă pe \"Contact\" din antet, de oriunde din aplicație.",
+  "changelog.item.contactPage.how": 'Apasă pe "Contact" din antet, de oriunde din aplicație.',
   "changelog.item.aiAnalysis": "Analiză AI a fotografiilor (opțională)",
   "changelog.item.aiAnalysis.desc":
     "Activează analiza AI pentru a categorisi fotografiile cu mult mai multă precizie — recunoscând portrete, cupluri, grupuri, ceremonii și multe altele. Este complet opțională, marcată clar când este disponibilă, iar fotografiile tale nu sunt niciodată trimise către terți și nici reținute după aceea.",
   "changelog.item.aiAnalysis.how":
-    "Activează comutatorul \"Folosește analiza AI a fotografiilor\" de deasupra zonei de încărcare și acceptă disclaimerul scurt, apoi încarcă fotografiile ca de obicei. Insigna \"AI: online/offline\" de lângă el arată mereu dacă este disponibilă chiar acum.",
+    'Activează comutatorul "Folosește analiza AI a fotografiilor" de deasupra zonei de încărcare și acceptă disclaimerul scurt, apoi încarcă fotografiile ca de obicei. Insigna "AI: online/offline" de lângă el arată mereu dacă este disponibilă chiar acum.',
   // --- Selecția foto a clientului ---------------------------------------
   "project.picks.title": "Selecția foto a clientului",
-  "project.picks.intro": "Trimite clientului un link prin care să-și aleagă fotografiile preferate înainte să proiectezi albumul.",
+  "project.picks.intro":
+    "Trimite clientului un link prin care să-și aleagă fotografiile preferate înainte să proiectezi albumul.",
   "project.picks.clientName": "Numele clientului",
   "project.picks.limit": "Limită de fotografii (opțional)",
   "project.picks.create": "Creează link de selecție",
@@ -365,7 +383,8 @@ export const ro: Record<string, string> = {
   "pick.submit": "Trimite selecția",
   "pick.submitting": "Se trimite…",
   "pick.confirm.title": "Trimiți selecția?",
-  "pick.confirm.body": "Fotograful tău va primi {count} fotografii. Nu le vei mai putea modifica, decât dacă fotograful redeschide selecția.",
+  "pick.confirm.body":
+    "Fotograful tău va primi {count} fotografii. Nu le vei mai putea modifica, decât dacă fotograful redeschide selecția.",
   "pick.confirm.yes": "Da, trimite",
   "pick.done.title": "Mulțumim, {name}!",
   "pick.done.body": "Fotograful tău a primit cele {count} fotografii alese și va proiecta albumul pornind de la ele.",
@@ -374,20 +393,28 @@ export const ro: Record<string, string> = {
   "pick.lightbox.next": "Fotografia următoare",
   "pick.language": "Limba",
   "changelog.item.clientPicks": "Selecția foto a clientului",
-  "changelog.item.clientPicks.desc": "Trimite clientului un link privat, protejat cu parolă, către o galerie în care atinge inima de pe fotografiile preferate și îți trimite selecția. Apoi poți crea albumul exact din acele fotografii. Fotografiile alese sunt păstrate în siguranță și pe stocarea pe termen lung, în timp ce restul pot expira după livrare.",
-  "changelog.item.clientPicks.how": "Deschide o sesiune foto, găsește „Selecția foto a clientului\", introdu numele clientului (și o limită opțională de fotografii) și creează linkul. Când clientul și-a trimis selecția, apasă „Creează albumul din selecție\".",
+  "changelog.item.clientPicks.desc":
+    "Trimite clientului un link privat, protejat cu parolă, către o galerie în care atinge inima de pe fotografiile preferate și îți trimite selecția. Apoi poți crea albumul exact din acele fotografii. Fotografiile alese sunt păstrate în siguranță și pe stocarea pe termen lung, în timp ce restul pot expira după livrare.",
+  "changelog.item.clientPicks.how":
+    'Deschide o sesiune foto, găsește „Selecția foto a clientului", introdu numele clientului (și o limită opțională de fotografii) și creează linkul. Când clientul și-a trimis selecția, apasă „Creează albumul din selecție".',
   "landing.feature.picks.title": "Lasă clienții să-și aleagă fotografiile",
-  "landing.feature.picks.desc": "Trimite un link către o galerie privată, protejată cu parolă. Clientul răsfoiește într-un slideshow prin glisare, marchează favoritele de pe orice dispozitiv și trimite selecția — tu primești un email și poți crea albumul exact din acele fotografii.",
+  "landing.feature.picks.desc":
+    "Trimite un link către o galerie privată, protejată cu parolă. Clientul răsfoiește într-un slideshow prin glisare, marchează favoritele de pe orice dispozitiv și trimite selecția — tu primești un email și poți crea albumul exact din acele fotografii.",
   "theme.toDark": "Treci la tema întunecată",
   "theme.toLight": "Treci la tema luminoasă",
   "changelog.item.darkTheme": "Temă întunecată",
-  "changelog.item.darkTheme.desc": "O schemă de culori închise, mai blândă cu ochii când lucrezi noaptea târziu. Urmează implicit setarea dispozitivului tău și îți reține alegerea. Paginile albumului rămân luminoase, exact cum vor fi tipărite.",
-  "changelog.item.darkTheme.how": "Apasă iconița cu lună (sau soare) din bara de sus pentru a comuta. Clienții au același buton pe pagina lor de selecție.",
+  "changelog.item.darkTheme.desc":
+    "O schemă de culori închise, mai blândă cu ochii când lucrezi noaptea târziu. Urmează implicit setarea dispozitivului tău și îți reține alegerea. Paginile albumului rămân luminoase, exact cum vor fi tipărite.",
+  "changelog.item.darkTheme.how":
+    "Apasă iconița cu lună (sau soare) din bara de sus pentru a comuta. Clienții au același buton pe pagina lor de selecție.",
   "project.delivery.title": "Livrează fotografiile clientului",
-  "project.delivery.needsStudio": "Linkurile de descărcare pentru clienți vin cu planul Studio. Scrie-ne la contact@valentintruta.ro ca să treci pe Studio.",
+  "project.delivery.needsStudio":
+    "Linkurile de descărcare pentru clienți vin cu planul Studio. Scrie-ne la contact@valentintruta.ro ca să treci pe Studio.",
   "project.limit.count": "{count} / {limit} poze — limita pe ședință pentru planul tău",
-  "project.limit.reached": "Planul tău permite {limit} poze pe ședință, așa că {skipped} poză/poze nu au fost încărcate. Scrie-ne la contact@valentintruta.ro ca să treci pe Studio pentru poze nelimitate.",
-  "project.delivery.intro": "Trimite un link de unde clientul poate descărca toate fotografiile la dimensiune completă. Linkul funcționează o perioadă limitată, iar tu primești un email de îndată ce le descarcă.",
+  "project.limit.reached":
+    "Planul tău permite {limit} poze pe ședință, așa că {skipped} poză/poze nu au fost încărcate. Scrie-ne la contact@valentintruta.ro ca să treci pe Studio pentru poze nelimitate.",
+  "project.delivery.intro":
+    "Trimite un link de unde clientul poate descărca toate fotografiile la dimensiune completă. Linkul funcționează o perioadă limitată, iar tu primești un email de îndată ce le descarcă.",
   "project.delivery.clientName": "Numele clientului",
   "project.delivery.days": "Disponibil timp de (zile)",
   "project.delivery.create": "Creează link de descărcare",
@@ -415,17 +442,24 @@ export const ro: Record<string, string> = {
   "download.started": "Descărcarea a început. Fișierele mari pot dura — ține această pagină deschisă până se termină.",
   "download.confirm.title": "Descarci toate fotografiile?",
   "download.confirm.available": "Fotografiile tale pot fi descărcate până pe {date} (mai sunt {days} zile).",
-  "download.confirm.deleted": "După această dată sunt șterse definitiv și nu mai pot fi recuperate, așa că salvează fișierul într-un loc sigur.",
-  "download.confirm.size": "Vei primi un singur fișier ZIP cu toate fotografiile la dimensiune completă (fotografii: {count}, aproximativ {size}).",
+  "download.confirm.deleted":
+    "După această dată sunt șterse definitiv și nu mai pot fi recuperate, așa că salvează fișierul într-un loc sigur.",
+  "download.confirm.size":
+    "Vei primi un singur fișier ZIP cu toate fotografiile la dimensiune completă (fotografii: {count}, aproximativ {size}).",
   "download.confirm.yes": "Da, începe descărcarea",
   "changelog.item.delivery": "Livrează toate fotografiile clientului",
-  "changelog.item.delivery.desc": "Trimite clientului un link pentru a descărca toate fotografiile la dimensiune completă, ca un singur ZIP. Înainte de descărcare, clientul vede o confirmare că fotografiile sunt disponibile doar o perioadă limitată (implicit 30 de zile, iar tu alegi perioada). Primești un email când le descarcă, și încă unul dacă le descarcă a doua oară.",
-  "changelog.item.delivery.how": "Deschide o sesiune foto, găsește „Livrează fotografiile clientului”, introdu numele clientului și câte zile să funcționeze linkul, apoi creează linkul. Fotografiile sunt păstrate până când linkul expiră. Setările de email sunt în configurația serverului.",
+  "changelog.item.delivery.desc":
+    "Trimite clientului un link pentru a descărca toate fotografiile la dimensiune completă, ca un singur ZIP. Înainte de descărcare, clientul vede o confirmare că fotografiile sunt disponibile doar o perioadă limitată (implicit 30 de zile, iar tu alegi perioada). Primești un email când le descarcă, și încă unul dacă le descarcă a doua oară.",
+  "changelog.item.delivery.how":
+    "Deschide o sesiune foto, găsește „Livrează fotografiile clientului”, introdu numele clientului și câte zile să funcționeze linkul, apoi creează linkul. Fotografiile sunt păstrate până când linkul expiră. Setările de email sunt în configurația serverului.",
   "changelog.item.pickEmail": "Email când un client își trimite selecția",
-  "changelog.item.pickEmail.desc": "Când clientul termină de ales fotografiile și își trimite selecția, primești acum imediat un email, ca să știi că e momentul să proiectezi albumul.",
-  "changelog.item.pickEmail.how": "Nu ai nimic de făcut — funcționează odată ce emailul este configurat pe server și este trimis proprietarului studioului.",
+  "changelog.item.pickEmail.desc":
+    "Când clientul termină de ales fotografiile și își trimite selecția, primești acum imediat un email, ca să știi că e momentul să proiectezi albumul.",
+  "changelog.item.pickEmail.how":
+    "Nu ai nimic de făcut — funcționează odată ce emailul este configurat pe server și este trimis proprietarului studioului.",
   "landing.feature.delivery.title": "Livrează toate fotografiile, cu termen limită",
-  "landing.feature.delivery.desc": "Oferă clienților un singur link prin care răsfoiesc toate fotografiile într-o galerie, apoi le descarcă pe toate la dimensiune completă, într-un singur ZIP — disponibil perioada aleasă de tine, cu o confirmare clară înainte să înceapă.",
+  "landing.feature.delivery.desc":
+    "Oferă clienților un singur link prin care răsfoiesc toate fotografiile într-o galerie, apoi le descarcă pe toate la dimensiune completă, într-un singur ZIP — disponibil perioada aleasă de tine, cu o confirmare clară înainte să înceapă.",
   "access.gate.title": "Acest link este protejat",
   "access.gate.hint": "Introdu parola primită de la fotograful tău.",
   "access.gate.password": "Parola",
@@ -437,7 +471,8 @@ export const ro: Record<string, string> = {
   "access.details.open": "Link și parolă",
   "access.details.title": "Link și parolă",
   "access.details.loading": "Se încarcă…",
-  "access.details.legacy": "Acest link a fost creat înainte ca detaliile lui să poată fi salvate, așa că nu pot fi afișate. Creează un link nou pentru a-l putea vedea din nou.",
+  "access.details.legacy":
+    "Acest link a fost creat înainte ca detaliile lui să poată fi salvate, așa că nu pot fi afișate. Creează un link nou pentru a-l putea vedea din nou.",
   "access.details.link": "Link",
   "access.details.password": "Parola",
   "access.details.copyLink": "Copiază linkul",
@@ -445,28 +480,39 @@ export const ro: Record<string, string> = {
   "access.details.copyBoth": "Copiază linkul și parola",
   "access.details.copied": "Copiat!",
   "access.details.message": "Link: {link}\nParola: {password}",
-  "access.details.note": "Trimite-le pe amândouă clientului — oricine are linkul și parola îl poate deschide. Majusculele și cratimele nu contează când se scrie parola.",
+  "access.details.note":
+    "Trimite-le pe amândouă clientului — oricine are linkul și parola îl poate deschide. Majusculele și cratimele nu contează când se scrie parola.",
   "slideshow.counter": "{index} / {total}",
   "download.grid.title": "Răsfoiește fotografiile",
-  "download.grid.hint": "Atinge o fotografie ca s-o deschizi, apoi glisează sau folosește săgețile ca să treci între ele. Sunt previzualizări — descărcarea conține toate fotografiile la dimensiune completă.",
+  "download.grid.hint":
+    "Atinge o fotografie ca s-o deschizi, apoi glisează sau folosește săgețile ca să treci între ele. Sunt previzualizări — descărcarea conține toate fotografiile la dimensiune completă.",
   "changelog.item.clientPasswords": "Parolă pentru fiecare link către client",
-  "changelog.item.clientPasswords.desc": "Linkurile de selecție foto, de recenzie a albumului și de descărcare primesc acum fiecare o parolă automată. Clientul deschide linkul, scrie parola și abia apoi vede fotografiile. Poți vedea din nou linkul și parola oricând, într-o fereastră cu detalii — și le poți copia împreună ca mesaj gata de trimis.",
-  "changelog.item.clientPasswords.how": "Când creezi un link de selecție, de recenzie sau de descărcare, parola apare odată cu el. Mai târziu, apasă „Link și parolă” lângă link ca să le vezi și să le copiezi. Linkurile create mai devreme continuă să funcționeze fără parolă.",
+  "changelog.item.clientPasswords.desc":
+    "Linkurile de selecție foto, de recenzie a albumului și de descărcare primesc acum fiecare o parolă automată. Clientul deschide linkul, scrie parola și abia apoi vede fotografiile. Poți vedea din nou linkul și parola oricând, într-o fereastră cu detalii — și le poți copia împreună ca mesaj gata de trimis.",
+  "changelog.item.clientPasswords.how":
+    "Când creezi un link de selecție, de recenzie sau de descărcare, parola apare odată cu el. Mai târziu, apasă „Link și parolă” lângă link ca să le vezi și să le copiezi. Linkurile create mai devreme continuă să funcționeze fără parolă.",
   "changelog.item.downloadGallery": "Răsfoiește fotografiile înainte de descărcare",
-  "changelog.item.downloadGallery.desc": "Înainte de descărcare, clientul poate parcurge toate fotografiile într-o grilă care se potrivește oricărui telefon sau ecran, poate deschide una pe tot ecranul și poate glisa (sau folosi săgețile) ca să treacă între ele — ca la un slideshow. Descărcarea într-un click a tuturor fotografiilor la dimensiune completă e chiar acolo, când e gata.",
+  "changelog.item.downloadGallery.desc":
+    "Înainte de descărcare, clientul poate parcurge toate fotografiile într-o grilă care se potrivește oricărui telefon sau ecran, poate deschide una pe tot ecranul și poate glisa (sau folosi săgețile) ca să treacă între ele — ca la un slideshow. Descărcarea într-un click a tuturor fotografiilor la dimensiune completă e chiar acolo, când e gata.",
   "changelog.item.downloadGallery.how": "Nu ai nimic de configurat: galeria apare pe fiecare link de descărcare.",
   "landing.feature.links.title": "Linkuri private, protejate cu parolă",
-  "landing.feature.links.desc": "Fiecare link de selecție, de recenzie și de descărcare primește propria parolă automată. Poți vedea din nou linkul și parola oricând și le poți copia împreună ca mesaj gata de trimis.",
+  "landing.feature.links.desc":
+    "Fiecare link de selecție, de recenzie și de descărcare primește propria parolă automată. Poți vedea din nou linkul și parola oricând și le poți copia împreună ca mesaj gata de trimis.",
   "landing.feature.alerts.title": "Afli în clipa în care clientul acționează",
-  "landing.feature.alerts.desc": "Primești un email când un client își trimite selecția sau descarcă fotografiile, ca să nu mai fie nevoie să urmărești sau să te întrebi.",
+  "landing.feature.alerts.desc":
+    "Primești un email când un client își trimite selecția sau descarcă fotografiile, ca să nu mai fie nevoie să urmărești sau să te întrebi.",
   "landing.feature.mobile.title": "Gândit pentru telefoanele clienților",
-  "landing.feature.mobile.desc": "Galeriile se adaptează oricărui ecran, cu un slideshow pe tot ecranul prin glisare — clienții pot răsfoi, alege și descărca direct de pe telefon.",
+  "landing.feature.mobile.desc":
+    "Galeriile se adaptează oricărui ecran, cu un slideshow pe tot ecranul prin glisare — clienții pot răsfoi, alege și descărca direct de pe telefon.",
   "landing.feature.dark.title": "Blând cu ochii",
-  "landing.feature.dark.desc": "O temă întunecată pentru sesiunile de editare de noapte. Urmează dispozitivul tău și îți reține alegerea.",
+  "landing.feature.dark.desc":
+    "O temă întunecată pentru sesiunile de editare de noapte. Urmează dispozitivul tău și îți reține alegerea.",
   "landing.steps.pick.title": "2. Lasă clienții să aleagă",
-  "landing.steps.pick.desc": "Trimite un link către o galerie privată, protejată cu parolă. Clientul își marchează favoritele și trimite selecția — primești imediat un email.",
+  "landing.steps.pick.desc":
+    "Trimite un link către o galerie privată, protejată cu parolă. Clientul își marchează favoritele și trimite selecția — primești imediat un email.",
   "landing.steps.deliver.title": "5. Livrează fotografiile",
-  "landing.steps.deliver.desc": "Trimite un link de descărcare cu termen limită. Clienții răsfoiesc galeria, apoi descarcă tot la dimensiune completă — iar tu ești anunțat.",
+  "landing.steps.deliver.desc":
+    "Trimite un link de descărcare cu termen limită. Clienții răsfoiesc galeria, apoi descarcă tot la dimensiune completă — iar tu ești anunțat.",
   "changelog.release.sep20.heading": "De la ședința foto la livrare: selecția clientului, parole și descărcări",
   "album.photoTray.filter.show": "Arată",
   "album.photoTray.filter.type": "Tipul fotografiei",
@@ -486,8 +532,10 @@ export const ro: Record<string, string> = {
   "album.photoTray.category.RECEPTION": "Recepție",
   "album.photoTray.category.CANDID": "Spontan",
   "changelog.item.trayFilters": "Filtrează galeria de fotografii",
-  "changelog.item.trayFilters.desc": "În editorul de album poți restrânge acum galeria de fotografii la ce ai nevoie: doar fotografiile alese de client (marcate cu o inimă), fotografiile încă nefolosite în album, cele deja folosite sau cele demne de album. Combină cu un tip de fotografie — portret, ceremonie, recepție… — sau caută după numele fișierului.",
-  "changelog.item.trayFilters.how": "Folosește meniurile și câmpul de căutare de deasupra galeriei de fotografii. „Alese de client” arată ce ți-au trimis clienții în selecție. Apasă „Șterge filtrele” ca să vezi din nou tot.",
+  "changelog.item.trayFilters.desc":
+    "În editorul de album poți restrânge acum galeria de fotografii la ce ai nevoie: doar fotografiile alese de client (marcate cu o inimă), fotografiile încă nefolosite în album, cele deja folosite sau cele demne de album. Combină cu un tip de fotografie — portret, ceremonie, recepție… — sau caută după numele fișierului.",
+  "changelog.item.trayFilters.how":
+    "Folosește meniurile și câmpul de căutare de deasupra galeriei de fotografii. „Alese de client” arată ce ți-au trimis clienții în selecție. Apasă „Șterge filtrele” ca să vezi din nou tot.",
   "album.photoTray.chip.all": "Toate",
   "album.photoTray.chip.picks": "Alese",
   "album.photoTray.chip.unused": "Nefolosite",
@@ -499,7 +547,8 @@ export const ro: Record<string, string> = {
   "album.photoTray.view.l": "Miniaturi mari",
   "album.photoTray.view.wider": "Galerie mai lată — mai multe fotografii pe rând",
   "album.photoTray.view.narrower": "Galerie mai îngustă",
-  "album.photoTray.noSelections": "Niciun client nu a trimis încă o selecție pentru această sesiune. Trimite-i un link de selecție din pagina sesiunii.",
+  "album.photoTray.noSelections":
+    "Niciun client nu a trimis încă o selecție pentru această sesiune. Trimite-i un link de selecție din pagina sesiunii.",
   "album.sidebar.label": "Instrumente album",
   "album.sidebar.photos": "Fotografii",
   "album.sidebar.review": "Recenzie",
@@ -508,14 +557,18 @@ export const ro: Record<string, string> = {
   "nav.menu.open": "Meniu",
   "nav.menu.close": "Închide meniul",
   "changelog.item.responsive": "Funcționează pe telefoane și tablete",
-  "changelog.item.responsive.desc": "Întreaga aplicație se potrivește acum ecranelor mici. Pe telefon, bara de sus se transformă într-un buton de meniu, paginile nu mai derulează lateral, iar butoanele și panourile se așază frumos pe rânduri în loc să iasă din ecran — inclusiv editorul de album. Linkurile pentru clienți (selecție, recenzie și descărcare) funcționau deja bine pe telefon și continuă să funcționeze.",
-  "changelog.item.responsive.how": "Nu ai nimic de configurat. Deschide AlbumFlow pe telefon sau tabletă și apasă butonul de meniu (trei linii) din dreapta sus ca să ajungi la Sesiuni foto, Studio, Noutăți și Contact.",
+  "changelog.item.responsive.desc":
+    "Întreaga aplicație se potrivește acum ecranelor mici. Pe telefon, bara de sus se transformă într-un buton de meniu, paginile nu mai derulează lateral, iar butoanele și panourile se așază frumos pe rânduri în loc să iasă din ecran — inclusiv editorul de album. Linkurile pentru clienți (selecție, recenzie și descărcare) funcționau deja bine pe telefon și continuă să funcționeze.",
+  "changelog.item.responsive.how":
+    "Nu ai nimic de configurat. Deschide AlbumFlow pe telefon sau tabletă și apasă butonul de meniu (trei linii) din dreapta sus ca să ajungi la Sesiuni foto, Studio, Noutăți și Contact.",
   "pick.processing": "Se pregătesc încă {count} fotografii — vor apărea singure aici. Poți începe să alegi acum.",
   "download.processing": "Se pregătesc încă {count} fotografii pentru galerie. Ele sunt deja incluse în descărcare.",
   "pick.step.shortlist": "Marchează ce îți place",
   "pick.step.final": "Alege fotografiile finale",
-  "pick.shortlist.intro": "Parcurge toate fotografiile și atinge inima pe oricare ți-ar plăcea. Aici nu există limită — le vei restrânge la pasul următor.",
-  "pick.final.intro": "Acum alege până la {limit} pentru album, dintre cele {shortlisted} marcate. Atinge inima ca să alegi, atinge din nou ca să renunți.",
+  "pick.shortlist.intro":
+    "Parcurge toate fotografiile și atinge inima pe oricare ți-ar plăcea. Aici nu există limită — le vei restrânge la pasul următor.",
+  "pick.final.intro":
+    "Acum alege până la {limit} pentru album, dintre cele {shortlisted} marcate. Atinge inima ca să alegi, atinge din nou ca să renunți.",
   "pick.final.introNoLimit": "Acum alege fotografiile pentru album, dintre cele {shortlisted} marcate.",
   "pick.counter.shortlisted": "{count} marcate",
   "pick.continue": "Continuă cu {count}",
@@ -530,8 +583,10 @@ export const ro: Record<string, string> = {
   "project.picks.step.shortlist": "Pasul 1 din 2: marchează posibilitățile",
   "project.picks.step.final": "Pasul 2 din 2: alege fotografiile finale",
   "changelog.item.twoStepPicks": "Selecție foto în doi pași pentru clienți",
-  "changelog.item.twoStepPicks.desc": "A alege 60 de fotografii din 2.000 dintr-o singură trecere e exact locul în care clienții se blochează. Acum o fac în doi pași: întâi parcurg toată sesiunea și marchează orice le-ar plăcea, fără nicio limită; apoi văd doar acele fotografii și le restrâng la limita ta. Pot merge înainte și înapoi până trimit, iar tu vezi ambele numere.",
-  "changelog.item.twoStepPicks.how": "Nu ai nimic de configurat — fiecare link de selecție funcționează așa. Dacă ce au marcat încape deja în limita ta, este preluat automat, ca să nu fie nevoie de o a doua rundă de atingeri.",
+  "changelog.item.twoStepPicks.desc":
+    "A alege 60 de fotografii din 2.000 dintr-o singură trecere e exact locul în care clienții se blochează. Acum o fac în doi pași: întâi parcurg toată sesiunea și marchează orice le-ar plăcea, fără nicio limită; apoi văd doar acele fotografii și le restrâng la limita ta. Pot merge înainte și înapoi până trimit, iar tu vezi ambele numere.",
+  "changelog.item.twoStepPicks.how":
+    "Nu ai nimic de configurat — fiecare link de selecție funcționează așa. Dacă ce au marcat încape deja în limita ta, este preluat automat, ca să nu fie nevoie de o a doua rundă de atingeri.",
   "client.email": "Emailul clientului",
   "client.email.placeholder": "nume@exemplu.com",
   "client.sendEmail": "Trimite linkul clientului pe email",
@@ -544,8 +599,10 @@ export const ro: Record<string, string> = {
   "client.send.done": "Trimis către {email}",
   "client.send.hint": "Clientul primește linkul și parola într-un singur email. Răspunsurile vin la tine.",
   "changelog.item.clientEmails": "Trimite linkul direct clientului pe email",
-  "changelog.item.clientEmails.desc": "Când creezi un link de selecție, de recenzie sau de descărcare, AlbumFlow îl poate trimite clientului pe email, cu linkul și parola într-un singur mesaj. Sesiunea foto reține numele și emailul clientului, așa că le scrii o singură dată, nu la fiecare link, iar fiecare link arată cui a fost trimis ultima dată și când. Poți retrimite oricând din fereastra „Link și parolă”.",
-  "changelog.item.clientEmails.how": "Adaugă emailul clientului la sesiunea foto (sau prima dată când creezi un link), bifează „Trimite linkul clientului pe email” și alege limba. Trimiterea nu se face niciodată automat și este nevoie de email configurat pe server.",
+  "changelog.item.clientEmails.desc":
+    "Când creezi un link de selecție, de recenzie sau de descărcare, AlbumFlow îl poate trimite clientului pe email, cu linkul și parola într-un singur mesaj. Sesiunea foto reține numele și emailul clientului, așa că le scrii o singură dată, nu la fiecare link, iar fiecare link arată cui a fost trimis ultima dată și când. Poți retrimite oricând din fereastra „Link și parolă”.",
+  "changelog.item.clientEmails.how":
+    "Adaugă emailul clientului la sesiunea foto (sau prima dată când creezi un link), bifează „Trimite linkul clientului pe email” și alege limba. Trimiterea nu se face niciodată automat și este nevoie de email configurat pe server.",
   "project.upload.title": "Se încarcă fotografiile",
   "project.upload.progress": "{done} din {total} încărcate",
   "project.upload.failed": "{count} eșuate",
@@ -553,8 +610,10 @@ export const ro: Record<string, string> = {
   "project.upload.cancelling": "Se oprește…",
   "project.upload.cancelledFile": "Anulată",
   "changelog.item.uploadProgress": "Progresul încărcării, cu o anulare care face curat",
-  "changelog.item.uploadProgress.desc": "Încărcarea unei sesiuni mari arată acum o bară de progres cu câte fotografii sunt gata și blochează restul paginii până se termină, ca să nu apeși nimic la jumătatea drumului. Anularea oprește încărcarea, iar fotografiile a căror încărcare nu s-a terminat sunt șterse, nu lăsate în urmă ca jumătăți invizibile. Cele care s-au încărcat complet rămân.",
-  "changelog.item.uploadProgress.how": "Adaugă fotografiile ca de obicei. Apasă Anulează ca să oprești; browserul te avertizează și dacă încerci să părăsești pagina în timpul încărcării.",
+  "changelog.item.uploadProgress.desc":
+    "Încărcarea unei sesiuni mari arată acum o bară de progres cu câte fotografii sunt gata și blochează restul paginii până se termină, ca să nu apeși nimic la jumătatea drumului. Anularea oprește încărcarea, iar fotografiile a căror încărcare nu s-a terminat sunt șterse, nu lăsate în urmă ca jumătăți invizibile. Cele care s-au încărcat complet rămân.",
+  "changelog.item.uploadProgress.how":
+    "Adaugă fotografiile ca de obicei. Apasă Anulează ca să oprești; browserul te avertizează și dacă încerci să părăsești pagina în timpul încărcării.",
   "projects.subtitleCount": "{count} sesiuni foto",
   "projects.search": "Caută sesiuni",
   "projects.search.none": "Nicio sesiune nu se potrivește.",
@@ -562,7 +621,8 @@ export const ro: Record<string, string> = {
   "projects.new.clientName": "Numele clientului (opțional)",
   "projects.new.clientNamePlaceholder": "Elena & Radu",
   "projects.empty.title": "Începe cu prima ta sesiune foto",
-  "projects.empty.body": "O sesiune conține fotografiile unei nunți sau unui eveniment, albumele create din ele și linkurile pe care le trimiți clientului.",
+  "projects.empty.body":
+    "O sesiune conține fotografiile unei nunți sau unui eveniment, albumele create din ele și linkurile pe care le trimiți clientului.",
   "projects.empty.cta": "Creează o sesiune",
   "projects.card.noPhotos": "Încă nicio fotografie",
   "projects.card.created": "Creată pe {date}",
@@ -575,16 +635,19 @@ export const ro: Record<string, string> = {
   "changelog.item.launch": "AlbumFlow este lansat",
   "changelog.item.launch.desc":
     "Încarcă o sesiune foto, lasă AlbumFlow să evalueze și să categorisească fiecare fotografie, generează automat o schiță de album, ajustează aspectul, colectează feedback de la client și exportă un PDF gata de tipar.",
-  "changelog.item.launch.how": "Creează o sesiune foto, adaugă fotografiile și apasă \"Generează schița\" după ce se termină analiza.",
+  "changelog.item.launch.how":
+    'Creează o sesiune foto, adaugă fotografiile și apasă "Generează schița" după ce se termină analiza.',
 
   // --- Landing page -------------------------------------------------------
   "landing.kicker": "Pentru fotografi de nuntă și evenimente",
   "landing.hero.title": "De la cardul de memorie la clientul mulțumit — într-un singur flux",
-  "landing.hero.subtitle": "AlbumFlow acoperă toată munca. Evaluează fotografiile, lasă clienții să-și aleagă favoritele, construiește paginile duble, obține aprobarea și livrează toate fotografiile cu termen limită — așa că petreci mai puțin timp cu administrativul și mai mult în spatele aparatului.",
+  "landing.hero.subtitle":
+    "AlbumFlow acoperă toată munca. Evaluează fotografiile, lasă clienții să-și aleagă favoritele, construiește paginile duble, obține aprobarea și livrează toate fotografiile cu termen limită — așa că petreci mai puțin timp cu administrativul și mai mult în spatele aparatului.",
   "landing.hero.cta.primary": "Începe gratuit",
   "landing.hero.cta.secondary": "Conectează-te",
   "landing.features.heading": "Tot ce are nevoie un fotograf, nimic în plus",
-  "landing.features.subheading": "Construit pentru întregul flux profesional: selecție, alegerea clientului, design, aprobare, livrare.",
+  "landing.features.subheading":
+    "Construit pentru întregul flux profesional: selecție, alegerea clientului, design, aprobare, livrare.",
   "landing.feature.scoring.title": "Evaluare inteligentă a fotografiilor",
   "landing.feature.scoring.desc":
     "Fiecare fotografie este evaluată pentru claritate, expunere și compoziție, astfel încât cele mai bune cadre ies în evidență de la sine.",
@@ -604,7 +667,8 @@ export const ro: Record<string, string> = {
   "landing.feature.sizes.desc":
     "Pătrat, portret sau peisaj, de la 20×20 la 30×40 cm — sau setează propria dimensiune personalizată dintr-un click.",
   "landing.feature.review.title": "Recenzii pregătite pentru clienți",
-  "landing.feature.review.desc": "Trimite un link privat, protejat cu parolă, colectează observații pentru fiecare pagină dublă și exportă un PDF pregătit pentru tipar imediat ce este aprobat.",
+  "landing.feature.review.desc":
+    "Trimite un link privat, protejat cu parolă, colectează observații pentru fiecare pagină dublă și exportă un PDF pregătit pentru tipar imediat ce este aprobat.",
   "landing.feature.language.title": "Vorbește limba ta",
   "landing.feature.language.desc":
     "Întreaga aplicație — inclusiv această pagină — funcționează în română și engleză, comutabile în orice moment.",
@@ -613,16 +677,19 @@ export const ro: Record<string, string> = {
   "landing.steps.upload.desc":
     "Adaugă un folder cu fotografii JPEG — AlbumFlow le analizează pe toate cât tu continui cu ziua ta.",
   "landing.steps.design.title": "3. Proiectează albumul",
-  "landing.steps.design.desc": "Construiește din selecția clientului. Acceptă aspectul propus de AlbumFlow sau trage, redimensionează și rearanjează până este exact cum vrei.",
+  "landing.steps.design.desc":
+    "Construiește din selecția clientului. Acceptă aspectul propus de AlbumFlow sau trage, redimensionează și rearanjează până este exact cum vrei.",
   "landing.steps.approve.title": "4. Obține aprobarea",
-  "landing.steps.approve.desc": "Trimite clientului un link de recenzie protejat cu parolă, rezolvă observațiile lui și exportă un PDF pregătit pentru tipar.",
+  "landing.steps.approve.desc":
+    "Trimite clientului un link de recenzie protejat cu parolă, rezolvă observațiile lui și exportă un PDF pregătit pentru tipar.",
   "landing.cta.heading": "Ești pregătit să-ți duci următoarea ședință foto de la început până la livrare?",
   "landing.cta.subtitle": "Creează un cont gratuit și încarcă prima ta ședință foto în câteva minute.",
   "landing.cta.button": "Creează-ți contul gratuit",
 
   // --- Contact page -------------------------------------------------------
   "contact.title": "Contact",
-  "contact.subtitle": "Întrebări, feedback sau o funcționalitate pe care ai vrea să o vezi — ne-ar face plăcere să auzim de la tine.",
+  "contact.subtitle":
+    "Întrebări, feedback sau o funcționalitate pe care ai vrea să o vezi — ne-ar face plăcere să auzim de la tine.",
   "contact.body": "Trimite-ne un email și îți vom răspunde cât mai rapid posibil.",
 
   // --- Album editor (toolbar) ------------------------------------------
@@ -668,8 +735,10 @@ export const ro: Record<string, string> = {
   "check.title": "Verificarea albumului",
   "check.allGood": "Totul pare gata: fără poze cu rezoluție mică, locuri goale, repetări sau fețe în cotor.",
   "check.summary": "{errors} de corectat și {warnings} de verificat înainte să-l trimiți clientului sau la tipografie.",
-  "check.lowResolution.error": "Poza se tipărește la doar {dpi} dpi — va arăta pixelată. Folosește-o mai mică sau alege alta (ideal {min}+).",
-  "check.lowResolution.warning": "Poza se tipărește la {dpi} dpi și poate părea neclară la mărimea asta (ideal {min}+).",
+  "check.lowResolution.error":
+    "Poza se tipărește la doar {dpi} dpi — va arăta pixelată. Folosește-o mai mică sau alege alta (ideal {min}+).",
+  "check.lowResolution.warning":
+    "Poza se tipărește la {dpi} dpi și poate părea neclară la mărimea asta (ideal {min}+).",
   "check.emptySlot": "Un loc gol — pune o poză în el sau alege o machetă cu mai puține poze.",
   "check.usedTwice": "Poza apare și pe pagina dublă {other}.",
   "check.nearDuplicate": "Aproape același moment ca o poză de pe pagina dublă {other} — o păstrezi pe cea mai bună?",
@@ -706,9 +775,11 @@ export const ro: Record<string, string> = {
   "tip.preview": "Vezi albumul pe tot ecranul, câte o pagină dublă, cum îl va vedea clientul",
   "tip.check": "Poze cu rezoluție mică, locuri goale, repetări și fețe în cotor — înainte să-l trimiți",
   "tour.editor.strip.title": "Toate paginile dintr-o privire",
-  "tour.editor.strip.body": "Apasă pe o pagină ca să sari la ea, trage una peste alta ca să le reordonezi sau pune pe ea o poză din tavă. Punctele arată ce a găsit verificarea albumului.",
+  "tour.editor.strip.body":
+    "Apasă pe o pagină ca să sari la ea, trage una peste alta ca să le reordonezi sau pune pe ea o poză din tavă. Punctele arată ce a găsit verificarea albumului.",
   "tour.editor.check.title": "Verifică înainte să trimiți",
-  "tour.editor.check.body": "Un singur click îți arată pozele prea mici pentru tipar, locurile goale, repetările și fețele pierdute în cotor — fiecare cu un buton care te duce acolo.",
+  "tour.editor.check.body":
+    "Un singur click îți arată pozele prea mici pentru tipar, locurile goale, repetările și fețele pierdute în cotor — fiecare cu un buton care te duce acolo.",
   "spread.tools.label": "Unelte pentru poză",
   "spread.zoomIn": "Mărește",
   "spread.zoomOut": "Micșorează",
@@ -765,8 +836,7 @@ export const ro: Record<string, string> = {
   "spread.layoutPicker.noneFit": "Niciun alt aspect nu are loc pentru {count} fotografii.",
   "spread.insert.title": "Inserează o pagină dublă nouă aici",
   "spread.insert.modal.title": "Alege un aspect",
-  "spread.insert.modal.body":
-    "Alege un aspect pentru noua pagină dublă — poți adăuga fotografii pe ea după aceea.",
+  "spread.insert.modal.body": "Alege un aspect pentru noua pagină dublă — poți adăuga fotografii pe ea după aceea.",
 
   // --- Layout template names -------------------------------------------
   "template.hero-full-bleed": "Erou pe toată pagina",
@@ -883,7 +953,8 @@ export const ro: Record<string, string> = {
   "text.align.right": "Aliniere la dreapta",
   "text.remove": "Șterge",
   "style.title": "Stilul albumului",
-  "style.intro": "Un singur aspect pentru toate paginile: culoarea hârtiei, spațiul din jurul fotografiilor și fontul. Proba pentru client și PDF-ul de tipar îl urmează.",
+  "style.intro":
+    "Un singur aspect pentru toate paginile: culoarea hârtiei, spațiul din jurul fotografiilor și fontul. Proba pentru client și PDF-ul de tipar îl urmează.",
   "style.preset.classic": "Clasic",
   "style.preset.modern": "Modern",
   "style.preset.fine-art": "Fine art",
@@ -896,7 +967,8 @@ export const ro: Record<string, string> = {
   "style.font": "Font",
   "style.keyline": "Linie fină în jurul fiecărei fotografii",
   "cover.title": "Copertă",
-  "cover.intro": "Coperta se tipărește ca pagină separată, înaintea paginilor duble: o fotografie cu numele mirilor sau doar titlul.",
+  "cover.intro":
+    "Coperta se tipărește ca pagină separată, înaintea paginilor duble: o fotografie cu numele mirilor sau doar titlul.",
   "cover.add": "Adaugă o copertă",
   "cover.heading": "Titlu",
   "cover.subtitle": "Subtitlu",
@@ -907,16 +979,20 @@ export const ro: Record<string, string> = {
   "cover.dropPhoto": "Trage aici o fotografie din tavă",
   "cover.remove": "Elimină coperta",
   "onboarding.title": "Primul tău album, în trei pași",
-  "onboarding.subtitle": "De la cardul de memorie la un album gata pagină cu pagină. Lista se bifează singură pe măsură ce lucrezi.",
+  "onboarding.subtitle":
+    "De la cardul de memorie la un album gata pagină cu pagină. Lista se bifează singură pe măsură ce lucrezi.",
   "onboarding.dismiss": "Ascunde",
   "onboarding.shoot.title": "Creează o sesiune",
-  "onboarding.shoot.body": "O nuntă sau un eveniment: fotografiile, albumele făcute din ele și linkurile pe care le trimiți.",
+  "onboarding.shoot.body":
+    "O nuntă sau un eveniment: fotografiile, albumele făcute din ele și linkurile pe care le trimiți.",
   "onboarding.shoot.cta": "Creează o sesiune",
   "onboarding.upload.title": "Încarcă selecția",
-  "onboarding.upload.body": "Adaugă fotografiile alese. Fiecare primește un scor pentru claritate, expunere și compoziție.",
+  "onboarding.upload.body":
+    "Adaugă fotografiile alese. Fiecare primește un scor pentru claritate, expunere și compoziție.",
   "onboarding.upload.cta": "Încarcă fotografii",
   "onboarding.album.title": "Generează albumul",
-  "onboarding.album.body": "AlbumFlow așază paginile pentru tine. Adaugă o copertă și o pagină de titlu, apoi trimite proba clientului.",
+  "onboarding.album.body":
+    "AlbumFlow așază paginile pentru tine. Adaugă o copertă și o pagină de titlu, apoi trimite proba clientului.",
   "onboarding.album.cta": "Construiește albumul",
   "common.close": "Închide",
   "nav.admin": "Admin",
@@ -934,20 +1010,26 @@ export const ro: Record<string, string> = {
   "feedbackForm.rating": "Cât de mulțumit ești de AlbumFlow? (opțional)",
   "feedbackForm.send": "Trimite",
   "feedbackForm.sending": "Se trimite…",
-  "feedbackForm.thanks": "Mulțumim — mesajul a ajuns direct la echipa AlbumFlow. Dacă ai pus o întrebare, îți răspundem pe email.",
+  "feedbackForm.thanks":
+    "Mulțumim — mesajul a ajuns direct la echipa AlbumFlow. Dacă ai pus o întrebare, îți răspundem pe email.",
   "nav.guide": "Ghid",
   "launch.title": "Prețuri de lansare — rămân ale tale",
-  "launch.body": "Ca să sărbătorim lansarea, fiecare plan costă mai puțin pentru studiourile care se înscriu până pe {date}:",
-  "launch.keep": "Te-ai înscris la timp, așa că aceste prețuri rămân ale tale cât timp studioul tău rămâne cu noi — și după ce oferta se încheie.",
+  "launch.body":
+    "Ca să sărbătorim lansarea, fiecare plan costă mai puțin pentru studiourile care se înscriu până pe {date}:",
+  "launch.keep":
+    "Te-ai înscris la timp, așa că aceste prețuri rămân ale tale cât timp studioul tău rămâne cu noi — și după ce oferta se încheie.",
   "launch.regular": "Preț obișnuit {price} € pe lună",
   "launch.done": "Super",
-  "launch.studioNote": "Prețuri de lansare: studioul tău s-a înscris în perioada ofertei și păstrează aceste prețuri pentru totdeauna.",
+  "launch.studioNote":
+    "Prețuri de lansare: studioul tău s-a înscris în perioada ofertei și păstrează aceste prețuri pentru totdeauna.",
   "upsell.includedIn": "Inclus în {plan} — {price} €/lună (acum ai {current})",
   "upsell.cta": "Cere trecerea la {plan}",
   "upsell.downloadLinks.title": "Livrează toate fotografiile cu un singur link",
-  "upsell.downloadLinks.body": "Trimite clientului un link privat pentru descărcarea tuturor fotografiilor la rezoluție maximă și primește un email când le descarcă.",
+  "upsell.downloadLinks.body":
+    "Trimite clientului un link privat pentru descărcarea tuturor fotografiilor la rezoluție maximă și primește un email când le descarcă.",
   "upsell.branding.title": "Brandul tău pe fiecare pagină și email pentru client",
-  "upsell.branding.body": "Logo-ul, culoarea și numele studioului tău pe machete, selecții, descărcări și emailuri — fără nicio mențiune AlbumFlow.",
+  "upsell.branding.body":
+    "Logo-ul, culoarea și numele studioului tău pe machete, selecții, descărcări și emailuri — fără nicio mențiune AlbumFlow.",
   "upsell.photos.title": "Fotografii nelimitate pe sesiune",
   "upsell.photos.body": "Încarcă nunți întregi fără să numeri — fiecare sesiune poate avea oricâte fotografii.",
   "upsell.watermark.title": "Machete fără filigran",
@@ -959,15 +1041,18 @@ export const ro: Record<string, string> = {
   "howItWorks.shoot.title": "Creează o sesiune",
   "howItWorks.shoot.body": "O nuntă sau un eveniment. Fotografiile, albumele și linkurile pentru client stau împreună.",
   "howItWorks.upload.title": "Încarcă fotografiile",
-  "howItWorks.upload.body": "Adaugă selecția finală. Fiecare fotografie primește un scor pentru claritate, expunere și compoziție.",
+  "howItWorks.upload.body":
+    "Adaugă selecția finală. Fiecare fotografie primește un scor pentru claritate, expunere și compoziție.",
   "howItWorks.picks.title": "Lasă clientul să aleagă",
   "howItWorks.picks.body": "Trimite o galerie privată, iar clientul își marchează preferatele de pe telefon.",
   "howItWorks.album.title": "Creează albumul",
-  "howItWorks.album.body": "Un clic așază toate paginile. Schimbă designul cu ← → și trage fotografiile ca să ajustezi.",
+  "howItWorks.album.body":
+    "Un clic așază toate paginile. Schimbă designul cu ← → și trage fotografiile ca să ajustezi.",
   "howItWorks.proof.title": "Trimite macheta",
   "howItWorks.proof.body": "Clientul lasă comentarii pe pagini și aprobă albumul online.",
   "howItWorks.deliver.title": "Tipărește și livrează",
-  "howItWorks.deliver.body": "Exportă PDF-ul gata de tipar pentru laborator și trimite un link pentru descărcarea tuturor fotografiilor.",
+  "howItWorks.deliver.body":
+    "Exportă PDF-ul gata de tipar pentru laborator și trimite un link pentru descărcarea tuturor fotografiilor.",
   "howItWorks.footnote": "Fiecare pagină are și un ghid pas cu pas: îl deschizi oricând din Ghid, în meniu.",
   "howItWorks.done": "Am înțeles",
   "tour.progress": "Pasul {step} din {total}",
@@ -980,7 +1065,8 @@ export const ro: Record<string, string> = {
   "tip.generate": "Așază în câteva secunde un album complet din cele mai bune fotografii",
   "tip.generate.waiting": "Disponibil după ce se încarcă și se evaluează câteva fotografii",
   "tip.pickLink": "Creează o galerie privată, cu parolă, unde clientul marchează fotografiile preferate",
-  "tip.deliveryLink": "Creează un link de unde clientul descarcă toate fotografiile la rezoluție completă, până la data aleasă",
+  "tip.deliveryLink":
+    "Creează un link de unde clientul descarcă toate fotografiile la rezoluție completă, până la data aleasă",
   "tip.undo": "Anulează ultima modificare a paginilor",
   "tip.redo": "Refă modificarea pe care tocmai ai anulat-o",
   "tip.ruler": "Afișează o grilă în centimetri peste pagini, pentru aliniere",
@@ -994,43 +1080,59 @@ export const ro: Record<string, string> = {
   "tip.removeSpread": "Elimină această pagină dublă din album",
   "tip.manageBilling": "Schimbă planul, actualizează cardul sau descarcă facturile",
   "tour.shoots.new.title": "Începe cu o sesiune",
-  "tour.shoots.new.body": "O sesiune este o nuntă sau un eveniment. Păstrează într-un singur loc fotografiile, albumele făcute din ele și toate linkurile trimise clientului.",
+  "tour.shoots.new.body":
+    "O sesiune este o nuntă sau un eveniment. Păstrează într-un singur loc fotografiile, albumele făcute din ele și toate linkurile trimise clientului.",
   "tour.shoots.checklist.title": "Primul album în trei pași",
   "tour.shoots.checklist.body": "Lista îți urmărește progresul și îți arată pasul următor. O poți ascunde oricând.",
   "tour.shoots.grid.title": "Toate sesiunile tale",
-  "tour.shoots.grid.body": "Deschide o sesiune ca să încarci fotografii, să construiești albume și să trimiți linkuri. Fotografia de copertă te ajută să o găsești rapid.",
+  "tour.shoots.grid.body":
+    "Deschide o sesiune ca să încarci fotografii, să construiești albume și să trimiți linkuri. Fotografia de copertă te ajută să o găsești rapid.",
   "tour.shoots.studio.title": "Studioul tău",
   "tour.shoots.studio.body": "Aici găsești planul și consumul, echipa și limba aplicației.",
   "tour.shoots.feedback.title": "Spune-ne orice",
-  "tour.shoots.feedback.body": "O idee, o problemă sau o întrebare — ajunge direct la echipa care construiește AlbumFlow.",
+  "tour.shoots.feedback.body":
+    "O idee, o problemă sau o întrebare — ajunge direct la echipa care construiește AlbumFlow.",
   "tour.shoots.guide.title": "Revezi ghidul",
-  "tour.shoots.guide.body": "Fiecare pagină principală are un ghid scurt ca acesta. Îl deschizi de aici ori de câte ori ai nevoie.",
+  "tour.shoots.guide.body":
+    "Fiecare pagină principală are un ghid scurt ca acesta. Îl deschizi de aici ori de câte ori ai nevoie.",
   "tour.project.upload.title": "1. Încarcă selecția",
-  "tour.project.upload.body": "Trage aici fotografiile alese sau apasă pentru a le selecta. Fiecare primește un scor pentru claritate, expunere și compoziție.",
+  "tour.project.upload.body":
+    "Trage aici fotografiile alese sau apasă pentru a le selecta. Fiecare primește un scor pentru claritate, expunere și compoziție.",
   "tour.project.photos.title": "2. Verifică fotografiile",
   "tour.project.photos.body": "Fiecare fotografie încărcată apare aici cu scorul ei. Apasă pe una ca s-o vezi mare.",
   "tour.project.picks.title": "3. Lasă clientul să aleagă (opțional)",
-  "tour.project.picks.body": "Trimite un link către o galerie privată: clientul marchează preferatele de pe telefon, iar tu primești un email când trimite selecția.",
+  "tour.project.picks.body":
+    "Trimite un link către o galerie privată: clientul marchează preferatele de pe telefon, iar tu primești un email când trimite selecția.",
   "tour.project.generate.title": "4. Construiește albumul",
-  "tour.project.generate.body": "Alege mărimea albumului și generează: AlbumFlow așază un album complet — din cele mai bune fotografii sau exact din cele alese de client.",
+  "tour.project.generate.body":
+    "Alege mărimea albumului și generează: AlbumFlow așază un album complet — din cele mai bune fotografii sau exact din cele alese de client.",
   "tour.project.delivery.title": "5. Livrează fotografiile",
-  "tour.project.delivery.body": "La final, trimite un link de descărcare: clientul primește toate fotografiile la rezoluție completă, până la data aleasă.",
+  "tour.project.delivery.body":
+    "La final, trimite un link de descărcare: clientul primește toate fotografiile la rezoluție completă, până la data aleasă.",
   "tour.editor.cover.title": "Coperta",
-  "tour.editor.cover.body": "Adaugă o copertă cu numele mirilor. Trage o fotografie din tavă pe ea sau alege o copertă doar cu titlu.",
+  "tour.editor.cover.body":
+    "Adaugă o copertă cu numele mirilor. Trage o fotografie din tavă pe ea sau alege o copertă doar cu titlu.",
   "tour.editor.spread.title": "Editează o pagină dublă",
-  "tour.editor.spread.body": "Apasă pe o fotografie ca s-o mărești și s-o încadrezi, trage de colțuri ca s-o redimensionezi sau peste altă fotografie ca să le schimbi. Fotografiile din tavă se pun direct pe un loc.",
+  "tour.editor.spread.body":
+    "Apasă pe o fotografie ca s-o mărești și s-o încadrezi, trage de colțuri ca s-o redimensionezi sau peste altă fotografie ca să le schimbi. Fotografiile din tavă se pun direct pe un loc.",
   "tour.editor.actions.title": "Uneltele paginii",
-  "tour.editor.actions.body": "Reordonează paginile, încearcă alt design, adaugă o fotografie sau text, treci pe alb-negru. Ține cursorul pe un buton ca să vezi ce face.",
+  "tour.editor.actions.body":
+    "Reordonează paginile, încearcă alt design, adaugă o fotografie sau text, treci pe alb-negru. Ține cursorul pe un buton ca să vezi ce face.",
   "tour.editor.layouts.title": "Machete",
-  "tour.editor.layouts.body": "Acestea sunt machetele pentru numărul de fotografii de pe pagină. Apasă pe una ca să rearanjezi pagina imediat.",
+  "tour.editor.layouts.body":
+    "Acestea sunt machetele pentru numărul de fotografii de pe pagină. Apasă pe una ca să rearanjezi pagina imediat.",
   "tour.editor.sidebar.title": "Fotografii, design, revizie, export",
-  "tour.editor.sidebar.body": "Fotografii: tava ta. Design: culoarea hârtiei, spațierea și fontul albumului. Revizie: trimite proba și citește notele clientului. Export: PDF-ul pentru tipar.",
+  "tour.editor.sidebar.body":
+    "Fotografii: tava ta. Design: culoarea hârtiei, spațierea și fontul albumului. Revizie: trimite proba și citește notele clientului. Export: PDF-ul pentru tipar.",
   "tour.editor.tools.title": "Anulare și unelte de precizie",
-  "tour.editor.tools.body": "Anulezi și refaci orice modificare. Rigla, alinierea automată și ghidajele de tipar te ajută să aliniezi totul pentru laborator.",
+  "tour.editor.tools.body":
+    "Anulezi și refaci orice modificare. Rigla, alinierea automată și ghidajele de tipar te ajută să aliniezi totul pentru laborator.",
   "tour.editor.ready.title": "Trimite-l clientului",
-  "tour.editor.ready.body": "Când e gata, marchează-l și trimite linkul de revizie din fila Revizie. Clientul comentează pagină cu pagină și aprobă — apoi exporți PDF-ul.",
+  "tour.editor.ready.body":
+    "Când e gata, marchează-l și trimite linkul de revizie din fila Revizie. Clientul comentează pagină cu pagină și aprobă — apoi exporți PDF-ul.",
   "spread.move": "Mută",
-  "spread.move.title": "Trage ca să muți fotografia oriunde pe pagină — se aliniază la margini, la centru și la alte fotografii. Săgețile o mută fin.",
+  "spread.move.title":
+    "Trage ca să muți fotografia oriunde pe pagină — se aliniază la margini, la centru și la alte fotografii. Săgețile o mută fin.",
   "review.opening": "Se deschide albumul…",
   "review.broken.title": "Acest link nu funcționează",
   "review.broken.body": "Cere-i fotografului un link nou.",
@@ -1043,7 +1145,8 @@ export const ro: Record<string, string> = {
   "review.cover": "Copertă",
   "review.hint": "Atinge o fotografie ca să lași o notă despre ea sau scrie sub o pagină dublă pentru toată pagina.",
   "review.approved": "Ai aprobat acest album. Fotograful a fost anunțat.",
-  "review.changesSent": "Cererile tale de modificare au fost trimise. Vei primi un link nou când albumul este actualizat.",
+  "review.changesSent":
+    "Cererile tale de modificare au fost trimise. Vei primi un link nou când albumul este actualizat.",
   "review.spread": "Pagina dublă {number}",
   "review.photo": "Fotografia {number}",
   "review.unpin": "Nu mai lega nota de fotografie",

@@ -23,10 +23,7 @@ describe("off-site database backups", () => {
 
     const first = await backups.run();
     assert.deepEqual(first.uploaded, ["albumflow-2026-09-28T0300Z.dump", "albumflow-2026-09-29T0300Z.dump"]);
-    assert.equal(
-      provider.objects.get("backups/database/albumflow-2026-09-29T0300Z.dump")?.toString(),
-      "dump two",
-    );
+    assert.equal(provider.objects.get("backups/database/albumflow-2026-09-29T0300Z.dump")?.toString(), "dump two");
 
     const second = await backups.run();
     assert.equal(second.uploaded.length, 0);
@@ -48,9 +45,9 @@ describe("off-site database backups", () => {
     }
     const summary = await backups.run();
     assert.equal(summary.pruned, 2);
-    assert.deepEqual(
-      [...provider.objects.keys()].sort(),
-      ["backups/database/albumflow-2026-09-28T0300Z.dump", "backups/database/albumflow-2026-09-29T0300Z.dump"],
-    );
+    assert.deepEqual([...provider.objects.keys()].sort(), [
+      "backups/database/albumflow-2026-09-28T0300Z.dump",
+      "backups/database/albumflow-2026-09-29T0300Z.dump",
+    ]);
   });
 });

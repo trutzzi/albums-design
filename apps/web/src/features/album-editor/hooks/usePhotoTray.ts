@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import type { PhotoAnalysisDTO, PhotoDTO } from "@albumflow/contracts";
 import { loadTrayPrefs, saveTrayPrefs, type TrayPrefs } from "@/features/album-editor/lib/tray-prefs";
-import { countTrayPhotos, filterTrayPhotos, isFiltering, type TrayContext, type TrayShow } from "@/features/album-editor/lib/tray-filter";
+import {
+  countTrayPhotos,
+  filterTrayPhotos,
+  isFiltering,
+  type TrayContext,
+  type TrayShow,
+} from "@/features/album-editor/lib/tray-filter";
 
 export type TraySort = "score" | "category" | "filename" | "similarity";
 

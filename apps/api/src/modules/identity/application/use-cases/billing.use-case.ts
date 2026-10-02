@@ -42,7 +42,10 @@ export class BillingUseCase {
     if (denied) return Result.failure(denied);
 
     const id = UniqueEntityId.create(params.studioId);
-    const [studio, subscription] = await Promise.all([this.studios.findById(id), this.subscriptions.findByStudioId(id)]);
+    const [studio, subscription] = await Promise.all([
+      this.studios.findById(id),
+      this.subscriptions.findByStudioId(id),
+    ]);
     if (!studio || !subscription) return Result.failure(new NotFoundError("Studio", params.studioId));
 
     if (this.gateway.id === "none") {
@@ -69,7 +72,10 @@ export class BillingUseCase {
     return Result.success({ kind: "redirect", url });
   }
 
-  async portal(params: { studioId: string; role: string | undefined }): Promise<Result<{ url: string }, ApplicationError>> {
+  async portal(params: {
+    studioId: string;
+    role: string | undefined;
+  }): Promise<Result<{ url: string }, ApplicationError>> {
     const denied = ownerOnly(params.role);
     if (denied) return Result.failure(denied);
     if (this.gateway.id === "none") return Result.failure(new ValidationError("No payment provider is configured."));
@@ -79,7 +85,10 @@ export class BillingUseCase {
       return Result.failure(new ValidationError("This studio has no billing account yet — choose a plan first."));
     }
     return Result.success(
-      await this.gateway.openPortal({ customerId: subscription.externalCustomerId, returnUrl: `${this.origin}/studio` }),
+      await this.gateway.openPortal({
+        customerId: subscription.externalCustomerId,
+        returnUrl: `${this.origin}/studio`,
+      }),
     );
   }
 

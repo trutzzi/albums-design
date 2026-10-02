@@ -134,14 +134,8 @@ describe("moving a photo across two different spreads", () => {
 
   it("rejects an unknown spread or slot", () => {
     const album = albumWithTwoSpreads();
-    assert.throws(
-      () => album.movePlacementAcrossSpreads(0, "left", 5, "left"),
-      SpreadNotFoundError,
-    );
-    assert.throws(
-      () => album.movePlacementAcrossSpreads(0, "nope", 1, "left"),
-      SlotNotFoundError,
-    );
+    assert.throws(() => album.movePlacementAcrossSpreads(0, "left", 5, "left"), SpreadNotFoundError);
+    assert.throws(() => album.movePlacementAcrossSpreads(0, "nope", 1, "left"), SlotNotFoundError);
   });
 
   it("is a no-op when source and destination are identical", () => {
@@ -322,14 +316,27 @@ describe("mirroring a spread", () => {
     assert.ok(Math.abs((left?.frame?.x ?? 0) - 0.6) < 1e-9, "a frame at 0.1–0.4 lands at 0.6–0.9");
     // An untouched slot mirrors from where the album's spacing draws it, not the bare template.
     const template = findTemplate("portrait-pair")!;
-    const slot = spacedSlotRect(template.slots.find((candidate) => candidate.id === "right")!, template, album.style.spacing);
+    const slot = spacedSlotRect(
+      template.slots.find((candidate) => candidate.id === "right")!,
+      template,
+      album.style.spacing,
+    );
     assert.ok(Math.abs((right?.frame?.x ?? 0) - (1 - slot.x - slot.width)) < 1e-9, "template slots mirror too");
     assert.deepEqual(right?.crop, { x: 0.1, y: 0.1, width: 0.5, height: 0.5 });
   });
 
   it("mirrors text blocks and their alignment", () => {
     const album = albumWithPair();
-    album.setTextBlock(0, { id: "t", text: "Ana & Radu", x: 0.05, y: 0.8, width: 0.3, height: 0.1, size: "heading", align: "left" });
+    album.setTextBlock(0, {
+      id: "t",
+      text: "Ana & Radu",
+      x: 0.05,
+      y: 0.8,
+      width: 0.3,
+      height: 0.1,
+      size: "heading",
+      align: "left",
+    });
     album.mirrorSpread(0);
     const block = album.spreads[0]!.texts?.[0];
     assert.ok(Math.abs((block?.x ?? 0) - 0.65) < 1e-9);

@@ -79,7 +79,10 @@ export class PromoteSelectedPhotosUseCase {
 
     // Recorded before any copying: retention treats "selected but not yet stored"
     // as held, so a slow or failed promotion can never turn into a purge.
-    await this.photos.markSelected(owned.map((photo) => photo.id), this.now());
+    await this.photos.markSelected(
+      owned.map((photo) => photo.id),
+      this.now(),
+    );
 
     for (const photo of owned) {
       try {

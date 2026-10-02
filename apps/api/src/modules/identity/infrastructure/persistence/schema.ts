@@ -14,12 +14,7 @@ export const studios = pgTable("studios", {
 });
 
 export const planCodeEnum = pgEnum("plan_code", ["TRIAL", "STARTER", "STUDIO", "STUDIO_PRO"]);
-export const subscriptionStatusEnum = pgEnum("subscription_status", [
-  "TRIALING",
-  "ACTIVE",
-  "PAST_DUE",
-  "CANCELLED",
-]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", ["TRIALING", "ACTIVE", "PAST_DUE", "CANCELLED"]);
 export const studioRoleEnum = pgEnum("studio_role", ["OWNER", "EDITOR", "VIEWER"]);
 
 export const subscriptions = pgTable("subscriptions", {

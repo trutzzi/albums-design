@@ -69,7 +69,9 @@ export class ErrorRecordingLogger implements Logger {
     if (this.state.pending >= MAX_PENDING_WRITES) {
       if (!this.state.dropping) {
         this.state.dropping = true;
-        this.inner.warn("error log is falling behind; skipping entries until it catches up", { pending: this.state.pending });
+        this.inner.warn("error log is falling behind; skipping entries until it catches up", {
+          pending: this.state.pending,
+        });
       }
       return;
     }

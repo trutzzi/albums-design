@@ -60,10 +60,7 @@ async function main() {
     }),
   );
   await new DrizzleProjectRepository(db).save(
-    Project.create(
-      { studioId: studio.id, name: "Smoke shoot", type: "WEDDING" },
-      projectId,
-    ),
+    Project.create({ studioId: studio.id, name: "Smoke shoot", type: "WEDDING" }, projectId),
   );
 
   const studioHeaders = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
@@ -87,8 +84,7 @@ async function main() {
 
     // --- 2. authentication is actually enforced ---------------------------
     const unauthenticated = await fetch(`${BASE_URL}/projects/${projectId}/photos`);
-    check("rejects an unauthenticated request", unauthenticated.status === 401,
-      `got ${unauthenticated.status}`);
+    check("rejects an unauthenticated request", unauthenticated.status === 401, `got ${unauthenticated.status}`);
 
     // --- 3. upload a photo through the presigned URL ----------------------
     const jpeg = await texturedJpeg(1600, 1067, 4242);
@@ -126,11 +122,8 @@ async function main() {
         { id: string; status: string; previewUrl: string | null; thumbnailUrl: string | null }[]
       >(`/projects/${projectId}/photos`);
       const photo = photos.find((candidate) => candidate.id === requested.photoId);
-      lastSeen = photo
-        ? { id: photo.id, status: photo.status, thumbnailUrl: photo.thumbnailUrl }
-        : "missing";
-      const ready =
-        photo?.status === "ANALYSED" && photo.thumbnailUrl?.includes("/derivatives/") === true;
+      lastSeen = photo ? { id: photo.id, status: photo.status, thumbnailUrl: photo.thumbnailUrl } : "missing";
+      const ready = photo?.status === "ANALYSED" && photo.thumbnailUrl?.includes("/derivatives/") === true;
       return ready ? photo : undefined;
     });
 
@@ -139,8 +132,11 @@ async function main() {
         ? "the photo never appeared in the project's list at all"
         : `last seen: status=${lastSeen?.status}, thumbnailUrl=${lastSeen?.thumbnailUrl ?? "null"}`;
 
-    check("worker analysed the photo", processed?.status === "ANALYSED",
-      processed ? `status ${processed.status}` : `timed out — ${lastSeenDetail}`);
+    check(
+      "worker analysed the photo",
+      processed?.status === "ANALYSED",
+      processed ? `status ${processed.status}` : `timed out — ${lastSeenDetail}`,
+    );
     check(
       "worker wrote display derivatives",
       processed?.thumbnailUrl?.includes("/derivatives/") === true,
@@ -154,10 +150,10 @@ async function main() {
       return photos.every((photo) => photo.status === "ANALYSED") ? photos : undefined;
     });
 
-    const album = await api<{ id: string; spreadCount: number }>(
-      `/projects/${projectId}/albums`,
-      { method: "POST", body: JSON.stringify({ targetSpreads: 2 }) },
-    );
+    const album = await api<{ id: string; spreadCount: number }>(`/projects/${projectId}/albums`, {
+      method: "POST",
+      body: JSON.stringify({ targetSpreads: 2 }),
+    });
     check("planner built an album", album.spreadCount > 0, `${album.spreadCount} spreads`);
 
     // --- 6. the client links, each behind its own generated password -------
@@ -172,9 +168,7 @@ async function main() {
       check,
       waitFor,
     });
-    const feedback = await api<{ openCount: number; comments: { body: string }[] }>(
-      `/albums/${album.id}/comments`,
-    );
+    const feedback = await api<{ openCount: number; comments: { body: string }[] }>(`/albums/${album.id}/comments`);
     check(
       "photographer can read what the client wrote",
       feedback.openCount === 1 && feedback.comments[0]?.body === "Smoke note",
@@ -186,20 +180,23 @@ async function main() {
       body: JSON.stringify({ printProfileId: "client-proof-150" }),
     });
     const exported = await waitFor(async () => {
-      const jobs = await api<{ id: string; status: string; byteSize: number | null }[]>(
-        `/albums/${album.id}/exports`,
-      );
+      const jobs = await api<{ id: string; status: string; byteSize: number | null }[]>(`/albums/${album.id}/exports`);
       const mine = jobs.find((candidate) => candidate.id === job.id);
       return mine?.status === "READY" || mine?.status === "FAILED" ? mine : undefined;
     });
-    check("export rendered a PDF", exported?.status === "READY",
-      exported ? `status ${exported.status}, ${exported.byteSize} bytes` : "timed out");
+    check(
+      "export rendered a PDF",
+      exported?.status === "READY",
+      exported ? `status ${exported.status}, ${exported.byteSize} bytes` : "timed out",
+    );
 
     const download = await api<{ url: string }>(`/exports/${job.id}/download`);
     const pdf = Buffer.from(await (await fetch(download.url)).arrayBuffer());
-    check("the PDF is downloadable and well formed",
+    check(
+      "the PDF is downloadable and well formed",
       pdf.subarray(0, 5).toString() === "%PDF-",
-      `${(pdf.byteLength / 1024 / 1024).toFixed(2)} MB`);
+      `${(pdf.byteLength / 1024 / 1024).toFixed(2)} MB`,
+    );
     // --- 8. deleting the shoot ---------------------------------------------
     // The one operation that has to clean up every table at once — photos, analyses,
     // albums, exports, and all three kinds of client link — in an order the database's
@@ -261,7 +258,9 @@ async function texturedJpeg(width: number, height: number, seed: number): Promis
     state = (state * 1664525 + 1013904223) % 4294967296;
     data[i] = state % 256;
   }
-  return sharp(data, { raw: { width, height, channels: 3 } }).jpeg({ quality: 88 }).toBuffer();
+  return sharp(data, { raw: { width, height, channels: 3 } })
+    .jpeg({ quality: 88 })
+    .toBuffer();
 }
 
 async function waitFor<T>(attempt: () => Promise<T | undefined>): Promise<T | undefined> {

@@ -1,10 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import {
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-  type ApplicationError,
-} from "#src/shared-kernel/errors";
+import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import { DownloadSession } from "../../domain/download-session";
 import type { DownloadSessionRepository } from "../../domain/download-session-repository";
 import type { DeliveryGateway } from "../ports/delivery-gateway";
@@ -188,9 +183,7 @@ export class DownloadSessionAdminUseCase {
 
   async list(projectId: string): Promise<DownloadSessionSummary[]> {
     const sessions = await this.sessions.findByProjectId(UniqueEntityId.create(projectId));
-    return sessions
-      .map((session) => this.toSummary(session))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return sessions.map((session) => this.toSummary(session)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   async revoke(projectId: string, sessionId: string): Promise<Result<DownloadSessionSummary, ApplicationError>> {

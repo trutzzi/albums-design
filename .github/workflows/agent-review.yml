@@ -1,0 +1,137 @@
+name: Agent review
+
+# The checker half of maker–checker: agents that did not write the change read it cold and
+# review it. They can read the code and comment on the PR — nothing else. They never push,
+# approve or merge; the merge button stays with a person.
+#
+# Specialist reviewers, chosen by the files the PR touches (checklists in .github/review-checklists):
+#   frontend — anything under apps/web/
+#   backend  — any other code or config (API, worker, packages, infra, CI)
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+concurrency:
+  group: agent-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  route:
+    name: Choose reviewers
+    # Drafts are work in progress; forks never receive this repository's secrets.
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      reviewers: ${{ steps.pick.outputs.reviewers }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: pick
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          files=$(git diff --name-only "$BASE...$HEAD")
+          echo "$files"
+          web=$(printf '%s\n' "$files" | grep '^apps/web/' || true)
+          # Everything else except prose (README, docs), which needs no code review.
+          other=$(printf '%s\n' "$files" | grep -v '^apps/web/' | grep -vE '\.md$' | grep -v '^$' || true)
+          reviewers=()
+          [ -n "$web" ] && reviewers+=('"frontend"')
+          [ -n "$other" ] && reviewers+=('"backend"')
+          json="[$(IFS=,; echo "${reviewers[*]}")]"
+          echo "reviewers=$json" >> "$GITHUB_OUTPUT"
+          echo "Reviewers: $json"
+
+  review:
+    name: Agent review (${{ matrix.reviewer }})
+    needs: route
+    if: needs.route.outputs.reviewers != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        reviewer: ${{ fromJSON(needs.route.outputs.reviewers) }}
+    env:
+      HAS_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' || secrets.ANTHROPIC_API_KEY != '' }}
+      MARKER: "<!-- agent-review:${{ matrix.reviewer }} -->"
+    steps:
+      - name: Reviewer not configured
+        if: env.HAS_CLAUDE_TOKEN != 'true'
+        run: |
+          echo "::warning::Agent review skipped: add a CLAUDE_CODE_OAUTH_TOKEN (or ANTHROPIC_API_KEY) repository secret — see docs/agent-pipeline.md."
+
+      - uses: actions/checkout@v4
+        if: env.HAS_CLAUDE_TOKEN == 'true'
+        with:
+          fetch-depth: 0
+
+      - name: Review
+        if: env.HAS_CLAUDE_TOKEN == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Whichever is set: a Claude subscription token (`claude setup-token`) or an API key.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            YOUR ROLE: the ${{ matrix.reviewer }} reviewer
+
+            You are a senior ${{ matrix.reviewer }} engineer reviewing a pull request in this repository's
+            agent pipeline. Another agent (or a person) wrote it. CI already enforces formatting, lint,
+            types, tests with ≥80% coverage, the build and migrations — do not re-report what those catch.
+
+            1. Read CLAUDE.md, then your checklists:
+               - .github/review-checklists/${{ matrix.reviewer }}.md  (your specialist checklist)
+               - .github/review-checklists/clean-code.md              (applies to every change)
+            2. Read the diff (`gh pr diff`). Review only the files in your area
+               (frontend: apps/web/; backend: everything else). Read the surrounding code a change touches.
+            3. Report:
+               - One inline comment per concrete problem (mcp__github_inline_comment__create_inline_comment):
+                 what breaks or degrades, for which input or user, and the fix. Prefix clean-code items
+                 with "Suggestion:".
+               - Then exactly one summary comment with `gh pr comment`. Its first line must be
+                 `${{ env.MARKER }}`, its second line one of these, verbatim:
+                   Verdict: ✅ READY — no problems found that need fixing before merge.
+                   Verdict: ⚠️ SUGGESTIONS — worth fixing, nothing blocks a merge.
+                   Verdict: ⛔ BLOCKING — at least one problem would break production, expose data or lose data.
+                 Clean-code findings are never BLOCKING. Follow with the findings, most severe first,
+                 and one line on what you checked.
+            Be specific and brief. Never approve, request changes formally, push or merge.
+          claude_args: |
+            --max-turns 40
+            --allowedTools "Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*)"
+
+      # The verdict becomes this check's status, so it shows beside the merge button.
+      # A BLOCKING verdict turns it red; you can still merge — the decision stays yours.
+      - name: Verdict
+        if: env.HAS_CLAUDE_TOKEN == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The action refuses to run a review workflow that differs from the default branch's
+          # (so a PR cannot rewrite its own reviewer). That PR gets no review: warn, don't fail.
+          default="${{ github.event.repository.default_branch }}"
+          git fetch -q origin "$default"
+          if ! git diff --quiet "origin/$default" HEAD -- .github/workflows/agent-review.yml; then
+            echo "::warning::Agent review skipped: this PR changes the review workflow itself. It runs on PRs once this is merged."
+            echo "### ${{ matrix.reviewer }} — skipped (this PR changes the review workflow)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          body=$(gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --json comments \
+            | jq -r --arg m "$MARKER" '[.comments[] | select(.body | startswith($m))] | last | .body // ""')
+          verdict=$(printf '%s\n' "$body" | grep -m1 '^Verdict:' || true)
+          echo "${{ matrix.reviewer }}: ${verdict:-Verdict: (none posted)}"
+          echo "### ${{ matrix.reviewer }} — ${verdict:-no verdict posted}" >> "$GITHUB_STEP_SUMMARY"
+          case "$verdict" in
+            *BLOCKING*) echo "::error::The ${{ matrix.reviewer }} reviewer found blocking problems — see its comments on the PR."; exit 1 ;;
+            "") echo "::error::The ${{ matrix.reviewer }} reviewer finished without posting a verdict."; exit 1 ;;
+          esac

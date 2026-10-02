@@ -315,7 +315,15 @@ function drawWatermark(
   const y = pageHeight / 2 - (Math.sin(angle) * width) / 2 - (Math.cos(angle) * height) / 2;
   const rotate = degrees((angle * 180) / Math.PI);
   // A soft dark shadow under light text reads on both bright and dark photos.
-  page.drawText(text, { x: x + size * 0.02, y: y - size * 0.02, size, font, color: rgb(0, 0, 0), opacity: 0.18, rotate });
+  page.drawText(text, {
+    x: x + size * 0.02,
+    y: y - size * 0.02,
+    size,
+    font,
+    color: rgb(0, 0, 0),
+    opacity: 0.18,
+    rotate,
+  });
   page.drawText(text, { x, y, size, font, color: rgb(1, 1, 1), opacity: 0.45, rotate });
 }
 

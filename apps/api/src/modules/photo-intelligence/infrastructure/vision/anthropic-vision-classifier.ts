@@ -11,17 +11,7 @@ const verdictSchema = {
   properties: {
     category: {
       type: "string",
-      enum: [
-        "PREPARATION",
-        "CEREMONY",
-        "PORTRAIT",
-        "COUPLE",
-        "GROUP",
-        "DETAIL",
-        "VENUE",
-        "RECEPTION",
-        "CANDID",
-      ],
+      enum: ["PREPARATION", "CEREMONY", "PORTRAIT", "COUPLE", "GROUP", "DETAIL", "VENUE", "RECEPTION", "CANDID"],
     },
     confidence: { type: "number", minimum: 0, maximum: 1 },
     face_count: { type: "integer", minimum: 0 },

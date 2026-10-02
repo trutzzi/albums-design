@@ -56,6 +56,8 @@ export const photos = pgTable(
     // The five-minute long-term storage sweep reads only these, oldest first.
     index("photos_awaiting_long_term_idx")
       .on(table.createdAt)
-      .where(sql`${table.status} <> 'PENDING_UPLOAD' and ${table.fullResStoredAt} is null and ${table.stagedOriginalPurgedAt} is null`),
+      .where(
+        sql`${table.status} <> 'PENDING_UPLOAD' and ${table.fullResStoredAt} is null and ${table.stagedOriginalPurgedAt} is null`,
+      ),
   ],
 );

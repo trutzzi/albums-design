@@ -25,7 +25,9 @@ function album() {
     spreads: [
       {
         templateId: "single-centred",
-        placements: [{ slotId: "centre", photoId: "p1", crop: { x: 0, y: 0, width: 1, height: 1 }, treatment: "COLOR" }],
+        placements: [
+          { slotId: "centre", photoId: "p1", crop: { x: 0, y: 0, width: 1, height: 1 }, treatment: "COLOR" },
+        ],
       },
     ],
   });
@@ -121,7 +123,9 @@ describe("album style and cover", () => {
 
     const parse = (command: unknown) => albumEditSchema.parse(command);
     assert.ok((await edit.execute(id, parse({ type: "SET_STYLE", style: STYLE_PRESETS.midnight }))).isSuccess);
-    assert.ok((await edit.execute(id, parse({ type: "SET_TEXT_BLOCK", spreadIndex: 0, block: block("t1") }))).isSuccess);
+    assert.ok(
+      (await edit.execute(id, parse({ type: "SET_TEXT_BLOCK", spreadIndex: 0, block: block("t1") }))).isSuccess,
+    );
 
     const snapshot = structuredClone([...subject.spreads]);
     await edit.execute(id, parse({ type: "REMOVE_TEXT_BLOCK", spreadIndex: 0, blockId: "t1" }));
@@ -150,13 +154,18 @@ describe("shared layout geometry", () => {
       template,
       rects: template.slots.map((candidate) => spacedSlotRect(candidate, template, "full")),
     }));
-    const area = (rects: { width: number; height: number }[]) => rects.reduce((sum, rect) => sum + rect.width * rect.height, 0);
+    const area = (rects: { width: number; height: number }[]) =>
+      rects.reduce((sum, rect) => sum + rect.width * rect.height, 0);
 
     it("never lets two photos overlap", () => {
       for (const { template, rects } of full) {
         rects.forEach((a, i) =>
           rects.slice(i + 1).forEach((b) => {
-            const overlap = a.x < b.x + b.width - 1e-9 && b.x < a.x + a.width - 1e-9 && a.y < b.y + b.height - 1e-9 && b.y < a.y + a.height - 1e-9;
+            const overlap =
+              a.x < b.x + b.width - 1e-9 &&
+              b.x < a.x + a.width - 1e-9 &&
+              a.y < b.y + b.height - 1e-9 &&
+              b.y < a.y + a.height - 1e-9;
             assert.ok(!overlap, `${template.id} has overlapping photos`);
           }),
         );
@@ -166,8 +175,14 @@ describe("shared layout geometry", () => {
     it("keeps every photo inside the thin margin", () => {
       for (const { template, rects } of full) {
         for (const rect of rects) {
-          assert.ok(rect.x >= FULL_MARGIN.x - 1e-9 && rect.x + rect.width <= 1 - FULL_MARGIN.x + 1e-9, `${template.id} runs past the side margin`);
-          assert.ok(rect.y >= FULL_MARGIN.y - 1e-9 && rect.y + rect.height <= 1 - FULL_MARGIN.y + 1e-9, `${template.id} runs past the top or bottom`);
+          assert.ok(
+            rect.x >= FULL_MARGIN.x - 1e-9 && rect.x + rect.width <= 1 - FULL_MARGIN.x + 1e-9,
+            `${template.id} runs past the side margin`,
+          );
+          assert.ok(
+            rect.y >= FULL_MARGIN.y - 1e-9 && rect.y + rect.height <= 1 - FULL_MARGIN.y + 1e-9,
+            `${template.id} runs past the top or bottom`,
+          );
         }
       }
     });
@@ -185,7 +200,10 @@ describe("shared layout geometry", () => {
       for (const { template, rects } of full) {
         template.slots.forEach((original, i) => {
           const stretch = rects[i]!.width / rects[i]!.height / (original.width / original.height);
-          assert.ok(Math.max(stretch, 1 / stretch) <= FULL_MAX_STRETCH + 1e-9, `${template.id}/${original.id} stretched ${stretch.toFixed(2)}×`);
+          assert.ok(
+            Math.max(stretch, 1 / stretch) <= FULL_MAX_STRETCH + 1e-9,
+            `${template.id}/${original.id} stretched ${stretch.toFixed(2)}×`,
+          );
         });
       }
     });
@@ -194,8 +212,14 @@ describe("shared layout geometry", () => {
       for (const { template, rects } of full) {
         assert.ok(area(rects) >= area(template.slots) - 1e-9, `${template.id} lost space`);
       }
-      const multi = full.filter(({ template }) => template.slots.length > 1).map(({ rects }) => area(rects)).sort((a, b) => a - b);
-      assert.ok(multi[Math.floor(multi.length / 2)]! >= 0.8, "the median multi-photo spread should be at least 80% photo");
+      const multi = full
+        .filter(({ template }) => template.slots.length > 1)
+        .map(({ rects }) => area(rects))
+        .sort((a, b) => a - b);
+      assert.ok(
+        multi[Math.floor(multi.length / 2)]! >= 0.8,
+        "the median multi-photo spread should be at least 80% photo",
+      );
     });
   });
 

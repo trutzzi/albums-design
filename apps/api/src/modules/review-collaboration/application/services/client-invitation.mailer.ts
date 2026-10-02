@@ -238,7 +238,6 @@ function renderHtml(invitation: Invitation, copy: Copy): string {
 </body></html>`;
 }
 
-
 /**
  * The email a photographer sends their client with a selection, review or download link.
  *
@@ -260,9 +259,7 @@ export class ClientInvitationMailer {
       ...copy.steps.map((step) => `- ${step}`),
       "",
       `${copy.linkLabel}: ${invitation.url}`,
-      ...(invitation.password
-        ? [`${copy.passwordLabel}: ${invitation.password}`, copy.passwordNote]
-        : []),
+      ...(invitation.password ? [`${copy.passwordLabel}: ${invitation.password}`, copy.passwordNote] : []),
       "",
       copy.closing,
     ];

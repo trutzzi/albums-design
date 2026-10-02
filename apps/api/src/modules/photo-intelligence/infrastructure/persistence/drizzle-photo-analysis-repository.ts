@@ -33,10 +33,7 @@ export class DrizzlePhotoAnalysisRepository implements PhotoAnalysisRepository {
       focusY: analysis.focus?.y ?? null,
     };
 
-    await this.db
-      .insert(photoAnalyses)
-      .values(row)
-      .onConflictDoUpdate({ target: photoAnalyses.photoId, set: row });
+    await this.db.insert(photoAnalyses).values(row).onConflictDoUpdate({ target: photoAnalyses.photoId, set: row });
   }
 
   async findByPhotoId(photoId: UniqueEntityId): Promise<PhotoAnalysis | undefined> {
@@ -49,10 +46,7 @@ export class DrizzlePhotoAnalysisRepository implements PhotoAnalysisRepository {
   }
 
   async findByProjectId(projectId: UniqueEntityId): Promise<PhotoAnalysis[]> {
-    const rows = await this.db
-      .select()
-      .from(photoAnalyses)
-      .where(eq(photoAnalyses.projectId, projectId.toString()));
+    const rows = await this.db.select().from(photoAnalyses).where(eq(photoAnalyses.projectId, projectId.toString()));
     return rows.map(toDomain);
   }
 

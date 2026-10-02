@@ -47,28 +47,17 @@ export class DrizzlePickSessionRepository implements PickSessionRepository {
   }
 
   async findById(id: UniqueEntityId): Promise<PickSession | undefined> {
-    const [row] = await this.db
-      .select()
-      .from(pickSessions)
-      .where(eq(pickSessions.id, id.toString()))
-      .limit(1);
+    const [row] = await this.db.select().from(pickSessions).where(eq(pickSessions.id, id.toString())).limit(1);
     return row ? toDomain(row) : undefined;
   }
 
   async findByTokenHash(tokenHash: string): Promise<PickSession | undefined> {
-    const [row] = await this.db
-      .select()
-      .from(pickSessions)
-      .where(eq(pickSessions.tokenHash, tokenHash))
-      .limit(1);
+    const [row] = await this.db.select().from(pickSessions).where(eq(pickSessions.tokenHash, tokenHash)).limit(1);
     return row ? toDomain(row) : undefined;
   }
 
   async findByProjectId(projectId: UniqueEntityId): Promise<PickSession[]> {
-    const rows = await this.db
-      .select()
-      .from(pickSessions)
-      .where(eq(pickSessions.projectId, projectId.toString()));
+    const rows = await this.db.select().from(pickSessions).where(eq(pickSessions.projectId, projectId.toString()));
     return rows.map(toDomain);
   }
 

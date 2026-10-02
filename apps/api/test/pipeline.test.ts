@@ -141,9 +141,7 @@ describe("upload → analysis → album → review → export", () => {
   let images: Buffer[];
 
   before(async () => {
-    images = await Promise.all(
-      Array.from({ length: PHOTO_COUNT }, (_, index) => makePhoto(index)),
-    );
+    images = await Promise.all(Array.from({ length: PHOTO_COUNT }, (_, index) => makePhoto(index)));
   });
 
   it("runs the whole flow and produces a print-ready PDF", async () => {
@@ -158,9 +156,7 @@ describe("upload → analysis → album → review → export", () => {
     studioId = onboarded.getValue().studioId;
     assert.ok(onboarded.getValue().apiKey.startsWith("af_"));
 
-    const subscription = await world.subscriptions.findByStudioId(
-      UniqueEntityId.create(studioId),
-    );
+    const subscription = await world.subscriptions.findByStudioId(UniqueEntityId.create(studioId));
     subscription?.changePlan("STUDIO");
     if (subscription) await world.subscriptions.save(subscription);
 
@@ -227,9 +223,7 @@ describe("upload → analysis → album → review → export", () => {
     // --- Epic 4: the photographer edits the draft ---
     const albumId = album.id.toString();
     const originalFirstPhoto = album.spreads[0]?.placements[0]?.photoId;
-    const replacement = [...world.photos.items.values()].find(
-      (photo) => photo.id.toString() !== originalFirstPhoto,
-    );
+    const replacement = [...world.photos.items.values()].find((photo) => photo.id.toString() !== originalFirstPhoto);
     assert.ok(replacement);
 
     const swapped = await world.editAlbum.execute(albumId, {
@@ -268,7 +262,11 @@ describe("upload → analysis → album → review → export", () => {
 
     // A note pinned to a photo names a slot that is really on that spread.
     const firstSlot = viewed.getValue().album.spreads[0]!.placements[0]!.slotId;
-    const pinned = await world.reviewPortal.comment(token, { spreadIndex: 0, slotId: firstSlot, body: "Brighter, please" });
+    const pinned = await world.reviewPortal.comment(token, {
+      spreadIndex: 0,
+      slotId: firstSlot,
+      body: "Brighter, please",
+    });
     assert.ok(pinned.isSuccess);
     assert.equal(pinned.getValue().session.comments.at(-1)?.slotId, firstSlot);
     const madeUp = await world.reviewPortal.comment(token, { spreadIndex: 0, slotId: "not-a-slot", body: "?" });

@@ -49,7 +49,12 @@ export function LaunchOfferHost() {
     enabled: isAuthenticated && Boolean(studioId) && !dismissed,
   });
 
-  const open = isAuthenticated && !dismissed && !overviewOpen && Boolean(studio.data?.subscription.launchPrice) && Boolean(plans.data);
+  const open =
+    isAuthenticated &&
+    !dismissed &&
+    !overviewOpen &&
+    Boolean(studio.data?.subscription.launchPrice) &&
+    Boolean(plans.data);
   const close = () => {
     try {
       window.localStorage.setItem(SEEN_KEY, "1");

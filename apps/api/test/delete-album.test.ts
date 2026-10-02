@@ -19,9 +19,7 @@ function makeAlbum(): Album {
     spreads: [
       {
         templateId: "hero-full-bleed",
-        placements: [
-          { slotId: "hero", photoId: "photo-1", crop: { ...FULL_CROP }, treatment: "COLOR" },
-        ],
+        placements: [{ slotId: "hero", photoId: "photo-1", crop: { ...FULL_CROP }, treatment: "COLOR" }],
       },
     ],
   });

@@ -95,7 +95,9 @@ export function DownloadPage() {
       {data.missingCount > 0 && <p className="notice">{t("download.missing", { count: data.missingCount })}</p>}
       {data.processingCount > 0 && (
         <p className="notice" role="status">
-          {t("download.processing", { count: data.processingCount.toLocaleString(language === "ro" ? "ro-RO" : "en-GB") })}
+          {t("download.processing", {
+            count: data.processingCount.toLocaleString(language === "ro" ? "ro-RO" : "en-GB"),
+          })}
         </p>
       )}
       {started && (

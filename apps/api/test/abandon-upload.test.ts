@@ -88,6 +88,9 @@ describe("abandoning an upload that never finished", () => {
 
     await w.abandon.execute({ photoId: cancelled.id.toString() });
     const left = await w.photos.findByProjectId(w.project.id);
-    assert.deepEqual(left.map((photo) => photo.id.toString()), [finished.id.toString()]);
+    assert.deepEqual(
+      left.map((photo) => photo.id.toString()),
+      [finished.id.toString()],
+    );
   });
 });

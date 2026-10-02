@@ -14,14 +14,7 @@ import {
   type TextBlockDTO,
 } from "@albumflow/contracts";
 import { SpreadTexts } from "./SpreadTexts";
-import {
-  MAX_ZOOM,
-  MIN_ZOOM,
-  cropToStyle,
-  pannedCrop,
-  withZoom,
-  zoomOf,
-} from "./crop-geometry";
+import { MAX_ZOOM, MIN_ZOOM, cropToStyle, pannedCrop, withZoom, zoomOf } from "./crop-geometry";
 import {
   RESIZE_CORNERS,
   collectPrintGuideTargets,
@@ -93,9 +86,7 @@ export interface SpreadCanvasProps {
    * A photo dragged in from a DIFFERENT spread and dropped onto `toSlotId` —
    * swaps it with whatever already sits there, so nothing is lost either side.
    */
-  onMovePlacementAcrossSpreads?:
-    | ((fromSpreadIndex: number, fromSlotId: string, toSlotId: string) => void)
-    | undefined;
+  onMovePlacementAcrossSpreads?: ((fromSpreadIndex: number, fromSlotId: string, toSlotId: string) => void) | undefined;
   /**
    * A photo dragged in from a DIFFERENT spread and dropped on the margins —
    * not onto any slot — grows this spread by one instead of swapping.
@@ -187,9 +178,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   // Highlights the whole spread (as opposed to one slot) while a tray photo is
   // dragged over the margins/gutter — the target for growing the spread.
   const [spreadDropActive, setSpreadDropActive] = useState(false);
-  const dragRef = useRef<{ slotId: string; startX: number; startY: number; crop: Crop } | null>(
-    null,
-  );
+  const dragRef = useRef<{ slotId: string; startX: number; startY: number; crop: Crop } | null>(null);
   const spreadRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<{
     slotId: string;
@@ -210,9 +199,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
 
   const rememberAspect = useCallback((photoId: string, width: number, height: number) => {
     if (!width || !height) return;
-    setAspects((prev) =>
-      prev[photoId] === width / height ? prev : { ...prev, [photoId]: width / height },
-    );
+    setAspects((prev) => (prev[photoId] === width / height ? prev : { ...prev, [photoId]: width / height }));
   }, []);
 
   // Every slot's current on-screen rectangle — a hand-resized frame if it has
@@ -244,9 +231,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   // decided here, not inside the slot loop, so the spread container can widen
   // its own overflow to fit a toolbar sitting just past a bottom-row slot's edge.
   const selectedPlacement = placements.find((candidate) => candidate.slotId === selectedSlotId);
-  const toolsOpen = Boolean(
-    onCropChange && selectedPlacement && previewUrlFor(selectedPlacement.photoId),
-  );
+  const toolsOpen = Boolean(onCropChange && selectedPlacement && previewUrlFor(selectedPlacement.photoId));
 
   return (
     <div
@@ -304,11 +289,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
       <div className="spread__gutter" aria-hidden="true" />
       {showRuler && <RulerOverlay widthMm={pageWidthMm * 2} heightMm={pageHeightMm} />}
       {showGuides && (
-        <PrintGuidesOverlay
-          pageWidthMm={pageWidthMm}
-          pageHeightMm={pageHeightMm}
-          safeMarginMm={safeMarginMm}
-        />
+        <PrintGuidesOverlay pageWidthMm={pageWidthMm} pageHeightMm={pageHeightMm} safeMarginMm={safeMarginMm} />
       )}
       {/* Filled in during the loop below for the one selected+editable slot, then
           rendered last — as a sibling of the slots, not nested inside one — so
@@ -318,476 +299,487 @@ export const SpreadCanvas = memo(function SpreadCanvas({
         let toolsOverlay: React.ReactNode = null;
         const slotElements = template.slots.map((slot) => {
           const placement = placements.find((candidate) => candidate.slotId === slot.id);
-        const url = placement ? previewUrlFor(placement.photoId) : null;
-        const selected = selectedSlotId === slot.id;
-        const editable = Boolean(onCropChange) && selected;
-        const interactive = Boolean(onSlotClick || onSlotDrop);
+          const url = placement ? previewUrlFor(placement.photoId) : null;
+          const selected = selectedSlotId === slot.id;
+          const editable = Boolean(onCropChange) && selected;
+          const interactive = Boolean(onSlotClick || onSlotDrop);
 
-        const rect = placement?.frame ?? spacedSlotRect(slot, template, albumStyle.spacing);
-        const slotAspect = (rect.width * aspectRatio) / rect.height;
-        const imageAspect = placement ? aspects[placement.photoId] : undefined;
-        const storedCrop = placement?.crop ?? DEFAULT_CROP;
-        const focus = placement ? focusFor?.(placement.photoId) : undefined;
-        // An untouched placement is drawn exactly as the PDF will print it: the slot-shaped
-        // crop centred on the photo's subject (see focusedBaseCrop in contracts).
-        const crop =
-          imageAspect !== undefined && isUntouchedCrop(storedCrop)
-            ? focusedBaseCrop(imageAspect, slotAspect, focus)
-            : storedCrop;
-        const treatment = placement?.treatment ?? "COLOR";
+          const rect = placement?.frame ?? spacedSlotRect(slot, template, albumStyle.spacing);
+          const slotAspect = (rect.width * aspectRatio) / rect.height;
+          const imageAspect = placement ? aspects[placement.photoId] : undefined;
+          const storedCrop = placement?.crop ?? DEFAULT_CROP;
+          const focus = placement ? focusFor?.(placement.photoId) : undefined;
+          // An untouched placement is drawn exactly as the PDF will print it: the slot-shaped
+          // crop centred on the photo's subject (see focusedBaseCrop in contracts).
+          const crop =
+            imageAspect !== undefined && isUntouchedCrop(storedCrop)
+              ? focusedBaseCrop(imageAspect, slotAspect, focus)
+              : storedCrop;
+          const treatment = placement?.treatment ?? "COLOR";
 
-        const style =
-          imageAspect !== undefined ? cropToStyle(crop, imageAspect, slotAspect) : undefined;
+          const style = imageAspect !== undefined ? cropToStyle(crop, imageAspect, slotAspect) : undefined;
 
-        const beginDrag = (event: React.PointerEvent) => {
-          if (!editable || !placement || imageAspect === undefined) return;
-          event.preventDefault();
-          event.currentTarget.setPointerCapture(event.pointerId);
-          dragRef.current = {
-            slotId: slot.id,
-            startX: event.clientX,
-            startY: event.clientY,
-            crop,
+          const beginDrag = (event: React.PointerEvent) => {
+            if (!editable || !placement || imageAspect === undefined) return;
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            dragRef.current = {
+              slotId: slot.id,
+              startX: event.clientX,
+              startY: event.clientY,
+              crop,
+            };
           };
-        };
 
-        const moveDrag = (event: React.PointerEvent) => {
-          const drag = dragRef.current;
-          if (!drag || drag.slotId !== slot.id || imageAspect === undefined) return;
-          const bounds = event.currentTarget.getBoundingClientRect();
-          const next = pannedCrop(
-            drag.crop,
-            (event.clientX - drag.startX) / bounds.width,
-            (event.clientY - drag.startY) / bounds.height,
-            imageAspect,
-            slotAspect,
-          );
-          onCropChange?.(slot.id, next, false);
-        };
+          const moveDrag = (event: React.PointerEvent) => {
+            const drag = dragRef.current;
+            if (!drag || drag.slotId !== slot.id || imageAspect === undefined) return;
+            const bounds = event.currentTarget.getBoundingClientRect();
+            const next = pannedCrop(
+              drag.crop,
+              (event.clientX - drag.startX) / bounds.width,
+              (event.clientY - drag.startY) / bounds.height,
+              imageAspect,
+              slotAspect,
+            );
+            onCropChange?.(slot.id, next, false);
+          };
 
-        const endDrag = (event: React.PointerEvent) => {
-          if (!dragRef.current || dragRef.current.slotId !== slot.id) return;
-          dragRef.current = null;
-          event.currentTarget.releasePointerCapture?.(event.pointerId);
-          if (placement?.crop) onCropChange?.(slot.id, placement.crop, true);
-        };
+          const endDrag = (event: React.PointerEvent) => {
+            if (!dragRef.current || dragRef.current.slotId !== slot.id) return;
+            dragRef.current = null;
+            event.currentTarget.releasePointerCapture?.(event.pointerId);
+            if (placement?.crop) onCropChange?.(slot.id, placement.crop, true);
+          };
 
-        const applyZoom = (zoom: number, commit: boolean) => {
-          if (imageAspect === undefined) return;
-          onCropChange?.(slot.id, withZoom(crop, zoom, imageAspect, slotAspect), commit);
-        };
+          const applyZoom = (zoom: number, commit: boolean) => {
+            if (imageAspect === undefined) return;
+            onCropChange?.(slot.id, withZoom(crop, zoom, imageAspect, slotAspect), commit);
+          };
 
-        const slotElement = (
-          <div
-            key={slot.id}
-            className={[
-              "slot",
-              selected ? "slot--selected" : "",
-              interactive ? "slot--interactive" : "",
-              editable ? "slot--editable" : "",
-              dropTarget === slot.id ? "slot--drop-target" : "",
-              albumStyle.keyline && !template.fullBleed ? "slot--keyline" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            style={{
-              left: `${rect.x * 100}%`,
-              top: `${rect.y * 100}%`,
-              width: `${rect.width * 100}%`,
-              height: `${rect.height * 100}%`,
-            }}
-            onClick={onSlotClick ? () => onSlotClick(slot.id) : undefined}
-            draggable={
-              Boolean(
-                onReorderPlacement ||
-                  onMoveToNeighbor ||
-                  onMovePlacementAcrossSpreads ||
-                  onMovePhotoAsNewPhoto,
-              ) &&
-              !editable &&
-              Boolean(placement?.photoId)
-            }
-            onDragStart={(event) => {
-              event.dataTransfer.setData("text/slot-id", slot.id);
-              event.dataTransfer.setData("text/spread-index", String(spreadIndex));
-              event.dataTransfer.effectAllowed = "move";
-            }}
-            onDragEnd={() => setDropTarget(null)}
-            onDragOver={
-              onSlotDrop || onReorderPlacement || onMovePlacementAcrossSpreads
-                ? (event) => {
-                    event.preventDefault();
-                    setDropTarget(slot.id);
-                  }
-                : undefined
-            }
-            onDragLeave={() => setDropTarget((prev) => (prev === slot.id ? null : prev))}
-            onDrop={(event) => {
-              event.preventDefault();
-              // Landing on a slot is handled here, fully — it must not also
-              // bubble up to the spread-level "add" handler below, or one drop
-              // would both replace this slot's photo and add a second one.
-              event.stopPropagation();
-              setDropTarget(null);
-              // A slot id means a photo already on this spread — or another one —
-              // is being dragged to a new position; a photo id means the tray is
-              // replacing whatever was here.
-              const fromSlot = event.dataTransfer.getData("text/slot-id");
-              if (fromSlot) {
-                const fromSpreadRaw = event.dataTransfer.getData("text/spread-index");
-                const fromSpreadIndex = fromSpreadRaw === "" ? spreadIndex : Number(fromSpreadRaw);
-                if (fromSpreadIndex !== spreadIndex) {
-                  onMovePlacementAcrossSpreads?.(fromSpreadIndex, fromSlot, slot.id);
-                  return;
-                }
-                if (fromSlot !== slot.id) {
-                  onReorderPlacement?.(fromSlot, slot.id);
-                  return;
-                }
+          const slotElement = (
+            <div
+              key={slot.id}
+              className={[
+                "slot",
+                selected ? "slot--selected" : "",
+                interactive ? "slot--interactive" : "",
+                editable ? "slot--editable" : "",
+                dropTarget === slot.id ? "slot--drop-target" : "",
+                albumStyle.keyline && !template.fullBleed ? "slot--keyline" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              style={{
+                left: `${rect.x * 100}%`,
+                top: `${rect.y * 100}%`,
+                width: `${rect.width * 100}%`,
+                height: `${rect.height * 100}%`,
+              }}
+              onClick={onSlotClick ? () => onSlotClick(slot.id) : undefined}
+              draggable={
+                Boolean(
+                  onReorderPlacement || onMoveToNeighbor || onMovePlacementAcrossSpreads || onMovePhotoAsNewPhoto,
+                ) &&
+                !editable &&
+                Boolean(placement?.photoId)
               }
-              const photoId = event.dataTransfer.getData("text/photo-id");
-              if (photoId) onSlotDrop?.(slot.id, photoId);
-            }}
-            onPointerDown={editable ? beginDrag : undefined}
-            onPointerMove={editable ? moveDrag : undefined}
-            onPointerUp={editable ? endDrag : undefined}
-            onPointerCancel={editable ? endDrag : undefined}
-            onWheel={
-              editable
-                ? (event) => {
-                    if (imageAspect === undefined) return;
-                    const current = zoomOf(crop, imageAspect, slotAspect);
-                    applyZoom(current * (event.deltaY < 0 ? 1.12 : 1 / 1.12), true);
-                  }
-                : undefined
-            }
-            role={interactive ? "button" : undefined}
-            tabIndex={interactive ? 0 : undefined}
-            onKeyDown={
-              onSlotClick
-                ? (event) => {
-                    if (event.key === "Enter" || event.key === " ") {
+              onDragStart={(event) => {
+                event.dataTransfer.setData("text/slot-id", slot.id);
+                event.dataTransfer.setData("text/spread-index", String(spreadIndex));
+                event.dataTransfer.effectAllowed = "move";
+              }}
+              onDragEnd={() => setDropTarget(null)}
+              onDragOver={
+                onSlotDrop || onReorderPlacement || onMovePlacementAcrossSpreads
+                  ? (event) => {
                       event.preventDefault();
-                      onSlotClick(slot.id);
-                      return;
+                      setDropTarget(slot.id);
                     }
-                    // Arrow keys nudge the selected photo; Shift takes bigger steps.
-                    const nudge = ARROW_NUDGE[event.key];
-                    if (editable && onFrameChange && nudge) {
-                      event.preventDefault();
-                      const step = event.shiftKey ? 0.02 : 0.004;
-                      onFrameChange(slot.id, moveFrame(rect, nudge[0] * step, nudge[1] * step), false);
-                    }
+                  : undefined
+              }
+              onDragLeave={() => setDropTarget((prev) => (prev === slot.id ? null : prev))}
+              onDrop={(event) => {
+                event.preventDefault();
+                // Landing on a slot is handled here, fully — it must not also
+                // bubble up to the spread-level "add" handler below, or one drop
+                // would both replace this slot's photo and add a second one.
+                event.stopPropagation();
+                setDropTarget(null);
+                // A slot id means a photo already on this spread — or another one —
+                // is being dragged to a new position; a photo id means the tray is
+                // replacing whatever was here.
+                const fromSlot = event.dataTransfer.getData("text/slot-id");
+                if (fromSlot) {
+                  const fromSpreadRaw = event.dataTransfer.getData("text/spread-index");
+                  const fromSpreadIndex = fromSpreadRaw === "" ? spreadIndex : Number(fromSpreadRaw);
+                  if (fromSpreadIndex !== spreadIndex) {
+                    onMovePlacementAcrossSpreads?.(fromSpreadIndex, fromSlot, slot.id);
+                    return;
                   }
-                : undefined
-            }
-          >
-            {url ? (
-              <img
-                src={url}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-                className={treatment === "BLACK_WHITE" ? "is-monochrome" : undefined}
-                style={style}
-                onLoad={(event) =>
-                  placement &&
-                  rememberAspect(
-                    placement.photoId,
-                    event.currentTarget.naturalWidth,
-                    event.currentTarget.naturalHeight,
-                  )
+                  if (fromSlot !== slot.id) {
+                    onReorderPlacement?.(fromSlot, slot.id);
+                    return;
+                  }
                 }
-              />
-            ) : (
-              <span className="slot__empty">{t(`spread.slot.${slot.prefers.toLowerCase()}`)}</span>
-            )}
-            {slotBadges?.[slot.id] !== undefined && (
-              <span className="slot__badge" aria-hidden="true">
-                {slotBadges[slot.id]}
-              </span>
-            )}
+                const photoId = event.dataTransfer.getData("text/photo-id");
+                if (photoId) onSlotDrop?.(slot.id, photoId);
+              }}
+              onPointerDown={editable ? beginDrag : undefined}
+              onPointerMove={editable ? moveDrag : undefined}
+              onPointerUp={editable ? endDrag : undefined}
+              onPointerCancel={editable ? endDrag : undefined}
+              onWheel={
+                editable
+                  ? (event) => {
+                      if (imageAspect === undefined) return;
+                      const current = zoomOf(crop, imageAspect, slotAspect);
+                      applyZoom(current * (event.deltaY < 0 ? 1.12 : 1 / 1.12), true);
+                    }
+                  : undefined
+              }
+              role={interactive ? "button" : undefined}
+              tabIndex={interactive ? 0 : undefined}
+              onKeyDown={
+                onSlotClick
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSlotClick(slot.id);
+                        return;
+                      }
+                      // Arrow keys nudge the selected photo; Shift takes bigger steps.
+                      const nudge = ARROW_NUDGE[event.key];
+                      if (editable && onFrameChange && nudge) {
+                        event.preventDefault();
+                        const step = event.shiftKey ? 0.02 : 0.004;
+                        onFrameChange(slot.id, moveFrame(rect, nudge[0] * step, nudge[1] * step), false);
+                      }
+                    }
+                  : undefined
+              }
+            >
+              {url ? (
+                <img
+                  src={url}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  className={treatment === "BLACK_WHITE" ? "is-monochrome" : undefined}
+                  style={style}
+                  onLoad={(event) =>
+                    placement &&
+                    rememberAspect(
+                      placement.photoId,
+                      event.currentTarget.naturalWidth,
+                      event.currentTarget.naturalHeight,
+                    )
+                  }
+                />
+              ) : (
+                <span className="slot__empty">{t(`spread.slot.${slot.prefers.toLowerCase()}`)}</span>
+              )}
+              {slotBadges?.[slot.id] !== undefined && (
+                <span className="slot__badge" aria-hidden="true">
+                  {slotBadges[slot.id]}
+                </span>
+              )}
 
-            {editable && onFrameChange && (
-              <span
-                className="slot-move"
-                title={t("spread.move.title")}
-                aria-hidden="true"
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  event.currentTarget.setPointerCapture(event.pointerId);
-                  moveRef.current = { slotId: slot.id, startX: event.clientX, startY: event.clientY, frame: { ...rect } };
-                }}
-                onPointerMove={(event) => {
-                  const move = moveRef.current;
-                  const bounds = spreadRef.current?.getBoundingClientRect();
-                  if (!move || move.slotId !== slot.id || !bounds) return;
-                  event.stopPropagation();
-                  const dx = (event.clientX - move.startX) / bounds.width;
-                  const dy = (event.clientY - move.startY) / bounds.height;
-                  const next = snapEnabled
-                    ? moveFrameSnapped(
-                        move.frame,
-                        dx,
-                        dy,
-                        mergeSnapTargets(
-                          collectSnapTargets(allRects.filter((entry) => entry.slotId !== slot.id).map((entry) => entry.rect)),
-                          showGuides ? collectPrintGuideTargets(pageWidthMm, pageHeightMm, safeMarginMm) : { x: [], y: [] },
-                        ),
-                      )
-                    : moveFrame(move.frame, dx, dy);
-                  onFrameChange(slot.id, next, false);
-                }}
-                onPointerUp={(event) => {
-                  if (moveRef.current?.slotId !== slot.id) return;
-                  event.stopPropagation();
-                  moveRef.current = null;
-                  onFrameChange(slot.id, rect, true);
-                }}
-                onPointerCancel={() => {
-                  moveRef.current = null;
-                }}
-              >
-                ✥ {t("spread.move")}
-              </span>
-            )}
-            {editable &&
-              onFrameChange &&
-              RESIZE_CORNERS.map((corner) => (
+              {editable && onFrameChange && (
                 <span
-                  key={corner}
-                  className={`slot-handle slot-handle--${corner}`}
+                  className="slot-move"
+                  title={t("spread.move.title")}
+                  aria-hidden="true"
                   onPointerDown={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
                     event.currentTarget.setPointerCapture(event.pointerId);
-                    resizeRef.current = {
+                    moveRef.current = {
                       slotId: slot.id,
-                      corner,
                       startX: event.clientX,
                       startY: event.clientY,
                       frame: { ...rect },
                     };
                   }}
                   onPointerMove={(event) => {
-                    const resize = resizeRef.current;
+                    const move = moveRef.current;
                     const bounds = spreadRef.current?.getBoundingClientRect();
-                    if (!resize || resize.slotId !== slot.id || !bounds) return;
+                    if (!move || move.slotId !== slot.id || !bounds) return;
                     event.stopPropagation();
-                    const dx = (event.clientX - resize.startX) / bounds.width;
-                    const dy = (event.clientY - resize.startY) / bounds.height;
-                    const nextFrame = snapEnabled
-                      ? resizeFrameSnapped(
-                          resize.frame,
-                          resize.corner,
+                    const dx = (event.clientX - move.startX) / bounds.width;
+                    const dy = (event.clientY - move.startY) / bounds.height;
+                    const next = snapEnabled
+                      ? moveFrameSnapped(
+                          move.frame,
                           dx,
                           dy,
                           mergeSnapTargets(
                             collectSnapTargets(
-                              allRects
-                                .filter((entry) => entry.slotId !== slot.id)
-                                .map((entry) => entry.rect),
+                              allRects.filter((entry) => entry.slotId !== slot.id).map((entry) => entry.rect),
                             ),
                             showGuides
                               ? collectPrintGuideTargets(pageWidthMm, pageHeightMm, safeMarginMm)
                               : { x: [], y: [] },
                           ),
                         )
-                      : resizeFrame(resize.frame, resize.corner, dx, dy);
-                    onFrameChange(slot.id, nextFrame, false);
+                      : moveFrame(move.frame, dx, dy);
+                    onFrameChange(slot.id, next, false);
                   }}
                   onPointerUp={(event) => {
-                    if (resizeRef.current?.slotId !== slot.id) return;
+                    if (moveRef.current?.slotId !== slot.id) return;
                     event.stopPropagation();
-                    resizeRef.current = null;
+                    moveRef.current = null;
                     onFrameChange(slot.id, rect, true);
                   }}
                   onPointerCancel={() => {
-                    resizeRef.current = null;
+                    moveRef.current = null;
                   }}
-                />
-              ))}
-          </div>
-        );
+                >
+                  ✥ {t("spread.move")}
+                </span>
+              )}
+              {editable &&
+                onFrameChange &&
+                RESIZE_CORNERS.map((corner) => (
+                  <span
+                    key={corner}
+                    className={`slot-handle slot-handle--${corner}`}
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      resizeRef.current = {
+                        slotId: slot.id,
+                        corner,
+                        startX: event.clientX,
+                        startY: event.clientY,
+                        frame: { ...rect },
+                      };
+                    }}
+                    onPointerMove={(event) => {
+                      const resize = resizeRef.current;
+                      const bounds = spreadRef.current?.getBoundingClientRect();
+                      if (!resize || resize.slotId !== slot.id || !bounds) return;
+                      event.stopPropagation();
+                      const dx = (event.clientX - resize.startX) / bounds.width;
+                      const dy = (event.clientY - resize.startY) / bounds.height;
+                      const nextFrame = snapEnabled
+                        ? resizeFrameSnapped(
+                            resize.frame,
+                            resize.corner,
+                            dx,
+                            dy,
+                            mergeSnapTargets(
+                              collectSnapTargets(
+                                allRects.filter((entry) => entry.slotId !== slot.id).map((entry) => entry.rect),
+                              ),
+                              showGuides
+                                ? collectPrintGuideTargets(pageWidthMm, pageHeightMm, safeMarginMm)
+                                : { x: [], y: [] },
+                            ),
+                          )
+                        : resizeFrame(resize.frame, resize.corner, dx, dy);
+                      onFrameChange(slot.id, nextFrame, false);
+                    }}
+                    onPointerUp={(event) => {
+                      if (resizeRef.current?.slotId !== slot.id) return;
+                      event.stopPropagation();
+                      resizeRef.current = null;
+                      onFrameChange(slot.id, rect, true);
+                    }}
+                    onPointerCancel={() => {
+                      resizeRef.current = null;
+                    }}
+                  />
+                ))}
+            </div>
+          );
 
-        if (editable && url && toolsHost) {
-          const zoom = imageAspect !== undefined ? zoomOf(crop, imageAspect, slotAspect) : 1;
-          toolsOverlay = createPortal(
-            <div className="photo-toolbar" role="toolbar" aria-label={t("spread.tools.label")}>
-              <div className="photo-toolbar__zoom">
-                <button
-                  type="button"
-                  className="photo-toolbar__icon"
-                  aria-label={t("spread.zoomOut")}
-                  title={t("spread.zoomOut")}
-                  disabled={zoom <= MIN_ZOOM + 0.001}
-                  onClick={() => applyZoom(zoom / 1.15, true)}
-                >
-                  −
-                </button>
-                <input
-                  id={`zoom-${slot.id}`}
-                  className="photo-toolbar__slider"
-                  type="range"
-                  min={MIN_ZOOM}
-                  max={MAX_ZOOM}
-                  step={0.02}
-                  value={zoom}
-                  aria-label={t("spread.zoom")}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onChange={(event) => applyZoom(Number(event.target.value), false)}
-                  onPointerUp={(event) => applyZoom(Number((event.target as HTMLInputElement).value), true)}
-                  onKeyUp={(event) => applyZoom(Number((event.target as HTMLInputElement).value), true)}
-                />
-                <button
-                  type="button"
-                  className="photo-toolbar__icon"
-                  aria-label={t("spread.zoomIn")}
-                  title={t("spread.zoomIn")}
-                  disabled={zoom >= MAX_ZOOM - 0.001}
-                  onClick={() => applyZoom(zoom * 1.15, true)}
-                >
-                  +
-                </button>
-                <span className="photo-toolbar__percent">{Math.round(zoom * 100)}%</span>
-              </div>
-              <div className="photo-toolbar__actions">
-                <button
-                  type="button"
-                  className="button button--small"
-                  title={t("spread.fit.title")}
-                  onClick={() =>
-                    imageAspect !== undefined &&
-                    onCropChange?.(slot.id, focusedBaseCrop(imageAspect, slotAspect, focus), true)
-                  }
-                >
-                  {t("spread.fit")}
-                </button>
-                <button
-                  type="button"
-                  className={`button button--small ${treatment === "BLACK_WHITE" ? "button--primary" : ""}`}
-                  title={t("spread.bwToggle.title")}
-                  aria-pressed={treatment === "BLACK_WHITE"}
-                  onClick={() => onTreatmentChange?.(slot.id, treatment === "BLACK_WHITE" ? "COLOR" : "BLACK_WHITE")}
-                >
-                  {t("spread.treatment.bw")}
-                </button>
-                {onReplacePhoto && (
+          if (editable && url && toolsHost) {
+            const zoom = imageAspect !== undefined ? zoomOf(crop, imageAspect, slotAspect) : 1;
+            toolsOverlay = createPortal(
+              <div className="photo-toolbar" role="toolbar" aria-label={t("spread.tools.label")}>
+                <div className="photo-toolbar__zoom">
+                  <button
+                    type="button"
+                    className="photo-toolbar__icon"
+                    aria-label={t("spread.zoomOut")}
+                    title={t("spread.zoomOut")}
+                    disabled={zoom <= MIN_ZOOM + 0.001}
+                    onClick={() => applyZoom(zoom / 1.15, true)}
+                  >
+                    −
+                  </button>
+                  <input
+                    id={`zoom-${slot.id}`}
+                    className="photo-toolbar__slider"
+                    type="range"
+                    min={MIN_ZOOM}
+                    max={MAX_ZOOM}
+                    step={0.02}
+                    value={zoom}
+                    aria-label={t("spread.zoom")}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onChange={(event) => applyZoom(Number(event.target.value), false)}
+                    onPointerUp={(event) => applyZoom(Number((event.target as HTMLInputElement).value), true)}
+                    onKeyUp={(event) => applyZoom(Number((event.target as HTMLInputElement).value), true)}
+                  />
+                  <button
+                    type="button"
+                    className="photo-toolbar__icon"
+                    aria-label={t("spread.zoomIn")}
+                    title={t("spread.zoomIn")}
+                    disabled={zoom >= MAX_ZOOM - 0.001}
+                    onClick={() => applyZoom(zoom * 1.15, true)}
+                  >
+                    +
+                  </button>
+                  <span className="photo-toolbar__percent">{Math.round(zoom * 100)}%</span>
+                </div>
+                <div className="photo-toolbar__actions">
                   <button
                     type="button"
                     className="button button--small"
-                    title={t("spread.replace.title")}
-                    onClick={() => onReplacePhoto(slot.id)}
-                  >
-                    {t("spread.replace")}
-                  </button>
-                )}
-                {onRemovePhoto && (
-                  <button
-                    type="button"
-                    className="button button--small button--danger"
-                    title={
-                      placements.length > 1
-                        ? t("spread.removePhoto.title.canRemove")
-                        : t("spread.removePhoto.title.lastPhoto")
+                    title={t("spread.fit.title")}
+                    onClick={() =>
+                      imageAspect !== undefined &&
+                      onCropChange?.(slot.id, focusedBaseCrop(imageAspect, slotAspect, focus), true)
                     }
-                    disabled={placements.length <= 1}
-                    onClick={() => onRemovePhoto(slot.id)}
                   >
-                    {t("spread.removePhoto")}
+                    {t("spread.fit")}
                   </button>
-                )}
-                {onCloseTools && (
                   <button
                     type="button"
-                    className="photo-toolbar__icon photo-toolbar__close"
-                    title={t("spread.closeTools")}
-                    aria-label={t("spread.closeTools")}
-                    onClick={onCloseTools}
+                    className={`button button--small ${treatment === "BLACK_WHITE" ? "button--primary" : ""}`}
+                    title={t("spread.bwToggle.title")}
+                    aria-pressed={treatment === "BLACK_WHITE"}
+                    onClick={() => onTreatmentChange?.(slot.id, treatment === "BLACK_WHITE" ? "COLOR" : "BLACK_WHITE")}
                   >
-                    ✕
+                    {t("spread.treatment.bw")}
                   </button>
-                )}
-              </div>
-              <p className="photo-toolbar__hint">{t("spread.tools.hint")}</p>
-            </div>,
-            toolsHost,
-          );
-        }
+                  {onReplacePhoto && (
+                    <button
+                      type="button"
+                      className="button button--small"
+                      title={t("spread.replace.title")}
+                      onClick={() => onReplacePhoto(slot.id)}
+                    >
+                      {t("spread.replace")}
+                    </button>
+                  )}
+                  {onRemovePhoto && (
+                    <button
+                      type="button"
+                      className="button button--small button--danger"
+                      title={
+                        placements.length > 1
+                          ? t("spread.removePhoto.title.canRemove")
+                          : t("spread.removePhoto.title.lastPhoto")
+                      }
+                      disabled={placements.length <= 1}
+                      onClick={() => onRemovePhoto(slot.id)}
+                    >
+                      {t("spread.removePhoto")}
+                    </button>
+                  )}
+                  {onCloseTools && (
+                    <button
+                      type="button"
+                      className="photo-toolbar__icon photo-toolbar__close"
+                      title={t("spread.closeTools")}
+                      aria-label={t("spread.closeTools")}
+                      onClick={onCloseTools}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                <p className="photo-toolbar__hint">{t("spread.tools.hint")}</p>
+              </div>,
+              toolsHost,
+            );
+          }
 
-        return slotElement;
-      });
+          return slotElement;
+        });
 
-      const dividerElements = dividers.map((divider) => {
-        const vertical = divider.axis === "vertical";
-        return (
-          <span
-            key={divider.id}
-            className={`divider-handle divider-handle--${divider.axis}`}
-            title={t("spread.divider.title")}
-            role="separator"
-            aria-orientation={vertical ? "vertical" : "horizontal"}
-            style={
-              vertical
-                ? { left: `${divider.position * 100}%`, top: `${divider.start * 100}%`, height: `${(divider.end - divider.start) * 100}%` }
-                : { top: `${divider.position * 100}%`, left: `${divider.start * 100}%`, width: `${(divider.end - divider.start) * 100}%` }
-            }
-            onClick={(event) => event.stopPropagation()}
-            onPointerDown={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              event.currentTarget.setPointerCapture(event.pointerId);
-              dividerRef.current = {
-                divider,
-                startX: event.clientX,
-                startY: event.clientY,
-                rects: allRects.map((entry) => ({ slotId: entry.slotId, rect: { ...entry.rect } })),
-                last: [],
-              };
-            }}
-            onPointerMove={(event) => {
-              const drag = dividerRef.current;
-              const bounds = spreadRef.current?.getBoundingClientRect();
-              if (!drag || drag.divider.id !== divider.id || !bounds) return;
-              const delta = vertical
-                ? (event.clientX - drag.startX) / bounds.width
-                : (event.clientY - drag.startY) / bounds.height;
-              drag.last = moveDivider(drag.rects, drag.divider, delta, snapEnabled);
-              if (drag.last.length > 0) onFramesChange?.(drag.last, false);
-            }}
-            onPointerUp={() => {
-              const drag = dividerRef.current;
-              dividerRef.current = null;
-              if (drag && drag.last.length > 0) onFramesChange?.(drag.last, true);
-            }}
-            onPointerCancel={() => {
-              dividerRef.current = null;
-            }}
-          />
-        );
-      });
-
-      return (
-        <>
-          {slotElements}
-          {dividerElements}
-          {toolsOverlay}
-          {texts && texts.length > 0 && (
-            <SpreadTexts
-              texts={texts}
-              albumStyle={albumStyle}
-              aspectRatio={aspectRatio}
-              selectedTextId={selectedTextId}
-              onSelect={onTextSelect}
-              onChange={onTextChange}
-              onRemove={onTextRemove}
+        const dividerElements = dividers.map((divider) => {
+          const vertical = divider.axis === "vertical";
+          return (
+            <span
+              key={divider.id}
+              className={`divider-handle divider-handle--${divider.axis}`}
+              title={t("spread.divider.title")}
+              role="separator"
+              aria-orientation={vertical ? "vertical" : "horizontal"}
+              style={
+                vertical
+                  ? {
+                      left: `${divider.position * 100}%`,
+                      top: `${divider.start * 100}%`,
+                      height: `${(divider.end - divider.start) * 100}%`,
+                    }
+                  : {
+                      top: `${divider.position * 100}%`,
+                      left: `${divider.start * 100}%`,
+                      width: `${(divider.end - divider.start) * 100}%`,
+                    }
+              }
+              onClick={(event) => event.stopPropagation()}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.currentTarget.setPointerCapture(event.pointerId);
+                dividerRef.current = {
+                  divider,
+                  startX: event.clientX,
+                  startY: event.clientY,
+                  rects: allRects.map((entry) => ({ slotId: entry.slotId, rect: { ...entry.rect } })),
+                  last: [],
+                };
+              }}
+              onPointerMove={(event) => {
+                const drag = dividerRef.current;
+                const bounds = spreadRef.current?.getBoundingClientRect();
+                if (!drag || drag.divider.id !== divider.id || !bounds) return;
+                const delta = vertical
+                  ? (event.clientX - drag.startX) / bounds.width
+                  : (event.clientY - drag.startY) / bounds.height;
+                drag.last = moveDivider(drag.rects, drag.divider, delta, snapEnabled);
+                if (drag.last.length > 0) onFramesChange?.(drag.last, false);
+              }}
+              onPointerUp={() => {
+                const drag = dividerRef.current;
+                dividerRef.current = null;
+                if (drag && drag.last.length > 0) onFramesChange?.(drag.last, true);
+              }}
+              onPointerCancel={() => {
+                dividerRef.current = null;
+              }}
             />
-          )}
-        </>
-      );
-    })()}
+          );
+        });
+
+        return (
+          <>
+            {slotElements}
+            {dividerElements}
+            {toolsOverlay}
+            {texts && texts.length > 0 && (
+              <SpreadTexts
+                texts={texts}
+                albumStyle={albumStyle}
+                aspectRatio={aspectRatio}
+                selectedTextId={selectedTextId}
+                onSelect={onTextSelect}
+                onChange={onTextChange}
+                onRemove={onTextRemove}
+              />
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 });

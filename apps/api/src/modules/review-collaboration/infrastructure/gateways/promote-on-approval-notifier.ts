@@ -24,7 +24,10 @@ export class PromoteOnApprovalNotifier implements ReviewNotifier {
       await this.jobs.enqueue(QUEUES.storage, "promote-selected", { albumId: params.albumId });
     } catch (error) {
       // The retention sweep promotes placed photos itself, so this is delayed, not lost.
-      this.logger.warn("could not queue long-term promotion for an approved album", { albumId: params.albumId, err: error });
+      this.logger.warn("could not queue long-term promotion for an approved album", {
+        albumId: params.albumId,
+        err: error,
+      });
     }
   }
 }

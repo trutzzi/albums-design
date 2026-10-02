@@ -9,15 +9,11 @@ import { request } from "./http";
 
 // --- Album composition -----------------------------------------------------
 
-
 export function listLayoutTemplates(): Promise<LayoutTemplateDTO[]> {
   return request("/layout-templates");
 }
 
-export function suggestSpreadLayouts(
-  projectId: string,
-  photoIds: string[],
-): Promise<LayoutSuggestionDTO[]> {
+export function suggestSpreadLayouts(projectId: string, photoIds: string[]): Promise<LayoutSuggestionDTO[]> {
   return request(`/projects/${projectId}/spread-suggestions`, {
     method: "POST",
     body: JSON.stringify({ photoIds }),

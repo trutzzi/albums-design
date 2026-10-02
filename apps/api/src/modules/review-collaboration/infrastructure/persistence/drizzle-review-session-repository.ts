@@ -43,28 +43,17 @@ export class DrizzleReviewSessionRepository implements ReviewSessionRepository {
   }
 
   async findById(id: UniqueEntityId): Promise<ReviewSession | undefined> {
-    const [row] = await this.db
-      .select()
-      .from(reviewSessions)
-      .where(eq(reviewSessions.id, id.toString()))
-      .limit(1);
+    const [row] = await this.db.select().from(reviewSessions).where(eq(reviewSessions.id, id.toString())).limit(1);
     return row ? toDomain(row) : undefined;
   }
 
   async findByTokenHash(tokenHash: string): Promise<ReviewSession | undefined> {
-    const [row] = await this.db
-      .select()
-      .from(reviewSessions)
-      .where(eq(reviewSessions.tokenHash, tokenHash))
-      .limit(1);
+    const [row] = await this.db.select().from(reviewSessions).where(eq(reviewSessions.tokenHash, tokenHash)).limit(1);
     return row ? toDomain(row) : undefined;
   }
 
   async findByAlbumId(albumId: UniqueEntityId): Promise<ReviewSession[]> {
-    const rows = await this.db
-      .select()
-      .from(reviewSessions)
-      .where(eq(reviewSessions.albumId, albumId.toString()));
+    const rows = await this.db.select().from(reviewSessions).where(eq(reviewSessions.albumId, albumId.toString()));
     return rows.map(toDomain);
   }
 

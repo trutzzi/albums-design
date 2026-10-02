@@ -35,10 +35,12 @@ async function vividPhoto(): Promise<Buffer> {
       const i = (y * width + x) * 3;
       data[i] = (x * 255) / width;
       data[i + 1] = (y * 255) / height;
-      data[i + 2] = ((x + y) % 255);
+      data[i + 2] = (x + y) % 255;
     }
   }
-  return sharp(data, { raw: { width, height, channels: 3 } }).jpeg({ quality: 95 }).toBuffer();
+  return sharp(data, { raw: { width, height, channels: 3 } })
+    .jpeg({ quality: 95 })
+    .toBuffer();
 }
 
 describe("black and white treatment", () => {
@@ -91,11 +93,31 @@ describe("black and white treatment", () => {
     const renderer = new PdfAlbumRenderer(resolver);
 
     const colour = await renderer.render(
-      { id: "a", title: "t", format: { pageWidthMm: 200, pageHeightMm: 200, bleedMm: 0 }, spreads: [{ templateId: "single-centred", placements: [{ slotId: "centre", photoId: "p", crop: FULL, treatment: "COLOR" }] }] },
+      {
+        id: "a",
+        title: "t",
+        format: { pageWidthMm: 200, pageHeightMm: 200, bleedMm: 0 },
+        spreads: [
+          {
+            templateId: "single-centred",
+            placements: [{ slotId: "centre", photoId: "p", crop: FULL, treatment: "COLOR" }],
+          },
+        ],
+      },
       profile,
     );
     const mono = await renderer.render(
-      { id: "a", title: "t", format: { pageWidthMm: 200, pageHeightMm: 200, bleedMm: 0 }, spreads: [{ templateId: "single-centred", placements: [{ slotId: "centre", photoId: "p", crop: FULL, treatment: "BLACK_WHITE" }] }] },
+      {
+        id: "a",
+        title: "t",
+        format: { pageWidthMm: 200, pageHeightMm: 200, bleedMm: 0 },
+        spreads: [
+          {
+            templateId: "single-centred",
+            placements: [{ slotId: "centre", photoId: "p", crop: FULL, treatment: "BLACK_WHITE" }],
+          },
+        ],
+      },
       profile,
     );
 

@@ -28,14 +28,10 @@ export interface LayoutSuggestion {
 export class SuggestLayoutsUseCase {
   constructor(private readonly analysed: AnalysedPhotoDirectory) {}
 
-  async execute(
-    command: SuggestLayoutsCommand,
-  ): Promise<Result<LayoutSuggestion[], ApplicationError>> {
+  async execute(command: SuggestLayoutsCommand): Promise<Result<LayoutSuggestion[], ApplicationError>> {
     const count = command.photoIds.length;
     if (count < 1 || count > MAX_SLOTS_PER_SPREAD) {
-      return Result.failure(
-        new ValidationError(`A spread holds between 1 and ${MAX_SLOTS_PER_SPREAD} photos.`),
-      );
+      return Result.failure(new ValidationError(`A spread holds between 1 and ${MAX_SLOTS_PER_SPREAD} photos.`));
     }
 
     const analysed = await this.analysed.listForProject(command.projectId);

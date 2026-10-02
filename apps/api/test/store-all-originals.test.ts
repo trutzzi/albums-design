@@ -41,7 +41,9 @@ class FlakyProvider extends InMemoryStorageProvider {
 }
 
 async function world() {
-  const permanent = new FlakyProvider(new MediaUrlSigner("test-secret-test-secret-test-secret-123", "https://api.example.test"));
+  const permanent = new FlakyProvider(
+    new MediaUrlSigner("test-secret-test-secret-test-secret-123", "https://api.example.test"),
+  );
   const staging = new InMemoryObjectStorage();
   const photos = new InMemoryPhotoRepository();
   const projects = new InMemoryProjectRepository();
@@ -180,7 +182,9 @@ describe("StorePendingOriginalsUseCase — the backfill and safety net", () => {
     const c = await w.addPhoto("c.jpg");
     w.permanent.failKeys.add(bad.key);
     const logged = new RecordingLogger();
-    const summary = await new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, logged).execute({ batchSize: 1 });
+    const summary = await new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, logged).execute({
+      batchSize: 1,
+    });
 
     assert.equal(summary.stored, 2);
     assert.equal(summary.failed, 1, "tried once this run, not endlessly");
@@ -240,7 +244,11 @@ describe("confirming an upload", () => {
   });
 
   it("still succeeds if the queue is down — the upload is safe, and the sweep will catch up", async () => {
-    const failing = { enqueue: async (queue: string) => { if (queue === "storage") throw new Error("redis down"); } } as unknown as InMemoryJobQueue;
+    const failing = {
+      enqueue: async (queue: string) => {
+        if (queue === "storage") throw new Error("redis down");
+      },
+    } as unknown as InMemoryJobQueue;
     const { result } = await confirmWith(true, failing);
     assert.ok(result.isSuccess);
   });
@@ -253,20 +261,31 @@ describe("retention when every original lives on long-term storage", () => {
     await w.exportJobs.save(
       ExportJob.reconstitute(
         {
-          albumId: album.id, printProfileId: "lab-standard-300", status: "READY", storageKey: "exports/x.pdf",
-          byteSize: 1, pageCount: 1, failureReason: undefined,
-          requestedAt: new Date(now.getTime() - 31 * DAY), completedAt: new Date(now.getTime() - 31 * DAY),
+          albumId: album.id,
+          printProfileId: "lab-standard-300",
+          status: "READY",
+          storageKey: "exports/x.pdf",
+          byteSize: 1,
+          pageCount: 1,
+          failureReason: undefined,
+          requestedAt: new Date(now.getTime() - 31 * DAY),
+          completedAt: new Date(now.getTime() - 31 * DAY),
         },
         UniqueEntityId.create(),
       ),
     );
     const placements = new AlbumCompositionPlacementDirectory(w.albums);
     return new PurgeExpiredOriginalsUseCase(
-      w.projects, w.photos, w.staging,
+      w.projects,
+      w.photos,
+      w.staging,
       new ExportPrintDeliveryDirectory(w.exportJobs, w.albums),
       placements,
       new PromoteSelectedPhotosUseCase(w.photos, w.staging, w.permanent, placements),
-      30, () => now, undefined, undefined,
+      30,
+      () => now,
+      undefined,
+      undefined,
       storeEverything ? w.store : undefined,
     );
   }
@@ -316,8 +335,13 @@ describe("retention when every original lives on long-term storage", () => {
 
 describe("the LONG_TERM_ORIGINALS setting", () => {
   const base = {
-    DATABASE_URL: "x", REDIS_URL: "x", S3_ENDPOINT: "x", S3_BUCKET: "x",
-    S3_ACCESS_KEY_ID: "x", S3_SECRET_ACCESS_KEY: "x", JWT_SECRET: "x".repeat(32),
+    DATABASE_URL: "x",
+    REDIS_URL: "x",
+    S3_ENDPOINT: "x",
+    S3_BUCKET: "x",
+    S3_ACCESS_KEY_ID: "x",
+    S3_SECRET_ACCESS_KEY: "x",
+    JWT_SECRET: "x".repeat(32),
   };
   it("defaults to storing every original", () => {
     assert.equal(loadEnv(base).LONG_TERM_ORIGINALS, "all");

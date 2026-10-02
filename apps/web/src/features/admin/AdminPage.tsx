@@ -63,8 +63,8 @@ export function AdminPage() {
         <div>
           <h1>Admin</h1>
           <p className="muted">
-            How AlbumFlow is doing, who is on which plan, what photographers are saying, how the server is holding up, and
-            what has failed.
+            How AlbumFlow is doing, who is on which plan, what photographers are saying, how the server is holding up,
+            and what has failed.
           </p>
         </div>
       </header>
@@ -115,13 +115,21 @@ function BusinessTab() {
           value={eur(data.revenue.mrrEur)}
           detail={`${data.revenue.payingStudios} paying studio${data.revenue.payingStudios === 1 ? "" : "s"}`}
         />
-        <StatTile label="Trial → paid" value={`${data.revenue.trialToPaidPct}%`} detail="of every studio that signed up" />
+        <StatTile
+          label="Trial → paid"
+          value={`${data.revenue.trialToPaidPct}%`}
+          detail="of every studio that signed up"
+        />
         <StatTile
           label="Active studios"
           value={`${data.activeStudios.d7}`}
           detail={`last 7 days · ${data.activeStudios.d30} in 30 days`}
         />
-        <StatTile label="New signups" value={`${data.studios.new7d}`} detail={`last 7 days · ${data.studios.new30d} in 30 days`} />
+        <StatTile
+          label="New signups"
+          value={`${data.studios.new7d}`}
+          detail={`last 7 days · ${data.studios.new30d} in 30 days`}
+        />
         <StatTile label="Studios" value={`${data.studios.total}`} detail="all time" />
         <StatTile
           label="Happiness"
@@ -161,7 +169,9 @@ function BusinessTab() {
           <div className="panel__head">
             <h2>Plans</h2>
           </div>
-          <BarList rows={data.revenue.plans.map((plan) => ({ key: plan.code, label: plan.name, value: plan.studios }))} />
+          <BarList
+            rows={data.revenue.plans.map((plan) => ({ key: plan.code, label: plan.name, value: plan.studios }))}
+          />
           <div className="panel__head admin__subhead">
             <h2>All-time volume</h2>
           </div>
@@ -230,12 +240,19 @@ function BusinessTab() {
           </table>
         </details>
       </section>
-      <p className="muted admin__footnote">Updated {new Date(data.generatedAt).toLocaleTimeString("en-GB")} · refreshes every minute.</p>
+      <p className="muted admin__footnote">
+        Updated {new Date(data.generatedAt).toLocaleTimeString("en-GB")} · refreshes every minute.
+      </p>
     </>
   );
 }
 
-const KIND_LABELS: Record<FeedbackKind, string> = { IDEA: "Idea", PROBLEM: "Problem", QUESTION: "Question", PRAISE: "Praise" };
+const KIND_LABELS: Record<FeedbackKind, string> = {
+  IDEA: "Idea",
+  PROBLEM: "Problem",
+  QUESTION: "Question",
+  PRAISE: "Praise",
+};
 const PAGE_SIZE = 50;
 
 /** Every studio and its plan, a page at a time. Studios cannot change plans themselves — this is the only place. */
@@ -265,7 +282,11 @@ function StudiosTab() {
       <div className="admin__filters">
         <label>
           Search{" "}
-          <input value={search} placeholder="Studio or email, e.g. admin.com" onChange={(event) => setSearch(event.target.value)} />
+          <input
+            value={search}
+            placeholder="Studio or email, e.g. admin.com"
+            onChange={(event) => setSearch(event.target.value)}
+          />
         </label>
         {studios.data && (
           <span className="muted">
@@ -300,13 +321,23 @@ function StudiosTab() {
           {studios.data.studios.length === 0 && <p className="muted">No studios match.</p>}
           {pages > 1 && (
             <div className="admin__pager">
-              <button type="button" className="button button--small" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+              <button
+                type="button"
+                className="button button--small"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+              >
                 ← Previous
               </button>
               <span className="muted">
                 Page {page} of {pages.toLocaleString("en-GB")}
               </span>
-              <button type="button" className="button button--small" disabled={page >= pages} onClick={() => setPage(page + 1)}>
+              <button
+                type="button"
+                className="button button--small"
+                disabled={page >= pages}
+                onClick={() => setPage(page + 1)}
+              >
                 Next →
               </button>
             </div>
@@ -339,7 +370,9 @@ function StudioRow({ studio, plans }: { studio: AdminStudio; plans: PlanDto[] })
       </td>
       <td>{new Date(studio.createdAt).toLocaleDateString("en-GB")}</td>
       <td>
-        {studio.emailConfirmed === null ? "—" : studio.emailConfirmed ? (
+        {studio.emailConfirmed === null ? (
+          "—"
+        ) : studio.emailConfirmed ? (
           <span className="chip chip--active">confirmed</span>
         ) : (
           <span className="chip chip--past_due">unconfirmed</span>
@@ -374,8 +407,11 @@ function StudioRow({ studio, plans }: { studio: AdminStudio; plans: PlanDto[] })
           className="button button--small button--danger"
           disabled={remove.isPending}
           onClick={() => {
-            const shoots = studio.shoots ? ` and its ${studio.shoots} shoot${studio.shoots === 1 ? "" : "s"} with every photo` : "";
-            if (window.confirm(`Delete ${studio.name} (${studio.ownerEmail})${shoots}? This cannot be undone.`)) remove.mutate();
+            const shoots = studio.shoots
+              ? ` and its ${studio.shoots} shoot${studio.shoots === 1 ? "" : "s"} with every photo`
+              : "";
+            if (window.confirm(`Delete ${studio.name} (${studio.ownerEmail})${shoots}? This cannot be undone.`))
+              remove.mutate();
           }}
         >
           {remove.isPending ? "Deleting…" : "Delete"}
@@ -427,7 +463,9 @@ function FeedbackTab() {
       {items.isError && <p className="error">{(items.error as Error).message}</p>}
       {items.data?.length === 0 && <p className="muted">Nothing here yet.</p>}
       <ul className="admin-feedback">
-        {items.data?.map((item) => <FeedbackCard key={item.id} item={item} />)}
+        {items.data?.map((item) => (
+          <FeedbackCard key={item.id} item={item} />
+        ))}
       </ul>
     </>
   );
@@ -446,9 +484,16 @@ function FeedbackCard({ item }: { item: AdminFeedback }) {
     <li className={`panel admin-feedback__item admin-feedback__item--${item.status.toLowerCase()}`}>
       <div className="admin-feedback__meta">
         <span className={`chip admin-kind admin-kind--${item.kind.toLowerCase()}`}>{KIND_LABELS[item.kind]}</span>
-        {item.rating !== null && <span aria-label={`${item.rating} out of 5`}>{"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}</span>}
+        {item.rating !== null && (
+          <span aria-label={`${item.rating} out of 5`}>
+            {"★".repeat(item.rating)}
+            {"☆".repeat(5 - item.rating)}
+          </span>
+        )}
         <strong>{item.authorName}</strong>
-        <a href={`mailto:${item.authorEmail}?subject=${encodeURIComponent("Re: your AlbumFlow feedback")}`}>{item.authorEmail}</a>
+        <a href={`mailto:${item.authorEmail}?subject=${encodeURIComponent("Re: your AlbumFlow feedback")}`}>
+          {item.authorEmail}
+        </a>
         <span className="muted">· {item.studioName ?? "Unknown studio"}</span>
         <span className="muted admin-feedback__when">{new Date(item.createdAt).toLocaleString("en-GB")}</span>
       </div>
@@ -486,7 +531,8 @@ function ServerTab() {
   if (stats.isLoading) return <p className="muted">Loading…</p>;
   if (stats.isError || !stats.data) return <p className="error">{(stats.error as Error)?.message}</p>;
   const data = stats.data;
-  const minuteLabel = (minute: string) => new Date(minute).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const minuteLabel = (minute: string) =>
+    new Date(minute).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   const available = data.process.hostMemoryMb.available;
   const memoryPct =
     available === null ? null : Math.round((1 - available / Math.max(1, data.process.hostMemoryMb.total)) * 100);
@@ -517,9 +563,17 @@ function ServerTab() {
           label="Job backlog"
           ok={failedJobs === 0}
           value={data.config.mode === "demo" ? "inline" : `${backlog}`}
-          detail={data.config.mode === "demo" ? "demo mode runs jobs immediately" : `${failedJobs} failed jobs kept for inspection`}
+          detail={
+            data.config.mode === "demo"
+              ? "demo mode runs jobs immediately"
+              : `${failedJobs} failed jobs kept for inspection`
+          }
         />
-        <StatTile label="Uptime" value={formatUptime(data.process.uptimeSeconds)} detail={`Node ${data.process.nodeVersion}`} />
+        <StatTile
+          label="Uptime"
+          value={formatUptime(data.process.uptimeSeconds)}
+          detail={`Node ${data.process.nodeVersion}`}
+        />
         {memoryPct === null ? (
           <StatTile
             label="API memory"
@@ -545,7 +599,11 @@ function ServerTab() {
           </div>
           <ColumnChart
             label="Requests per minute, last hour"
-            data={data.http.perMinute.map((point) => ({ key: point.minute, label: minuteLabel(point.minute), value: point.requests }))}
+            data={data.http.perMinute.map((point) => ({
+              key: point.minute,
+              label: minuteLabel(point.minute),
+              value: point.requests,
+            }))}
           />
         </section>
         <section className="panel">
@@ -555,7 +613,11 @@ function ServerTab() {
           <ColumnChart
             label="p95 response time per minute, last hour"
             format={(value) => `${Math.round(value)} ms`}
-            data={data.http.perMinute.map((point) => ({ key: point.minute, label: minuteLabel(point.minute), value: point.p95Ms }))}
+            data={data.http.perMinute.map((point) => ({
+              key: point.minute,
+              label: minuteLabel(point.minute),
+              value: point.p95Ms,
+            }))}
           />
         </section>
       </div>
@@ -593,7 +655,9 @@ function ServerTab() {
             <h2>Background queues</h2>
           </div>
           {data.dependencies.queues.length === 0 ? (
-            <p className="muted">No queues — {data.config.mode === "demo" ? "demo mode runs jobs inline" : "Redis did not answer"}.</p>
+            <p className="muted">
+              No queues — {data.config.mode === "demo" ? "demo mode runs jobs inline" : "Redis did not answer"}.
+            </p>
           ) : (
             <table className="admin__table">
               <thead>
@@ -713,7 +777,8 @@ function StorageSpacePanel({ space }: { space: NonNullable<SystemStats["storageS
         {space.totalBytes !== null && (
           <>
             {" "}
-            of {formatBytes(space.totalBytes)} used · <strong>{formatBytes(space.totalBytes - space.usedBytes)}</strong> free
+            of {formatBytes(space.totalBytes)} used · <strong>{formatBytes(space.totalBytes - space.usedBytes)}</strong>{" "}
+            free
           </>
         )}
       </p>
@@ -731,7 +796,8 @@ function StorageSpacePanel({ space }: { space: NonNullable<SystemStats["storageS
       )}
       <p className="muted storage-space__note">
         {pct !== null && `${Math.round(pct)}% full. `}
-        The whole account, not only AlbumFlow&apos;s folder. Originals and the nightly database backups are stored here — when it is full, both stop.
+        The whole account, not only AlbumFlow&apos;s folder. Originals and the nightly database backups are stored here
+        — when it is full, both stop.
       </p>
     </section>
   );

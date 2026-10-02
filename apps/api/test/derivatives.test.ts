@@ -12,11 +12,7 @@ import {
 import { ListProjectPhotosUseCase } from "../src/modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
 import { SharpImageResizer } from "../src/modules/media-ingestion/infrastructure/imaging/sharp-image-resizer";
 import { StoredPhotoResolver } from "../src/modules/export-print/infrastructure/gateways/album-gateway";
-import {
-  InMemoryJobQueue,
-  InMemoryObjectStorage,
-  InMemoryPhotoRepository,
-} from "./support/in-memory";
+import { InMemoryJobQueue, InMemoryObjectStorage, InMemoryPhotoRepository } from "./support/in-memory";
 
 const PROJECT = UniqueEntityId.create();
 const STUDIO = UniqueEntityId.create();
@@ -49,10 +45,7 @@ describe("display derivatives", () => {
   it("keys a derivative beside the original rather than over it", () => {
     const key = StorageKey.fromExisting("studios/s/projects/p/originals/abc.JPG");
     assert.equal(key.derivative("thumb").toString(), "studios/s/projects/p/derivatives/abc-thumb.jpg");
-    assert.equal(
-      key.derivative("preview").toString(),
-      "studios/s/projects/p/derivatives/abc-preview.jpg",
-    );
+    assert.equal(key.derivative("preview").toString(), "studios/s/projects/p/derivatives/abc-preview.jpg");
     // The original must survive untouched — it is what gets printed.
     assert.equal(key.toString(), "studios/s/projects/p/originals/abc.JPG");
   });
@@ -62,27 +55,18 @@ describe("display derivatives", () => {
     const storage = new InMemoryObjectStorage();
     const { photo, original } = await uploadedPhoto(storage, photos);
 
-    const result = await new GenerateDerivativesUseCase(
-      photos,
-      storage,
-      new SharpImageResizer(),
-    ).execute({ photoId: photo.id.toString() });
+    const result = await new GenerateDerivativesUseCase(photos, storage, new SharpImageResizer()).execute({
+      photoId: photo.id.toString(),
+    });
 
     assert.ok(result.isSuccess);
     const { written } = result.getValue();
 
-    const thumb = await sharp(
-      await storage.getObject(photo.storageKey.derivative("thumb").toString()),
-    ).metadata();
-    const preview = await sharp(
-      await storage.getObject(photo.storageKey.derivative("preview").toString()),
-    ).metadata();
+    const thumb = await sharp(await storage.getObject(photo.storageKey.derivative("thumb").toString())).metadata();
+    const preview = await sharp(await storage.getObject(photo.storageKey.derivative("preview").toString())).metadata();
 
     assert.equal(Math.max(thumb.width ?? 0, thumb.height ?? 0), DERIVATIVE_SPECS.thumb.longestEdge);
-    assert.equal(
-      Math.max(preview.width ?? 0, preview.height ?? 0),
-      DERIVATIVE_SPECS.preview.longestEdge,
-    );
+    assert.equal(Math.max(preview.width ?? 0, preview.height ?? 0), DERIVATIVE_SPECS.preview.longestEdge);
 
     // The aspect ratio must survive, or every crop in the editor would shift.
     const ratio = (meta: sharp.Metadata) => (meta.width ?? 1) / (meta.height ?? 1);
@@ -112,14 +96,8 @@ describe("display derivatives", () => {
     });
 
     const after = await list.execute(PROJECT.toString());
-    assert.equal(
-      after[0]?.previewUrl,
-      `memory://${photo.storageKey.derivative("preview").toString()}`,
-    );
-    assert.equal(
-      after[0]?.thumbnailUrl,
-      `memory://${photo.storageKey.derivative("thumb").toString()}`,
-    );
+    assert.equal(after[0]?.previewUrl, `memory://${photo.storageKey.derivative("preview").toString()}`);
+    assert.equal(after[0]?.thumbnailUrl, `memory://${photo.storageKey.derivative("thumb").toString()}`);
     // Never the original: that is the whole point.
     assert.notEqual(after[0]?.previewUrl, `memory://${photo.storageKey.toString()}`);
   });

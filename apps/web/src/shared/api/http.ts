@@ -8,10 +8,8 @@ import { grantKindForPath, loadGrant } from "@/shared/lib/client-grants";
 // `/studios//projects`, an empty studio segment, rather than the demo default.
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
-export const DEMO_STUDIO_ID =
-  import.meta.env.VITE_STUDIO_ID || "11111111-1111-4111-8111-111111111111";
-export const DEMO_PROJECT_ID =
-  import.meta.env.VITE_PROJECT_ID || "22222222-2222-4222-8222-222222222222";
+export const DEMO_STUDIO_ID = import.meta.env.VITE_STUDIO_ID || "11111111-1111-4111-8111-111111111111";
+export const DEMO_PROJECT_ID = import.meta.env.VITE_PROJECT_ID || "22222222-2222-4222-8222-222222222222";
 
 export class ApiError extends Error {
   constructor(
@@ -36,14 +34,8 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
 
   const response = await fetch(`${API_URL}${path}`, { ...init, headers });
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as
-      | { message?: string; code?: string }
-      | null;
-    throw new ApiError(
-      body?.message ?? `Request failed with ${response.status}`,
-      response.status,
-      body?.code,
-    );
+    const body = (await response.json().catch(() => null)) as { message?: string; code?: string } | null;
+    throw new ApiError(body?.message ?? `Request failed with ${response.status}`, response.status, body?.code);
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;

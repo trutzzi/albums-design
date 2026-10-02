@@ -85,9 +85,7 @@ describe("SharpImageInspector", () => {
     const metrics = await inspector.inspect(sharpImage);
     assert.equal(metrics.histogram.length, 24);
     for (const channelStart of [0, 8, 16]) {
-      const channelTotal = metrics.histogram
-        .slice(channelStart, channelStart + 8)
-        .reduce((sum, v) => sum + v, 0);
+      const channelTotal = metrics.histogram.slice(channelStart, channelStart + 8).reduce((sum, v) => sum + v, 0);
       assert.ok(
         Math.abs(channelTotal - 1) < 0.001,
         `expected channel at ${channelStart} to sum to 1, got ${channelTotal}`,

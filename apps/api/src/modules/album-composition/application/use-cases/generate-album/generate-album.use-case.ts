@@ -1,18 +1,9 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import {
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-  type ApplicationError,
-} from "#src/shared-kernel/errors";
+import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import { Album, type AlbumFormat } from "#src/modules/album-composition/domain/album";
 import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
 import { planAlbum } from "#src/modules/album-composition/domain/layout-planner";
-import type {
-  AlbumQuotaPolicy,
-  AnalysedPhotoDirectory,
-  ProjectDirectory,
-} from "../../ports/directories";
+import type { AlbumQuotaPolicy, AnalysedPhotoDirectory, ProjectDirectory } from "../../ports/directories";
 
 const PHOTOS_PER_SPREAD = 3;
 
@@ -68,9 +59,7 @@ export class GenerateAlbumUseCase {
       : planAlbum(candidates, { targetSpreads: command.targetSpreads });
     if (spreads.length === 0) {
       return Result.failure(
-        new ValidationError(
-          "No photo cleared the quality bar. Lower the threshold or upload stronger selects.",
-        ),
+        new ValidationError("No photo cleared the quality bar. Lower the threshold or upload stronger selects."),
       );
     }
 

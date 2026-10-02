@@ -2,11 +2,7 @@ import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
 import type { PhotoAnalysisRepository } from "#src/modules/photo-intelligence/domain/photo-analysis-repository";
 import type { CandidatePhoto } from "../../domain/layout-planner";
-import type {
-  AnalysedPhotoDirectory,
-  ProjectDirectory,
-  ProjectSummary,
-} from "../../application/ports/directories";
+import type { AnalysedPhotoDirectory, ProjectDirectory, ProjectSummary } from "../../application/ports/directories";
 
 export class MediaIngestionProjectDirectory implements ProjectDirectory {
   constructor(private readonly projects: ProjectRepository) {}

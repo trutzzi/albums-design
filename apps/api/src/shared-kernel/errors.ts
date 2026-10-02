@@ -37,9 +37,7 @@ export class UnauthorizedError extends ApplicationError {
  * media type — and collapsing those into a 500 hides the only detail the caller
  * can act on. The error reaches a handler as `unknown`, so read it defensively.
  */
-export function clientErrorFrom(
-  error: unknown,
-): { status: number; code: string; message: string } | undefined {
+export function clientErrorFrom(error: unknown): { status: number; code: string; message: string } | undefined {
   if (typeof error !== "object" || error === null) return undefined;
   const candidate = error as { statusCode?: unknown; code?: unknown; message?: unknown };
   const status = typeof candidate.statusCode === "number" ? candidate.statusCode : undefined;

@@ -3,12 +3,7 @@ import { projects } from "../../../media-ingestion/infrastructure/persistence/sc
 import { albums } from "../../../album-composition/infrastructure/persistence/schema";
 import type { ReviewComment } from "../../domain/review-session";
 
-export const reviewStatusEnum = pgEnum("review_status", [
-  "OPEN",
-  "CHANGES_REQUESTED",
-  "APPROVED",
-  "REVOKED",
-]);
+export const reviewStatusEnum = pgEnum("review_status", ["OPEN", "CHANGES_REQUESTED", "APPROVED", "REVOKED"]);
 
 export interface StoredComment extends Omit<ReviewComment, "createdAt"> {
   createdAt: string;

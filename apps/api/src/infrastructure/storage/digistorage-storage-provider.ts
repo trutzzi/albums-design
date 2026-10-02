@@ -182,7 +182,8 @@ export class DigiStorageProvider implements StorageProvider {
     };
     const mounts = body.mounts ?? [];
     const areaName = decodeURIComponent(url.pathname.split("/").filter(Boolean)[1] ?? "");
-    const mount = mounts.find((candidate) => candidate.name === areaName) ?? mounts.find((candidate) => candidate.isPrimary);
+    const mount =
+      mounts.find((candidate) => candidate.name === areaName) ?? mounts.find((candidate) => candidate.isPrimary);
     if (!mount || typeof mount.spaceUsed !== "number") throw new Error("DigiStorage did not report its space.");
     // Koofr reports space in mebibytes.
     const MIB = 1024 * 1024;
@@ -221,9 +222,7 @@ export class DigiStorageProvider implements StorageProvider {
 
   private async deleteRemote(path: string): Promise<void> {
     try {
-      await this.withRetry(() =>
-        this.client.deleteFile(path, { signal: AbortSignal.timeout(this.requestTimeoutMs) }),
-      );
+      await this.withRetry(() => this.client.deleteFile(path, { signal: AbortSignal.timeout(this.requestTimeoutMs) }));
     } catch (error) {
       if (!isNotFound(error)) throw error;
     }
@@ -286,10 +285,7 @@ function parentOf(path: string): string {
 
 function hasStatus(error: unknown, status: number): boolean {
   return (
-    typeof error === "object" &&
-    error !== null &&
-    "status" in error &&
-    (error as { status: unknown }).status === status
+    typeof error === "object" && error !== null && "status" in error && (error as { status: unknown }).status === status
   );
 }
 

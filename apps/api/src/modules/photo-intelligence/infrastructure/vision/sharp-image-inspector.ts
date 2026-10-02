@@ -101,8 +101,12 @@ export function colorHistogram(rgb: Uint8Array): number[] {
     const g = rgb[i + 1] ?? 0;
     const b = rgb[i + 2] ?? 0;
     buckets[Math.min(HISTOGRAM_BUCKETS_PER_CHANNEL - 1, Math.floor(r / BUCKET_WIDTH))]! += 1;
-    buckets[HISTOGRAM_BUCKETS_PER_CHANNEL + Math.min(HISTOGRAM_BUCKETS_PER_CHANNEL - 1, Math.floor(g / BUCKET_WIDTH))]! += 1;
-    buckets[2 * HISTOGRAM_BUCKETS_PER_CHANNEL + Math.min(HISTOGRAM_BUCKETS_PER_CHANNEL - 1, Math.floor(b / BUCKET_WIDTH))]! += 1;
+    buckets[
+      HISTOGRAM_BUCKETS_PER_CHANNEL + Math.min(HISTOGRAM_BUCKETS_PER_CHANNEL - 1, Math.floor(g / BUCKET_WIDTH))
+    ]! += 1;
+    buckets[
+      2 * HISTOGRAM_BUCKETS_PER_CHANNEL + Math.min(HISTOGRAM_BUCKETS_PER_CHANNEL - 1, Math.floor(b / BUCKET_WIDTH))
+    ]! += 1;
     pixelCount += 1;
   }
   if (pixelCount === 0) return buckets;
@@ -116,11 +120,7 @@ export function laplacianVariance(grey: Uint8Array, width: number, height: numbe
     for (let x = 1; x < width - 1; x += 1) {
       const i = y * width + x;
       const value =
-        -4 * (grey[i] ?? 0) +
-        (grey[i - 1] ?? 0) +
-        (grey[i + 1] ?? 0) +
-        (grey[i - width] ?? 0) +
-        (grey[i + width] ?? 0);
+        -4 * (grey[i] ?? 0) + (grey[i - 1] ?? 0) + (grey[i + 1] ?? 0) + (grey[i - width] ?? 0) + (grey[i + width] ?? 0);
       responses.push(value);
     }
   }
@@ -146,8 +146,7 @@ export function scoreExposure(grey: Uint8Array): number {
   const mean = sum / total / 255;
 
   const shadowClip = ((histogram[0] ?? 0) + (histogram[1] ?? 0) + (histogram[2] ?? 0)) / total;
-  const highlightClip =
-    ((histogram[253] ?? 0) + (histogram[254] ?? 0) + (histogram[255] ?? 0)) / total;
+  const highlightClip = ((histogram[253] ?? 0) + (histogram[254] ?? 0) + (histogram[255] ?? 0)) / total;
 
   const midtoneScore = 100 * (1 - Math.abs(mean - 0.46) * 2.2);
   const clipPenalty = (shadowClip + highlightClip) * 160;
@@ -239,13 +238,6 @@ function parseExifDate(exif: Buffer | undefined): Date | undefined {
   const match = text.match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
   if (!match) return undefined;
   const [, year, month, day, hour, minute, second] = match;
-  const parsed = new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day),
-    Number(hour),
-    Number(minute),
-    Number(second),
-  );
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }

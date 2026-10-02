@@ -14,10 +14,31 @@ import {
  * always matches the screen.
  */
 export type AlbumIssue =
-  | { kind: "lowResolution"; severity: "error" | "warning"; spreadIndex: number; slotId: string; photoId: string; dpi: number }
+  | {
+      kind: "lowResolution";
+      severity: "error" | "warning";
+      spreadIndex: number;
+      slotId: string;
+      photoId: string;
+      dpi: number;
+    }
   | { kind: "emptySlot"; severity: "error"; spreadIndex: number; slotId: string }
-  | { kind: "usedTwice"; severity: "warning"; spreadIndex: number; slotId: string; photoId: string; otherSpreadIndex: number }
-  | { kind: "nearDuplicate"; severity: "warning"; spreadIndex: number; slotId: string; photoId: string; otherSpreadIndex: number }
+  | {
+      kind: "usedTwice";
+      severity: "warning";
+      spreadIndex: number;
+      slotId: string;
+      photoId: string;
+      otherSpreadIndex: number;
+    }
+  | {
+      kind: "nearDuplicate";
+      severity: "warning";
+      spreadIndex: number;
+      slotId: string;
+      photoId: string;
+      otherSpreadIndex: number;
+    }
   | { kind: "faceOnFold"; severity: "warning"; spreadIndex: number; slotId: string; photoId: string }
   | { kind: "unusedBest"; severity: "info"; photoIds: string[] };
 
@@ -91,7 +112,13 @@ export function checkAlbum({ album, templates, analyses, existingPhotoIds }: Che
       if (analysis.faceCount > 0 && analysis.focus && rect.x < 0.5 && rect.x + rect.width > 0.5) {
         const onSpread = rect.x + ((analysis.focus.x - crop.x) / crop.width) * rect.width;
         if (Math.abs(onSpread - 0.5) < FOLD_MARGIN) {
-          issues.push({ kind: "faceOnFold", severity: "warning", spreadIndex, slotId: placement.slotId, photoId: placement.photoId });
+          issues.push({
+            kind: "faceOnFold",
+            severity: "warning",
+            spreadIndex,
+            slotId: placement.slotId,
+            photoId: placement.photoId,
+          });
         }
       }
     }

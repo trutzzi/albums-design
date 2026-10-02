@@ -104,9 +104,12 @@ export function GuidedTour({ id, steps, ready = true }: { id: string; steps: Tou
       const element = document.querySelector(step.target);
       const next = element && element.getClientRects().length > 0 ? element.getBoundingClientRect() : null;
       setRect((previous) =>
-        previous && next &&
-        previous.top === next.top && previous.left === next.left &&
-        previous.width === next.width && previous.height === next.height
+        previous &&
+        next &&
+        previous.top === next.top &&
+        previous.left === next.left &&
+        previous.width === next.width &&
+        previous.height === next.height
           ? previous
           : next,
       );
@@ -127,7 +130,8 @@ export function GuidedTour({ id, steps, ready = true }: { id: string; steps: Tou
     cardRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") finish();
-      else if (event.key === "ArrowRight") setIndex((value) => (value !== null && value < active.length - 1 ? value + 1 : value));
+      else if (event.key === "ArrowRight")
+        setIndex((value) => (value !== null && value < active.length - 1 ? value + 1 : value));
       else if (event.key === "ArrowLeft") setIndex((value) => (value !== null && value > 0 ? value - 1 : value));
     };
     window.addEventListener("keydown", onKey);
