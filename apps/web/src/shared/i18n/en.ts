@@ -114,12 +114,12 @@ export const en: Record<string, string> = {
   "project.analysisFailed.retry": "Retry analysis",
   "project.analysisFailed.retrying": "Queuing…",
   "project.analysisFailed.nothing": "Nothing left to retry — these photos are already queued.",
+  "project.analysisFailed.error": "Could not queue them again. Try once more in a moment.",
   "photo.status.PENDING_UPLOAD": "uploading",
   "photo.status.UPLOADED": "uploaded",
   "photo.status.ANALYSIS_QUEUED": "analysing",
   "photo.status.ANALYSED": "analysed",
   "photo.status.FAILED": "analysis failed",
-  "project.analysisFailed.error": "Could not queue them again. Try once more in a moment.",
   "project.upload.useAi.unavailable": "The local AI server isn't reachable right now, so this is turned off.",
   "ai.consent.title": "Local AI processing",
   "ai.consent.body":

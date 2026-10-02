@@ -117,12 +117,12 @@ export const ro: Record<string, string> = {
   "project.analysisFailed.retry": "Reîncearcă analiza",
   "project.analysisFailed.retrying": "Se pun în coadă…",
   "project.analysisFailed.nothing": "Nu mai e nimic de reîncercat — fotografiile sunt deja în coadă.",
+  "project.analysisFailed.error": "Nu au putut fi puse din nou în coadă. Încearcă din nou peste puțin timp.",
   "photo.status.PENDING_UPLOAD": "se încarcă",
   "photo.status.UPLOADED": "încărcată",
   "photo.status.ANALYSIS_QUEUED": "în analiză",
   "photo.status.ANALYSED": "analizată",
   "photo.status.FAILED": "analiză eșuată",
-  "project.analysisFailed.error": "Nu au putut fi puse din nou în coadă. Încearcă din nou peste puțin timp.",
   "project.upload.useAi.unavailable": "Serverul AI local nu poate fi contactat momentan, așa că este dezactivat.",
   "ai.consent.title": "Procesare AI locală",
   "ai.consent.body":

@@ -34,7 +34,11 @@ export function PhotoBrowser({
   onViewChange: (view: PhotoView) => void;
 }) {
   const { t } = useLanguage();
-  const { filter, sort } = view;
+  const { sort } = view;
+  const failedCount = photos.filter((photo) => photo.status === "FAILED").length;
+  // The "failed" chip disappears once a retry succeeds; fall back to all photos rather
+  // than leave an empty gallery with no chip selected.
+  const filter: PhotoFilter = view.filter === "failed" && failedCount === 0 ? "all" : view.filter;
   const [lightboxId, setLightboxId] = useState<string | null>(null);
 
   const galleryPhotos = useMemo(() => {
@@ -57,7 +61,7 @@ export function PhotoBrowser({
       worthy: galleryPhotos.filter((photo) => photo.analysis?.albumWorthy).length,
       picked: galleryPhotos.filter((photo) => clientPicked.has(photo.id)).length,
       processing: galleryPhotos.filter(isProcessing).length,
-      failed: galleryPhotos.filter((photo) => photo.status === "FAILED").length,
+      failed: failedCount,
     }),
     [galleryPhotos, clientPicked],
   );
