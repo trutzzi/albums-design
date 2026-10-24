@@ -1,4 +1,4 @@
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 import type { ImageInspector, ImageMetrics } from "../../application/ports/image-inspector";
 
 const ANALYSIS_EDGE = 512;
@@ -52,7 +52,7 @@ const FOCUS_EDGE = 160;
  * before its crop. It runs on an already-decoded raw copy: straight from a JPEG, sharp
  * decodes at a reduced size and reports the point in that frame instead.
  */
-export async function subjectFocus(image: sharp.Sharp): Promise<{ x: number; y: number }> {
+export async function subjectFocus(image: Sharp): Promise<{ x: number; y: number }> {
   try {
     const { data, info: raw } = await image
       .clone()
