@@ -1,19 +1,26 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
+import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
+import type { ListProjectPhotosUseCase } from "#src/modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
+import { compareFileNames } from "#src/shared-kernel/natural-order";
+import type { PhotoDimensionsDirectory } from "#src/shared-kernel/photo-dimensions";
 import type { PickSessionRepository } from "../../domain/pick-session-repository";
-import type { PickGateway } from "../../application/ports/pick-gateway";
+import type { PickablePhoto } from "../../application/ports/pick-gateway";
 import type { SlideshowPhotoSource } from "../../application/ports/slideshow-photo-source";
 
 /**
- * Slideshow photos from the three places a photographer can choose. Everything goes
- * through the pick gallery's listing, which only offers photos with real display
- * copies — so an original's URL can never reach a slideshow either.
+ * Slideshow photos from the three places a photographer can choose. Choosing which
+ * photos only reads rows; URLs are signed in `slides`, for the saved photos alone —
+ * a 60-photo slideshow of a 2,000-photo shoot signs 60, not 2,000. Only photos with
+ * real display copies are ever offered, so an original's URL cannot reach a client.
  */
 export class ReviewCollaborationSlideshowPhotos implements SlideshowPhotoSource {
   constructor(
     private readonly pickSessions: PickSessionRepository,
     private readonly albums: AlbumRepository,
-    private readonly gallery: Pick<PickGateway, "listPhotos">,
+    private readonly photos: PhotoRepository,
+    private readonly views: Pick<ListProjectPhotosUseCase, "displayCopies">,
+    private readonly dimensions?: PhotoDimensionsDirectory,
   ) {}
 
   async submittedPicks(projectId: string): Promise<string[] | undefined> {
@@ -39,15 +46,30 @@ export class ReviewCollaborationSlideshowPhotos implements SlideshowPhotoSource 
     return [...new Set(ids)];
   }
 
+  /** The same file-name order as the photographer's gallery. */
   async shootPhotos(projectId: string): Promise<string[]> {
-    return (await this.gallery.listPhotos(projectId)).map((photo) => photo.id);
+    const photos = await this.photos.findByProjectId(UniqueEntityId.create(projectId));
+    return photos
+      .filter((photo) => photo.hasDerivatives)
+      .map((photo) => ({ fileName: photo.fileName, id: photo.id.toString() }))
+      .sort(compareFileNames)
+      .map((photo) => photo.id);
   }
 
-  async slides(projectId: string, photoIds: readonly string[]) {
-    const byId = new Map((await this.gallery.listPhotos(projectId)).map((photo) => [photo.id, photo]));
-    return photoIds.flatMap((id) => {
-      const photo = byId.get(id);
-      return photo ? [photo] : [];
-    });
+  async slides(projectId: string, photoIds: readonly string[]): Promise<PickablePhoto[]> {
+    const [views, sizes] = await Promise.all([
+      this.views.displayCopies(projectId, photoIds),
+      this.dimensions?.forProject(projectId),
+    ]);
+    return views
+      .filter((view) => view.previewUrl && view.thumbnailUrl)
+      .map((view) => ({
+        id: view.id,
+        fileName: view.fileName,
+        previewUrl: view.previewUrl!,
+        thumbnailUrl: view.thumbnailUrl!,
+        width: sizes?.get(view.id)?.width ?? null,
+        height: sizes?.get(view.id)?.height ?? null,
+      }));
   }
 }

@@ -25,6 +25,9 @@ export interface SlideshowView {
 /**
  * The client's side of a slideshow. Scoped by the share token alone — no password, on
  * purpose: the link is meant to be forwarded to family, and the token is the boundary.
+ *
+ * The plan is checked when a link is made, never here: a studio that moves to a smaller
+ * plan does not break slideshows its clients already have, the same as download links.
  */
 export class SlideshowPortalUseCase {
   constructor(

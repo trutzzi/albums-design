@@ -8,6 +8,7 @@ import { MAX_INTERVAL_SECONDS, MIN_INTERVAL_SECONDS } from "../../domain/slidesh
 const projectParams = z.object({ projectId: z.string().uuid() });
 const sessionParams = z.object({ projectId: z.string().uuid(), sessionId: z.string().uuid() });
 const tokenParams = z.object({ token: z.string().min(10) });
+const NOINDEX = "noindex, nofollow, noarchive";
 
 const intervalSeconds = z.number().int().min(MIN_INTERVAL_SECONDS).max(MAX_INTERVAL_SECONDS);
 const transition = z.enum(["FADE", "NONE"]);
@@ -26,6 +27,7 @@ const openSchema = z.object({
 const settingsSchema = z
   .object({ intervalSeconds: intervalSeconds.optional(), transition: transition.optional() })
   .refine((body) => body.intervalSeconds !== undefined || body.transition !== undefined, "Nothing to change.");
+const extendSchema = z.object({ days: z.number().int().min(1).max(365).optional() });
 const invitationSchema = z.object({
   email: z.string().trim().email().max(320).optional(),
   language: z.enum(["en", "ro"]).optional(),
@@ -77,6 +79,14 @@ export function registerSlideshowRoutes(app: FastifyInstance, deps: SlideshowDep
     return result.getValue();
   });
 
+  app.post("/projects/:projectId/slideshow-sessions/:sessionId/extend", async (request, reply) => {
+    const { projectId, sessionId } = sessionParams.parse(request.params);
+    const { days } = extendSchema.parse(request.body ?? {});
+    const result = await deps.slideshowAdmin.extend(projectId, sessionId, days);
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return result.getValue();
+  });
+
   app.post("/projects/:projectId/slideshow-sessions/:sessionId/revoke", async (request, reply) => {
     const { projectId, sessionId } = sessionParams.parse(request.params);
     const result = await deps.slideshowAdmin.revoke(projectId, sessionId);
@@ -92,7 +102,10 @@ export function registerSlideshowRoutes(app: FastifyInstance, deps: SlideshowDep
   });
 
   // --- Client side: public, scoped by the share token ------------------------
+  // No password and made to be forwarded, so a link can end up posted publicly; keep
+  // search engines from listing it. The web page carries the same as a meta tag.
   app.get("/slideshow/:token", async (request, reply) => {
+    reply.header("X-Robots-Tag", NOINDEX);
     const { token } = tokenParams.parse(request.params);
     const result = await deps.slideshowPortal.view(token);
     if (result.isFailure) return sendApplicationError(reply, result.getError());
@@ -101,6 +114,7 @@ export function registerSlideshowRoutes(app: FastifyInstance, deps: SlideshowDep
 
   // Separate from the view so the page's refetches (preview URLs expire) are not counted as views.
   app.post("/slideshow/:token/viewed", async (request, reply) => {
+    reply.header("X-Robots-Tag", NOINDEX);
     const { token } = tokenParams.parse(request.params);
     const result = await deps.slideshowPortal.recordView(token);
     if (result.isFailure) return sendApplicationError(reply, result.getError());

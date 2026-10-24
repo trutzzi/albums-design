@@ -210,6 +210,16 @@ export class SlideshowSession extends AggregateRoot<SlideshowSessionProps> {
     this.props.settings = checkedSettings({ ...this.props.settings, ...changes });
   }
 
+  /**
+   * Push the expiry out, so the link family already has keeps working. Counted from today
+   * if it has already lapsed, so extending an expired link never leaves it still expired.
+   */
+  extend(days: number = DEFAULT_SLIDESHOW_TTL_DAYS, now: Date = new Date()): void {
+    if (this.props.status === "REVOKED") throw new SlideshowUnavailableError("revoked");
+    const from = Math.max(now.getTime(), this.props.expiresAt.getTime());
+    this.props.expiresAt = new Date(from + days * DAY_MS);
+  }
+
   revoke(): void {
     this.props.status = "REVOKED";
   }

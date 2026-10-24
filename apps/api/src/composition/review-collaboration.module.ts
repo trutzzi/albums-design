@@ -113,10 +113,11 @@ export function buildReviewCollaborationModule(
   const reviewNotifier = permanentStorage ? new PromoteOnApprovalNotifier(decided, jobQueue, reviewLog) : decided;
 
   // Client photo selection ("picks"), the step before an album exists.
+  const photoViews = new ListProjectPhotosUseCase(photos, storage, permanentStorage);
   const pickGateway = new MediaIngestionPickGateway(
     projects,
     photos,
-    new ListProjectPhotosUseCase(photos, storage, permanentStorage),
+    photoViews,
     // The pick page shows the studio's branding too, when its plan includes it.
     { branding: studioBranding, dimensions: photoDimensions },
   );
@@ -135,7 +136,13 @@ export function buildReviewCollaborationModule(
   );
 
   // Client slideshows: a shareable, password-free link that plays the picks, an album or the whole shoot.
-  const slideshowPhotos = new ReviewCollaborationSlideshowPhotos(pickSessions, albums, pickGateway);
+  const slideshowPhotos = new ReviewCollaborationSlideshowPhotos(
+    pickSessions,
+    albums,
+    photos,
+    photoViews,
+    photoDimensions,
+  );
 
   return {
     openReviewSession: new OpenReviewSessionUseCase(

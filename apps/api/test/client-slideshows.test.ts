@@ -5,6 +5,9 @@ import Fastify from "fastify";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { Album } from "../src/modules/album-composition/domain/album";
 import { Project } from "../src/modules/media-ingestion/domain/project";
+import { Photo } from "../src/modules/media-ingestion/domain/photo";
+import { ListProjectPhotosUseCase } from "../src/modules/media-ingestion/application/use-cases/list-project-photos/list-project-photos.use-case";
+import type { PhotoDimensionsDirectory } from "../src/shared-kernel/photo-dimensions";
 import { DeleteProjectUseCase } from "../src/modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
 import { PickSession } from "../src/modules/review-collaboration/domain/pick-session";
 import {
@@ -13,7 +16,7 @@ import {
   SlideshowSession,
   SlideshowUnavailableError,
 } from "../src/modules/review-collaboration/domain/slideshow-session";
-import type { PickGateway, PickablePhoto } from "../src/modules/review-collaboration/application/ports/pick-gateway";
+import type { PickGateway } from "../src/modules/review-collaboration/application/ports/pick-gateway";
 import { SlideshowSessionAdminUseCase } from "../src/modules/review-collaboration/application/use-cases/slideshow-session-admin.use-case";
 import { SlideshowPortalUseCase } from "../src/modules/review-collaboration/application/use-cases/slideshow-portal.use-case";
 import { ReviewCollaborationSlideshowPhotos } from "../src/modules/review-collaboration/infrastructure/gateways/slideshow-photo-source";
@@ -43,17 +46,6 @@ const SECRET = "test-secret-test-secret-test-secret-123";
 const ORIGIN = "https://app.example.test";
 const DAY = 24 * 60 * 60 * 1000;
 
-function photo(id: string): PickablePhoto {
-  return {
-    id,
-    fileName: `${id}.jpg`,
-    previewUrl: `https://cdn.example.test/${id}/preview`,
-    thumbnailUrl: `https://cdn.example.test/${id}/thumb`,
-    width: 3000,
-    height: 2000,
-  };
-}
-
 function placement(slotId: string, photoId: string) {
   return { slotId, photoId, crop: { x: 0, y: 0, width: 1, height: 1 }, treatment: "COLOR" as const };
 }
@@ -61,21 +53,58 @@ function placement(slotId: string, photoId: string) {
 async function world(options: { slideshowsOnPlan?: boolean } = {}) {
   const projectId = UniqueEntityId.create();
   const otherProjectId = UniqueEntityId.create();
-  // The shoot, in shoot order: p0 … p4.
-  const ids = Array.from({ length: 5 }, () => UniqueEntityId.create().toString());
-  let shoot = ids.map(photo);
+  const studioId = UniqueEntityId.create();
+  const photos = new InMemoryPhotoRepository();
+  const storage = new InMemoryObjectStorage();
+  // Counts URL signing, which is what a large shoot makes expensive.
+  const signed: string[] = [];
+  const presign = storage.presignGet.bind(storage);
+  storage.presignGet = async (key: string, ttl?: number) => {
+    signed.push(key);
+    return presign(key, ttl);
+  };
 
-  const gallery: Pick<PickGateway, "listPhotos" | "loadProject"> = {
-    listPhotos: async (id) => (id === projectId.toString() ? shoot : []),
+  async function addPhoto(fileName: string, options: { ready?: boolean; project?: UniqueEntityId } = {}) {
+    const photo = Photo.requestUpload({
+      projectId: options.project ?? projectId,
+      studioId,
+      fileName,
+      mimeType: "image/jpeg",
+      byteSize: 1000,
+    });
+    photo.markUploaded({ byteSize: 1000 });
+    if (options.ready ?? true) photo.markDerivativesReady();
+    await photos.save(photo);
+    return photo.id.toString();
+  }
+  // The shoot, in file-name order: ids[0] … ids[4]. Saved out of order on purpose.
+  const names = ["IMG_0010.jpg", "IMG_0002.jpg", "IMG_0030.jpg", "IMG_0001.jpg", "IMG_0020.jpg"];
+  const byName = new Map<string, string>();
+  for (const name of names) byName.set(name, await addPhoto(name));
+  const ids = [...names].sort().map((name) => byName.get(name)!);
+  // Still being processed: has no display copies, so it must never reach a client.
+  const processing = await addPhoto("IMG_0005.jpg", { ready: false });
+  const foreign = await addPhoto("IMG_0001.jpg", { project: otherProjectId });
+
+  const gallery: Pick<PickGateway, "loadProject"> = {
     loadProject: async (id) =>
       id === projectId.toString()
         ? { id, name: "Elena & Radu", branding: { name: "Studio Lumina", accent: "#225588", logo: null } }
         : undefined,
   };
+  const dimensions: PhotoDimensionsDirectory = {
+    forProject: async () => new Map([[ids[0]!, { width: 4000, height: 6000 }]]),
+  };
   const pickSessions = new InMemoryPickSessionRepository();
   const albums = new InMemoryAlbumRepository();
   const sessions = new InMemorySlideshowSessionRepository();
-  const source = new ReviewCollaborationSlideshowPhotos(pickSessions, albums, gallery);
+  const source = new ReviewCollaborationSlideshowPhotos(
+    pickSessions,
+    albums,
+    photos,
+    new ListProjectPhotosUseCase(photos, storage),
+    dimensions,
+  );
 
   const sent: EmailMessage[] = [];
   const sender: EmailSender = { id: "test", send: async (message) => void sent.push(message) };
@@ -153,8 +182,13 @@ async function world(options: { slideshowsOnPlan?: boolean } = {}) {
     projectId: projectId.toString(),
     otherProjectId,
     ids,
-    removeFromShoot: (id: string) => (shoot = shoot.filter((p) => p.id !== id)),
-    emptyShoot: () => (shoot = []),
+    processing,
+    foreign,
+    signed,
+    removeFromShoot: (id: string) => photos.delete(UniqueEntityId.create(id)),
+    emptyShoot: async () => {
+      for (const id of [...ids, processing]) await photos.delete(UniqueEntityId.create(id));
+    },
     sessions,
     source,
     admin,
@@ -237,16 +271,43 @@ describe("where a slideshow's photos come from", () => {
 
   it("turns saved ids into display copies in play order, skipping photos that are gone", async () => {
     const w = await world();
-    w.removeFromShoot(w.ids[1]!);
+    await w.removeFromShoot(w.ids[1]!);
     const slides = await w.source.slides(w.projectId, [w.ids[3]!, w.ids[1]!, w.ids[0]!]);
     assert.deepEqual(
       slides.map((s) => s.id),
       [w.ids[3], w.ids[0]],
     );
     assert.ok(
-      slides.every((s) => s.previewUrl.endsWith("/preview")),
+      slides.every((s) => s.previewUrl.endsWith("-preview.jpg")),
       "display copies only",
     );
+    assert.deepEqual(slides[1], {
+      id: w.ids[0],
+      fileName: "IMG_0001.jpg",
+      previewUrl: slides[1]!.previewUrl,
+      thumbnailUrl: slides[1]!.thumbnailUrl,
+      width: 4000,
+      height: 6000,
+    });
+  });
+
+  it("signs URLs only for the photos the slideshow shows, never the whole shoot", async () => {
+    const w = await world();
+    assert.equal((await w.source.shootPhotos(w.projectId)).length, 5);
+    assert.equal(w.signed.length, 0, "choosing photos reads rows only");
+    await w.source.slides(w.projectId, [w.ids[2]!]);
+    assert.equal(w.signed.length, 2, "one preview and one thumbnail");
+  });
+
+  it("never shows a photo without display copies, or one from another shoot", async () => {
+    const w = await world();
+    assert.ok(!(await w.source.shootPhotos(w.projectId)).includes(w.processing));
+    const slides = await w.source.slides(w.projectId, [w.processing, w.foreign, w.ids[0]!]);
+    assert.deepEqual(
+      slides.map((s) => s.id),
+      [w.ids[0]],
+    );
+    assert.deepEqual(await w.source.slides(w.projectId, []), []);
   });
 });
 
@@ -284,7 +345,7 @@ describe("the studio's side of slideshows", () => {
     assert.match((await open("PICKS")).getError().message, /not sent their picks/);
     assert.equal((await open("ALBUM")).getError().code, "VALIDATION_ERROR");
     assert.equal((await open("ALBUM", UniqueEntityId.create().toString())).getError().code, "NOT_FOUND");
-    w.emptyShoot();
+    await w.emptyShoot();
     assert.match((await open("SHOOT")).getError().message, /no photos/);
     assert.equal((await open("SHOOT")).getError().code, "CONFLICT");
     assert.equal(w.sessions.items.size, 0, "nothing half-made is left behind");
@@ -364,6 +425,40 @@ describe("the studio's side of slideshows", () => {
   });
 });
 
+describe("extending a slideshow link", () => {
+  it("adds 180 days to what is left by default, or a chosen number of days", async () => {
+    const w = await world();
+    const { sessionId } = (await w.admin.open({ projectId: w.projectId, clientName: "E", source: "SHOOT" })).getValue();
+    assert.equal((await w.admin.extend(w.projectId, sessionId)).getValue().daysLeft, 360);
+    assert.equal((await w.admin.extend(w.projectId, sessionId, 5)).getValue().daysLeft, 365);
+  });
+
+  it("counts from today for a link that has already expired, so it works again", () => {
+    const { session } = SlideshowSession.open({
+      projectId: UniqueEntityId.create(),
+      clientName: "E",
+      source: "SHOOT",
+      photoIds: ["a"],
+      ttlDays: 1,
+    });
+    const muchLater = new Date(Date.now() + 40 * DAY);
+    assert.ok(session.isExpired(muchLater));
+    session.extend(10, muchLater);
+    assert.equal(session.daysLeft(muchLater), 10);
+    assert.doesNotThrow(() => session.assertViewable(muchLater));
+  });
+
+  it("refuses to bring back a revoked link, and another shoot's link is not found", async () => {
+    const w = await world();
+    const { sessionId } = (await w.admin.open({ projectId: w.projectId, clientName: "E", source: "SHOOT" })).getValue();
+    assert.equal((await w.admin.extend(w.otherProjectId.toString(), sessionId)).getError().code, "NOT_FOUND");
+    await w.admin.revoke(w.projectId, sessionId);
+    const refused = await w.admin.extend(w.projectId, sessionId);
+    assert.equal(refused.getError().code, "CONFLICT");
+    assert.equal([...w.sessions.items.values()][0]!.status, "REVOKED");
+  });
+});
+
 describe("the client's side of slideshows", () => {
   it("shows the saved photos in order with the studio's look and settings", async () => {
     const w = await world();
@@ -392,7 +487,7 @@ describe("the client's side of slideshows", () => {
   it("keeps playing what is left when a photo is deleted from the shoot", async () => {
     const w = await world();
     const { token } = (await w.admin.open({ projectId: w.projectId, clientName: "E", source: "SHOOT" })).getValue();
-    w.removeFromShoot(w.ids[0]!);
+    await w.removeFromShoot(w.ids[0]!);
     assert.equal((await w.portal.view(token)).getValue().photos.length, 4);
   });
 
@@ -457,6 +552,7 @@ describe("slideshow routes", () => {
 
     const view = await fetch(`${base}/slideshow/${token}`);
     assert.equal(view.status, 200);
+    assert.equal(view.headers.get("x-robots-tag"), "noindex, nofollow, noarchive");
     assert.equal(((await view.json()) as { photos: unknown[] }).photos.length, 5);
     assert.equal((await fetch(`${base}/slideshow/${token}/viewed`, { method: "POST" })).status, 204);
     assert.equal((await fetch(`${base}/slideshow/unknown-token-value`)).status, 404);
@@ -480,6 +576,12 @@ describe("slideshow routes", () => {
         .status,
       200,
     );
+    const extended = await fetch(`${base}/projects/${w.projectId}/slideshow-sessions/${sessionId}/extend`, {
+      method: "POST",
+      headers: json,
+      body: JSON.stringify({ days: 30 }),
+    });
+    assert.equal(((await extended.json()) as { daysLeft: number }).daysLeft, 210);
     assert.equal(
       (await fetch(`${base}/projects/${w.projectId}/slideshow-sessions/${sessionId}/revoke`, { method: "POST" }))
         .status,

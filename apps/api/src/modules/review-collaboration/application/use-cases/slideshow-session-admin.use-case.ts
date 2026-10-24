@@ -5,6 +5,7 @@ import type { SecretBox } from "#src/shared-kernel/secret-box";
 import {
   InvalidSlideshowSettingsError,
   SlideshowSession,
+  SlideshowUnavailableError,
   type SlideshowSettings,
   type SlideshowSource,
   type SlideshowTransition,
@@ -214,6 +215,25 @@ export class SlideshowSessionAdminUseCase {
       session.updateSettings(changes);
     } catch (error) {
       if (error instanceof InvalidSlideshowSettingsError) return Result.failure(new ValidationError(error.message));
+      throw error;
+    }
+    await this.sessions.save(session);
+    return Result.success(this.toSummary(session));
+  }
+
+  /** A keepsake outlives its first expiry date: extend rather than make a new link and break the old one. */
+  async extend(
+    projectId: string,
+    sessionId: string,
+    days?: number | undefined,
+  ): Promise<Result<SlideshowSessionSummary, ApplicationError>> {
+    const found = await this.find(projectId, sessionId);
+    if (found.isFailure) return Result.failure(found.getError());
+    const session = found.getValue();
+    try {
+      session.extend(days, this.now());
+    } catch (error) {
+      if (error instanceof SlideshowUnavailableError) return Result.failure(new ConflictError(error.message));
       throw error;
     }
     await this.sessions.save(session);

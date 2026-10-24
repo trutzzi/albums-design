@@ -35,6 +35,7 @@ export class DrizzleSlideshowSessionRepository implements SlideshowSessionReposi
         target: slideshowSessions.id,
         set: {
           status: row.status,
+          expiresAt: row.expiresAt,
           photoIds: row.photoIds,
           intervalSeconds: row.intervalSeconds,
           transition: row.transition,
