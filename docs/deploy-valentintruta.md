@@ -100,8 +100,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml exec api \
 ```
 
 After this, log in at `app.valentintruta.ro/login` with that email and
-password — the baked-in `VITE_STUDIO_API_KEY` build secret is no longer
-needed and can eventually be dropped from GitHub secrets.
+password. The web build no longer receives a studio API key; delete the old
+`VITE_STUDIO_API_KEY` GitHub secret.
 
 ### 2c. Optional settings added after the first deploy (DigiStorage, email)
 

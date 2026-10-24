@@ -23,7 +23,6 @@ The API URL is compiled into the bundle, so it must be known at build time:
 
 ```bash
 VITE_API_URL=https://api.yourdomain.com \
-VITE_STUDIO_API_KEY=<the key from pnpm db:seed> \
 pnpm --filter @albumflow/web build
 ```
 

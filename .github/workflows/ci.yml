@@ -444,18 +444,14 @@ jobs:
 
       # Baked in at build time: a static bundle cannot read an env var at
       # runtime. VITE_API_URL is the one line that has to change if the
-      # backend ever moves off this VPS. VITE_STUDIO_ID/VITE_STUDIO_API_KEY
-      # authenticate every request the deployed app makes — without them it
-      # falls back to a demo studio ID with no key at all, and every request
-      # fails with 401. Create the real studio once with
-      # `docker compose ... run --rm api pnpm --filter @albumflow/api db:seed`
-      # on the server, then set its printed values as these two secrets.
+      # backend ever moves off this VPS. Requests authenticate with the login
+      # token, so no studio API key belongs in the bundle: anything here is
+      # readable by every visitor.
       - name: Build
         run: pnpm --filter @albumflow/web build
         env:
           VITE_API_URL: https://api.valentintruta.ro
           VITE_STUDIO_ID: ${{ secrets.VITE_STUDIO_ID }}
-          VITE_STUDIO_API_KEY: ${{ secrets.VITE_STUDIO_API_KEY }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
 
@@ -472,3 +468,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./apps/web/dist/
           server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          # Explicit TLS, so the password and the files are not sent in clear text.
+          protocol: ftps
