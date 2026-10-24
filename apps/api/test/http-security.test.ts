@@ -171,10 +171,21 @@ describe("HTTP security boundary", () => {
     assert.equal(response.statusCode, 401);
   });
 
-  it("leaves onboarding and the client review portal public", async () => {
-    assert.equal((await app.inject({ method: "POST", url: "/studios" })).statusCode, 200);
+  it("leaves the client review portal and the plan list public", async () => {
     assert.equal((await app.inject({ method: "GET", url: "/review/sometoken" })).statusCode, 200);
     assert.equal((await app.inject({ method: "GET", url: "/plans" })).statusCode, 200);
+  });
+
+  it("never creates a studio for an anonymous caller", async () => {
+    // A public onboarding route handed out API keys for any email, unverified: anyone could
+    // pre-claim a photographer's address and read whatever was later uploaded under it.
+    // Studios are created by signing up (/auth/register), which proves the mailbox.
+    const response = await app.inject({
+      method: "POST",
+      url: "/studios",
+      payload: { name: "Squatter", ownerEmail: "victim@example.com" },
+    });
+    assert.equal(response.statusCode, 401);
   });
 
   it("lets the emailed confirmation link and its resend in without a login", async () => {

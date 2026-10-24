@@ -14,11 +14,6 @@ import "#src/interface/request-context";
 const studioParams = z.object({ studioId: z.string().uuid() });
 const memberParams = studioParams.extend({ memberId: z.string().uuid() });
 
-const onboardSchema = z.object({
-  name: z.string().min(1).max(255),
-  ownerEmail: z.string().email(),
-});
-
 const inviteSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1).max(255),
@@ -97,13 +92,6 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
     const result = await deps.passwordReset.reset(body);
     if (result.isFailure) return sendApplicationError(reply, result.getError());
     return result.getValue();
-  });
-
-  app.post("/studios", async (request, reply) => {
-    const body = onboardSchema.parse(request.body);
-    const result = await deps.administration.onboard(body);
-    if (result.isFailure) return sendApplicationError(reply, result.getError());
-    return reply.code(201).send(result.getValue());
   });
 
   app.get("/studios/:studioId", async (request, reply) => {

@@ -37,8 +37,6 @@ export interface StudioAuthOptions {
 
 function isPublic(request: FastifyRequest, extraPrefixes: string[]): boolean {
   const path = request.url.split("?")[0] ?? "";
-  // Onboarding creates the very first studio, so it cannot require a key.
-  if (request.method === "POST" && path === "/studios") return true;
   if (request.method === "POST" && PUBLIC_AUTH_POSTS.includes(path)) return true;
   if (PUBLIC_EXACT.includes(path)) return true;
   return [...PUBLIC_PREFIXES, ...extraPrefixes].some((prefix) => path.startsWith(prefix));
