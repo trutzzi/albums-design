@@ -809,6 +809,33 @@ describe("email settings", () => {
     assert.ok(buildEmailSender(loadEnv(base)) instanceof LoggingEmailSender);
   });
 
+  const message = {
+    to: ["client@example.com"],
+    subject: "Reset your AlbumFlow password",
+    text: "Open https://app.example/reset-password?token=secret-token — client password K7M2Q-X9PTA",
+    replyTo: "studio@example.com",
+  };
+
+  it("keeps links, passwords and addresses out of the production log", async () => {
+    const logger = new RecordingLogger();
+    await buildEmailSender(loadEnv({ ...base, NODE_ENV: "production" }), logger).send(message);
+
+    const logged = JSON.stringify(logger.entries);
+    for (const secret of ["secret-token", "K7M2Q-X9PTA", "client@example.com", "studio@example.com", "Reset your"]) {
+      assert.ok(!logged.includes(secret), `production log contains ${secret}`);
+    }
+    // Still told, loudly enough to notice: someone is waiting for this email.
+    assert.equal(logger.problems.length, 1);
+    assert.deepEqual(logger.problems[0]?.context, { recipients: 1 });
+  });
+
+  it("still shows the whole email in a demo, where reading the link from the log is the point", async () => {
+    const logger = new RecordingLogger();
+    await buildEmailSender(loadEnv(base), logger).send(message);
+    assert.equal(logger.entries[0]?.context?.["text"], message.text);
+    assert.deepEqual(logger.entries[0]?.context?.["to"], message.to);
+  });
+
   it("builds an SMTP sender from settings, and refuses a half-configured one", () => {
     const configured = loadEnv({
       ...base,

@@ -28,6 +28,6 @@ export function buildEmailSender(env: Env, logger?: Logger): EmailSender {
     }
     case "none":
     default:
-      return new LoggingEmailSender(logger);
+      return new LoggingEmailSender(logger, { includeContent: env.NODE_ENV !== "production" });
   }
 }
