@@ -35,6 +35,27 @@ describe("environment configuration", () => {
     assert.equal(env.VISION_PROVIDER, "heuristic");
   });
 
+  describe("sending photos to a third-party AI", () => {
+    const production = { ...FULL, NODE_ENV: "production", VISION_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "sk-ant" };
+
+    it("refuses to start in production until the transfer has been disclosed", () => {
+      // The site promises photos are never sent to a third party; one setting must not silently break that.
+      assert.throws(() => loadEnv(production as NodeJS.ProcessEnv), /VISION_THIRD_PARTY_DISCLOSED/);
+    });
+
+    it("starts once the operator confirms the texts and contracts were updated", () => {
+      const env = loadEnv({ ...production, VISION_THIRD_PARTY_DISCLOSED: "true" } as NodeJS.ProcessEnv);
+      assert.equal(env.VISION_PROVIDER, "anthropic");
+    });
+
+    it("leaves local providers and development alone", () => {
+      for (const VISION_PROVIDER of ["heuristic", "ollama"]) {
+        assert.doesNotThrow(() => loadEnv({ ...production, VISION_PROVIDER } as NodeJS.ProcessEnv));
+      }
+      assert.doesNotThrow(() => loadEnv({ ...production, NODE_ENV: "development" } as NodeJS.ProcessEnv));
+    });
+  });
+
   it("treats a blank ANTHROPIC_API_KEY the same as an absent one", () => {
     // Docker Compose's `environment:` block always declares this key for the
     // container — as "" when the underlying value is blank in a server's
