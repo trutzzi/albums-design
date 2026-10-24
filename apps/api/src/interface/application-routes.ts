@@ -8,6 +8,7 @@ import { registerAlbumCompositionRoutes } from "../modules/album-composition/int
 import { registerReviewRoutes } from "../modules/review-collaboration/interface/http/routes";
 import { registerPickRoutes } from "../modules/review-collaboration/interface/http/pick-routes";
 import { registerDownloadRoutes } from "../modules/review-collaboration/interface/http/download-routes";
+import { registerSlideshowRoutes } from "../modules/review-collaboration/interface/http/slideshow-routes";
 import { registerExportRoutes } from "../modules/export-print/interface/http/routes";
 
 /**
@@ -53,6 +54,10 @@ export function registerApplicationRoutes(app: FastifyInstance, application: App
   });
   registerPickRoutes(app, { pickAdmin: application.pickAdmin, pickPortal: application.pickPortal });
   registerDownloadRoutes(app, { downloadAdmin: application.downloadAdmin, downloadPortal: application.downloadPortal });
+  registerSlideshowRoutes(app, {
+    slideshowAdmin: application.slideshowAdmin,
+    slideshowPortal: application.slideshowPortal,
+  });
   registerExportRoutes(app, {
     requestExport: application.requestExport,
     deleteExport: application.deleteExport,

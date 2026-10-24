@@ -19,6 +19,8 @@ import type { PickSession } from "../modules/review-collaboration/domain/pick-se
 import type { PickSessionRepository } from "../modules/review-collaboration/domain/pick-session-repository";
 import type { DownloadSession } from "../modules/review-collaboration/domain/download-session";
 import type { DownloadSessionRepository } from "../modules/review-collaboration/domain/download-session-repository";
+import type { SlideshowSession } from "../modules/review-collaboration/domain/slideshow-session";
+import type { SlideshowSessionRepository } from "../modules/review-collaboration/domain/slideshow-session-repository";
 import type { ReviewSessionRepository } from "../modules/review-collaboration/domain/review-session-repository";
 import type { ExportJob } from "../modules/export-print/domain/export-job";
 import type { ExportJobRepository } from "../modules/export-print/domain/export-job-repository";
@@ -309,6 +311,27 @@ export class InMemoryPickSessionRepository implements PickSessionRepository {
 export class InMemoryDownloadSessionRepository implements DownloadSessionRepository {
   readonly items = new Map<string, DownloadSession>();
   async save(session: DownloadSession) {
+    this.items.set(session.id.toString(), session);
+  }
+  async findById(id: UniqueEntityId) {
+    return this.items.get(id.toString());
+  }
+  async findByTokenHash(tokenHash: string) {
+    return [...this.items.values()].find((session) => session.tokenHash === tokenHash);
+  }
+  async findByProjectId(projectId: UniqueEntityId) {
+    return [...this.items.values()].filter((session) => session.projectId.toString() === projectId.toString());
+  }
+  async deleteByProjectId(projectId: UniqueEntityId) {
+    for (const [id, session] of this.items) {
+      if (session.projectId.toString() === projectId.toString()) this.items.delete(id);
+    }
+  }
+}
+
+export class InMemorySlideshowSessionRepository implements SlideshowSessionRepository {
+  readonly items = new Map<string, SlideshowSession>();
+  async save(session: SlideshowSession) {
     this.items.set(session.id.toString(), session);
   }
   async findById(id: UniqueEntityId) {

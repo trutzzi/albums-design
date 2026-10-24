@@ -26,7 +26,17 @@ export function buildMediaIngestionModule(
   repos: Repositories,
   { planFeatures, exportStorage }: Pick<IdentityModule, "planFeatures"> & Pick<ExportPrintModule, "exportStorage">,
 ) {
-  const { projects, photos, analyses, albums, exportJobs, reviewSessions, pickSessions, downloadSessions } = repos;
+  const {
+    projects,
+    photos,
+    analyses,
+    albums,
+    exportJobs,
+    reviewSessions,
+    pickSessions,
+    downloadSessions,
+    slideshowSessions,
+  } = repos;
   const storageLog = logger.child({ component: "storage" });
 
   const deleteProject = new DeleteProjectUseCase(
@@ -41,6 +51,7 @@ export function buildMediaIngestionModule(
     permanentStorage,
     pickSessions,
     downloadSessions,
+    slideshowSessions,
   );
 
   // Two-tier pipeline, second and third stages: promote chosen originals to
