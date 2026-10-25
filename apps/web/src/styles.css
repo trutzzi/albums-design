@@ -5582,20 +5582,15 @@ body.is-previewing {
   place-items: center;
   height: 96px;
 }
-/* The cover arrives a few dozen pixels wide; enlarged and blurred it is a mood, not a photo. */
-/* A download link may have a cover: hold its room from the start. */
-.gate__art--reserved {
-  height: 200px;
-  border-radius: 18px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
+/* A cover expected (reserved, so nothing jumps) or shown: the same frame either way. */
+.gate__art--reserved,
 .gate__art--photo {
   height: 200px;
   overflow: hidden;
   border-radius: 18px;
   background: var(--surface-2);
 }
+/* The cover arrives a few dozen pixels wide; enlarged and blurred it is a mood, not a photo. */
 .gate__teaser {
   position: absolute;
   inset: -12px;
