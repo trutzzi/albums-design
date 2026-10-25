@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { PhotoLightbox } from "@/shared/ui/PhotoLightbox";
 import { PhotoGallery } from "@/shared/ui/PhotoGallery";
 import { PasswordGate, needsPassword } from "@/features/review/components/PasswordGate";
+import { ClientPageSkeleton } from "@/shared/ui/Loading";
 
 type Filter = "all" | "picked";
 
@@ -115,7 +116,7 @@ export function PickPage() {
 
   const look = useClientStyle(data?.branding);
 
-  if (view.isLoading) return <p className="page muted">{t("pick.loading")}</p>;
+  if (view.isLoading) return <ClientPageSkeleton label={t("pick.loading")} />;
   if (needsPassword(view.error)) {
     return (
       <PasswordGate kind="pick" token={token} onUnlocked={() => void queryClient.invalidateQueries({ queryKey })} />

@@ -8,6 +8,7 @@ import { ClientBrandBar, brandStyle } from "@/shared/ui/ClientBrand";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { SlideshowPlayer } from "./components/SlideshowPlayer";
 import { VIEW_REFRESH_MS, shouldRetryImage } from "./lib/autoplay";
+import { ClientPageSkeleton } from "@/shared/ui/Loading";
 
 /**
  * The page a client — or anyone they forward it to — opens from a slideshow link. No
@@ -40,7 +41,7 @@ export function SlideshowPage() {
     void recordSlideshowView(token).catch(() => {});
   }, [view.data, token]);
 
-  if (view.isLoading) return <p className="page muted">{t("slideshow.loading")}</p>;
+  if (view.isLoading) return <ClientPageSkeleton label={t("slideshow.loading")} body="cover" />;
   if (view.isError || !view.data) {
     return (
       <div className="page">

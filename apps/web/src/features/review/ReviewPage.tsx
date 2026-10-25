@@ -10,6 +10,7 @@ import { PasswordGate, needsPassword } from "@/features/review/components/Passwo
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { LANGUAGES } from "@/shared/i18n/translations";
+import { ClientPageSkeleton } from "@/shared/ui/Loading";
 
 export function ReviewPage() {
   const { token = "" } = useParams();
@@ -40,7 +41,7 @@ export function ReviewPage() {
 
   const look = useClientStyle(review.data?.album.branding);
 
-  if (review.isLoading) return <p className="page muted">{t("review.opening")}</p>;
+  if (review.isLoading) return <ClientPageSkeleton label={t("review.opening")} body="spread" />;
   if (needsPassword(review.error)) {
     return (
       <PasswordGate

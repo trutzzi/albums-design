@@ -28,6 +28,7 @@ import { SelectionPanel } from "@/features/project/components/SelectionPanel";
 import { AlbumPanel } from "@/features/project/components/AlbumPanel";
 import { DeliveryPanel } from "@/features/project/components/DeliveryPanel";
 import { SlideshowPanel } from "@/features/project/components/SlideshowPanel";
+import { Skeleton } from "@/shared/ui/Loading";
 
 /** The guided tour points at the step tabs, since only the open step's content is on the page. */
 const STEP_TOUR_TARGETS: Record<ShootStep, string | undefined> = {
@@ -183,7 +184,14 @@ export function ProjectPage() {
           <Link to="/" className="muted back-link">
             {t("project.back")}
           </Link>
-          <h1>{project.data?.name ?? t("common.loading")}</h1>
+          <h1>
+            {project.data?.name ?? (
+              <>
+                <span className="visually-hidden">{t("common.loading")}</span>
+                <Skeleton width="min(320px, 70vw)" height="1.4em" />
+              </>
+            )}
+          </h1>
           <p className="muted">{t("project.stats", { uploaded: uploadedCount, analysed, albumWorthy })}</p>
         </div>
       </header>

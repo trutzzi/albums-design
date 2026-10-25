@@ -10,6 +10,7 @@ import {
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { PhotoGallery } from "@/shared/ui/PhotoGallery";
 import { GalleryLookFields } from "@/shared/ui/GalleryLookFields";
+import { SkeletonPhotoGrid } from "@/shared/ui/Loading";
 
 /**
  * One delivery gallery's own touches: the photo at the top (or the automatic one, the
@@ -73,7 +74,9 @@ export function GalleryCustomiseModal({
           {t("project.delivery.cover.intro")}{" "}
           <strong>{current ? t("project.delivery.cover.custom") : t("project.delivery.cover.automatic")}</strong>
         </p>
-        {photos.isLoading && <p className="muted">{t("project.delivery.cover.loading")}</p>}
+        {photos.isLoading && (
+          <SkeletonPhotoGrid count={8} columnWidth={140} label={t("project.delivery.cover.loading")} />
+        )}
         {photos.isError && <p className="error">{(photos.error as Error).message}</p>}
         {photos.isSuccess && choosable.length === 0 && <p className="muted">{t("project.delivery.cover.empty")}</p>}
         {choosable.length > 0 && (

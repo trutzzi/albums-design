@@ -5051,3 +5051,115 @@ body.is-previewing {
   display: grid;
   gap: 4px;
 }
+
+/* ---- loading: spinner, loading state, skeletons (shared/ui/Loading.tsx) ---- */
+.spinner {
+  display: inline-block;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid var(--line);
+  border-top-color: var(--accent);
+  animation: spinner-turn 0.8s linear infinite;
+}
+.spinner--small {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+.spinner--large {
+  width: 36px;
+  height: 36px;
+  border-width: 3px;
+}
+@keyframes spinner-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  color: var(--ink-soft);
+}
+.loading-state--page {
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  min-height: 50vh;
+}
+.loading-state__label {
+  font-size: 0.92rem;
+}
+
+.skeleton {
+  display: block;
+  border-radius: 6px;
+  /* A soft band of light that sweeps across, from the surface tokens so it works in both themes. */
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface) 45%, var(--surface-2) 90%) 0 0 / 300% 100%;
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+.skeleton--circle {
+  border-radius: 50%;
+}
+.skeleton--tile {
+  width: 100%;
+  border-radius: 8px;
+}
+@keyframes skeleton-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+.skeleton-text,
+.skeleton-stack {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.skeleton-text {
+  padding: 8px 0;
+}
+.skeleton-grid {
+  display: grid;
+  gap: 10px;
+  align-items: start;
+  margin: 12px 0;
+}
+.shoot-card--skeleton {
+  pointer-events: none;
+}
+.shoot-card--skeleton .shoot-card__body {
+  gap: 8px;
+}
+.client-skeleton__header {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.client-skeleton__spread {
+  aspect-ratio: 2 / 1;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.client-skeleton__cover {
+  aspect-ratio: 16 / 9;
+  max-width: 880px;
+  max-height: 60vh;
+  margin: 24px auto 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+  .skeleton {
+    animation: none;
+  }
+}

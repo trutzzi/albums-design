@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { SkeletonText } from "@/shared/ui/Loading";
 
 interface Props {
   title: string;
@@ -66,7 +67,7 @@ export function AccessDetailsModal({ title, urlFor, load, queryKey, onSend, defa
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="access-title">{title}</h2>
-        {details.isLoading && <p className="muted">{t("access.details.loading")}</p>}
+        {details.isLoading && <SkeletonText lines={2} label={t("access.details.loading")} />}
         {details.isError && <p className="error">{t("access.details.legacy")}</p>}
         {details.data && (
           <>

@@ -19,6 +19,7 @@ import { PlanUpsell } from "@/shared/ui/PlanUpsell";
 import type { ClientContact } from "@/features/project/hooks/useClientContact";
 import { ClientLinkForm } from "./ClientLinkForm";
 import { LinkResult, noteFrom, type CreatedLink, type EmailNote } from "./LinkResult";
+import { SkeletonList } from "@/shared/ui/Loading";
 
 const INTERVALS = [3, 4, 5, 6, 8, 10, 12, 15];
 
@@ -107,7 +108,7 @@ export function SlideshowPanel({
       </div>
       <p className="muted">{t("project.slideshow.intro")}</p>
       {!canSendSlideshows && <PlanUpsell feature="slideshows" />}
-      {sessions.isLoading && <p className="muted">{t("project.slideshow.loading")}</p>}
+      {sessions.isLoading && <SkeletonList rows={2} label={t("project.slideshow.loading")} />}
       {sessions.isError && (
         <p className="error" role="alert">
           {t("project.slideshow.loadError", { reason: (sessions.error as Error).message })}
