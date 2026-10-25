@@ -1,7 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import type { DownloadScope } from "@/shared/api";
-import { useDismiss } from "@/features/review/hooks/useDismiss";
+import { useDismiss } from "@/shared/ui/useDismiss";
+import { nextFocusIndex } from "@/shared/lib/roving-focus";
 import { splitTabs, type GalleryFilter } from "@/features/review/lib/client-gallery";
 
 /** How many chapters fit as tabs before the rest go behind "More". */
@@ -86,8 +87,12 @@ export function GalleryToolbar({
         </button>
         <button type="button" className="gallery-bar__action" onClick={onShare}>
           <Icon path="M14 5h5v5M19 5l-8 8M10 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4" />
-          <span role="status">{shareCopied ? t("gallery.share.copied") : t("gallery.share")}</span>
+          {shareCopied ? t("gallery.share.copied") : t("gallery.share")}
         </button>
+        {/* Outside the button, so its label is not itself a live region. */}
+        <span className="visually-hidden" role="status">
+          {shareCopied ? t("gallery.share.copied") : ""}
+        </span>
         <span className="gallery-bar__expires">{t("gallery.expires", { date: expiresOn })}</span>
         <Menu
           label={t("gallery.download.menu")}
@@ -152,17 +157,46 @@ function Menu({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const close = useCallback(() => setOpen(false), []);
-  useDismiss(open, close, ref);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const dismiss = useCallback(() => setOpen(false), []);
+  // A choice or Escape hands focus back to the button; a press elsewhere leaves it where it went.
+  const close = useCallback(() => {
+    setOpen(false);
+    buttonRef.current?.focus();
+  }, []);
+  useDismiss(open, dismiss, ref);
+
+  useEffect(() => {
+    if (open) listRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+  }, [open]);
+
+  const onListKey = (event: KeyboardEvent) => {
+    // Tab too: focus goes back to the button first, so it then moves on from there.
+    if (event.key === "Escape" || event.key === "Tab") return close();
+    const list = [...(listRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
+    const next = nextFocusIndex(event.key, list.indexOf(document.activeElement as HTMLElement), list.length);
+    if (next === null) return;
+    event.preventDefault();
+    list[next]?.focus();
+  };
+
   return (
     <div className="gallery-menu" ref={ref}>
       <button
+        ref={buttonRef}
         type="button"
         className={buttonClassName}
         aria-haspopup="menu"
         aria-expanded={open}
         disabled={disabled}
         onClick={() => setOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
       >
         {label}
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
@@ -170,7 +204,13 @@ function Menu({
         </svg>
       </button>
       {open && (
-        <div className={`gallery-menu__list gallery-menu__list--${align}`} role="menu">
+        <div
+          ref={listRef}
+          className={`gallery-menu__list gallery-menu__list--${align}`}
+          role="menu"
+          aria-label={label}
+          onKeyDown={onListKey}
+        >
           {children(close)}
         </div>
       )}

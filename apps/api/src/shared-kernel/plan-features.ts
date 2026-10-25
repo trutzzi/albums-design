@@ -25,5 +25,7 @@ export const NO_WATERMARKS: PlanFeatures = {
   maxPhotosPerShoot: null,
   clientDownloadLinks: true,
   clientSlideshows: true,
-  clientBranding: true,
+  // Unlike the rest, not a penalty to withhold: the gallery simply keeps the AlbumFlow look,
+  // and the branding read side already refuses it without a subscription.
+  clientBranding: false,
 };

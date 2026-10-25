@@ -96,7 +96,7 @@ describe("plan features by shoot", () => {
     });
   });
 
-  it("never watermarks when the shoot cannot be found", async () => {
+  it("never watermarks, and never grants Studio Pro styling, when the shoot cannot be found", async () => {
     const directory = new SubscriptionPlanFeatureDirectory(
       new InMemoryProjectRepository(),
       new InMemorySubscriptionRepository(),
@@ -107,7 +107,7 @@ describe("plan features by shoot", () => {
       maxPhotosPerShoot: null,
       clientDownloadLinks: true,
       clientSlideshows: true,
-      clientBranding: true,
+      clientBranding: false,
     });
   });
 });

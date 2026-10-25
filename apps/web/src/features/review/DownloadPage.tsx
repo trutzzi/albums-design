@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useClientStyle } from "@/shared/ui/ClientBrand";
 import { sectionLabel } from "@/shared/lib/client-style";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import { PhotoGallery } from "@/shared/ui/PhotoGallery";
 import { GalleryCover } from "@/features/review/components/gallery/GalleryCover";
 import { GalleryToolbar } from "@/features/review/components/gallery/GalleryToolbar";
 import { GalleryCornerButtons } from "@/features/review/components/gallery/StudioContactCard";
+import { DownloadConfirmDialog } from "@/features/review/components/gallery/DownloadConfirmDialog";
 import { filterGallery, filterKey, type GalleryFilter } from "@/features/review/lib/client-gallery";
 import { ClientPageSkeleton } from "@/shared/ui/Loading";
 
@@ -41,6 +42,7 @@ export function DownloadPage() {
   const [slide, setSlide] = useState<number | null>(null);
   const [filter, setFilter] = useState<GalleryFilter>({ kind: "all" });
   const [shareCopied, setShareCopied] = useState(false);
+  const cancelDownload = useCallback(() => setConfirming(null), []);
   const galleryRef = useRef<HTMLDivElement>(null);
 
   const view = useQuery({
@@ -99,9 +101,9 @@ export function DownloadPage() {
       try {
         await navigator.share({ title: data.projectName, url });
         return;
-      } catch {
-        // Closing the share sheet is not an error worth showing.
-        return;
+      } catch (error) {
+        // Closing the share sheet is the client's choice; any other failure falls back to copying.
+        if (error instanceof DOMException && error.name === "AbortError") return;
       }
     }
     try {
@@ -196,44 +198,25 @@ export function DownloadPage() {
       )}
 
       {confirming && (
-        <div className="modal-overlay" role="presentation" onClick={() => setConfirming(null)}>
-          <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="download-confirm-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 id="download-confirm-title">
-              {confirming.kind === "all" ? t("download.confirm.title") : t("download.confirm.partTitle")}
-            </h2>
-            <p>{t("download.confirm.available", { date: until, days: data.daysLeft })}</p>
-            <p>{t("download.confirm.deleted")}</p>
-            <p className="muted">
-              {confirming.kind === "all"
-                ? t("download.confirm.size", { count: data.photoCount, size })
-                : t("download.confirm.partSize", { count: scopeCount(confirming) })}
-            </p>
-            <div className="modal__actions">
-              <button type="button" className="button" onClick={() => setConfirming(null)}>
-                {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                className="button button--primary"
-                onClick={() => {
-                  const scope = confirming;
-                  setConfirming(null);
-                  setStarted(true);
-                  // Navigating to a file response downloads it and leaves this page in place.
-                  window.location.assign(downloadZipUrl(token, scope));
-                }}
-              >
-                {t("download.confirm.yes")}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DownloadConfirmDialog
+          title={confirming.kind === "all" ? t("download.confirm.title") : t("download.confirm.partTitle")}
+          onCancel={cancelDownload}
+          onConfirm={() => {
+            const scope = confirming;
+            setConfirming(null);
+            setStarted(true);
+            // Navigating to a file response downloads it and leaves this page in place.
+            window.location.assign(downloadZipUrl(token, scope));
+          }}
+        >
+          <p>{t("download.confirm.available", { date: until, days: data.daysLeft })}</p>
+          <p>{t("download.confirm.deleted")}</p>
+          <p className="muted">
+            {confirming.kind === "all"
+              ? t("download.confirm.size", { count: data.photoCount, size })
+              : t("download.confirm.partSize", { count: scopeCount(confirming) })}
+          </p>
+        </DownloadConfirmDialog>
       )}
     </div>
   );

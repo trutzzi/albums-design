@@ -1,5 +1,5 @@
 import { useEffect, type CSSProperties } from "react";
-import type { ClientBrandingDTO } from "@albumflow/contracts";
+import type { ClientBrandingDTO, ClientStyle } from "@albumflow/contracts";
 import { fixedTheme, titleFontStack, titleFontStylesheet, watermarkVariables } from "@/shared/lib/client-style";
 
 /**
@@ -25,15 +25,7 @@ export function useClientStyle(branding: ClientBrandingDTO | null | undefined): 
 } {
   const font = branding?.style.titleFont;
   const theme = fixedTheme(branding?.style);
-
-  useEffect(() => {
-    const href = font ? titleFontStylesheet(font) : null;
-    if (!href || document.head.querySelector(`link[href="${href}"]`)) return;
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = href;
-    document.head.appendChild(link);
-  }, [font]);
+  useTitleFont(font);
 
   // On the root, so the whole page (body included) takes the studio's colours while it is open.
   useEffect(() => {
@@ -50,6 +42,18 @@ export function useClientStyle(branding: ClientBrandingDTO | null | undefined): 
     style: font ? ({ ...base, "--title-font": titleFontStack(font) } as CSSProperties) : base,
     themeFixed: theme !== null,
   };
+}
+
+/** Loads a title font's stylesheet once per page, so text set in it shows in it. */
+export function useTitleFont(font: ClientStyle["titleFont"] | undefined): void {
+  useEffect(() => {
+    const href = font ? titleFontStylesheet(font) : null;
+    if (!href || document.head.querySelector(`link[href="${href}"]`)) return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    document.head.appendChild(link);
+  }, [font]);
 }
 
 /** How an album proof is marked: a class for the overlay, and the variables it reads. */
