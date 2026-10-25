@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { DEFAULT_CLIENT_STYLE, type ClientBrandingDTO } from "@albumflow/contracts";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { localeOf } from "@/shared/i18n/locale";
 import { displayWebsite } from "@/features/review/lib/client-gallery";
 import { SocialLinks } from "./SocialLinks";
 
@@ -29,7 +30,7 @@ export function GalleryCover({
   const { t, language } = useLanguage();
   const style = branding?.style ?? DEFAULT_CLIENT_STYLE;
   const date = eventDate
-    ? new Date(eventDate).toLocaleDateString(language === "ro" ? "ro-RO" : "en-GB", {
+    ? new Date(eventDate).toLocaleDateString(localeOf(language), {
         day: "numeric",
         month: "long",
         year: "numeric",

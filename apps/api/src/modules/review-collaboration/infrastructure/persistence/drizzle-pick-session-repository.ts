@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "#src/db/client";
 import { PickSession } from "../../domain/pick-session";
@@ -54,6 +54,20 @@ export class DrizzlePickSessionRepository implements PickSessionRepository {
   async findByTokenHash(tokenHash: string): Promise<PickSession | undefined> {
     const [row] = await this.db.select().from(pickSessions).where(eq(pickSessions.tokenHash, tokenHash)).limit(1);
     return row ? toDomain(row) : undefined;
+  }
+
+  async findByProjectIds(projectIds: UniqueEntityId[]): Promise<PickSession[]> {
+    if (projectIds.length === 0) return [];
+    const rows = await this.db
+      .select()
+      .from(pickSessions)
+      .where(
+        inArray(
+          pickSessions.projectId,
+          projectIds.map((id) => id.toString()),
+        ),
+      );
+    return rows.map(toDomain);
   }
 
   async findByProjectId(projectId: UniqueEntityId): Promise<PickSession[]> {

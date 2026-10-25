@@ -9,6 +9,7 @@ import { registerReviewRoutes } from "../modules/review-collaboration/interface/
 import { registerPickRoutes } from "../modules/review-collaboration/interface/http/pick-routes";
 import { registerDownloadRoutes } from "../modules/review-collaboration/interface/http/download-routes";
 import { registerSlideshowRoutes } from "../modules/review-collaboration/interface/http/slideshow-routes";
+import { registerActivityRoutes } from "../modules/review-collaboration/interface/http/activity-routes";
 import { registerExportRoutes } from "../modules/export-print/interface/http/routes";
 
 /**
@@ -54,6 +55,7 @@ export function registerApplicationRoutes(app: FastifyInstance, application: App
   });
   registerPickRoutes(app, { pickAdmin: application.pickAdmin, pickPortal: application.pickPortal });
   registerDownloadRoutes(app, { downloadAdmin: application.downloadAdmin, downloadPortal: application.downloadPortal });
+  registerActivityRoutes(app, { shootActivity: application.shootActivity });
   registerSlideshowRoutes(app, {
     slideshowAdmin: application.slideshowAdmin,
     slideshowPortal: application.slideshowPortal,

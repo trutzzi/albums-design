@@ -7,10 +7,18 @@ import type { PickSessionRepository } from "../../domain/pick-session-repository
 import { chooseCover, storySections } from "../../domain/client-gallery";
 import { hashToken } from "../../domain/review-session";
 import type { DeliverablePhoto, DeliveryGateway, DownloadNotifier } from "../ports/delivery-gateway";
+import type { CoverThumbnails, TeaserImages } from "../ports/cover-teaser";
 import type { PickGateway, PickablePhoto } from "../ports/pick-gateway";
 import type { ClientAccessService } from "../services/client-access.service";
 import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 import type { PhotoTraits, PhotoTraitsDirectory } from "#src/shared-kernel/photo-traits";
+
+export interface GateInfo {
+  studioName: string | null;
+  accent: string | null;
+  /** Whether `/teaser.jpg` can be shown behind the form. */
+  teaser: boolean;
+}
 
 export interface DownloadView {
   clientName: string;
@@ -22,8 +30,12 @@ export interface DownloadView {
   expiresAt: string;
   daysLeft: number;
   branding: ClientBrandingDTO | null;
-  /** Display copies to browse before downloading — never the originals. */
-  photos: (PickablePhoto & { section: string | null })[];
+  /**
+   * Display copies to browse before downloading — never the originals. `byteSize` is the
+   * full-size original's, so the page can say how big each download is; `null` for a photo
+   * whose original is no longer stored (it is not in any download).
+   */
+  photos: (PickablePhoto & { section: string | null; byteSize: number | null })[];
   /** The chapters the gallery is split into, in the order of the day (photo categories, e.g. `CEREMONY`). */
   sections: string[];
   coverPhotoId: string | null;
@@ -49,7 +61,13 @@ export type DownloadScope = { kind: "all" } | { kind: "favorites" } | { kind: "s
  * Every client-facing operation is scoped by the share token — like the review
  * and pick portals there is no other authentication, so the token is the boundary.
  */
+/** A teaser stays the same for a while; serving it from memory spares the listing and the resize. */
+const TEASER_CACHE_MS = 60 * 60 * 1000;
+const TEASER_CACHE_MAX = 200;
+
 export class DownloadPortalUseCase {
+  private readonly teasers = new Map<string, { at: number; image: Buffer }>();
+
   constructor(
     private readonly sessions: DownloadSessionRepository,
     private readonly delivery: DeliveryGateway,
@@ -64,6 +82,8 @@ export class DownloadPortalUseCase {
       traits?: PhotoTraitsDirectory | undefined;
       /** Where the client's earlier picks come from. Without it there are no favourites. */
       picks?: Pick<PickSessionRepository, "findByProjectId"> | undefined;
+      /** The blurred cover behind the password gate. Without it the gate shows no photo. */
+      teaser?: { source: CoverThumbnails; images: TeaserImages } | undefined;
     } = {},
   ) {}
 
@@ -82,6 +102,62 @@ export class DownloadPortalUseCase {
     return granted.isFailure ? Result.failure(granted.getError()) : Result.success({ grant: granted.getValue() });
   }
 
+  /**
+   * What the password gate may show before the password: the studio's name and colour, and
+   * whether there is a cover teaser. Never the shoot's name or anything from its photos.
+   */
+  async gate(token: string): Promise<Result<GateInfo, ApplicationError>> {
+    const found = await this.resolve(token);
+    if (found.isFailure) return Result.failure(found.getError());
+    const project = await this.delivery.loadProject(found.getValue().projectId.toString());
+    if (!project) return Result.failure(new NotFoundError("Download link", "token"));
+    return Result.success({
+      studioName: project.branding?.name ?? null,
+      accent: project.branding?.accent ?? null,
+      teaser: Boolean(this.arrangement.teaser),
+    });
+  }
+
+  /**
+   * The gallery's cover shrunk to a few dozen pixels, for the gate to blur behind its form.
+   * Shown before the password by the owner's choice; the size keeps it a mood, not a photo.
+   */
+  async teaser(token: string): Promise<Result<Buffer, ApplicationError>> {
+    const teaser = this.arrangement.teaser;
+    if (!teaser) return Result.failure(new NotFoundError("Cover", "teaser"));
+    const found = await this.resolve(token);
+    if (found.isFailure) return Result.failure(found.getError());
+    const session = found.getValue();
+    // A newly chosen cover is a new key; an automatic one may lag by up to an hour, which is fine for a blur.
+    const key = `${session.id.toString()}:${session.coverPhotoId ?? "auto"}`;
+    const cached = this.teasers.get(key);
+    if (cached && this.now().getTime() - cached.at < TEASER_CACHE_MS) return Result.success(cached.image);
+
+    const projectId = session.projectId.toString();
+    let coverId: string | null = null;
+    try {
+      const [listed, traits] = await Promise.all([
+        this.gallery?.listPhotos(projectId) ?? [],
+        this.traitsFor(projectId).then((found) => found ?? new Map<string, PhotoTraits>()),
+      ]);
+      coverId = chooseCover(listed, traits, session.coverPhotoId);
+      const thumbnail = coverId ? await teaser.source.thumbnail(coverId) : undefined;
+      if (!thumbnail) return Result.failure(new NotFoundError("Cover", "teaser"));
+      const image = await teaser.images.shrink(thumbnail);
+      if (this.teasers.size >= TEASER_CACHE_MAX) this.teasers.delete(this.teasers.keys().next().value!);
+      this.teasers.set(key, { at: this.now().getTime(), image });
+      return Result.success(image);
+    } catch (error) {
+      // The gate simply shows the plain lock; the photographer's gallery is unaffected.
+      this.logger.warn("could not make the gallery cover teaser", {
+        sessionId: session.id.toString(),
+        photoId: coverId,
+        err: error,
+      });
+      return Result.failure(new NotFoundError("Cover", "teaser"));
+    }
+  }
+
   async view(token: string): Promise<Result<DownloadView, ApplicationError>> {
     const found = await this.resolve(token);
     if (found.isFailure) return Result.failure(found.getError());
@@ -96,7 +172,12 @@ export class DownloadPortalUseCase {
       this.traitsFor(project.id).then((found) => found ?? new Map<string, PhotoTraits>()),
       this.favoritesFor(project.id).then((found) => found ?? []),
     ]);
-    const photos = listed.map((photo) => ({ ...photo, section: traits.get(photo.id)?.category ?? null }));
+    const sizes = new Map(available.map((photo) => [photo.photoId, photo.byteSize]));
+    const photos = listed.map((photo) => ({
+      ...photo,
+      section: traits.get(photo.id)?.category ?? null,
+      byteSize: sizes.get(photo.id) ?? null,
+    }));
 
     return Result.success({
       clientName: session.clientName,

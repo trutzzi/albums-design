@@ -6,5 +6,7 @@ export interface ReviewSessionRepository {
   findById(id: UniqueEntityId): Promise<ReviewSession | undefined>;
   findByTokenHash(tokenHash: string): Promise<ReviewSession | undefined>;
   findByAlbumId(albumId: UniqueEntityId): Promise<ReviewSession[]>;
+  /** Many albums' review links in one query, for the shoots list. */
+  findByAlbumIds(albumIds: UniqueEntityId[]): Promise<ReviewSession[]>;
   delete(id: UniqueEntityId): Promise<void>;
 }
