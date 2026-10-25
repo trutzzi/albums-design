@@ -148,6 +148,8 @@ export class DownloadPortalUseCase {
       this.makingTeasers.set(key, making);
     }
     const image = await making;
+    // A refresh re-inserts its key as the newest, rather than evicting some other link's teaser.
+    this.teasers.delete(key);
     if (this.teasers.size >= TEASER_CACHE_MAX) this.teasers.delete(this.teasers.keys().next().value!);
     this.teasers.set(key, { at: this.now().getTime(), image });
     return image ? Result.success(image) : Result.failure(new NotFoundError("Cover", "teaser"));
