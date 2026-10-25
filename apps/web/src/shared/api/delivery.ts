@@ -118,6 +118,22 @@ export function getDownloadView(token: string): Promise<DownloadView> {
   return request(`/download/${token}`);
 }
 
+/** What a locked download link shows before its password: the studio, and whether a cover teaser exists. */
+export interface DownloadGate {
+  studioName: string | null;
+  accent: string | null;
+  teaser: boolean;
+}
+
+export function getDownloadGate(token: string): Promise<DownloadGate> {
+  return request(`/download/${token}/gate`);
+}
+
+/** The cover shrunk to a few dozen pixels; the gate blurs it behind the form. */
+export function downloadTeaserUrl(token: string): string {
+  return `${API_URL}/download/${token}/teaser.jpg`;
+}
+
 /** Which photos the ZIP holds: everything, the client's favourites, or one chapter. */
 export type DownloadScope = { kind: "all" } | { kind: "favorites" } | { kind: "section"; section: string };
 

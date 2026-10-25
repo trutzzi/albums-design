@@ -7,10 +7,18 @@ import type { PickSessionRepository } from "../../domain/pick-session-repository
 import { chooseCover, storySections } from "../../domain/client-gallery";
 import { hashToken } from "../../domain/review-session";
 import type { DeliverablePhoto, DeliveryGateway, DownloadNotifier } from "../ports/delivery-gateway";
+import type { CoverThumbnails, TeaserImages } from "../ports/cover-teaser";
 import type { PickGateway, PickablePhoto } from "../ports/pick-gateway";
 import type { ClientAccessService } from "../services/client-access.service";
 import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 import type { PhotoTraits, PhotoTraitsDirectory } from "#src/shared-kernel/photo-traits";
+
+export interface GateInfo {
+  studioName: string | null;
+  accent: string | null;
+  /** Whether `/teaser.jpg` can be shown behind the form. */
+  teaser: boolean;
+}
 
 export interface DownloadView {
   clientName: string;
@@ -49,11 +57,22 @@ export interface PreparedDownload {
 /** Which photos go into the ZIP: all of them, the client's favourites, or one chapter. */
 export type DownloadScope = { kind: "all" } | { kind: "favorites" } | { kind: "section"; section: string };
 
+/** A teaser stays the same for a while; serving it from memory spares the listing and the resize. */
+const TEASER_CACHE_MS = 60 * 60 * 1000;
+/** A link with no usable cover is asked again only after this, so a bad thumbnail cannot be hammered. */
+const TEASER_MISS_MS = 5 * 60 * 1000;
+const TEASER_CACHE_MAX = 200;
+
 /**
  * Every client-facing operation is scoped by the share token — like the review
  * and pick portals there is no other authentication, so the token is the boundary.
  */
 export class DownloadPortalUseCase {
+  /** `image: null` remembers that a link has no teaser to show. */
+  private readonly teasers = new Map<string, { at: number; image: Buffer | null }>();
+  /** Concurrent first requests for one link share a single piece of work. */
+  private readonly makingTeasers = new Map<string, Promise<Buffer | null>>();
+
   constructor(
     private readonly sessions: DownloadSessionRepository,
     private readonly delivery: DeliveryGateway,
@@ -68,6 +87,8 @@ export class DownloadPortalUseCase {
       traits?: PhotoTraitsDirectory | undefined;
       /** Where the client's earlier picks come from. Without it there are no favourites. */
       picks?: Pick<PickSessionRepository, "findByProjectId"> | undefined;
+      /** The blurred cover behind the password gate. Without it the gate shows no photo. */
+      teaser?: { source: CoverThumbnails; images: TeaserImages } | undefined;
     } = {},
   ) {}
 
@@ -84,6 +105,80 @@ export class DownloadPortalUseCase {
     if (!this.access) return Result.failure(new NotFoundError("Download link", "token"));
     const granted = await this.access.unlock("download", found.getValue(), password);
     return granted.isFailure ? Result.failure(granted.getError()) : Result.success({ grant: granted.getValue() });
+  }
+
+  /**
+   * What the password gate may show before the password: the studio's name and colour, and
+   * whether there is a cover teaser. Never the shoot's name or anything from its photos.
+   */
+  async gate(token: string): Promise<Result<GateInfo, ApplicationError>> {
+    const found = await this.resolve(token);
+    if (found.isFailure) return Result.failure(found.getError());
+    const project = await this.delivery.loadProject(found.getValue().projectId.toString());
+    if (!project) return Result.failure(new NotFoundError("Download link", "token"));
+    return Result.success({
+      studioName: project.branding?.name ?? null,
+      accent: project.branding?.accent ?? null,
+      teaser: Boolean(this.arrangement.teaser),
+    });
+  }
+
+  /**
+   * The gallery's cover shrunk to a few dozen pixels, for the gate to blur behind its form.
+   * Shown before the password on every protected download link — the owner decided this on
+   * 2026-10-25, with no per-link setting; the size keeps it a mood, not a photo.
+   */
+  async teaser(token: string): Promise<Result<Buffer, ApplicationError>> {
+    const teaser = this.arrangement.teaser;
+    if (!teaser) return Result.failure(new NotFoundError("Cover", "teaser"));
+    const found = await this.resolve(token);
+    if (found.isFailure) return Result.failure(found.getError());
+    const session = found.getValue();
+    // A newly chosen cover is a new key; an automatic one may lag by up to an hour, which is fine for a blur.
+    const key = `${session.id.toString()}:${session.coverPhotoId ?? "auto"}`;
+    const cached = this.teasers.get(key);
+    const age = cached ? this.now().getTime() - cached.at : Infinity;
+    if (cached && age < (cached.image ? TEASER_CACHE_MS : TEASER_MISS_MS)) {
+      return cached.image ? Result.success(cached.image) : Result.failure(new NotFoundError("Cover", "teaser"));
+    }
+
+    let making = this.makingTeasers.get(key);
+    if (!making) {
+      making = this.makeTeaser(session, teaser).finally(() => this.makingTeasers.delete(key));
+      this.makingTeasers.set(key, making);
+    }
+    const image = await making;
+    // A refresh re-inserts its key as the newest, rather than evicting some other link's teaser.
+    this.teasers.delete(key);
+    if (this.teasers.size >= TEASER_CACHE_MAX) this.teasers.delete(this.teasers.keys().next().value!);
+    this.teasers.set(key, { at: this.now().getTime(), image });
+    return image ? Result.success(image) : Result.failure(new NotFoundError("Cover", "teaser"));
+  }
+
+  /** `null` when there is nothing to show — no cover yet, or a thumbnail that cannot be read. */
+  private async makeTeaser(
+    session: DownloadSession,
+    teaser: { source: CoverThumbnails; images: TeaserImages },
+  ): Promise<Buffer | null> {
+    const projectId = session.projectId.toString();
+    let coverId: string | null = null;
+    try {
+      const [listed, traits] = await Promise.all([
+        this.gallery?.listPhotos(projectId) ?? [],
+        this.traitsFor(projectId).then((found) => found ?? new Map<string, PhotoTraits>()),
+      ]);
+      coverId = chooseCover(listed, traits, session.coverPhotoId);
+      const thumbnail = coverId ? await teaser.source.thumbnail(coverId) : undefined;
+      return thumbnail ? await teaser.images.shrink(thumbnail) : null;
+    } catch (error) {
+      // The gate simply shows the plain lock; the photographer's gallery is unaffected.
+      this.logger.warn("could not make the gallery cover teaser", {
+        sessionId: session.id.toString(),
+        photoId: coverId,
+        err: error,
+      });
+      return null;
+    }
   }
 
   async view(token: string): Promise<Result<DownloadView, ApplicationError>> {

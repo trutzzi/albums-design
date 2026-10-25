@@ -2474,24 +2474,6 @@ a:focus-visible,
 /* ---- client download page ---- */
 
 /* ---- password gate & access details ---- */
-.gate {
-  max-width: 460px;
-  margin: 0 auto;
-}
-.gate__card {
-  display: grid;
-  gap: 12px;
-  margin-top: 24px;
-}
-.gate__card h1 {
-  margin: 0;
-  font-size: 1.4rem;
-}
-.gate .field input {
-  font-size: 1.1rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
 .access-modal {
   width: min(520px, 100%);
   display: grid;
@@ -5571,4 +5553,115 @@ body.is-previewing {
   .gallery-cover__scroll {
     animation: none;
   }
+}
+
+/* ---- password gate, refined (features/review/components/PasswordGate) ---- */
+.gate {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 440px;
+  padding-top: 24px;
+}
+.gate__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+/* The text colour, not the studio's accent: an arbitrary colour cannot promise contrast. */
+.gate__studio {
+  min-height: 1.4em;
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-size: 1.15rem;
+  color: var(--ink);
+}
+.gate__art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 96px;
+}
+/* A cover expected (reserved, so nothing jumps) or shown: the same frame either way. */
+.gate__art--reserved,
+.gate__art--photo {
+  height: 200px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--surface-2);
+}
+/* The cover arrives a few dozen pixels wide; enlarged and blurred it is a mood, not a photo. */
+.gate__teaser {
+  position: absolute;
+  inset: -12px;
+  width: calc(100% + 24px);
+  height: calc(100% + 24px);
+  object-fit: cover;
+  filter: blur(14px) saturate(1.1);
+}
+.gate__art--photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 24, 28, 0.28);
+}
+.gate__lock {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.gate__art--photo .gate__lock {
+  position: absolute;
+  left: 50%;
+  bottom: -1px;
+  transform: translateX(-50%);
+  border-radius: 50% 50% 0 0;
+  background: var(--bg);
+}
+.gate__intro {
+  text-align: center;
+}
+.gate__intro h1 {
+  margin: 0 0 6px;
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-weight: 400;
+  font-size: 1.75rem;
+}
+.gate__intro p {
+  margin: 0;
+}
+.gate__card {
+  margin-top: 0;
+  border-radius: 16px;
+}
+.gate .field input {
+  min-height: 50px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.gate .field input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.gate__note {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+.gate__card .button--primary {
+  min-height: 50px;
+}
+.gate__help {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  text-align: center;
 }

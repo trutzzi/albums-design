@@ -109,6 +109,29 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
     return result.getValue();
   });
 
+  // Before the password, by the owner's choice: the studio's name and colour, and the cover
+  // shrunk to a few dozen pixels for the gate to blur. Nothing else about the shoot.
+  app.get("/download/:token/gate", async (request, reply) => {
+    const { token } = tokenParams.parse(request.params);
+    const result = await deps.downloadPortal.gate(token);
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return result.getValue();
+  });
+
+  app.get("/download/:token/teaser.jpg", async (request, reply) => {
+    const { token } = tokenParams.parse(request.params);
+    const result = await deps.downloadPortal.teaser(token);
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return (
+      reply
+        .header("Content-Type", "image/jpeg")
+        // Short, so a revoked link's teaser does not linger in a browser for long.
+        .header("Cache-Control", "private, max-age=300")
+        .header("X-Content-Type-Options", "nosniff")
+        .send(result.getValue())
+    );
+  });
+
   app.get("/download/:token", async (request, reply) => {
     const { token } = tokenParams.parse(request.params);
     const allowed = await deps.downloadPortal.authorize(token, grantFrom(request));

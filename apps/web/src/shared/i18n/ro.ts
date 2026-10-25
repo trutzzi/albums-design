@@ -476,6 +476,8 @@ export const ro: Record<string, string> = {
   "access.gate.title": "Acest link este protejat",
   "access.gate.hint": "Introdu parola primită de la fotograful tău.",
   "access.gate.password": "Parola",
+  "access.gate.note": "Majusculele și cratima nu contează.",
+  "access.gate.help": "Nu ai parola? Răspunde la emailul primit de la fotograf.",
   "access.gate.submit": "Deschide",
   "access.gate.checking": "Se verifică…",
   "access.gate.invalid": "Parola nu este corectă. Verific-o și încearcă din nou.",

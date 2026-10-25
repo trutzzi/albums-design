@@ -466,6 +466,8 @@ export const en: Record<string, string> = {
   "access.gate.title": "This link is protected",
   "access.gate.hint": "Enter the password your photographer sent you.",
   "access.gate.password": "Password",
+  "access.gate.note": "Capitals and the dash don't matter.",
+  "access.gate.help": "No password? Reply to your photographer's email.",
   "access.gate.submit": "Open",
   "access.gate.checking": "Checking…",
   "access.gate.invalid": "That password is not correct. Check it and try again.",
