@@ -15,6 +15,7 @@ import {
   InvalidSlideshowSettingsError,
   SlideshowSession,
   SlideshowUnavailableError,
+  type SlideshowSessionProps,
 } from "../src/modules/review-collaboration/domain/slideshow-session";
 import type { PickGateway } from "../src/modules/review-collaboration/application/ports/pick-gateway";
 import { SlideshowSessionAdminUseCase } from "../src/modules/review-collaboration/application/use-cases/slideshow-session-admin.use-case";
@@ -522,7 +523,7 @@ describe("the client's side of slideshows", () => {
     assert.equal(summary!.viewCount, 2);
     assert.ok(summary!.lastViewedAt);
 
-    w.sessions.save = async () => {
+    w.sessions.recordView = async () => {
       throw new Error("database is down");
     };
     assert.ok((await w.portal.recordView(token)).isSuccess);
@@ -530,6 +531,26 @@ describe("the client's side of slideshows", () => {
       w.logger.entries.map((e) => [e.level, e.message]),
       [["warn", "could not record a slideshow view"]],
     );
+  });
+
+  it("never brings back a link the studio revoked while a view was being counted", async () => {
+    const w = await world();
+    const { token, sessionId } = (
+      await w.admin.open({ projectId: w.projectId, clientName: "E", source: "SHOOT" })
+    ).getValue();
+    const stored = [...w.sessions.items.values()][0]!;
+    // The view loads its copy of the link before the studio's revoke lands, as in a real race.
+    const stale = SlideshowSession.reconstitute(
+      { ...(stored as unknown as { props: SlideshowSessionProps }).props },
+      stored.id,
+    );
+    w.sessions.findByTokenHash = async () => stale;
+    await w.admin.revoke(w.projectId, sessionId);
+
+    assert.ok((await w.portal.recordView(token)).isSuccess);
+    const after = w.sessions.items.get(sessionId)!;
+    assert.equal(after.status, "REVOKED", "the revoke survives the view");
+    assert.equal(after.viewCount, 1, "and the view still counted");
   });
 });
 

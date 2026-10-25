@@ -340,6 +340,9 @@ export class InMemorySlideshowSessionRepository implements SlideshowSessionRepos
   async findByTokenHash(tokenHash: string) {
     return [...this.items.values()].find((session) => session.tokenHash === tokenHash);
   }
+  async recordView(id: UniqueEntityId, at: Date) {
+    this.items.get(id.toString())?.recordView(at);
+  }
   async findByProjectId(projectId: UniqueEntityId) {
     return [...this.items.values()].filter((session) => session.projectId.toString() === projectId.toString());
   }

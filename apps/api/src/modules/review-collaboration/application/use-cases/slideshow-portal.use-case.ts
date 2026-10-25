@@ -69,8 +69,7 @@ export class SlideshowPortalUseCase {
     if (found.isFailure) return Result.failure(found.getError());
     const session = found.getValue();
     try {
-      session.recordView(this.now());
-      await this.sessions.save(session);
+      await this.sessions.recordView(session.id, this.now());
     } catch (error) {
       this.logger.warn("could not record a slideshow view", { sessionId: session.id.toString(), err: error });
     }
