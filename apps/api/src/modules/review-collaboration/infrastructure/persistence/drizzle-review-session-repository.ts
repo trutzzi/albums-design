@@ -1,8 +1,8 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "#src/db/client";
 import { ReviewSession } from "../../domain/review-session";
-import type { ReviewSessionRepository } from "../../domain/review-session-repository";
+import type { ReviewProgress, ReviewSessionRepository } from "../../domain/review-session-repository";
 import { reviewSessions } from "./schema";
 
 export class DrizzleReviewSessionRepository implements ReviewSessionRepository {
@@ -52,10 +52,17 @@ export class DrizzleReviewSessionRepository implements ReviewSessionRepository {
     return row ? toDomain(row) : undefined;
   }
 
-  async findByAlbumIds(albumIds: UniqueEntityId[]): Promise<ReviewSession[]> {
+  async progressByAlbumIds(albumIds: UniqueEntityId[]): Promise<ReviewProgress[]> {
     if (albumIds.length === 0) return [];
-    const rows = await this.db
-      .select()
+    return this.db
+      .select({
+        albumId: reviewSessions.albumId,
+        status: reviewSessions.status,
+        openComments: sql<number>`(
+          select count(*) from jsonb_array_elements(${reviewSessions.comments}) as comment
+          where coalesce((comment ->> 'resolved')::boolean, false) = false
+        )`.mapWith(Number),
+      })
       .from(reviewSessions)
       .where(
         inArray(
@@ -63,7 +70,6 @@ export class DrizzleReviewSessionRepository implements ReviewSessionRepository {
           albumIds.map((id) => id.toString()),
         ),
       );
-    return rows.map(toDomain);
   }
 
   async findByAlbumId(albumId: UniqueEntityId): Promise<ReviewSession[]> {

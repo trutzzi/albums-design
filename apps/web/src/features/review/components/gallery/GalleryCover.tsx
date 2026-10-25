@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { DEFAULT_CLIENT_STYLE, type ClientBrandingDTO } from "@albumflow/contracts";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { localeOf } from "@/shared/i18n/locale";
-import { displayWebsite } from "@/features/review/lib/client-gallery";
-import { SocialLinks } from "./SocialLinks";
+import { displayWebsite } from "@/shared/lib/contact";
+import { SocialLinks } from "@/shared/ui/SocialLinks";
 
 /**
  * The first screen of a delivery: the cover photo and the shoot's date, title and
