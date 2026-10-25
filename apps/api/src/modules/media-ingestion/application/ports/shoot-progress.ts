@@ -5,7 +5,7 @@
 export interface ShootProgress {
   albums: { id: string; status: string }[];
   picks: { status: string; clientName: string; pickedCount: number; submittedAt: string | null }[];
-  reviews: { status: string; openComments: number }[];
+  reviews: { albumId: string; status: string; openComments: number }[];
   deliveries: { status: "ACTIVE" | "EXPIRED" | "REVOKED"; downloadCount: number; daysLeft: number }[];
 }
 

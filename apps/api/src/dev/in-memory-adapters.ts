@@ -364,10 +364,6 @@ export class InMemorySlideshowSessionRepository implements SlideshowSessionRepos
   async findByProjectId(projectId: UniqueEntityId) {
     return [...this.items.values()].filter((session) => session.projectId.toString() === projectId.toString());
   }
-  async findByProjectIds(projectIds: UniqueEntityId[]) {
-    const wanted = new Set(projectIds.map((id) => id.toString()));
-    return [...this.items.values()].filter((session) => wanted.has(session.projectId.toString()));
-  }
   async deleteByProjectId(projectId: UniqueEntityId) {
     for (const [id, session] of this.items) {
       if (session.projectId.toString() === projectId.toString()) this.items.delete(id);

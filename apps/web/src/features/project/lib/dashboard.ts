@@ -26,7 +26,7 @@ export function stepsDone(shoot: ProjectSummaryDTO): boolean[] {
 }
 
 export type Attention =
-  | { kind: "changes"; count: number; albumId: string | null }
+  | { kind: "changes"; count: number; albumId: string }
   | { kind: "picks"; name: string; count: number }
   | { kind: "deliver" }
   | { kind: "expiring"; days: number };
@@ -39,7 +39,8 @@ export type Attention =
 export function attentionFor(shoot: ProjectSummaryDTO): Attention | null {
   const progress = shoot.progress ?? NO_PROGRESS;
   const changes = progress.reviews.find((review) => review.status === "CHANGES_REQUESTED" && review.openComments > 0);
-  if (changes) return { kind: "changes", count: changes.openComments, albumId: progress.albums[0]?.id ?? null };
+  // The album the notes are on — a shoot can have more than one.
+  if (changes) return { kind: "changes", count: changes.openComments, albumId: changes.albumId };
 
   const sent = progress.picks.find((pick) => pick.status === "SUBMITTED");
   if (sent && progress.albums.length === 0) return { kind: "picks", name: sent.clientName, count: sent.pickedCount };

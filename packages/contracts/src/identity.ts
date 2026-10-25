@@ -50,7 +50,7 @@ export const projectSummaryDtoSchema = projectDtoSchema.extend({
           submittedAt: z.string().nullable(),
         }),
       ),
-      reviews: z.array(z.object({ status: z.string(), openComments: z.number().int().min(0) })),
+      reviews: z.array(z.object({ albumId: z.string(), status: z.string(), openComments: z.number().int().min(0) })),
       deliveries: z.array(
         z.object({
           status: z.enum(["ACTIVE", "EXPIRED", "REVOKED"]),

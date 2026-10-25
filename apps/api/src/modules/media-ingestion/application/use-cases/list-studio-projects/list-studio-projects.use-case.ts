@@ -57,7 +57,11 @@ export class ListStudioProjectsUseCase {
       this.photos.countByProjectIds(ids),
       this.albums.countByProjectIds(ids),
       this.photos.findCoverPhotos(ids),
-      this.progress?.forProjects(ids.map((id) => id.toString())),
+      // Progress is a nicety on the cards: if it cannot be read, the list still opens without it.
+      this.progress?.forProjects(ids.map((id) => id.toString())).catch((error: unknown) => {
+        this.logger.error("could not read the shoots' progress", { studioId, err: error });
+        return undefined;
+      }),
     ]);
     const covers = await Promise.all(
       projects.map((project) => this.coverUrl(project, coverPhotos.get(project.id.toString()))),

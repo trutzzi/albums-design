@@ -16,11 +16,11 @@ import {
   filterCounts,
   greetingKey,
   matchesFilter,
-  stepsDone,
-  workflowOf,
   type Attention,
   type ShootFilter,
 } from "@/features/project/lib/dashboard";
+import { AttentionCard } from "@/features/project/components/AttentionCard";
+import { ShootProgressBar } from "@/features/project/components/ShootProgressBar";
 
 const FILTERS: ShootFilter[] = ["all", "needs", "client", "delivered"];
 /** More than this and the row stops being a glance; the "Needs you" tab holds the rest. */
@@ -223,7 +223,7 @@ export function ProjectsPage() {
       <header className="page__header">
         <div>
           <h1 className="shoots__greeting">
-            {name ? t(greetingKey(new Date()), { name: name.split(" ")[0]! }) : t("projects.title")}
+            {name ? t(greetingKey(new Date()), { name: name.trim().split(/\s+/)[0]! }) : t("projects.title")}
           </h1>
           <p className="muted">
             {waiting.length > 0
@@ -317,7 +317,9 @@ export function ProjectsPage() {
       )}
 
       {all.length > 0 && visible.length === 0 && (
-        <p className="muted">{filter === "all" ? t("projects.search.none") : t("projects.filter.none")}</p>
+        <p className="muted">
+          {search.trim() || filter === "all" ? t("projects.search.none") : t("projects.filter.none")}
+        </p>
       )}
 
       <div className="shoot-grid" data-tour={visible.length > 0 ? "shoot-grid" : undefined}>
@@ -351,72 +353,5 @@ export function ProjectsPage() {
         ))}
       </div>
     </div>
-  );
-}
-
-/** Four segments, one per step of the shoot, and the next thing to do — the shoot page's own words. */
-function ShootProgressBar({ project }: { project: ProjectSummaryDTO }) {
-  const { t } = useLanguage();
-  const done = stepsDone(project);
-  const next = workflowOf(project).next.text;
-  return (
-    <div className="shoot-card__progress">
-      <div
-        className="shoot-card__steps"
-        role="img"
-        aria-label={t("projects.card.progress", { done: done.filter(Boolean).length, total: done.length })}
-      >
-        {done.map((isDone, index) => (
-          <span key={index} className={isDone ? "shoot-card__step shoot-card__step--done" : "shoot-card__step"} />
-        ))}
-      </div>
-      <p className="shoot-card__next">{t(next.key, next.params)}</p>
-    </div>
-  );
-}
-
-/** One thing waiting on the photographer, with the button that does it. */
-function AttentionCard({ project, item }: { project: ProjectSummaryDTO; item: Attention }) {
-  const { t } = useLanguage();
-  const shootUrl = `/projects/${project.id}`;
-  const view =
-    item.kind === "changes"
-      ? {
-          text: t("projects.attention.changes", { count: item.count }),
-          action: t("projects.attention.review"),
-          to: item.albumId ? `/albums/${item.albumId}` : `${shootUrl}?step=album`,
-          tone: "client",
-        }
-      : item.kind === "picks"
-        ? {
-            text: t("projects.attention.picks", { name: item.name, count: item.count }),
-            action: t("projects.attention.generate"),
-            to: `${shootUrl}?step=album`,
-            tone: "warm",
-          }
-        : item.kind === "deliver"
-          ? {
-              text: t("projects.attention.deliver"),
-              action: t("projects.attention.deliverAction"),
-              to: `${shootUrl}?step=delivery`,
-              tone: "warm",
-            }
-          : {
-              text: t("projects.attention.expiring", { days: item.days }),
-              action: t("projects.attention.open"),
-              to: `${shootUrl}?step=delivery`,
-              tone: "quiet",
-            };
-  return (
-    <article className={`attention__card attention__card--${view.tone}`}>
-      <span className="attention__mark" aria-hidden="true" />
-      <div className="attention__text">
-        <span className="attention__shoot">{project.name}</span>
-        <span className="attention__detail">{view.text}</span>
-      </div>
-      <Link to={view.to} className="button button--small attention__action">
-        {view.action}
-      </Link>
-    </article>
   );
 }

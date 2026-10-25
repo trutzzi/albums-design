@@ -44,8 +44,13 @@ export class ReviewCollaborationShootProgress implements ShootProgressDirectory 
     }
     for (const review of reviews) {
       const projectId = projectOfAlbum.get(review.albumId.toString());
-      if (projectId)
-        progress.get(projectId)?.reviews.push({ status: review.status, openComments: review.openComments.length });
+      if (projectId) {
+        progress.get(projectId)?.reviews.push({
+          albumId: review.albumId.toString(),
+          status: review.status,
+          openComments: review.openComments.length,
+        });
+      }
     }
     for (const download of downloads) {
       progress.get(download.projectId.toString())?.deliveries.push({

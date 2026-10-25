@@ -8,6 +8,7 @@ import { ReviewSession } from "../src/modules/review-collaboration/domain/review
 import { DownloadSession } from "../src/modules/review-collaboration/domain/download-session";
 import { ReviewCollaborationShootProgress } from "../src/modules/media-ingestion/infrastructure/gateways/shoot-progress-gateway";
 import { ListStudioProjectsUseCase } from "../src/modules/media-ingestion/application/use-cases/list-studio-projects/list-studio-projects.use-case";
+import { RecordingLogger } from "./support/recording-logger";
 import {
   InMemoryAlbumRepository,
   InMemoryDownloadSessionRepository,
@@ -92,7 +93,7 @@ describe("where each shoot stands with its client", () => {
       picks: [
         { status: "SUBMITTED", clientName: "Elena", pickedCount: 2, submittedAt: pick.submittedAt!.toISOString() },
       ],
-      reviews: [{ status: "CHANGES_REQUESTED", openComments: 1 }],
+      reviews: [{ albumId: album.id.toString(), status: "CHANGES_REQUESTED", openComments: 1 }],
       deliveries: [],
     });
     assert.deepEqual(progress.get(ana.id.toString())?.deliveries, [
@@ -154,5 +155,27 @@ describe("where each shoot stands with its client", () => {
       w.studioId.toString(),
     );
     assert.equal(plain!.progress, null);
+  });
+
+  it("still opens the shoots list when progress cannot be read, and logs it", async () => {
+    const w = await world();
+    await w.addProject("Elena & Radu");
+    const logger = new RecordingLogger();
+    const broken = { forProjects: async () => Promise.reject(new Error("database is down")) };
+    const list = new ListStudioProjectsUseCase(
+      w.projects,
+      new InMemoryPhotoRepository(),
+      w.albums,
+      new InMemoryObjectStorage(),
+      undefined,
+      logger,
+      broken,
+    );
+    const [card] = await list.execute(w.studioId.toString());
+    assert.equal(card!.progress, null);
+    assert.deepEqual(
+      logger.entries.map((entry) => [entry.level, entry.message]),
+      [["error", "could not read the shoots' progress"]],
+    );
   });
 });

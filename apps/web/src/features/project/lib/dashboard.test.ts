@@ -34,15 +34,15 @@ const submitted = {
 const open = { status: "OPEN", clientName: "Maria", pickedCount: 12, submittedAt: null };
 
 describe("attentionFor", () => {
-  it("puts requested changes first, with the album to open", () => {
+  it("puts requested changes first, opening the album the notes are on", () => {
     const item = attentionFor(
       shoot({
         albums: [{ id: "a1", status: "IN_REVIEW" }],
         picks: [submitted],
-        reviews: [{ status: "CHANGES_REQUESTED", openComments: 3 }],
+        reviews: [{ albumId: "a2", status: "CHANGES_REQUESTED", openComments: 3 }],
       }),
     );
-    assert.deepEqual(item, { kind: "changes", count: 3, albumId: "a1" });
+    assert.deepEqual(item, { kind: "changes", count: 3, albumId: "a2" });
   });
 
   it("asks to generate the album once picks arrive and there is none", () => {
