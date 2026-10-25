@@ -57,7 +57,8 @@ function demoEmailSender(source: NodeJS.ProcessEnv, logger: Logger): EmailSender
         password: source.SMTP_PASSWORD || undefined,
         from: source.MAIL_FROM,
       })
-    : new LoggingEmailSender(logger.child({ component: "email" }));
+    : // The demo has no mailbox: reading the confirmation link from the log is how it is used.
+      new LoggingEmailSender(logger.child({ component: "email" }), { includeContent: true });
 }
 
 function demoPermanentStorage(
