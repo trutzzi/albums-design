@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { listPlans } from "@/shared/api";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { hasLaunchDiscount, isRecommended, planHighlights } from "@/features/marketing/lib/pricing";
 
 interface Feature {
   icon: string;
@@ -96,6 +99,8 @@ export function LandingPage() {
         ))}
       </div>
 
+      <Pricing />
+
       <section className="landing-cta">
         <h2>{t("landing.cta.heading")}</h2>
         <p>{t("landing.cta.subtitle")}</p>
@@ -106,3 +111,58 @@ export function LandingPage() {
     </div>
   );
 }
+
+/** The plans with their real prices, from the same list the studio page reads. */
+function Pricing() {
+  const { t, language } = useLanguage();
+  const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
+  if (!plans.data || plans.data.length === 0) return null;
+  const until = new Date(plans.data[0]!.launchPricesUntil).toLocaleDateString(language === "ro" ? "ro-RO" : "en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return (
+    <section className="landing-pricing" id="pricing" aria-labelledby="pricing-title">
+      <h2 id="pricing-title" className="landing-section-heading">
+        {t("landing.pricing.heading")}
+      </h2>
+      <p className="landing-section-subheading">{t("landing.pricing.launch", { date: until })}</p>
+      <div className="landing-pricing__plans">
+        {plans.data.map((plan) => (
+          <article
+            key={plan.code}
+            className={`landing-plan ${isRecommended(plan) ? "landing-plan--recommended" : ""}`}
+            aria-label={plan.name}
+          >
+            <div className="landing-plan__head">
+              <h3>{plan.name}</h3>
+              {isRecommended(plan) && <span className="landing-plan__badge">{t("landing.pricing.recommended")}</span>}
+            </div>
+            <p className="landing-plan__price">
+              <span className="landing-plan__amount">€{plan.monthlyPriceEur}</span>
+              <span className="muted">{t("landing.pricing.perMonth")}</span>
+              {hasLaunchDiscount(plan) && (
+                <s className="landing-plan__was" aria-label={t("landing.pricing.was", { price: plan.regularPriceEur })}>
+                  €{plan.regularPriceEur}
+                </s>
+              )}
+            </p>
+            <ul className="landing-plan__features">
+              {planHighlights(plan).map((line) => (
+                <li key={line.key}>{t(line.key, line.params)}</li>
+              ))}
+            </ul>
+            <Link
+              to="/register"
+              className={`button ${isRecommended(plan) ? "button--primary" : ""} landing-plan__cta`}
+            >
+              {plan.monthlyPriceEur === 0 ? t("landing.pricing.startTrial") : t("landing.pricing.choose", { plan: plan.name })}
+            </Link>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+

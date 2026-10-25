@@ -18,6 +18,16 @@ export const ro: Record<string, string> = {
   "common.delete": "Șterge",
   "common.save": "Salvează",
   "albumEditor.loading": "Se deschide albumul…",
+  "landing.pricing.heading": "Planuri lunare simple",
+  "landing.pricing.launch": "Înscrie-te înainte de {date} și păstrezi prețul de lansare cât timp rămâi.",
+  "landing.pricing.recommended": "Recomandat",
+  "landing.pricing.perMonth": "/ lună",
+  "landing.pricing.was": "era €{price}",
+  "landing.pricing.startTrial": "Începe perioada de probă",
+  "landing.pricing.choose": "Alege {plan}",
+  "landing.pricing.oneAlbum": "1 album de încercat",
+  "landing.pricing.oneSeat": "1 loc",
+  "landing.pricing.slideshows": "Linkuri de slideshow pentru clienți și familie",
   "common.loading": "Se încarcă…",
 
   // --- Auth ---------------------------------------------------------

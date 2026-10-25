@@ -18,6 +18,16 @@ export const en: Record<string, string> = {
   "common.delete": "Delete",
   "common.save": "Save",
   "albumEditor.loading": "Opening the album…",
+  "landing.pricing.heading": "Simple monthly plans",
+  "landing.pricing.launch": "Join before {date} and keep the launch price for as long as you stay.",
+  "landing.pricing.recommended": "Recommended",
+  "landing.pricing.perMonth": "/ month",
+  "landing.pricing.was": "was €{price}",
+  "landing.pricing.startTrial": "Start the free trial",
+  "landing.pricing.choose": "Choose {plan}",
+  "landing.pricing.oneAlbum": "1 album to try",
+  "landing.pricing.oneSeat": "1 seat",
+  "landing.pricing.slideshows": "Slideshow links for clients and family",
   "common.loading": "Loading…",
 
   // --- Auth ---------------------------------------------------------
