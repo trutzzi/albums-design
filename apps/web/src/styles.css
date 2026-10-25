@@ -6052,3 +6052,52 @@ body.is-previewing {
 .shoot-side__event--albumCreated .shoot-side__dot {
   background: var(--accent);
 }
+
+/* ---- album editor, refined (scoped to .editor: review and the book preview share .spread) ---- */
+/* The spreads sit on a quiet work surface, each one like a printed sheet. */
+.editor .spreads {
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--surface-2);
+}
+.editor .spreads .spread {
+  box-shadow: 0 18px 40px rgba(20, 24, 28, 0.14);
+}
+.editor .spread-block__head {
+  align-items: center;
+}
+/* Tabs read as tabs: a line under the one that is open. */
+.editor .sidebar__tabs {
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+.editor .sidebar__tab {
+  min-height: 44px;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font-size: 0.9rem;
+}
+.editor .sidebar__tab--on {
+  border-bottom-color: var(--accent);
+  background: none;
+  color: var(--ink);
+}
+.editor .page__header-actions {
+  gap: 6px;
+}
+.editor .page__header-actions .button {
+  border-radius: 10px;
+}
+.editor .album-check__item {
+  border-radius: 10px;
+}
+@media (max-width: 600px) {
+  .editor .spreads {
+    padding: 12px;
+    border-radius: 12px;
+  }
+}
