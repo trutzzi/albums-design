@@ -52,6 +52,21 @@ export class DrizzleAlbumRepository implements AlbumRepository {
     return rows.map(toDomain);
   }
 
+  async statusesByProjectIds(
+    projectIds: UniqueEntityId[],
+  ): Promise<{ id: string; projectId: string; status: string }[]> {
+    if (projectIds.length === 0) return [];
+    return this.db
+      .select({ id: albums.id, projectId: albums.projectId, status: albums.status })
+      .from(albums)
+      .where(
+        inArray(
+          albums.projectId,
+          projectIds.map((id) => id.toString()),
+        ),
+      );
+  }
+
   async countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, number>> {
     if (projectIds.length === 0) return {};
     const rows = await this.db

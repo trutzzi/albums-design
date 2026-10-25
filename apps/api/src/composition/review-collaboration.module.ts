@@ -33,6 +33,7 @@ import {
   IdentityStudioContacts,
   MediaIngestionDeliveryGateway,
 } from "../modules/review-collaboration/infrastructure/gateways/delivery-gateway";
+import { SharpTeaserImages } from "../modules/review-collaboration/infrastructure/imaging/sharp-teaser-images";
 import { ProjectClientContactDirectory } from "../modules/review-collaboration/infrastructure/gateways/client-contact-gateway";
 import { PromoteOnApprovalNotifier } from "../modules/review-collaboration/infrastructure/gateways/promote-on-approval-notifier";
 import { PromoteOnPickNotifier } from "../modules/review-collaboration/infrastructure/gateways/promote-on-pick-notifier";
@@ -181,8 +182,13 @@ export function buildReviewCollaborationModule(
       () => new Date(),
       clientAccess,
       pickGateway,
-      // The gallery's chapters and cover come from analysis; its favourites are the client's earlier picks.
-      { traits: photoTraits, picks: pickSessions },
+      // The gallery's chapters and cover come from analysis; its favourites are the client's earlier
+      // picks; the password gate may blur a 32-pixel copy of the cover behind its form.
+      {
+        traits: photoTraits,
+        picks: pickSessions,
+        teaser: { source: deliveryGateway, images: new SharpTeaserImages() },
+      },
     ),
     shootActivity: new ShootActivityUseCase(albums, pickSessions, reviewSessions, downloadSessions, slideshowSessions),
     slideshowAdmin: new SlideshowSessionAdminUseCase(

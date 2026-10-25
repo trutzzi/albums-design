@@ -4,8 +4,8 @@ import { useParams } from "react-router-dom";
 import { getSlideshowView, recordSlideshowView } from "@/shared/api";
 import { LANGUAGES } from "@/shared/i18n/translations";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
-import { ClientBrandBar, brandStyle } from "@/shared/ui/ClientBrand";
-import { ThemeToggle } from "@/shared/ui/ThemeToggle";
+import { brandStyle } from "@/shared/ui/ClientBrand";
+import { ContactDialog, hasContact } from "@/features/review/components/gallery/StudioContactCard";
 import { SlideshowPlayer } from "./components/SlideshowPlayer";
 import { VIEW_REFRESH_MS, shouldRetryImage } from "./lib/autoplay";
 import { ClientPageSkeleton } from "@/shared/ui/Loading";
@@ -20,6 +20,12 @@ export function SlideshowPage() {
   const { token = "" } = useParams();
   const { t, language, setLanguage } = useLanguage();
   const [playing, setPlaying] = useState(false);
+  const [shared, setShared] = useState(false);
+  // Where copying is refused (some in-app browsers), the link is shown to copy by hand.
+  const [manualLink, setManualLink] = useState<string | null>(null);
+  const sharedTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(sharedTimer.current), []);
+  const [contactOpen, setContactOpen] = useState(false);
   const counted = useRef(false);
   const imageRetries = useRef(new Map<string, number>());
 
@@ -70,17 +76,37 @@ export function SlideshowPage() {
   }
 
   const cover = data.photos[0];
+  const play = () => {
+    setPlaying(true);
+    // Asked for inside the tap, which is the only moment browsers allow it.
+    if (document.fullscreenEnabled) void document.documentElement.requestFullscreen().catch(() => {});
+  };
+  const share = async () => {
+    const url = window.location.href;
+    // The phone's share sheet where there is one; otherwise the link goes to the clipboard.
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: data.projectName, url });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      window.clearTimeout(sharedTimer.current);
+      sharedTimer.current = window.setTimeout(() => setShared(false), 2500);
+    } catch {
+      setManualLink(url);
+    }
+  };
+
   return (
-    <div className="page slideshow-start" style={brandStyle(data.branding)}>
-      <ClientBrandBar branding={data.branding} />
-      <header className="page__header">
-        <div>
-          <p className="muted">{t("slideshow.eyebrow", { name: data.clientName })}</p>
-          <h1>{data.projectName}</h1>
-          <p className="muted">{t("slideshow.summary", { count: data.photos.length })}</p>
-        </div>
+    <div className="slideshow-start" style={brandStyle(data.branding)}>
+      <div className="slideshow-start__top">
+        <span className="slideshow-start__studio">{data.branding?.name ?? ""}</span>
         <div className="pick__lang" role="group" aria-label={t("pick.language")}>
-          <ThemeToggle />
           {LANGUAGES.map((option) => (
             <button
               key={option.value}
@@ -92,25 +118,50 @@ export function SlideshowPage() {
             </button>
           ))}
         </div>
-      </header>
+      </div>
 
-      {data.photos.length === 0 ? (
-        <p className="notice">{t("slideshow.empty")}</p>
-      ) : (
-        <button
-          type="button"
-          className="slideshow-start__cover"
-          onClick={() => {
-            setPlaying(true);
-            // Asked for inside the tap, which is the only moment browsers allow it.
-            if (document.fullscreenEnabled) void document.documentElement.requestFullscreen().catch(() => {});
-          }}
-        >
-          {cover && <img src={cover.previewUrl} alt="" />}
-          <span className="slideshow-start__play">▶ {t("slideshow.play")}</span>
+      <div className="slideshow-start__cover">
+        {cover && <img src={cover.previewUrl} alt="" />}
+        <div className="slideshow-start__overlay">
+          <p className="slideshow-start__eyebrow">{t("slideshow.eyebrow", { name: data.clientName })}</p>
+          <h1>{data.projectName}</h1>
+          <p className="slideshow-start__summary">{t("slideshow.summary", { count: data.photos.length })}</p>
+          {data.photos.length === 0 ? (
+            <p className="notice">{t("slideshow.empty")}</p>
+          ) : (
+            <button type="button" className="slideshow-start__play" onClick={play}>
+              <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+                <path d="M5 3.5v11l9-5.5-9-5.5Z" fill="currentColor" />
+              </svg>
+              {t("slideshow.play")}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <p className="slideshow-start__hint">{t("slideshow.hint")}</p>
+      <div className="slideshow-start__actions">
+        <button type="button" className="slideshow-start__action" onClick={() => void share()}>
+          {shared ? t("slideshow.shared") : t("slideshow.share")}
         </button>
+        {hasContact(data.branding) && (
+          <button type="button" className="slideshow-start__action" onClick={() => setContactOpen(true)}>
+            {t("slideshow.contact")}
+          </button>
+        )}
+      </div>
+      <span className="visually-hidden" role="status">
+        {shared ? t("slideshow.shared") : ""}
+      </span>
+      {manualLink && (
+        <label className="slideshow-start__manual">
+          <span>{t("slideshow.copyManually")}</span>
+          <input readOnly value={manualLink} onFocus={(event) => event.currentTarget.select()} />
+        </label>
       )}
-      <p className="muted slideshow-start__hint">{t("slideshow.hint")}</p>
+      {contactOpen && hasContact(data.branding) && (
+        <ContactDialog branding={data.branding} onClose={() => setContactOpen(false)} />
+      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { SharpImageResizer } from "../modules/media-ingestion/infrastructure/ima
 import { AlbumCompositionPlacementDirectory } from "../modules/media-ingestion/infrastructure/gateways/album-placement-gateway";
 import { ExportPrintDeliveryDirectory } from "../modules/media-ingestion/infrastructure/gateways/delivery-gateway";
 import { ReviewCollaborationClientPickDirectory } from "../modules/media-ingestion/infrastructure/gateways/client-pick-gateway";
+import { ReviewCollaborationShootProgress } from "../modules/media-ingestion/infrastructure/gateways/shoot-progress-gateway";
 import { ReviewCollaborationDownloadHolds } from "../modules/media-ingestion/infrastructure/gateways/download-hold-gateway";
 import type { MediaIngestionDependencies } from "../modules/media-ingestion/interface/http/routes";
 import type { ModuleInfrastructure, Repositories } from "./ports";
@@ -89,7 +90,16 @@ export function buildMediaIngestionModule(
     requestUpload: new RequestUploadUseCase(projects, photos, storage, planFeatures),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, jobQueue, storeEverything, storageLog),
     abandonUpload: new AbandonUploadUseCase(photos, storage, storageLog),
-    listStudioProjects: new ListStudioProjectsUseCase(projects, photos, albums, storage, permanentStorage, storageLog),
+    listStudioProjects: new ListStudioProjectsUseCase(
+      projects,
+      photos,
+      albums,
+      storage,
+      permanentStorage,
+      storageLog,
+      // Each card's albums and client links, read for every shoot at once.
+      new ReviewCollaborationShootProgress(albums, pickSessions, downloadSessions, reviewSessions),
+    ),
     listProjectPhotos: new ListProjectPhotosUseCase(photos, storage, permanentStorage),
     deleteProject,
     retryFailedAnalyses: new RetryFailedAnalysesUseCase(photos, jobQueue, storageLog),
