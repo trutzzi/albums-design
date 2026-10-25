@@ -18,6 +18,27 @@ export interface ChangelogRelease {
 export const CHANGELOG_RELEASES: ChangelogRelease[] = [
   {
     date: "October 25, 2026",
+    headingKey: "changelog.release.v130.heading",
+    items: [
+      {
+        titleKey: "changelog.item.dashboard",
+        descriptionKey: "changelog.item.dashboard.desc",
+        howToKey: "changelog.item.dashboard.how",
+      },
+      {
+        titleKey: "changelog.item.activity",
+        descriptionKey: "changelog.item.activity.desc",
+        howToKey: "changelog.item.activity.how",
+      },
+      {
+        titleKey: "changelog.item.clientRedesign",
+        descriptionKey: "changelog.item.clientRedesign.desc",
+        howToKey: "changelog.item.clientRedesign.how",
+      },
+    ],
+  },
+  {
+    date: "October 25, 2026",
     headingKey: "changelog.release.v120.heading",
     items: [
       {
