@@ -12,6 +12,7 @@ import type { ExportStorage } from "#src/modules/export-print/application/ports/
 import type { ReviewSessionRepository } from "#src/modules/review-collaboration/domain/review-session-repository";
 import type { PickSessionRepository } from "#src/modules/review-collaboration/domain/pick-session-repository";
 import type { DownloadSessionRepository } from "#src/modules/review-collaboration/domain/download-session-repository";
+import type { SlideshowSessionRepository } from "#src/modules/review-collaboration/domain/slideshow-session-repository";
 
 export interface DeleteProjectCommand {
   projectId: string;
@@ -39,6 +40,7 @@ export class DeleteProjectUseCase {
     private readonly permanent?: StorageProvider,
     private readonly pickSessions?: PickSessionRepository,
     private readonly downloadSessions?: DownloadSessionRepository,
+    private readonly slideshowSessions?: SlideshowSessionRepository,
   ) {}
 
   async execute(command: DeleteProjectCommand): Promise<Result<void, ApplicationError>> {
@@ -85,6 +87,7 @@ export class DeleteProjectUseCase {
     // Client selection links reference the shoot, so they go before it does.
     await this.pickSessions?.deleteByProjectId(id);
     await this.downloadSessions?.deleteByProjectId(id);
+    await this.slideshowSessions?.deleteByProjectId(id);
     await this.projects.delete(id);
 
     return Result.success(undefined);

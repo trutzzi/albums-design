@@ -10,7 +10,7 @@ import "./request-context";
  * studio-scoped route (uploads, billing, members) would be public.
  */
 const PUBLIC_EXACT = ["/health", "/plans", "/layout-templates", "/print-profiles"];
-const PUBLIC_PREFIXES = ["/review/", "/pick/", "/download/", "/media/"];
+const PUBLIC_PREFIXES = ["/review/", "/pick/", "/download/", "/slideshow/", "/media/"];
 /**
  * Signing up, confirming the email, logging in and resetting a password are how a
  * request earns a credential.

@@ -12,6 +12,7 @@ import { DrizzleAlbumRepository } from "../modules/album-composition/infrastruct
 import { DrizzleReviewSessionRepository } from "../modules/review-collaboration/infrastructure/persistence/drizzle-review-session-repository";
 import { DrizzlePickSessionRepository } from "../modules/review-collaboration/infrastructure/persistence/drizzle-pick-session-repository";
 import { DrizzleDownloadSessionRepository } from "../modules/review-collaboration/infrastructure/persistence/drizzle-download-session-repository";
+import { DrizzleSlideshowSessionRepository } from "../modules/review-collaboration/infrastructure/persistence/drizzle-slideshow-session-repository";
 import { DrizzleExportJobRepository } from "../modules/export-print/infrastructure/persistence/drizzle-export-job-repository";
 import { DrizzleFeedbackRepository } from "../modules/platform-admin/infrastructure/feedback-repositories";
 
@@ -32,6 +33,7 @@ export function buildRepositories(db: Database) {
     reviewSessions: new DrizzleReviewSessionRepository(db),
     pickSessions: new DrizzlePickSessionRepository(db),
     downloadSessions: new DrizzleDownloadSessionRepository(db),
+    slideshowSessions: new DrizzleSlideshowSessionRepository(db),
     exportJobs: new DrizzleExportJobRepository(db),
     feedback: new DrizzleFeedbackRepository(db),
   } satisfies Repositories;

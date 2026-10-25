@@ -2,7 +2,7 @@ import type { EmailSender } from "#src/shared-kernel/email";
 import type { EmailBrand } from "./email-brand";
 import { escapeHtml } from "#src/shared-kernel/html";
 
-export type InvitationKind = "pick" | "review" | "download";
+export type InvitationKind = "pick" | "review" | "download" | "slideshow";
 /** The photographer's own app language — they know which one their client reads. */
 export type InvitationLanguage = "en" | "ro";
 
@@ -21,7 +21,7 @@ export interface Invitation {
   logoUrl?: string | undefined;
   /** The photographer's studio, so the client sees who it is from before they see the tool. */
   studioName?: string | undefined;
-  /** Download links only: the day the photos stop being available. */
+  /** Download and slideshow links: the day the link stops working. */
   availableUntil?: Date | undefined;
   /** Where a reply should go — the photographer, never the no-reply mailbox. */
   replyTo?: string | undefined;
@@ -93,6 +93,23 @@ function copyFor(invitation: Invitation): Copy {
         closing,
       };
     }
+    if (invitation.kind === "slideshow") {
+      return {
+        subject: `Slideshow-ul tău — ${projectName}`,
+        action: "Pornește slideshow-ul",
+        greeting,
+        lead: `Am pregătit un slideshow cu fotografiile de la „${projectName}". Pornește singur, pe telefon, calculator sau televizor.`,
+        steps: [
+          "Deschide linkul și apasă pe ecran pentru pauză sau pentru a trece la altă fotografie.",
+          "Poți trimite linkul mai departe familiei și prietenilor — nu are nevoie de parolă.",
+          until ? `Linkul funcționează până pe ${until}.` : "",
+        ].filter(Boolean),
+        linkLabel: "Linkul tău",
+        passwordLabel: "Parola",
+        passwordNote,
+        closing,
+      };
+    }
     return {
       subject: `Fotografiile tale sunt gata de descărcat — ${projectName}`,
       action: "Descarcă fotografiile",
@@ -141,6 +158,23 @@ function copyFor(invitation: Invitation): Copy {
         "Leave a note on any page you'd like changed.",
         'When you\'re happy with it, press "Approve album".',
       ],
+      linkLabel: "Your link",
+      passwordLabel: "Password",
+      passwordNote,
+      closing,
+    };
+  }
+  if (invitation.kind === "slideshow") {
+    return {
+      subject: `Your slideshow — ${projectName}`,
+      action: "Play the slideshow",
+      greeting,
+      lead: `I've made a slideshow of your photos from "${projectName}". It plays on its own, on a phone, a computer or a TV.`,
+      steps: [
+        "Open the link, and tap the screen to pause or move between photos.",
+        "Feel free to pass the link on to family and friends — no password needed.",
+        until ? `The link works until ${until}.` : "",
+      ].filter(Boolean),
       linkLabel: "Your link",
       passwordLabel: "Password",
       passwordNote,

@@ -69,6 +69,7 @@ describe("plan features by shoot", () => {
       watermarkExports: true,
       maxPhotosPerShoot: 80,
       clientDownloadLinks: false,
+      clientSlideshows: false,
     });
   });
 
@@ -78,6 +79,7 @@ describe("plan features by shoot", () => {
       watermarkExports: false,
       maxPhotosPerShoot: 80,
       clientDownloadLinks: false,
+      clientSlideshows: false,
     });
   });
 
@@ -87,6 +89,7 @@ describe("plan features by shoot", () => {
       watermarkExports: false,
       maxPhotosPerShoot: null,
       clientDownloadLinks: true,
+      clientSlideshows: true,
     });
   });
 
@@ -100,6 +103,7 @@ describe("plan features by shoot", () => {
       watermarkExports: false,
       maxPhotosPerShoot: null,
       clientDownloadLinks: true,
+      clientSlideshows: true,
     });
   });
 });
