@@ -80,6 +80,20 @@ describe("display derivatives", () => {
     assert.ok(written.preview < original.byteLength);
   });
 
+  it("leaves the camera's metadata, GPS position included, out of every display copy", async () => {
+    // Previews are what clients' browsers load; where a guest's photo was taken must not travel with it.
+    const tagged = await sharp(await cameraJpeg(1200, 800))
+      .withExif({ IFD0: { Artist: "Studio" }, IFD3: { GPSLatitudeRef: "N", GPSLatitude: "45/1 45/1 0/1" } })
+      .jpeg()
+      .toBuffer();
+    assert.ok((await sharp(tagged).metadata()).exif, "the fixture should carry EXIF");
+
+    const preview = await new SharpImageResizer().toJpeg({ data: tagged, longestEdge: 600, quality: 80 });
+    const metadata = await sharp(preview).metadata();
+    assert.equal(metadata.exif, undefined);
+    assert.equal(metadata.xmp, undefined);
+  });
+
   it("hands the editor the derivatives once they exist, and the original before that", async () => {
     const photos = new InMemoryPhotoRepository();
     const storage = new InMemoryObjectStorage();
