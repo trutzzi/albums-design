@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ClientBrandBar, brandStyle } from "@/shared/ui/ClientBrand";
+import { ClientBrandBar, useClientStyle } from "@/shared/ui/ClientBrand";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { getPickView, setPhotoPicked, setPickStage, submitPicks, type PickView } from "@/shared/api";
@@ -113,6 +113,8 @@ export function PickPage() {
 
   const lightboxIndex = lightboxId ? visible.findIndex((photo) => photo.id === lightboxId) : -1;
 
+  const look = useClientStyle(data?.branding);
+
   if (view.isLoading) return <p className="page muted">{t("pick.loading")}</p>;
   if (needsPassword(view.error)) {
     return (
@@ -166,7 +168,7 @@ export function PickPage() {
   };
 
   return (
-    <div className="page pick" style={brandStyle(data.branding)}>
+    <div className="page pick client-styled" style={look.style}>
       <ClientBrandBar branding={data.branding} />
       <header className="page__header">
         <div>
@@ -174,7 +176,7 @@ export function PickPage() {
           <h1>{data.projectName}</h1>
         </div>
         <div className="pick__lang" role="group" aria-label={t("pick.language")}>
-          <ThemeToggle />
+          {!look.themeFixed && <ThemeToggle />}
           {LANGUAGES.map((option) => (
             <button
               key={option.value}
@@ -258,6 +260,8 @@ export function PickPage() {
         photos={visible}
         columnWidth={260}
         resetKey={filter}
+        layout={data.branding?.style.grid ?? "masonry"}
+        gap={data.branding?.style.spacing === "airy" ? 24 : 10}
         onOpen={(photo) => setLightboxId(photo.id)}
         overlay={(photo) => heart(photo.id, "pick-heart")}
         itemClassName={(photo) => (marked.has(photo.id) ? "gallery__item--on" : "")}

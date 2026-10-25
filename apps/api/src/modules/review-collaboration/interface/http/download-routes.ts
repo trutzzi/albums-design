@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { galleryOverrideSchema } from "@albumflow/contracts";
 import { sendApplicationError } from "#src/interface/error-translator";
 import { streamZip } from "#src/interface/zip-stream";
 import { grantFrom } from "#src/interface/client-errors";
@@ -15,6 +16,21 @@ const invitationSchema = z.object({
   language: z.enum(["en", "ro"]).optional(),
 });
 const unlockSchema = z.object({ password: z.string().min(1).max(100) });
+const coverSchema = z.object({ photoId: z.string().uuid().nullable() });
+const lookSchema = z.object({ override: galleryOverrideSchema.nullable() });
+const zipQuery = z
+  .object({
+    scope: z.enum(["all", "favorites", "section"]).default("all"),
+    // Photo categories are upper-case words; anything else is not a chapter of this gallery.
+    section: z
+      .string()
+      .regex(/^[A-Z_]{1,32}$/)
+      .optional(),
+  })
+  .refine((query) => query.scope !== "section" || query.section, {
+    message: "Choose which part of the gallery to download.",
+    path: ["section"],
+  });
 
 const openSchema = z.object({
   clientName: z.string().trim().max(255).optional(),
@@ -59,6 +75,22 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
     return result.getValue();
   });
 
+  app.put("/projects/:projectId/download-sessions/:sessionId/cover", async (request, reply) => {
+    const { projectId, sessionId } = sessionParams.parse(request.params);
+    const { photoId } = coverSchema.parse(request.body);
+    const result = await deps.downloadAdmin.chooseCover(projectId, sessionId, photoId);
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return result.getValue();
+  });
+
+  app.put("/projects/:projectId/download-sessions/:sessionId/look", async (request, reply) => {
+    const { projectId, sessionId } = sessionParams.parse(request.params);
+    const { override } = lookSchema.parse(request.body);
+    const result = await deps.downloadAdmin.restyle(projectId, sessionId, override);
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return result.getValue();
+  });
+
   // What the studio opens in the details window: the link and its password, readable again.
   app.get("/projects/:projectId/download-sessions/:sessionId/access", async (request, reply) => {
     const { projectId, sessionId } = sessionParams.parse(request.params);
@@ -92,7 +124,11 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
     const { token } = tokenParams.parse(request.params);
     const allowed = await deps.downloadPortal.authorize(token, grantFrom(request));
     if (allowed.isFailure) return sendApplicationError(reply, allowed.getError());
-    const prepared = await deps.downloadPortal.prepare(token);
+    const query = zipQuery.parse(request.query);
+    const prepared = await deps.downloadPortal.prepare(
+      token,
+      query.scope === "section" ? { kind: "section", section: query.section! } : { kind: query.scope },
+    );
     if (prepared.isFailure) return sendApplicationError(reply, prepared.getError());
     const { fileName, entries, complete } = prepared.getValue();
 

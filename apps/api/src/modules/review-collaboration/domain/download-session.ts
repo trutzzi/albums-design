@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { AggregateRoot, UniqueEntityId } from "@albumflow/domain-kernel";
+import type { GalleryOverride } from "@albumflow/contracts";
 import { hashToken } from "./review-session";
 
 /** ACTIVE links can be used until they expire; REVOKED ones never work again. Expiry is a matter of time, not a stored status. */
@@ -23,6 +24,10 @@ export interface DownloadSessionProps {
   passwordHash?: string | undefined;
   /** Encrypted link token + password, so the studio can view them again. */
   sealedSecret?: string | undefined;
+  /** The photographer's choice of cover for the client gallery; absent means one is chosen automatically. */
+  coverPhotoId?: string | undefined;
+  /** This gallery's departures from the studio's style (layout, font, theme, message). */
+  lookOverride?: GalleryOverride | undefined;
 }
 
 export class DownloadUnavailableError extends Error {
@@ -150,6 +155,24 @@ export class DownloadSession extends AggregateRoot<DownloadSessionProps> {
   recordSent(to: string, at: Date = new Date()): void {
     this.props.lastSentTo = to;
     this.props.lastSentAt = at;
+  }
+
+  get coverPhotoId(): string | undefined {
+    return this.props.coverPhotoId;
+  }
+
+  /** `undefined` goes back to the automatic cover. The caller checks the photo belongs to the shoot. */
+  chooseCover(photoId: string | undefined): void {
+    this.props.coverPhotoId = photoId;
+  }
+
+  get lookOverride(): GalleryOverride | undefined {
+    return this.props.lookOverride;
+  }
+
+  /** `undefined` makes the gallery follow the studio's style again. */
+  restyle(override: GalleryOverride | undefined): void {
+    this.props.lookOverride = override && Object.keys(override).length > 0 ? override : undefined;
   }
 
   revoke(): void {

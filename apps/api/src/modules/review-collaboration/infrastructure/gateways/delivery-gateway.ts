@@ -29,7 +29,13 @@ export class MediaIngestionDeliveryGateway implements DeliveryGateway {
       id: project.id.toString(),
       name: project.name,
       branding: (await this.branding?.forProject(projectId)) ?? null,
+      eventDate: project.eventDate ?? null,
     };
+  }
+
+  async hasPhoto(projectId: string, photoId: string) {
+    const photo = await this.photos.findById(UniqueEntityId.create(photoId));
+    return photo !== undefined && photo.projectId.toString() === projectId;
   }
 
   async listDeliverable(projectId: string) {
