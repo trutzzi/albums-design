@@ -5447,7 +5447,8 @@ body.is-previewing {
     gap: 8px;
     padding: 8px;
     border-radius: 999px;
-    background: #14181c;
+    /* An inverse bar from the gallery's own theme: dark on a light gallery, light on a dark one. */
+    background: var(--ink);
     box-shadow: 0 14px 34px rgba(20, 24, 28, 0.3);
   }
   .gallery-corner__download {
@@ -5460,8 +5461,8 @@ body.is-previewing {
   .gallery-corner__download-button {
     width: 100%;
     min-height: 46px;
-    background: #ffffff;
-    color: #14181c;
+    background: var(--bg);
+    color: var(--ink);
   }
   .gallery-corner__download-button .gallery-menu__chevron {
     display: none;
@@ -5470,8 +5471,8 @@ body.is-previewing {
     width: 46px;
     height: 46px;
     border: 0;
-    background: rgba(255, 255, 255, 0.14);
-    color: #ffffff;
+    background: color-mix(in srgb, var(--bg) 16%, transparent);
+    color: var(--bg);
     box-shadow: none;
   }
   .gallery-corner__contact {
