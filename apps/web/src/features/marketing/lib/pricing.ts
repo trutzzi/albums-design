@@ -48,8 +48,3 @@ export function isRecommended(plan: PlanDto): boolean {
 export function hasLaunchDiscount(plan: PlanDto): boolean {
   return plan.monthlyPriceEur < plan.regularPriceEur;
 }
-
-/** The free trial, by its code — not by a price of zero, which a promotion could also reach. */
-export function isTrial(plan: PlanDto): boolean {
-  return plan.code === "TRIAL";
-}

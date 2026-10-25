@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getStudioOverview, listPlans, type PlanDto } from "@/shared/api";
+import { getStudioOverview, type PlanDto } from "@/shared/api";
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { useHowItWorksOpen } from "./HowItWorks";
+import { usePlans } from "@/shared/ui/usePlans";
 
 const SEEN_KEY = "albumflow.launchOffer.seen";
 
@@ -42,7 +43,7 @@ export function LaunchOfferHost() {
   const overviewOpen = useHowItWorksOpen();
   const [dismissed, setDismissed] = useState(seen);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity, enabled: isAuthenticated });
+  const plans = usePlans({ enabled: isAuthenticated });
   const studio = useQuery({
     queryKey: ["studio", studioId],
     queryFn: () => getStudioOverview(studioId),

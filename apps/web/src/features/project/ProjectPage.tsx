@@ -7,7 +7,6 @@ import {
   getStudioOverview,
   listDownloadSessions,
   listPickSessions,
-  listPlans,
   listProjectAlbums,
   listProjectAnalyses,
   listProjectPhotos,
@@ -30,6 +29,7 @@ import { DeliveryPanel } from "@/features/project/components/DeliveryPanel";
 import { SlideshowPanel } from "@/features/project/components/SlideshowPanel";
 import { ShootSidebar } from "@/features/project/components/ShootSidebar";
 import { Skeleton } from "@/shared/ui/Loading";
+import { usePlans } from "@/shared/ui/usePlans";
 
 /** The guided tour points at the step tabs, since only the open step's content is on the page. */
 const STEP_TOUR_TARGETS: Record<ShootStep, string | undefined> = {
@@ -103,7 +103,7 @@ export function ProjectPage() {
 
   // What the studio's plan allows here: photos per shoot, and client download links.
   const studio = useQuery({ queryKey: ["studio", studioId], queryFn: () => getStudioOverview(studioId) });
-  const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
+  const plans = usePlans();
   const plan = plans.data?.find((item) => item.code === studio.data?.subscription.planCode);
   const photoLimit = plan?.maxPhotosPerShoot ?? null;
   const canSendDownloadLinks = plan?.clientDownloadLinks ?? true;

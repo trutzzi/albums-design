@@ -1,10 +1,9 @@
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { listPlans } from "@/shared/api";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
-import { hasLaunchDiscount, isRecommended, isTrial, planHighlights } from "@/features/marketing/lib/pricing";
+import { hasLaunchDiscount, isRecommended, planHighlights } from "@/features/marketing/lib/pricing";
 import { localeOf } from "@/shared/i18n/locale";
 import { SkeletonText } from "@/shared/ui/Loading";
+import { usePlans } from "@/shared/ui/usePlans";
 
 interface Feature {
   icon: string;
@@ -117,7 +116,7 @@ export function LandingPage() {
 /** The plans with their real prices, from the same list the studio page reads. */
 function Pricing() {
   const { t, language } = useLanguage();
-  const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
+  const plans = usePlans();
   const launchEnds = plans.data?.[0]?.launchPricesUntil;
   // The launch offer is only promised while it is still open.
   const offerOpen = launchEnds ? new Date(launchEnds).getTime() > Date.now() : false;
@@ -176,7 +175,8 @@ function Pricing() {
               to="/register"
               className={`button ${isRecommended(plan) ? "button--primary" : ""} landing-plan__cta`}
             >
-              {isTrial(plan) ? t("landing.pricing.startTrial") : t("landing.pricing.choose", { plan: plan.name })}
+              {/* Every studio starts on the same default plan; only an admin changes it later, so no card promises otherwise. */}
+              {t("landing.pricing.cta")}
             </Link>
           </article>
         ))}
