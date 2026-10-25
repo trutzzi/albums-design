@@ -14,6 +14,7 @@ import { PickSessionAdminUseCase } from "../modules/review-collaboration/applica
 import { PickPortalUseCase } from "../modules/review-collaboration/application/use-cases/pick-portal.use-case";
 import { DownloadSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/download-session-admin.use-case";
 import { DownloadPortalUseCase } from "../modules/review-collaboration/application/use-cases/download-portal.use-case";
+import { AlbumCompositionShootAlbums } from "../modules/review-collaboration/infrastructure/gateways/shoot-albums-gateway";
 import { ShootActivityUseCase } from "../modules/review-collaboration/application/use-cases/shoot-activity.use-case";
 import { SlideshowSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/slideshow-session-admin.use-case";
 import { SlideshowPortalUseCase } from "../modules/review-collaboration/application/use-cases/slideshow-portal.use-case";
@@ -190,7 +191,13 @@ export function buildReviewCollaborationModule(
         teaser: { source: deliveryGateway, images: new SharpTeaserImages() },
       },
     ),
-    shootActivity: new ShootActivityUseCase(albums, pickSessions, reviewSessions, downloadSessions, slideshowSessions),
+    shootActivity: new ShootActivityUseCase(
+      new AlbumCompositionShootAlbums(albums),
+      pickSessions,
+      reviewSessions,
+      downloadSessions,
+      slideshowSessions,
+    ),
     slideshowAdmin: new SlideshowSessionAdminUseCase(
       slideshowSessions,
       slideshowPhotos,
