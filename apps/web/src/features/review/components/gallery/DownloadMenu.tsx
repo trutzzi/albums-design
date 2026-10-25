@@ -1,5 +1,6 @@
 import type { DownloadScope } from "@/shared/api";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { countKey, localeOf } from "@/shared/i18n/locale";
 import { formatBytes } from "@/features/review/lib/client-gallery";
 import { GalleryMenu } from "./GalleryMenu";
 
@@ -27,11 +28,12 @@ export function DownloadMenu({
   className: string;
 }) {
   const { t, language } = useLanguage();
-  const locale = language === "ro" ? "ro-RO" : "en-GB";
-  const detail = (count: number, bytes: number) =>
-    bytes > 0
-      ? t("gallery.download.detail", { count: count.toLocaleString(locale), size: formatBytes(bytes) })
-      : t("gallery.download.detailCount", { count: count.toLocaleString(locale) });
+  const locale = localeOf(language);
+  const detail = (count: number, bytes: number) => {
+    const photos = t(countKey("gallery.photos", count, language), { count: count.toLocaleString(locale) });
+    return bytes > 0 ? t("gallery.download.detail", { photos, size: formatBytes(bytes) }) : photos;
+  };
+  const section = choices.section;
 
   return (
     <GalleryMenu
@@ -69,11 +71,11 @@ export function DownloadMenu({
               detail={detail(choices.all.count, choices.all.bytes)}
               onClick={() => choose({ kind: "all" })}
             />
-            {choices.section && choices.section.count > 0 && (
+            {section && section.count > 0 && (
               <Choice
-                label={t("gallery.download.sectionLabel", { name: choices.section.name })}
-                detail={detail(choices.section.count, choices.section.bytes)}
-                onClick={() => choose({ kind: "section", section: choices.section!.key })}
+                label={t("gallery.download.sectionLabel", { name: section.name })}
+                detail={detail(section.count, section.bytes)}
+                onClick={() => choose({ kind: "section", section: section.key })}
               />
             )}
             {choices.favorites.count > 0 && (

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { localeOf } from "@/shared/i18n/locale";
 import { splitTabs, type GalleryFilter } from "@/features/review/lib/client-gallery";
 import { GalleryMenu } from "./GalleryMenu";
 
@@ -37,7 +38,7 @@ export function GalleryToolbar({
   sectionName,
 }: Props) {
   const { t, language } = useLanguage();
-  const locale = language === "ro" ? "ro-RO" : "en-GB";
+  const locale = localeOf(language);
   const active = filter.kind === "section" ? filter.section : undefined;
   const [tabs, overflow] = splitTabs(sections, VISIBLE_TABS, active);
   const favoritesOn = filter.kind === "favorites";

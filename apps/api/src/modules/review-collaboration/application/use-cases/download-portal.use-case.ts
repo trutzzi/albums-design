@@ -22,10 +22,10 @@ export interface DownloadView {
   expiresAt: string;
   daysLeft: number;
   branding: ClientBrandingDTO | null;
-  /** Display copies to browse before downloading — never the originals. */
   /**
-   * `byteSize` is the full-size original's, so the page can say how big each download is;
-   * `null` for a photo whose original is no longer stored (it is not in any download).
+   * Display copies to browse before downloading — never the originals. `byteSize` is the
+   * full-size original's, so the page can say how big each download is; `null` for a photo
+   * whose original is no longer stored (it is not in any download).
    */
   photos: (PickablePhoto & { section: string | null; byteSize: number | null })[];
   /** The chapters the gallery is split into, in the order of the day (photo categories, e.g. `CEREMONY`). */

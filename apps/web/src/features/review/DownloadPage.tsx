@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom";
 import { downloadZipUrl, getDownloadView, type DownloadScope } from "@/shared/api";
 import { LANGUAGES } from "@/shared/i18n/translations";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { countKey, localeOf } from "@/shared/i18n/locale";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { PasswordGate, needsPassword } from "@/features/review/components/PasswordGate";
 import { PhotoLightbox } from "@/shared/ui/PhotoLightbox";
@@ -84,7 +85,7 @@ export function DownloadPage() {
   const data = view.data;
   const style = data.branding?.style;
   const nameOf = (section: string) => sectionLabel(section, style, t);
-  const locale = language === "ro" ? "ro-RO" : "en-GB";
+  const locale = localeOf(language);
   const until = new Date(data.expiresAt).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
   const size = formatBytes(data.totalBytes);
   const cover = data.photos.find((photo) => photo.id === data.coverPhotoId) ?? null;
@@ -203,7 +204,7 @@ export function DownloadPage() {
           <div className="gallery-page__heading">
             <h2>{heading}</h2>
             <p>
-              {t("gallery.heading.count", { count: shown.length.toLocaleString(locale) })}
+              {t(countKey("gallery.photos", shown.length, language), { count: shown.length.toLocaleString(locale) })}
               {filter.kind !== "favorites" && counts.favorites > 0 && <> · {t("gallery.favorites.hint")}</>}
             </p>
           </div>
