@@ -30,7 +30,8 @@ import {
   StoredPhotoResolver,
 } from "../src/modules/export-print/infrastructure/gateways/album-gateway";
 import { PdfAlbumRenderer } from "../src/modules/export-print/infrastructure/rendering/pdf-album-renderer";
-import { StudioAdministrationUseCase } from "../src/modules/identity/application/use-cases/studio-administration.use-case";
+import { Studio } from "../src/modules/identity/domain/studio";
+import { Subscription } from "../src/modules/identity/domain/subscription";
 import { SubscriptionQuotaPolicy } from "../src/modules/identity/application/subscription-quota-policy";
 import { MM_TO_POINTS } from "../src/modules/export-print/domain/print-profile";
 
@@ -86,7 +87,6 @@ function buildWorld() {
   const storage = new InMemoryObjectStorage();
   const queue = new InMemoryJobQueue();
 
-  const administration = new StudioAdministrationUseCase(studios, subscriptions, members);
   const quota = new SubscriptionQuotaPolicy(subscriptions);
   const reviewGateway = new AlbumCompositionGateway(albums);
   const exportGateway = new AlbumCompositionExportGateway(albums);
@@ -103,7 +103,6 @@ function buildWorld() {
     exports,
     storage,
     queue,
-    administration,
     quota,
     requestUpload: new RequestUploadUseCase(projects, photos, storage),
     confirmUpload: new ConfirmUploadUseCase(photos, storage, queue),
@@ -134,6 +133,14 @@ function buildWorld() {
   };
 }
 
+/** A studio on its default plan, as signing up leaves one. */
+async function createStudio(world: ReturnType<typeof buildWorld>, name: string, ownerEmail: string): Promise<string> {
+  const { studio } = Studio.create({ name, ownerEmail });
+  await world.studios.save(studio);
+  await world.subscriptions.save(Subscription.startDefault(studio.id));
+  return studio.id.toString();
+}
+
 describe("upload → analysis → album → review → export", () => {
   let world: ReturnType<typeof buildWorld>;
   let studioId: string;
@@ -148,13 +155,7 @@ describe("upload → analysis → album → review → export", () => {
     world = buildWorld();
 
     // --- Epic 7: a studio exists with a plan that allows albums ---
-    const onboarded = await world.administration.onboard({
-      name: "Golden Hour Photography",
-      ownerEmail: "studio@example.com",
-    });
-    assert.ok(onboarded.isSuccess);
-    studioId = onboarded.getValue().studioId;
-    assert.ok(onboarded.getValue().apiKey.startsWith("af_"));
+    studioId = await createStudio(world, "Golden Hour Photography", "studio@example.com");
 
     const subscription = await world.subscriptions.findByStudioId(UniqueEntityId.create(studioId));
     subscription?.changePlan("STUDIO");
@@ -310,11 +311,7 @@ describe("upload → analysis → album → review → export", () => {
 
   it("blocks album generation once the plan's quota is spent", async () => {
     const fresh = buildWorld();
-    const onboarded = await fresh.administration.onboard({
-      name: "Solo Shooter",
-      ownerEmail: "solo@example.com",
-    });
-    const soloStudioId = onboarded.getValue().studioId;
+    const soloStudioId = await createStudio(fresh, "Solo Shooter", "solo@example.com");
 
     const project = Project.create({
       studioId: UniqueEntityId.create(soloStudioId),

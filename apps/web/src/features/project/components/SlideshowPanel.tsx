@@ -4,7 +4,6 @@ import {
   extendSlideshowSession,
   getSlideshowAccess,
   listProjectAlbums,
-  listSlideshowSessions,
   openSlideshowSession,
   refreshSlideshowPhotos,
   revokeSlideshowSession,
@@ -14,6 +13,7 @@ import {
   type SlideshowSource,
 } from "@/shared/api";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { useSlideshowSessions } from "@/features/project/hooks/useSlideshowSessions";
 import { AccessDetailsModal } from "@/shared/ui/AccessDetailsModal";
 import { PlanUpsell } from "@/shared/ui/PlanUpsell";
 import type { ClientContact } from "@/features/project/hooks/useClientContact";
@@ -48,11 +48,7 @@ export function SlideshowPanel({
   const [link, setLink] = useState<CreatedLink | null>(null);
   const [detailsFor, setDetailsFor] = useState<string | null>(null);
 
-  const sessions = useQuery({
-    queryKey: ["slideshow-sessions", projectId],
-    queryFn: () => listSlideshowSessions(projectId),
-    refetchInterval: 15000,
-  });
+  const sessions = useSlideshowSessions(projectId);
   // The same query the project page already holds, so this costs no extra request.
   const albums = useQuery({ queryKey: ["albums", projectId], queryFn: () => listProjectAlbums(projectId) });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["slideshow-sessions", projectId] });
