@@ -18,6 +18,15 @@ export const ro: Record<string, string> = {
   "common.delete": "Șterge",
   "common.save": "Salvează",
   "albumEditor.loading": "Se deschide albumul…",
+  "pick.remaining": "mai sunt {count}",
+  "pick.until": "Linkul funcționează până pe {date}",
+  "review.views": "Vizualizare",
+  "review.viewSpreads": "Pagini duble",
+  "review.summary": "Note până acum: {count} · linkul funcționează până pe {date}",
+  "slideshow.share": "Trimite familiei",
+  "slideshow.shared": "Link copiat",
+  "slideshow.copyManually": "Copiază acest link și trimite-l:",
+  "slideshow.contact": "Contact studio",
   "common.loading": "Se încarcă…",
 
   // --- Auth ---------------------------------------------------------

@@ -18,6 +18,15 @@ export const en: Record<string, string> = {
   "common.delete": "Delete",
   "common.save": "Save",
   "albumEditor.loading": "Opening the album…",
+  "pick.remaining": "{count} to go",
+  "pick.until": "Link works until {date}",
+  "review.views": "View",
+  "review.viewSpreads": "Spreads",
+  "review.summary": "Notes so far: {count} · the link works until {date}",
+  "slideshow.share": "Share with family",
+  "slideshow.shared": "Link copied",
+  "slideshow.copyManually": "Copy this link and send it:",
+  "slideshow.contact": "Studio contacts",
   "common.loading": "Loading…",
 
   // --- Auth ---------------------------------------------------------
