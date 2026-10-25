@@ -52,6 +52,19 @@ export class MediaIngestionDeliveryGateway implements DeliveryGateway {
     return { available, missing };
   }
 
+  /** The grid-sized display copy, for the password gate's teaser. `undefined` before it exists. */
+  async thumbnail(photoId: string): Promise<Buffer | undefined> {
+    const photo = await this.photos.findById(UniqueEntityId.create(photoId));
+    if (!photo?.hasDerivatives) return undefined;
+    const key = photo.storageKey.derivative("thumb").toString();
+    if (photo.permanentDerivatives && this.permanent) {
+      const chunks: Buffer[] = [];
+      for await (const chunk of await this.permanent.openRead(key)) chunks.push(Buffer.from(chunk));
+      return Buffer.concat(chunks);
+    }
+    return this.staging.getObject(key);
+  }
+
   /** An original survives in staging until retention deletes it, and on long-term storage if it was ever promoted. */
   private hasOriginal(photo: Photo): boolean {
     if (!photo.stagedOriginalPurgedAt) return true;

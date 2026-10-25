@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { galleryOverrideSchema } from "@albumflow/contracts";
 import type { Database } from "#src/db/client";
@@ -58,6 +58,20 @@ export class DrizzleDownloadSessionRepository implements DownloadSessionReposito
       .where(eq(downloadSessions.tokenHash, tokenHash))
       .limit(1);
     return row ? toDomain(row) : undefined;
+  }
+
+  async findByProjectIds(projectIds: UniqueEntityId[]): Promise<DownloadSession[]> {
+    if (projectIds.length === 0) return [];
+    const rows = await this.db
+      .select()
+      .from(downloadSessions)
+      .where(
+        inArray(
+          downloadSessions.projectId,
+          projectIds.map((id) => id.toString()),
+        ),
+      );
+    return rows.map(toDomain);
   }
 
   async findByProjectId(projectId: UniqueEntityId): Promise<DownloadSession[]> {

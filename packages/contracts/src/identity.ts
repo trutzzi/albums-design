@@ -38,6 +38,28 @@ export const projectSummaryDtoSchema = projectDtoSchema.extend({
   processingCount: z.number().int().min(0),
   albumCount: z.number().int().min(0),
   coverThumbnailUrl: z.string().nullable(),
+  /** Its albums and client links, so the card and the dashboard can say what comes next. */
+  progress: z
+    .object({
+      albums: z.array(z.object({ id: z.string(), status: z.string() })),
+      picks: z.array(
+        z.object({
+          status: z.string(),
+          clientName: z.string(),
+          pickedCount: z.number().int().min(0),
+          submittedAt: z.string().nullable(),
+        }),
+      ),
+      reviews: z.array(z.object({ albumId: z.string(), status: z.string(), openComments: z.number().int().min(0) })),
+      deliveries: z.array(
+        z.object({
+          status: z.enum(["ACTIVE", "EXPIRED", "REVOKED"]),
+          downloadCount: z.number().int().min(0),
+          daysLeft: z.number().int().min(0),
+        }),
+      ),
+    })
+    .nullable(),
 });
 export type ProjectSummaryDTO = z.infer<typeof projectSummaryDtoSchema>;
 
