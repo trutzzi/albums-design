@@ -5170,3 +5170,53 @@ body.is-previewing {
     animation: none;
   }
 }
+
+/* ---- studio settings, refined: the sections as a grid of cards ---- */
+.studio {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.studio > .page__header,
+.studio > :not(.panel) {
+  grid-column: 1 / -1;
+}
+.studio > .panel {
+  margin: 0;
+  border-radius: 14px;
+}
+.studio .panel__head h2,
+.studio > .panel > h2 {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-weight: 400;
+}
+.studio .usage__bar {
+  height: 6px;
+}
+
+/* ---- platform admin, refined: a dark tab bar and display numbers ---- */
+.admin__tabs {
+  flex-wrap: wrap;
+  padding: 4px;
+  border-radius: 12px;
+  background: #14181c;
+}
+.admin__tabs .button,
+.admin__tabs [role="tab"] {
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #c3cbd1;
+}
+.admin__tabs [aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+.stat-tile {
+  border-radius: 12px;
+}
+.stat-tile__value {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-weight: 400;
+}

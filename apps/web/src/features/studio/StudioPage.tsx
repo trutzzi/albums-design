@@ -60,7 +60,7 @@ export function StudioPage() {
     : 0;
 
   return (
-    <div className="page">
+    <div className="page studio">
       <header className="page__header">
         <div>
           <h1>{studio.name}</h1>
