@@ -8,6 +8,8 @@ export interface PlanFeatures {
   maxPhotosPerShoot: number | null;
   /** May send clients a full-resolution download link. */
   clientDownloadLinks: boolean;
+  /** Client pages carry the studio's own branding and gallery style (Studio Pro). */
+  clientBranding: boolean;
 }
 
 export interface PlanFeatureDirectory {
@@ -20,4 +22,5 @@ export const NO_WATERMARKS: PlanFeatures = {
   watermarkExports: false,
   maxPhotosPerShoot: null,
   clientDownloadLinks: true,
+  clientBranding: true,
 };

@@ -1,4 +1,4 @@
-import type { StudioBrandingInput } from "@albumflow/contracts";
+import type { ClientStyle, StudioBrandingInput } from "@albumflow/contracts";
 import { request } from "./http";
 
 // --- Studio & billing ------------------------------------------------------
@@ -9,7 +9,16 @@ export interface StudioOverview {
     name: string;
     ownerEmail: string;
     createdAt: string;
-    branding: { displayName: string; accent: string | null; logo: string | null } | null;
+    branding: {
+      displayName: string;
+      accent: string | null;
+      logo: string | null;
+      website?: string | null;
+      phone?: string | null;
+      email?: string | null;
+    } | null;
+    /** How the studio's client galleries look (Studio Pro). */
+    clientStyle?: ClientStyle;
   };
   subscription: {
     planCode: string;
@@ -67,6 +76,10 @@ export function openBillingPortal(studioId: string): Promise<{ url: string }> {
 }
 
 /** Studio Pro: the studio's own name, colour and logo on client pages. */
+export function saveClientStyle(studioId: string, style: ClientStyle): Promise<StudioOverview> {
+  return request(`/studios/${studioId}/client-style`, { method: "PUT", body: JSON.stringify(style) });
+}
+
 export function saveStudioBranding(studioId: string, branding: StudioBrandingInput): Promise<StudioOverview> {
   return request(`/studios/${studioId}/branding`, { method: "PUT", body: JSON.stringify(branding) });
 }

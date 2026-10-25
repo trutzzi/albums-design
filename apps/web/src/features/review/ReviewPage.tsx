@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ClientBrandBar, brandStyle } from "@/shared/ui/ClientBrand";
+import { ClientBrandBar, proofMark, useClientStyle } from "@/shared/ui/ClientBrand";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { addReviewComment, getReview, listLayoutTemplates, submitReviewDecision } from "@/shared/api";
@@ -38,6 +38,8 @@ export function ReviewPage() {
     [templates.data],
   );
 
+  const look = useClientStyle(review.data?.album.branding);
+
   if (review.isLoading) return <p className="page muted">{t("review.opening")}</p>;
   if (needsPassword(review.error)) {
     return (
@@ -62,9 +64,10 @@ export function ReviewPage() {
   const { album, session } = review.data;
   const closed = session.status === "APPROVED" || session.status === "REVOKED";
   const aspectRatio = (album.format.pageWidthMm * 2) / album.format.pageHeightMm;
+  const mark = proofMark(album.branding, album.watermark);
 
   return (
-    <div className="page review" style={brandStyle(album.branding)}>
+    <div className="page review client-styled" style={look.style}>
       <ClientBrandBar branding={album.branding} />
       <header className="page__header">
         <div>
@@ -77,7 +80,7 @@ export function ReviewPage() {
         </div>
         <div className="pick__lang" role="group" aria-label={t("pick.language")}>
           <span className={`chip chip--${session.status.toLowerCase()}`}>{t(`review.status.${session.status}`)}</span>
-          <ThemeToggle />
+          {!look.themeFixed && <ThemeToggle />}
           {LANGUAGES.map((option) => (
             <button
               key={option.value}
@@ -96,6 +99,7 @@ export function ReviewPage() {
           album={album}
           templateById={templateById}
           watermark={album.watermark}
+          mark={mark}
           previewUrlFor={(photoId) =>
             album.cover?.photoId === photoId
               ? album.cover.previewUrl
@@ -115,7 +119,7 @@ export function ReviewPage() {
       {album.cover && (
         <section className="review-cover">
           <h2>{t("review.cover")}</h2>
-          <div className={album.watermark ? "proof-watermark" : undefined}>
+          <div className={mark?.className} style={mark?.style}>
             <CoverPreview
               cover={album.cover}
               albumStyle={album.style}
@@ -148,7 +152,7 @@ export function ReviewPage() {
                 <h2>{t("review.spread", { number: spreadIndex + 1 })}</h2>
               </div>
 
-              <div className={album.watermark ? "proof-watermark" : undefined}>
+              <div className={mark?.className} style={mark?.style}>
                 <SpreadCanvas
                   spreadIndex={spreadIndex}
                   template={template}

@@ -1,11 +1,12 @@
 import { hasLaunchPrice, monthlyPriceFor } from "../../domain/plan";
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
+import { DEFAULT_CLIENT_STYLE, type ClientStyle } from "@albumflow/contracts";
 import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import type { PlanCode } from "../../domain/plan";
 import type { LogoProcessor } from "../ports/logo-processor";
 import { ForbiddenError } from "./billing.use-case";
 import type { StudioMemberRepository, StudioRepository, SubscriptionRepository } from "../../domain/repositories";
-import { Studio } from "../../domain/studio";
+import { Studio, type StudioBranding } from "../../domain/studio";
 import { StudioMember, type StudioRole } from "../../domain/studio-member";
 import { Subscription } from "../../domain/subscription";
 
@@ -15,7 +16,8 @@ export interface StudioOverview {
     name: string;
     ownerEmail: string;
     createdAt: string;
-    branding: { displayName: string; accent: string | null; logo: string | null } | null;
+    branding: StudioBranding | null;
+    clientStyle: ClientStyle;
   };
   subscription: {
     planCode: PlanCode;
@@ -88,6 +90,7 @@ export class StudioAdministrationUseCase {
         ownerEmail: studio.ownerEmail,
         createdAt: studio.createdAt.toISOString(),
         branding: studio.branding ?? null,
+        clientStyle: studio.clientStyle ?? DEFAULT_CLIENT_STYLE,
       },
       subscription: {
         planCode: subscription.planCode,
@@ -153,7 +156,14 @@ export class StudioAdministrationUseCase {
   async setBranding(
     studioId: string,
     role: string | undefined,
-    input: { displayName: string; accent: string | null; logo: string | null },
+    input: {
+      displayName: string;
+      accent: string | null;
+      logo: string | null;
+      website?: string | null | undefined;
+      phone?: string | null | undefined;
+      email?: string | null | undefined;
+    },
   ): Promise<Result<StudioOverview, ApplicationError>> {
     if (role !== undefined && role !== "OWNER") {
       return Result.failure(new ForbiddenError("Only the studio owner can change its branding."));
@@ -178,8 +188,38 @@ export class StudioAdministrationUseCase {
         return Result.failure(new ValidationError(error instanceof Error ? error.message : "Invalid logo."));
       }
     }
-    const empty = !input.displayName.trim() && !input.accent && !logo;
-    studio.setBranding(empty ? undefined : { displayName: input.displayName.trim(), accent: input.accent, logo });
+    const contact = {
+      website: input.website?.trim() || null,
+      phone: input.phone?.trim() || null,
+      email: input.email?.trim() || null,
+    };
+    const empty = !input.displayName.trim() && !input.accent && !logo && !Object.values(contact).some(Boolean);
+    studio.setBranding(
+      empty ? undefined : { displayName: input.displayName.trim(), accent: input.accent, logo, ...contact },
+    );
+    await this.studios.save(studio);
+    return this.overview(studioId);
+  }
+
+  /** Fonts, layout, theme, section names, social links and watermark of the client galleries (Studio Pro). */
+  async setClientStyle(
+    studioId: string,
+    role: string | undefined,
+    style: ClientStyle,
+  ): Promise<Result<StudioOverview, ApplicationError>> {
+    if (role !== undefined && role !== "OWNER") {
+      return Result.failure(new ForbiddenError("Only the studio owner can change its branding."));
+    }
+    const id = UniqueEntityId.create(studioId);
+    const [studio, subscription] = await Promise.all([
+      this.studios.findById(id),
+      this.subscriptions.findByStudioId(id),
+    ]);
+    if (!studio || !subscription) return Result.failure(new NotFoundError("Studio", studioId));
+    if (!subscription.plan.whiteLabelReview) {
+      return Result.failure(new ConflictError("Your own branding on client pages comes with the Studio Pro plan."));
+    }
+    studio.setClientStyle(style);
     await this.studios.save(studio);
     return this.overview(studioId);
   }

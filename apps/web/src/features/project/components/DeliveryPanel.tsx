@@ -12,6 +12,7 @@ import { AccessDetailsModal } from "@/shared/ui/AccessDetailsModal";
 import { PlanUpsell } from "@/shared/ui/PlanUpsell";
 import type { ClientContact } from "@/features/project/hooks/useClientContact";
 import { ClientLinkForm } from "./ClientLinkForm";
+import { GalleryCustomiseModal } from "./GalleryCustomiseModal";
 import { LinkResult, noteFrom, type CreatedLink, type EmailNote } from "./LinkResult";
 
 /** Delivery: a time-limited link where the client downloads every photo at full size. */
@@ -19,11 +20,14 @@ export function DeliveryPanel({
   projectId,
   contact,
   canSendDownloadLinks,
+  canStyleGalleries,
 }: {
   projectId: string;
   contact: ClientContact;
   /** The studio's plan includes download links. */
   canSendDownloadLinks: boolean;
+  /** The plan lets each gallery have its own look (Studio Pro). */
+  canStyleGalleries: boolean;
 }) {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
@@ -35,6 +39,7 @@ export function DeliveryPanel({
   const [link, setLink] = useState<CreatedLink | null>(null);
   const [missing, setMissing] = useState(0);
   const [detailsFor, setDetailsFor] = useState<string | null>(null);
+  const [customising, setCustomising] = useState<string | null>(null);
 
   const sessions = useQuery({
     queryKey: ["download-sessions", projectId],
@@ -43,6 +48,7 @@ export function DeliveryPanel({
   });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["download-sessions", projectId] });
   const hasSessions = (sessions.data ?? []).length > 0;
+  const customisingSession = (sessions.data ?? []).find((session) => session.id === customising);
   const showForm = formOpen || !hasSessions;
 
   const create = useMutation({
@@ -145,6 +151,11 @@ export function DeliveryPanel({
                 <span className={`chip chip--${session.status === "ACTIVE" ? "active" : session.status.toLowerCase()}`}>
                   {t(`project.delivery.status.${session.status.toLowerCase()}`)}
                 </span>
+                {session.status === "ACTIVE" && (
+                  <button type="button" className="button button--small" onClick={() => setCustomising(session.id)}>
+                    {t("project.delivery.customise.open")}
+                  </button>
+                )}
                 {session.passwordProtected && (
                   <button type="button" className="button button--small" onClick={() => setDetailsFor(session.id)}>
                     {t("access.details.open")}
@@ -164,6 +175,15 @@ export function DeliveryPanel({
             </li>
           ))}
         </ul>
+      )}
+
+      {customisingSession && (
+        <GalleryCustomiseModal
+          projectId={projectId}
+          session={customisingSession}
+          canStyle={canStyleGalleries}
+          onClose={() => setCustomising(null)}
+        />
       )}
 
       {detailsFor && (
