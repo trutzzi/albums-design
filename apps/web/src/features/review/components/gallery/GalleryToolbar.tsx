@@ -78,7 +78,9 @@ export function GalleryToolbar({
                   }}
                 >
                   <span className="gallery-menu__choice-label">{sectionName(section)}</span>
-                  <span className="gallery-menu__choice-detail">{counts.bySection.get(section) ?? 0}</span>
+                  <span className="gallery-menu__choice-detail">
+                    {(counts.bySection.get(section) ?? 0).toLocaleString(locale)}
+                  </span>
                 </button>
               ))
             }

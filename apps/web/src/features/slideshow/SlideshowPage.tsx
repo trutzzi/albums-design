@@ -5,7 +5,9 @@ import { getSlideshowView, recordSlideshowView } from "@/shared/api";
 import { LANGUAGES } from "@/shared/i18n/translations";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { brandStyle } from "@/shared/ui/ClientBrand";
-import { ContactDialog, hasContact } from "@/features/review/components/gallery/StudioContactCard";
+import { ContactDialog, hasContact } from "@/shared/ui/StudioContact";
+import { ClientBrandBar } from "@/shared/ui/ClientBrand";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { SlideshowPlayer } from "./components/SlideshowPlayer";
 import { VIEW_REFRESH_MS, shouldRetryImage } from "./lib/autoplay";
 import { ClientPageSkeleton } from "@/shared/ui/Loading";
@@ -105,8 +107,12 @@ export function SlideshowPage() {
   return (
     <div className="slideshow-start" style={brandStyle(data.branding)}>
       <div className="slideshow-start__top">
-        <span className="slideshow-start__studio">{data.branding?.name ?? ""}</span>
+        {/* The studio's logo and name when it has branding, as on every client page. */}
+        <div className="slideshow-start__studio">
+          <ClientBrandBar branding={data.branding} />
+        </div>
         <div className="pick__lang" role="group" aria-label={t("pick.language")}>
+          <ThemeToggle />
           {LANGUAGES.map((option) => (
             <button
               key={option.value}
