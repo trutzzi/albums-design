@@ -13,6 +13,7 @@ import {
   ShootActivityUseCase,
   buildShootActivity,
 } from "../src/modules/review-collaboration/application/use-cases/shoot-activity.use-case";
+import { AlbumCompositionShootAlbums } from "../src/modules/review-collaboration/infrastructure/gateways/shoot-albums-gateway";
 import { registerActivityRoutes } from "../src/modules/review-collaboration/interface/http/activity-routes";
 import {
   InMemoryAlbumRepository,
@@ -131,7 +132,13 @@ describe("a shoot's activity", () => {
 
     const app = Fastify();
     registerActivityRoutes(app, {
-      shootActivity: new ShootActivityUseCase(albums, picks, reviews, downloads, slideshows),
+      shootActivity: new ShootActivityUseCase(
+        new AlbumCompositionShootAlbums(albums),
+        picks,
+        reviews,
+        downloads,
+        slideshows,
+      ),
     });
     await app.listen({ port: 0, host: "127.0.0.1" });
     const base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
