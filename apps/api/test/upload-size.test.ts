@@ -51,6 +51,22 @@ describe("upload size, as actually stored", () => {
     assert.equal(logger.problems.length, 1);
   });
 
+  it("keeps the row when the object cannot be deleted, so the upload can still be cleaned up", async () => {
+    const { photos, storage, logger, photo, confirm } = await pendingUpload(MAX_UPLOAD_BYTES + 1);
+    storage.delete = async () => {
+      throw new Error("storage unreachable");
+    };
+
+    const result = await confirm.execute({ photoId: photo.id.toString() });
+
+    assert.ok(result.isFailure);
+    assert.equal((await photos.findById(photo.id))?.status, "PENDING_UPLOAD");
+    assert.ok(
+      logger.entries.some((entry) => entry.level === "error"),
+      "an orphaned 75MB+ object must reach the Errors tab",
+    );
+  });
+
   it("accepts a file of exactly the limit", async () => {
     const { photos, photo, confirm } = await pendingUpload(MAX_UPLOAD_BYTES);
     const result = await confirm.execute({ photoId: photo.id.toString() });

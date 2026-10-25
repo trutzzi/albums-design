@@ -94,13 +94,22 @@ export class ConfirmUploadUseCase {
     });
   }
 
-  /** Still PENDING_UPLOAD, so nothing refers to it yet: the row and the object both go, as for a cancelled upload. */
+  /**
+   * Still PENDING_UPLOAD, so nothing refers to it yet: the object and the row both go, as for a
+   * cancelled upload. The row is what lets a later cancel find the object again, so it stays
+   * until the object is really gone.
+   */
   private async discardOversized(photoId: UniqueEntityId, key: string, byteSize: number): Promise<void> {
     this.logger.warn("rejected an upload larger than the limit", { photoId: photoId.toString(), byteSize });
     try {
       await this.storage.delete(key);
     } catch (error) {
-      this.logger.warn("could not delete a rejected upload's object", { photoId: photoId.toString(), err: error });
+      this.logger.error("could not delete a rejected oversized upload; its row is kept for cleanup", {
+        photoId: photoId.toString(),
+        byteSize,
+        err: error,
+      });
+      return;
     }
     await this.photos.delete(photoId);
   }
