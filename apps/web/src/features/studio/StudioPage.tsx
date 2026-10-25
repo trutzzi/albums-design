@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  getStudioOverview,
-  inviteMember,
-  listPlans,
-  openBillingPortal,
-  removeMember,
-  type PlanDto,
-} from "@/shared/api";
+import { getStudioOverview, inviteMember, openBillingPortal, removeMember, type PlanDto } from "@/shared/api";
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { LANGUAGES } from "@/shared/i18n/translations";
@@ -16,13 +9,14 @@ import { PlanPrice } from "@/shared/ui/LaunchOffer";
 import { BrandingPanel } from "./components/BrandingPanel";
 import { GalleryStylePanel } from "./components/GalleryStylePanel";
 import { LoadingState } from "@/shared/ui/Loading";
+import { usePlans } from "@/shared/ui/usePlans";
 
 export function StudioPage() {
   const { studioId } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const queryClient = useQueryClient();
   const [invite, setInvite] = useState({ name: "", email: "", role: "EDITOR" as const });
-  const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
+  const plans = usePlans();
 
   const overview = useQuery({
     queryKey: ["studio", studioId],

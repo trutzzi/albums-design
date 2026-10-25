@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { getStudioOverview, listPlans, type PlanDto } from "@/shared/api";
+import { getStudioOverview, type PlanDto } from "@/shared/api";
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { usePlans } from "@/shared/ui/usePlans";
 
 /** Plan changes go through us until self-serve checkout is switched on. */
 export const UPGRADE_EMAIL = "contact@valentintruta.ro";
@@ -25,7 +26,7 @@ const INCLUDES: Record<UpsellFeature, (plan: PlanDto) => boolean> = {
 export function PlanUpsell({ feature }: { feature: UpsellFeature }) {
   const { t } = useLanguage();
   const { studioId } = useAuth();
-  const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
+  const plans = usePlans();
   const studio = useQuery({
     queryKey: ["studio", studioId],
     queryFn: () => getStudioOverview(studioId),

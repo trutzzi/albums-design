@@ -57,16 +57,21 @@ export interface PreparedDownload {
 /** Which photos go into the ZIP: all of them, the client's favourites, or one chapter. */
 export type DownloadScope = { kind: "all" } | { kind: "favorites" } | { kind: "section"; section: string };
 
+/** A teaser stays the same for a while; serving it from memory spares the listing and the resize. */
+const TEASER_CACHE_MS = 60 * 60 * 1000;
+/** A link with no usable cover is asked again only after this, so a bad thumbnail cannot be hammered. */
+const TEASER_MISS_MS = 5 * 60 * 1000;
+const TEASER_CACHE_MAX = 200;
+
 /**
  * Every client-facing operation is scoped by the share token — like the review
  * and pick portals there is no other authentication, so the token is the boundary.
  */
-/** A teaser stays the same for a while; serving it from memory spares the listing and the resize. */
-const TEASER_CACHE_MS = 60 * 60 * 1000;
-const TEASER_CACHE_MAX = 200;
-
 export class DownloadPortalUseCase {
-  private readonly teasers = new Map<string, { at: number; image: Buffer }>();
+  /** `image: null` remembers that a link has no teaser to show. */
+  private readonly teasers = new Map<string, { at: number; image: Buffer | null }>();
+  /** Concurrent first requests for one link share a single piece of work. */
+  private readonly makingTeasers = new Map<string, Promise<Buffer | null>>();
 
   constructor(
     private readonly sessions: DownloadSessionRepository,
@@ -120,7 +125,8 @@ export class DownloadPortalUseCase {
 
   /**
    * The gallery's cover shrunk to a few dozen pixels, for the gate to blur behind its form.
-   * Shown before the password by the owner's choice; the size keeps it a mood, not a photo.
+   * Shown before the password on every protected download link — the owner decided this on
+   * 2026-10-25, with no per-link setting; the size keeps it a mood, not a photo.
    */
   async teaser(token: string): Promise<Result<Buffer, ApplicationError>> {
     const teaser = this.arrangement.teaser;
@@ -131,8 +137,27 @@ export class DownloadPortalUseCase {
     // A newly chosen cover is a new key; an automatic one may lag by up to an hour, which is fine for a blur.
     const key = `${session.id.toString()}:${session.coverPhotoId ?? "auto"}`;
     const cached = this.teasers.get(key);
-    if (cached && this.now().getTime() - cached.at < TEASER_CACHE_MS) return Result.success(cached.image);
+    const age = cached ? this.now().getTime() - cached.at : Infinity;
+    if (cached && age < (cached.image ? TEASER_CACHE_MS : TEASER_MISS_MS)) {
+      return cached.image ? Result.success(cached.image) : Result.failure(new NotFoundError("Cover", "teaser"));
+    }
 
+    let making = this.makingTeasers.get(key);
+    if (!making) {
+      making = this.makeTeaser(session, teaser).finally(() => this.makingTeasers.delete(key));
+      this.makingTeasers.set(key, making);
+    }
+    const image = await making;
+    if (this.teasers.size >= TEASER_CACHE_MAX) this.teasers.delete(this.teasers.keys().next().value!);
+    this.teasers.set(key, { at: this.now().getTime(), image });
+    return image ? Result.success(image) : Result.failure(new NotFoundError("Cover", "teaser"));
+  }
+
+  /** `null` when there is nothing to show — no cover yet, or a thumbnail that cannot be read. */
+  private async makeTeaser(
+    session: DownloadSession,
+    teaser: { source: CoverThumbnails; images: TeaserImages },
+  ): Promise<Buffer | null> {
     const projectId = session.projectId.toString();
     let coverId: string | null = null;
     try {
@@ -142,11 +167,7 @@ export class DownloadPortalUseCase {
       ]);
       coverId = chooseCover(listed, traits, session.coverPhotoId);
       const thumbnail = coverId ? await teaser.source.thumbnail(coverId) : undefined;
-      if (!thumbnail) return Result.failure(new NotFoundError("Cover", "teaser"));
-      const image = await teaser.images.shrink(thumbnail);
-      if (this.teasers.size >= TEASER_CACHE_MAX) this.teasers.delete(this.teasers.keys().next().value!);
-      this.teasers.set(key, { at: this.now().getTime(), image });
-      return Result.success(image);
+      return thumbnail ? await teaser.images.shrink(thumbnail) : null;
     } catch (error) {
       // The gate simply shows the plain lock; the photographer's gallery is unaffected.
       this.logger.warn("could not make the gallery cover teaser", {
@@ -154,7 +175,7 @@ export class DownloadPortalUseCase {
         photoId: coverId,
         err: error,
       });
-      return Result.failure(new NotFoundError("Cover", "teaser"));
+      return null;
     }
   }
 

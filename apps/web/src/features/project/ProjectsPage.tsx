@@ -6,6 +6,7 @@ import { createProject, listProjects } from "@/shared/api";
 import { analysisProgress, shootsRefreshInterval } from "@/features/project/lib/shoot-progress";
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { localeOf } from "@/shared/i18n/locale";
 import { GettingStarted, onboardingDismissed } from "@/features/project/components/GettingStarted";
 import { GuidedTour, type TourStep } from "@/shared/ui/GuidedTour";
 import { howItWorksSeen, openHowItWorks, useHowItWorksOpen } from "@/shared/ui/HowItWorks";
@@ -54,6 +55,8 @@ const SEARCHABLE_FROM = 6;
 
 export function ProjectsPage() {
   const { studioId, name } = useAuth();
+  // A blank or whitespace-only name greets with the page title rather than "Good morning, ".
+  const firstName = name.trim().split(/\s+/)[0] ?? "";
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -95,7 +98,7 @@ export function ProjectsPage() {
     (type: ProjectType) => t(TYPES.find((option) => option.value === type)?.labelKey ?? type),
     [t],
   );
-  const locale = language === "ro" ? "ro-RO" : "en-GB";
+  const locale = localeOf(language);
   /**
    * "1 album" but "5 albums" — and Romanian needs a third form from twenty up
    * ("20 de albume"), which is exactly where a card reads wrong if you ignore it.
@@ -223,7 +226,7 @@ export function ProjectsPage() {
       <header className="page__header">
         <div>
           <h1 className="shoots__greeting">
-            {name ? t(greetingKey(new Date()), { name: name.trim().split(/\s+/)[0]! }) : t("projects.title")}
+            {firstName ? t(greetingKey(new Date()), { name: firstName }) : t("projects.title")}
           </h1>
           <p className="muted">
             {waiting.length > 0
@@ -300,13 +303,12 @@ export function ProjectsPage() {
       )}
 
       {all.length > 0 && (
-        <div className="shoots__filters" role="tablist" aria-label={t("projects.filter.label")}>
+        <div className="shoots__filters" role="group" aria-label={t("projects.filter.label")}>
           {FILTERS.map((value) => (
             <button
               key={value}
               type="button"
-              role="tab"
-              aria-selected={filter === value}
+              aria-pressed={filter === value}
               className={`shoots__filter ${filter === value ? "shoots__filter--on" : ""}`}
               onClick={() => setFilter(value)}
             >

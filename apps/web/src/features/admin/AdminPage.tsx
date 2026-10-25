@@ -8,7 +8,6 @@ import {
   listAdminFeedback,
   deleteAdminStudio,
   listAdminStudios,
-  listPlans,
   setStudioPlan,
   triageFeedback,
   type AdminFeedback,
@@ -22,6 +21,7 @@ import {
 import { BarList, ColumnChart, StatTile } from "./charts";
 import { ErrorsTab } from "./ErrorsTab";
 import { LoadingState, SkeletonList } from "@/shared/ui/Loading";
+import { usePlans } from "@/shared/ui/usePlans";
 
 type Tab = "business" | "studios" | "feedback" | "server" | "errors";
 
@@ -274,7 +274,7 @@ function StudiosTab() {
     queryFn: () => listAdminStudios({ page, pageSize: PAGE_SIZE, search: query }),
     placeholderData: (previous) => previous,
   });
-  const plans = useQuery({ queryKey: ["plans"], queryFn: listPlans, staleTime: Infinity });
+  const plans = usePlans();
   const total = studios.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
