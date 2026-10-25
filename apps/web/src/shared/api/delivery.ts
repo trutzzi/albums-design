@@ -101,7 +101,8 @@ export interface DownloadView {
   expiresAt: string;
   daysLeft: number;
   /** Display copies to browse before downloading, each in its chapter (a photo category) when it has one. */
-  photos: (ClientGalleryPhoto & { section: string | null })[];
+  /** `byteSize` of the full-size original; `null` when it is no longer stored and so not in any download. */
+  photos: (ClientGalleryPhoto & { section: string | null; byteSize: number | null })[];
   /** The gallery's chapters in the order of the day, e.g. `PREPARATION`, `CEREMONY`. */
   sections: string[];
   coverPhotoId: string | null;

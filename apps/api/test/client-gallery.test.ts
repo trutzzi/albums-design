@@ -180,6 +180,22 @@ describe("the delivery gallery the client sees", () => {
     assert.deepEqual(view.favoritePhotoIds.sort(), [couple, loose].sort());
   });
 
+  it("tells the page how big each original is, so it can size each download", async () => {
+    const w = await world();
+    const kept = await w.addPhoto("001.jpg", "COUPLE");
+    const gone = await w.addPhoto("002.jpg", "COUPLE");
+    // Past the retention window, with no long-term copy: browsable, but in no download.
+    const purged = (await w.photos.findById(UniqueEntityId.create(gone)))!;
+    purged.markStagedOriginalPurged(new Date());
+    await w.photos.save(purged);
+
+    const view = (await w.portal().view(w.link.token)).getValue();
+    const size = (id: string) => view.photos.find((photo) => photo.id === id)?.byteSize;
+    assert.equal(size(kept), Buffer.byteLength("bytes of 001.jpg"));
+    assert.equal(size(gone), null);
+    assert.equal(view.totalBytes, Buffer.byteLength("bytes of 001.jpg"));
+  });
+
   it("uses the photographer's chosen cover", async () => {
     const w = await world();
     const prep = await w.addPhoto("001.jpg", "PREPARATION");
