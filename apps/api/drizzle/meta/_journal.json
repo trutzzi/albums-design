@@ -138,8 +138,15 @@
     {
       "idx": 19,
       "version": "7",
-      "when": 1792885882031,
-      "tag": "0019_client_gallery",
+      "when": 1792882765939,
+      "tag": "0019_client_slideshows",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792887765936,
+      "tag": "0020_client_gallery",
       "breakpoints": true
     }
   ]

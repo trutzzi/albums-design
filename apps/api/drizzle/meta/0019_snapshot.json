@@ -1,5 +1,5 @@
 {
-  "id": "d1112985-e799-4d2f-ab51-4bbab3bd9ffa",
+  "id": "0695ac7d-756f-44e2-b13e-7df1483c8a13",
   "prevId": "6ad230f2-c96c-4eb1-89f7-03bd2be761a4",
   "version": "7",
   "dialect": "postgresql",
@@ -151,30 +151,6 @@
         "brand_logo": {
           "name": "brand_logo",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "brand_website": {
-          "name": "brand_website",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "brand_phone": {
-          "name": "brand_phone",
-          "type": "varchar(32)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "brand_email": {
-          "name": "brand_email",
-          "type": "varchar(320)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "brand_style": {
-          "name": "brand_style",
-          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         }
@@ -922,18 +898,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "cover_photo_id": {
-          "name": "cover_photo_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "look_override": {
-          "name": "look_override",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -1257,6 +1221,162 @@
       "uniqueConstraints": {
         "review_sessions_token_hash_unique": {
           "name": "review_sessions_token_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token_hash"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.slideshow_sessions": {
+      "name": "slideshow_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_name": {
+          "name": "client_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "slideshow_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "slideshow_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "album_id": {
+          "name": "album_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "photo_ids": {
+          "name": "photo_ids",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "interval_seconds": {
+          "name": "interval_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transition": {
+          "name": "transition",
+          "type": "slideshow_transition",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view_count": {
+          "name": "view_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_viewed_at": {
+          "name": "last_viewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_sent_to": {
+          "name": "last_sent_to",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_sent_at": {
+          "name": "last_sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sealed_secret": {
+          "name": "sealed_secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "slideshow_sessions_project_id_idx": {
+          "name": "slideshow_sessions_project_id_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "slideshow_sessions_project_id_projects_id_fk": {
+          "name": "slideshow_sessions_project_id_projects_id_fk",
+          "tableFrom": "slideshow_sessions",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "slideshow_sessions_token_hash_unique": {
+          "name": "slideshow_sessions_token_hash_unique",
           "nullsNotDistinct": false,
           "columns": [
             "token_hash"
@@ -1851,6 +1971,31 @@
         "CHANGES_REQUESTED",
         "APPROVED",
         "REVOKED"
+      ]
+    },
+    "public.slideshow_source": {
+      "name": "slideshow_source",
+      "schema": "public",
+      "values": [
+        "PICKS",
+        "ALBUM",
+        "SHOOT"
+      ]
+    },
+    "public.slideshow_status": {
+      "name": "slideshow_status",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "REVOKED"
+      ]
+    },
+    "public.slideshow_transition": {
+      "name": "slideshow_transition",
+      "schema": "public",
+      "values": [
+        "FADE",
+        "NONE"
       ]
     },
     "public.export_status": {

@@ -74,6 +74,8 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     pickPortal: review.pickPortal,
     downloadAdmin: review.downloadAdmin,
     downloadPortal: review.downloadPortal,
+    slideshowAdmin: review.slideshowAdmin,
+    slideshowPortal: review.slideshowPortal,
     reviewAccess: review.reviewAccess,
     exportJobs: repos.exportJobs,
     requestExport: exportPrint.requestExport,
