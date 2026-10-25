@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { loadDatabaseEnv, loadEnv } from "../src/shared-kernel/env";
 
@@ -46,6 +47,12 @@ describe("environment configuration", () => {
     it("starts once the operator confirms the texts and contracts were updated", () => {
       const env = loadEnv({ ...production, VISION_THIRD_PARTY_DISCLOSED: "true" } as NodeJS.ProcessEnv);
       assert.equal(env.VISION_PROVIDER, "anthropic");
+    });
+
+    it("reaches both production containers next to the provider it unlocks", () => {
+      const compose = readFileSync(new URL("../../../docker-compose.prod.yml", import.meta.url), "utf8");
+      const forwarded = compose.match(/VISION_THIRD_PARTY_DISCLOSED: \$\{VISION_THIRD_PARTY_DISCLOSED:-false\}/g);
+      assert.equal(forwarded?.length, 2, "the api and the worker both need it");
     });
 
     it("leaves local providers and development alone", () => {
