@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { playback, shouldAdvance, wrapIndex } from "./autoplay";
+import { IMAGE_RETRY_WINDOW_MS, playback, shouldAdvance, shouldRetryImage, wrapIndex } from "./autoplay";
 
 describe("wrapIndex", () => {
   it("loops past either end", () => {
@@ -44,5 +44,15 @@ describe("shouldAdvance", () => {
     assert.equal(shouldAdvance(state, { hidden: true, count: 3 }), false, "a hidden tab never advances");
     assert.equal(shouldAdvance(state, { hidden: false, count: 1 }), false);
     assert.equal(shouldAdvance({ ...state, playing: false }, { hidden: false, count: 3 }), false);
+  });
+});
+
+describe("shouldRetryImage", () => {
+  it("refetches once for a broken photo, then not again within the window", () => {
+    const tries = new Map<string, number>();
+    assert.equal(shouldRetryImage("a", 1000, tries), true);
+    assert.equal(shouldRetryImage("a", 2000, tries), false, "a photo broken for good cannot loop");
+    assert.equal(shouldRetryImage("b", 2000, tries), true, "each photo has its own retry");
+    assert.equal(shouldRetryImage("a", 1000 + IMAGE_RETRY_WINDOW_MS, tries), true, "and may try again later");
   });
 });

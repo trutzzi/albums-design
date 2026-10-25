@@ -489,6 +489,8 @@ export const en: Record<string, string> = {
   "project.slideshow.title": "Share a slideshow",
   "project.slideshow.intro":
     "A link that plays the photos full screen, on its own — for the client to show family on a phone, laptop or TV. No password, so it can be forwarded.",
+  "project.slideshow.loading": "Loading slideshow links…",
+  "project.slideshow.loadError": "Could not load the slideshow links: {reason}",
   "project.slideshow.new": "New slideshow",
   "project.slideshow.source": "Photos",
   "project.slideshow.source.picks": "The client's picks",

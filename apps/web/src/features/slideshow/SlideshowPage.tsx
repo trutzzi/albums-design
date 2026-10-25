@@ -7,7 +7,7 @@ import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { ClientBrandBar, brandStyle } from "@/shared/ui/ClientBrand";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { SlideshowPlayer } from "./components/SlideshowPlayer";
-import { VIEW_REFRESH_MS } from "./lib/autoplay";
+import { VIEW_REFRESH_MS, shouldRetryImage } from "./lib/autoplay";
 
 /**
  * The page a client — or anyone they forward it to — opens from a slideshow link. No
@@ -20,6 +20,7 @@ export function SlideshowPage() {
   const { t, language, setLanguage } = useLanguage();
   const [playing, setPlaying] = useState(false);
   const counted = useRef(false);
+  const imageRetries = useRef(new Map<string, number>());
 
   const view = useQuery({
     queryKey: ["slideshow", token],
@@ -56,7 +57,9 @@ export function SlideshowPage() {
       <SlideshowPlayer
         photos={data.photos}
         settings={data.settings}
-        onImageError={() => void view.refetch()}
+        onImageError={(photoId) => {
+          if (shouldRetryImage(photoId, Date.now(), imageRetries.current)) void view.refetch();
+        }}
         onExit={() => {
           if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
           setPlaying(false);

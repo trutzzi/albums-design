@@ -44,3 +44,16 @@ export function shouldAdvance(state: PlaybackState, conditions: { hidden: boolea
 export const VIEW_REFRESH_MS = 45 * 60 * 1000;
 /** How long the controls stay up after the last touch or mouse move. */
 export const CONTROLS_HIDE_MS = 3000;
+
+/**
+ * A broken image is most often an expired URL, which a refetch fixes. A photo that is
+ * broken for good would refetch on every showing, so each photo gets at most one retry
+ * per window. Records the retry in `lastRetry` when it allows one.
+ */
+export const IMAGE_RETRY_WINDOW_MS = 5 * 60 * 1000;
+export function shouldRetryImage(photoId: string, now: number, lastRetry: Map<string, number>): boolean {
+  const last = lastRetry.get(photoId);
+  if (last !== undefined && now - last < IMAGE_RETRY_WINDOW_MS) return false;
+  lastRetry.set(photoId, now);
+  return true;
+}

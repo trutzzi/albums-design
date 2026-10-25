@@ -8,8 +8,8 @@ import { useWakeLock } from "../hooks/useWakeLock";
 interface Props {
   photos: ClientGalleryPhoto[];
   settings: SlideshowSettings;
-  /** A preview URL failed — most likely it expired — so the page should fetch fresh ones. */
-  onImageError: () => void;
+  /** A photo's preview failed to load — most likely its URL expired — so the page may fetch fresh ones. */
+  onImageError: (photoId: string) => void;
   onExit: () => void;
 }
 
@@ -30,6 +30,7 @@ export function SlideshowPlayer({ photos, settings, onImageError, onExit }: Prop
   const [controlsShown, setControlsShown] = useState(true);
   const [fullscreen, setFullscreen] = useState(() => Boolean(document.fullscreenElement));
   const hideTimer = useRef<number | undefined>(undefined);
+  const controls = useRef<HTMLDivElement>(null);
 
   const go = useCallback(
     (action: PlaybackAction) => {
@@ -63,7 +64,11 @@ export function SlideshowPlayer({ photos, settings, onImageError, onExit }: Prop
   const wake = useCallback(() => {
     setControlsShown(true);
     window.clearTimeout(hideTimer.current);
-    hideTimer.current = window.setTimeout(() => setControlsShown(false), CONTROLS_HIDE_MS);
+    hideTimer.current = window.setTimeout(() => {
+      // Never hide a control the keyboard is on: an invisible focused button is a dead end.
+      if (controls.current?.contains(document.activeElement)) return;
+      setControlsShown(false);
+    }, CONTROLS_HIDE_MS);
   }, []);
   useEffect(() => {
     wake();
@@ -82,6 +87,8 @@ export function SlideshowPlayer({ photos, settings, onImageError, onExit }: Prop
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       wake();
+      // Space on a focused control presses that control, as everywhere else on the web.
+      if (event.key === " " && isControl(event.target)) return;
       if (event.key === " ") {
         event.preventDefault();
         dispatch({ type: "toggle" });
@@ -125,10 +132,10 @@ export function SlideshowPlayer({ photos, settings, onImageError, onExit }: Prop
         src={current.previewUrl}
         alt={current.fileName}
         draggable={false}
-        onError={onImageError}
+        onError={() => onImageError(current.id)}
       />
 
-      <div className="slideshow__controls">
+      <div ref={controls} className="slideshow__controls" onFocus={wake}>
         <button
           type="button"
           className="slideshow__button"
@@ -167,4 +174,8 @@ export function SlideshowPlayer({ photos, settings, onImageError, onExit }: Prop
       </div>
     </div>
   );
+}
+
+function isControl(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && Boolean(target.closest("button, a, input, select, textarea"));
 }

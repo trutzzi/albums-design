@@ -56,14 +56,16 @@ export function SlideshowPanel({
   const albums = useQuery({ queryKey: ["albums", projectId], queryFn: () => listProjectAlbums(projectId) });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["slideshow-sessions", projectId] });
   const hasSessions = (sessions.data ?? []).length > 0;
-  const showForm = formOpen || !hasSessions;
+  // Only once the list has loaded: an empty shoot opens on the form, a shoot with links does not.
+  const showForm = formOpen || (sessions.isSuccess && !hasSessions);
   const chosenAlbum = albumId || albums.data?.[0]?.id || "";
   const urlFor = (token: string) => `${window.location.origin}/slideshow/${token}`;
 
   const create = useMutation({
     mutationFn: () =>
       openSlideshowSession(projectId, {
-        clientName: clientName.trim() || contact.name || "Client",
+        // Blank is fine: the server falls back to the client on the shoot.
+        clientName: clientName.trim() || contact.name || "",
         source,
         ...(source === "ALBUM" && chosenAlbum ? { albumId: chosenAlbum } : {}),
         intervalSeconds,
@@ -105,6 +107,12 @@ export function SlideshowPanel({
       </div>
       <p className="muted">{t("project.slideshow.intro")}</p>
       {!canSendSlideshows && <PlanUpsell feature="slideshows" />}
+      {sessions.isLoading && <p className="muted">{t("project.slideshow.loading")}</p>}
+      {sessions.isError && (
+        <p className="error" role="alert">
+          {t("project.slideshow.loadError", { reason: (sessions.error as Error).message })}
+        </p>
+      )}
       {canSendSlideshows && showForm && (
         <>
           <div className="slideshow-form">

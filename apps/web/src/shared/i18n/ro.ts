@@ -499,6 +499,8 @@ export const ro: Record<string, string> = {
   "project.slideshow.title": "Trimite un slideshow",
   "project.slideshow.intro":
     "Un link care rulează singur fotografiile pe tot ecranul — pentru ca clientul să le arate familiei pe telefon, laptop sau televizor. Fără parolă, ca să poată fi trimis mai departe.",
+  "project.slideshow.loading": "Se încarcă linkurile de slideshow…",
+  "project.slideshow.loadError": "Linkurile de slideshow nu s-au putut încărca: {reason}",
   "project.slideshow.new": "Slideshow nou",
   "project.slideshow.source": "Fotografii",
   "project.slideshow.source.picks": "Fotografiile alese de client",
