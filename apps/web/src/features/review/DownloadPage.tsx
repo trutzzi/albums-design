@@ -14,14 +14,16 @@ import { GalleryCover } from "@/features/review/components/gallery/GalleryCover"
 import { GalleryToolbar } from "@/features/review/components/gallery/GalleryToolbar";
 import { GalleryCornerButtons } from "@/features/review/components/gallery/StudioContactCard";
 import { DownloadConfirmDialog } from "@/features/review/components/gallery/DownloadConfirmDialog";
-import { filterGallery, filterKey, type GalleryFilter } from "@/features/review/lib/client-gallery";
+import { DownloadMenu, type DownloadChoices } from "@/features/review/components/gallery/DownloadMenu";
+import {
+  filterGallery,
+  filterKey,
+  formatBytes,
+  scopeBytes,
+  sectionCounts,
+  type GalleryFilter,
+} from "@/features/review/lib/client-gallery";
 import { ClientPageSkeleton } from "@/shared/ui/Loading";
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
 
 /**
  * The client's side of delivery, laid out like a gallery rather than a form: a cover with
@@ -84,13 +86,36 @@ export function DownloadPage() {
   const nameOf = (section: string) => sectionLabel(section, style, t);
   const locale = language === "ro" ? "ro-RO" : "en-GB";
   const until = new Date(data.expiresAt).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
-  const size = formatSize(data.totalBytes);
+  const size = formatBytes(data.totalBytes);
   const cover = data.photos.find((photo) => photo.id === data.coverPhotoId) ?? null;
+  const bySection = sectionCounts(data.photos);
   const counts = {
     all: data.photoCount,
     favorites: data.photos.filter((photo) => favorites.has(photo.id)).length,
-    section: filter.kind === "section" ? shown.length : 0,
+    bySection,
   };
+  const choices: DownloadChoices = {
+    all: { count: data.photoCount, bytes: data.totalBytes },
+    section:
+      filter.kind === "section"
+        ? {
+            key: filter.section,
+            name: nameOf(filter.section),
+            count: shown.length,
+            bytes: scopeBytes(data.photos, filter, favorites),
+          }
+        : null,
+    favorites: { count: counts.favorites, bytes: scopeBytes(data.photos, { kind: "favorites" }, favorites) },
+  };
+  const downloadMenu = (className: string) => (
+    <DownloadMenu choices={choices} disabled={data.photoCount === 0} onDownload={setConfirming} className={className} />
+  );
+  const heading =
+    filter.kind === "section"
+      ? nameOf(filter.section)
+      : filter.kind === "favorites"
+        ? t("gallery.favorites")
+        : t("gallery.tabs.all");
   const scopeCount = (scope: DownloadScope) =>
     scope.kind === "all" ? counts.all : filterGallery(data.photos, scope, favorites).length;
 
@@ -154,8 +179,7 @@ export function DownloadPage() {
           expiresOn={until}
           shareCopied={shareCopied}
           onShare={() => void share()}
-          onDownload={setConfirming}
-          canDownload={data.photoCount > 0}
+          download={downloadMenu("gallery-bar__download-button")}
           sectionName={nameOf}
         />
 
@@ -175,6 +199,15 @@ export function DownloadPage() {
           )}
         </div>
 
+        {shown.length > 0 && (
+          <div className="gallery-page__heading">
+            <h2>{heading}</h2>
+            <p>
+              {t("gallery.heading.count", { count: shown.length.toLocaleString(locale) })}
+              {filter.kind !== "favorites" && counts.favorites > 0 && <> · {t("gallery.favorites.hint")}</>}
+            </p>
+          </div>
+        )}
         {filter.kind === "favorites" && shown.length === 0 && (
           <p className="muted gallery-page__empty">{t("gallery.favorites.empty")}</p>
         )}
@@ -186,12 +219,13 @@ export function DownloadPage() {
             moreLabel={(remaining) => t("gallery.more", { count: remaining })}
             resetKey={filterKey(filter)}
             layout={style?.grid ?? "masonry"}
+            itemClassName={(photo) => (favorites.has(photo.id) ? "gallery__item--favorite" : "")}
             gap={style?.spacing === "airy" ? 24 : 10}
           />
         )}
       </div>
 
-      <GalleryCornerButtons branding={data.branding} />
+      <GalleryCornerButtons branding={data.branding} download={downloadMenu("gallery-corner__download-button")} />
 
       {slide !== null && shown[slide] && (
         <PhotoLightbox photos={shown} index={slide} onIndexChange={setSlide} onClose={() => setSlide(null)} />

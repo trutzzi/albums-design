@@ -23,7 +23,11 @@ export interface DownloadView {
   daysLeft: number;
   branding: ClientBrandingDTO | null;
   /** Display copies to browse before downloading — never the originals. */
-  photos: (PickablePhoto & { section: string | null })[];
+  /**
+   * `byteSize` is the full-size original's, so the page can say how big each download is;
+   * `null` for a photo whose original is no longer stored (it is not in any download).
+   */
+  photos: (PickablePhoto & { section: string | null; byteSize: number | null })[];
   /** The chapters the gallery is split into, in the order of the day (photo categories, e.g. `CEREMONY`). */
   sections: string[];
   coverPhotoId: string | null;
@@ -96,7 +100,12 @@ export class DownloadPortalUseCase {
       this.traitsFor(project.id).then((found) => found ?? new Map<string, PhotoTraits>()),
       this.favoritesFor(project.id).then((found) => found ?? []),
     ]);
-    const photos = listed.map((photo) => ({ ...photo, section: traits.get(photo.id)?.category ?? null }));
+    const sizes = new Map(available.map((photo) => [photo.photoId, photo.byteSize]));
+    const photos = listed.map((photo) => ({
+      ...photo,
+      section: traits.get(photo.id)?.category ?? null,
+      byteSize: sizes.get(photo.id) ?? null,
+    }));
 
     return Result.success({
       clientName: session.clientName,
