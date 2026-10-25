@@ -554,7 +554,20 @@ export const en: Record<string, string> = {
   "landing.steps.deliver.title": "5. Deliver the photos",
   "landing.steps.deliver.desc":
     "Send a download link with a deadline. Clients browse the gallery, then download everything at full size — and you're notified.",
-  "changelog.release.v120.heading": "AlbumFlow 1.2.0 — a slideshow the whole family can watch",
+  "changelog.item.dashboard": "See what needs you at a glance",
+  "changelog.item.dashboard.desc":
+    "The shoots page now greets you with what is waiting on you — changes a client asked for, picks ready for an album, an approved album to deliver, a download link about to end unused — each with the button that does it. Filter by Needs you, With client or Delivered, and every shoot card shows its steps and what comes next.",
+  "changelog.item.dashboard.how": "Open Shoots. The waiting items sit at the top; the tabs are just above your shoots.",
+  "changelog.item.activity": "Activity on every shoot",
+  "changelog.item.activity.desc":
+    "Beside a shoot's steps you now see the client, where each link stands, and a timeline of what happened: links sent, picks received, notes left, approval, downloads and slideshow views.",
+  "changelog.item.activity.how": "Open any shoot on a computer; on a phone it sits below the steps.",
+  "changelog.item.clientRedesign": "A new look for your clients",
+  "changelog.item.clientRedesign.desc":
+    "The delivery gallery, photo selection, album review and slideshow pages have a calmer, more polished design — on a phone the download sits in a bar at the bottom and opens as a sheet, and each choice shows its size. A password-protected gallery shows your name and a softly blurred cover before the password.",
+  "changelog.item.clientRedesign.how":
+    "Nothing to change: every client link uses the new design, with your branding and gallery style.",
+  "changelog.release.v120.heading": "AlbumFlow 1.2.0 — a new look, slideshows, and what needs you at a glance",
   "changelog.item.slideshows": "Slideshow links",
   "changelog.item.slideshows.desc":
     "Send your client a link that plays their photos full screen, on its own — on a phone, laptop or TV. Choose the client's picks, the album page by page, or the whole shoot, how long each photo shows and whether photos fade. There is no password, so it can be passed on to family, and you see how many times it was watched.",

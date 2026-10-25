@@ -21,6 +21,21 @@ export const CHANGELOG_RELEASES: ChangelogRelease[] = [
     headingKey: "changelog.release.v120.heading",
     items: [
       {
+        titleKey: "changelog.item.dashboard",
+        descriptionKey: "changelog.item.dashboard.desc",
+        howToKey: "changelog.item.dashboard.how",
+      },
+      {
+        titleKey: "changelog.item.activity",
+        descriptionKey: "changelog.item.activity.desc",
+        howToKey: "changelog.item.activity.how",
+      },
+      {
+        titleKey: "changelog.item.clientRedesign",
+        descriptionKey: "changelog.item.clientRedesign.desc",
+        howToKey: "changelog.item.clientRedesign.how",
+      },
+      {
         titleKey: "changelog.item.slideshows",
         descriptionKey: "changelog.item.slideshows.desc",
         howToKey: "changelog.item.slideshows.how",

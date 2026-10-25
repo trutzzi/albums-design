@@ -565,7 +565,21 @@ export const ro: Record<string, string> = {
   "landing.steps.deliver.title": "5. Livrează fotografiile",
   "landing.steps.deliver.desc":
     "Trimite un link de descărcare cu termen limită. Clienții răsfoiesc galeria, apoi descarcă tot la dimensiune completă — iar tu ești anunțat.",
-  "changelog.release.v120.heading": "AlbumFlow 1.2.0 — un slideshow pe care îl poate vedea toată familia",
+  "changelog.item.dashboard": "Vezi dintr-o privire ce te așteaptă",
+  "changelog.item.dashboard.desc":
+    "Pagina de ședințe te întâmpină acum cu ce te așteaptă — modificări cerute de client, o selecție gata pentru album, un album aprobat de livrat, un link de descărcare care expiră nefolosit — fiecare cu butonul care o rezolvă. Filtrează după Te așteaptă, La client sau Livrate, iar fiecare card arată pașii ședinței și ce urmează.",
+  "changelog.item.dashboard.how":
+    "Deschide Ședințe. Ce te așteaptă apare sus; filtrele sunt chiar deasupra ședințelor.",
+  "changelog.item.activity": "Activitate pentru fiecare ședință",
+  "changelog.item.activity.desc":
+    "Lângă pașii unei ședințe vezi acum clientul, stadiul fiecărui link și o cronologie: linkuri trimise, selecții primite, note lăsate, aprobare, descărcări și vizionări ale slideshow-ului.",
+  "changelog.item.activity.how": "Deschide orice ședință pe calculator; pe telefon apare sub pași.",
+  "changelog.item.clientRedesign": "Un aspect nou pentru clienții tăi",
+  "changelog.item.clientRedesign.desc":
+    "Galeria de livrare, selecția fotografiilor, aprobarea albumului și slideshow-ul au un design mai calm și mai îngrijit — pe telefon descărcarea stă într-o bară jos și se deschide ca o foaie, iar fiecare opțiune își arată mărimea. O galerie protejată cu parolă arată numele tău și o copertă estompată înainte de parolă.",
+  "changelog.item.clientRedesign.how":
+    "Nu trebuie să schimbi nimic: toate linkurile pentru clienți folosesc noul design, cu brandul și stilul galeriei tale.",
+  "changelog.release.v120.heading": "AlbumFlow 1.2.0 — un aspect nou, slideshow-uri și ce te așteaptă dintr-o privire",
   "changelog.item.slideshows": "Linkuri de slideshow",
   "changelog.item.slideshows.desc":
     "Trimite clientului un link care rulează singur fotografiile pe tot ecranul — pe telefon, laptop sau televizor. Alege fotografiile alese de client, albumul pagină cu pagină sau toată sesiunea, cât stă fiecare fotografie și dacă trecerea este lină. Nu are parolă, deci poate fi trimis mai departe familiei, iar tu vezi de câte ori a fost vizionat.",
