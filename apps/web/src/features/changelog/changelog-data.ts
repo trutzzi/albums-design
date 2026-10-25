@@ -18,6 +18,27 @@ export interface ChangelogRelease {
 export const CHANGELOG_RELEASES: ChangelogRelease[] = [
   {
     date: "October 25, 2026",
+    headingKey: "changelog.release.v120.heading",
+    items: [
+      {
+        titleKey: "changelog.item.slideshows",
+        descriptionKey: "changelog.item.slideshows.desc",
+        howToKey: "changelog.item.slideshows.how",
+      },
+      {
+        titleKey: "changelog.item.loading",
+        descriptionKey: "changelog.item.loading.desc",
+        howToKey: "changelog.item.loading.how",
+      },
+      {
+        titleKey: "changelog.item.modalScroll",
+        descriptionKey: "changelog.item.modalScroll.desc",
+        howToKey: "changelog.item.modalScroll.how",
+      },
+    ],
+  },
+  {
+    date: "October 25, 2026",
     headingKey: "changelog.release.oct25.heading",
     items: [
       {

@@ -554,6 +554,20 @@ export const en: Record<string, string> = {
   "landing.steps.deliver.title": "5. Deliver the photos",
   "landing.steps.deliver.desc":
     "Send a download link with a deadline. Clients browse the gallery, then download everything at full size — and you're notified.",
+  "changelog.release.v120.heading": "AlbumFlow 1.2.0 — a slideshow the whole family can watch",
+  "changelog.item.slideshows": "Slideshow links",
+  "changelog.item.slideshows.desc":
+    "Send your client a link that plays their photos full screen, on its own — on a phone, laptop or TV. Choose the client's picks, the album page by page, or the whole shoot, how long each photo shows and whether photos fade. There is no password, so it can be passed on to family, and you see how many times it was watched.",
+  "changelog.item.slideshows.how":
+    "On a shoot, Delivery → Share a slideshow. Use Extend to keep a link going and Refresh photos after changing the album (Studio plan and up).",
+  "changelog.item.loading": "Smoother loading",
+  "changelog.item.loading.desc":
+    "While a page loads you now see the shape of what is coming — shoot cards, the photo grid, a spread — instead of a blank “Loading…” line, so nothing jumps when it arrives.",
+  "changelog.item.loading.how": "Nothing to do: it is on every page, for you and your clients.",
+  "changelog.item.modalScroll": "Gallery customiser fits the screen",
+  "changelog.item.modalScroll.desc":
+    "Tall windows such as Customise gallery used to run off the top and bottom of the screen with no way to scroll to Save. They now always fit and scroll, on a laptop or a phone.",
+  "changelog.item.modalScroll.how": "Open Delivery → Customise gallery on any shoot.",
   "changelog.release.oct25.heading": "A delivery page that looks like a gallery",
   "changelog.item.deliveryGallery": "Client delivery gallery",
   "changelog.item.deliveryGallery.desc":

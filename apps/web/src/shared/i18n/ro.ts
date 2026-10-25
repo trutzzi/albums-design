@@ -565,6 +565,21 @@ export const ro: Record<string, string> = {
   "landing.steps.deliver.title": "5. Livrează fotografiile",
   "landing.steps.deliver.desc":
     "Trimite un link de descărcare cu termen limită. Clienții răsfoiesc galeria, apoi descarcă tot la dimensiune completă — iar tu ești anunțat.",
+  "changelog.release.v120.heading": "AlbumFlow 1.2.0 — un slideshow pe care îl poate vedea toată familia",
+  "changelog.item.slideshows": "Linkuri de slideshow",
+  "changelog.item.slideshows.desc":
+    "Trimite clientului un link care rulează singur fotografiile pe tot ecranul — pe telefon, laptop sau televizor. Alege fotografiile alese de client, albumul pagină cu pagină sau toată sesiunea, cât stă fiecare fotografie și dacă trecerea este lină. Nu are parolă, deci poate fi trimis mai departe familiei, iar tu vezi de câte ori a fost vizionat.",
+  "changelog.item.slideshows.how":
+    "În pagina ședinței, Livrare → Trimite un slideshow. Folosește Prelungește ca linkul să meargă în continuare și Reîmprospătează fotografiile după ce schimbi albumul (planul Studio și mai sus).",
+  "changelog.item.loading": "Încărcare mai lină",
+  "changelog.item.loading.desc":
+    "Cât timp se încarcă o pagină vezi acum forma a ceea ce urmează — cardurile ședințelor, grila de fotografii, o pagină dublă — în loc de un rând gol „Se încarcă…”, așa că nimic nu sare când apare.",
+  "changelog.item.loading.how":
+    "Nu trebuie să faci nimic: funcționează pe toate paginile, pentru tine și pentru clienți.",
+  "changelog.item.modalScroll": "Personalizarea galeriei încape pe ecran",
+  "changelog.item.modalScroll.desc":
+    "Ferestrele înalte, precum Personalizează galeria, ieșeau din ecran sus și jos, fără să poți derula până la Salvează. Acum încap mereu și se derulează, pe laptop sau pe telefon.",
+  "changelog.item.modalScroll.how": "Deschide Livrare → Personalizează galeria în orice ședință.",
   "changelog.release.oct25.heading": "O pagină de livrare care arată ca o galerie",
   "changelog.item.deliveryGallery": "Galeria de livrare pentru client",
   "changelog.item.deliveryGallery.desc":
