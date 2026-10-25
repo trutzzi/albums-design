@@ -12,9 +12,9 @@ import type { ShootProgress, ShootProgressDirectory } from "../../application/po
 export class ReviewCollaborationShootProgress implements ShootProgressDirectory {
   constructor(
     private readonly albums: Pick<AlbumRepository, "statusesByProjectIds">,
-    private readonly picks: Pick<PickSessionRepository, "findByProjectIds">,
+    private readonly picks: Pick<PickSessionRepository, "progressByProjectIds">,
     private readonly downloads: Pick<DownloadSessionRepository, "findByProjectIds">,
-    private readonly reviews: Pick<ReviewSessionRepository, "findByAlbumIds">,
+    private readonly reviews: Pick<ReviewSessionRepository, "progressByAlbumIds">,
     private readonly now: () => Date = () => new Date(),
   ) {}
 
@@ -26,31 +26,27 @@ export class ReviewCollaborationShootProgress implements ShootProgressDirectory 
     const ids = projectIds.map((id) => UniqueEntityId.create(id));
     const [albums, picks, downloads] = await Promise.all([
       this.albums.statusesByProjectIds(ids),
-      this.picks.findByProjectIds(ids),
+      this.picks.progressByProjectIds(ids),
       this.downloads.findByProjectIds(ids),
     ]);
-    const reviews = await this.reviews.findByAlbumIds(albums.map((album) => UniqueEntityId.create(album.id)));
+    const reviews = await this.reviews.progressByAlbumIds(albums.map((album) => UniqueEntityId.create(album.id)));
     const projectOfAlbum = new Map(albums.map((album) => [album.id, album.projectId]));
     const now = this.now();
 
     for (const album of albums) progress.get(album.projectId)?.albums.push({ id: album.id, status: album.status });
     for (const pick of picks) {
-      progress.get(pick.projectId.toString())?.picks.push({
+      progress.get(pick.projectId)?.picks.push({
         status: pick.status,
         clientName: pick.clientName,
-        pickedCount: pick.pickedPhotoIds.length,
+        pickedCount: pick.pickedCount,
         submittedAt: pick.submittedAt?.toISOString() ?? null,
       });
     }
     for (const review of reviews) {
-      const projectId = projectOfAlbum.get(review.albumId.toString());
-      if (projectId) {
-        progress.get(projectId)?.reviews.push({
-          albumId: review.albumId.toString(),
-          status: review.status,
-          openComments: review.openComments.length,
-        });
-      }
+      const projectId = projectOfAlbum.get(review.albumId);
+      progress
+        .get(projectId ?? "")
+        ?.reviews.push({ albumId: review.albumId, status: review.status, openComments: review.openComments });
     }
     for (const download of downloads) {
       progress.get(download.projectId.toString())?.deliveries.push({

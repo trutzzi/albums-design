@@ -104,8 +104,8 @@ describe("where each shoot stands with its client", () => {
     assert.deepEqual(w.calls.sort(), [
       "albums.statusesByProjectIds",
       "downloads.findByProjectIds",
-      "picks.findByProjectIds",
-      "reviews.findByAlbumIds",
+      "picks.progressByProjectIds",
+      "reviews.progressByAlbumIds",
     ]);
   });
 
@@ -175,7 +175,7 @@ describe("where each shoot stands with its client", () => {
     assert.equal(card!.progress, null);
     assert.deepEqual(
       logger.entries.map((entry) => [entry.level, entry.message]),
-      [["error", "could not read the shoots' progress"]],
+      [["warn", "could not read the shoots' progress"]],
     );
   });
 });
