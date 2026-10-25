@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { useDismiss } from "@/shared/ui/useDismiss";
 import { nextFocusIndex } from "@/shared/lib/roving-focus";
+import { useMediaQuery } from "@/shared/ui/useMediaQuery";
 
 /**
  * A button that opens a short list of choices. On a wide screen it drops down under the
@@ -36,6 +37,10 @@ export function GalleryMenu({
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  // The same breakpoint as the CSS: on a phone the list is a modal sheet, and says so.
+  const onPhone = useMediaQuery("(max-width: 800px)");
+  const asSheet = Boolean(sheetTitle) && onPhone;
   const dismiss = useCallback(() => setOpen(false), []);
   // A choice or Escape hands focus back to the button; a press elsewhere leaves it where it went.
   const close = useCallback(() => {
@@ -84,11 +89,14 @@ export function GalleryMenu({
         <>
           {/* Only drawn on a phone, behind the sheet; a press on it closes the menu. */}
           {sheetTitle && <div className="gallery-menu__backdrop" aria-hidden="true" onClick={close} />}
-          <div className={`gallery-menu__panel gallery-menu__panel--${align}`}>
+          <div
+            className={`gallery-menu__panel gallery-menu__panel--${align}`}
+            {...(asSheet ? { role: "dialog", "aria-modal": true, "aria-labelledby": titleId } : {})}
+          >
             {sheetTitle && (
               <div className="gallery-menu__sheet-head">
                 <span className="gallery-menu__grabber" aria-hidden="true" />
-                <span className="gallery-menu__sheet-title" aria-hidden="true">
+                <span id={titleId} className="gallery-menu__sheet-title" aria-hidden={asSheet ? undefined : true}>
                   {sheetTitle}
                 </span>
                 <button
