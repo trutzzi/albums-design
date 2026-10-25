@@ -59,7 +59,8 @@ export function GalleryCornerButtons({ branding }: { branding: ClientBrandingDTO
   );
 }
 
-function ContactDialog({ branding, onClose }: { branding: ClientBrandingDTO; onClose: () => void }) {
+/** The studio's contact card: call, WhatsApp, email, website, and a vCard to save. */
+export function ContactDialog({ branding, onClose }: { branding: ClientBrandingDTO; onClose: () => void }) {
   const { t } = useLanguage();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);

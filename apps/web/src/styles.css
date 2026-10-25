@@ -4927,45 +4927,6 @@ body.is-previewing {
 }
 
 /* ---- client slideshow ---- */
-.slideshow-start__cover {
-  position: relative;
-  display: block;
-  width: 100%;
-  max-width: 880px;
-  margin: 24px auto 12px;
-  padding: 0;
-  border: 0;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #000;
-  cursor: pointer;
-}
-.slideshow-start__cover img {
-  display: block;
-  width: 100%;
-  max-height: 60vh;
-  object-fit: cover;
-  opacity: 0.85;
-}
-.slideshow-start__play {
-  position: absolute;
-  inset: auto 0 24px;
-  margin: 0 auto;
-  width: max-content;
-  padding: 14px 26px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: #fff;
-  font-weight: 600;
-  font-size: 1.05rem;
-}
-.slideshow-start__cover:focus-visible .slideshow-start__play,
-.slideshow-start__cover:hover .slideshow-start__play {
-  filter: brightness(1.1);
-}
-.slideshow-start__hint {
-  text-align: center;
-}
 /* The player is always dark, whatever the theme: photos read best on black. */
 .slideshow {
   position: fixed;
@@ -5169,4 +5130,229 @@ body.is-previewing {
   .skeleton {
     animation: none;
   }
+}
+
+/* ---- choose photos, refined ---- */
+.pick__progress {
+  display: grid;
+  gap: 8px;
+  max-width: 520px;
+  margin: 4px 0 8px;
+}
+.pick__progress-text {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+.pick__progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.pick__progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+.pick__filter {
+  min-height: 40px;
+  border-radius: 999px;
+}
+.pick-heart svg {
+  display: block;
+}
+.pick__bar {
+  box-shadow: 0 -8px 24px rgba(20, 24, 28, 0.08);
+}
+.pick__bar-text {
+  display: grid;
+  gap: 2px;
+}
+.pick__until {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+/* ---- album review, refined: each spread beside its notes; one sticky decision bar ---- */
+.review__views {
+  display: inline-flex;
+  margin-top: 12px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.review__views button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.review__views button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+@media (min-width: 1000px) {
+  .spread-block {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 12px 20px;
+    align-items: start;
+  }
+  .spread-block__head {
+    grid-column: 1 / -1;
+  }
+  .spread-block .comments {
+    margin-top: 0;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+}
+.review__actions {
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 -8px 24px rgba(20, 24, 28, 0.08);
+}
+.review__summary {
+  margin-right: auto;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+.review__actions .button {
+  min-height: 48px;
+  padding: 0 20px;
+}
+
+/* ---- slideshow link start page: always dark, like a cinema ---- */
+.slideshow-start {
+  min-height: 100svh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 18px 16px 28px;
+  color: #eef1ef;
+}
+body:has(.slideshow-start) {
+  background: #0f1214;
+}
+.slideshow-start__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.slideshow-start__studio {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-size: 1.1rem;
+}
+.slideshow-start .pick__lang .link-button {
+  color: #aab4bb;
+}
+.slideshow-start .pick__lang .pick__lang--on {
+  color: #ffffff;
+}
+.slideshow-start__cover {
+  position: relative;
+  flex: 1;
+  min-height: 420px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #2b2420;
+}
+.slideshow-start__cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.slideshow-start__overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 28px 22px 24px;
+  background: rgba(15, 18, 20, 0.72);
+}
+.slideshow-start__eyebrow {
+  margin: 0;
+  color: #e8a179;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.slideshow-start__overlay h1 {
+  margin: 0;
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.1;
+}
+.slideshow-start__summary {
+  margin: 0;
+  color: #c3cbd1;
+}
+.slideshow-start__play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+.slideshow-start__play:hover,
+.slideshow-start__play:focus-visible {
+  filter: brightness(1.1);
+}
+.slideshow-start__hint {
+  margin: 0;
+  color: #aab4bb;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.slideshow-start__actions {
+  display: flex;
+  gap: 10px;
+}
+.slideshow-start__action {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: transparent;
+  color: #eef1ef;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.slideshow-start__action:hover {
+  background: rgba(255, 255, 255, 0.08);
 }

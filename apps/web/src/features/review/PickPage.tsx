@@ -163,7 +163,15 @@ export function PickPage() {
           toggle.mutate({ photoId, picked: !isMarked });
         }}
       >
-        {isMarked ? "♥" : "♡"}
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path
+            d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"
+            fill={isMarked ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
     );
   };
@@ -203,6 +211,26 @@ export function PickPage() {
               {t("pick.step.final")}
             </li>
           </ol>
+          {!onShortlist && session.pickLimit !== null && (
+            <div className="pick__progress">
+              <div className="pick__progress-text">
+                <strong>{t("pick.counterLimit", { count, limit: session.pickLimit })}</strong>
+                {count < session.pickLimit && (
+                  <span className="muted">{t("pick.remaining", { count: session.pickLimit - count })}</span>
+                )}
+              </div>
+              <div
+                className="pick__progress-track"
+                role="progressbar"
+                aria-label={t("pick.counterLimit", { count, limit: session.pickLimit })}
+                aria-valuemin={0}
+                aria-valuemax={session.pickLimit}
+                aria-valuenow={count}
+              >
+                <span style={{ width: `${Math.min(100, (count / Math.max(1, session.pickLimit)) * 100)}%` }} />
+              </div>
+            </div>
+          )}
           <p className="muted">
             {onShortlist
               ? t("pick.shortlist.intro")
@@ -270,7 +298,19 @@ export function PickPage() {
       />
 
       <div className="pick__bar">
-        <span className="pick__counter">{counter}</span>
+        <span className="pick__bar-text">
+          <span className="pick__counter">{counter}</span>
+          {isOpen && (
+            <span className="pick__until">
+              {t("pick.until", {
+                date: new Date(session.expiresAt).toLocaleDateString(language === "ro" ? "ro-RO" : "en-GB", {
+                  day: "numeric",
+                  month: "long",
+                }),
+              })}
+            </span>
+          )}
+        </span>
         {isOpen && (
           <div className="pick__bar-actions">
             {!onShortlist && (
