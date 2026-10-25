@@ -1,5 +1,6 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { useSlideNavigation } from "./useSlideNavigation";
 
 export interface LightboxPhoto {
   id: string;
@@ -17,8 +18,6 @@ interface Props {
   controls?: ((photo: LightboxPhoto) => ReactNode) | undefined;
 }
 
-const SWIPE_DISTANCE = 45;
-
 /**
  * A full-screen slideshow: previous/next buttons, left/right arrow keys, Escape
  * to close, and a horizontal swipe on touch screens. The neighbouring photos are
@@ -27,7 +26,6 @@ const SWIPE_DISTANCE = 45;
  */
 export function PhotoLightbox({ photos, index, onIndexChange, onClose, controls }: Props) {
   const { t } = useLanguage();
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const count = photos.length;
   const photo = photos[index];
 
@@ -46,13 +44,8 @@ export function PhotoLightbox({ photos, index, onIndexChange, onClose, controls 
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  // Warm the cache for the photos either side of this one.
-  useEffect(() => {
-    for (const delta of [1, -1, 2]) {
-      const neighbour = photos[(index + delta + count) % count];
-      if (neighbour) new Image().src = neighbour.previewUrl;
-    }
-  }, [index, photos, count]);
+  const urls = useMemo(() => photos.map((item) => item.previewUrl), [photos]);
+  const swipe = useSlideNavigation({ urls, index, onStep: step });
 
   if (!photo) return null;
 
@@ -64,20 +57,7 @@ export function PhotoLightbox({ photos, index, onIndexChange, onClose, controls 
         aria-modal="true"
         aria-label={photo.fileName}
         onClick={(event) => event.stopPropagation()}
-        onTouchStart={(event) => {
-          const touch = event.touches[0];
-          touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
-        }}
-        onTouchEnd={(event) => {
-          const start = touchStart.current;
-          const touch = event.changedTouches[0];
-          touchStart.current = null;
-          if (!start || !touch) return;
-          const dx = touch.clientX - start.x;
-          const dy = touch.clientY - start.y;
-          // A mostly-horizontal drag is a swipe; a vertical one is the person scrolling or pinching.
-          if (Math.abs(dx) >= SWIPE_DISTANCE && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
-        }}
+        {...swipe}
       >
         <img src={photo.previewUrl} alt={photo.fileName} draggable={false} />
         <div className="pick-lightbox__controls">

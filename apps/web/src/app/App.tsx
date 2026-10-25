@@ -6,6 +6,7 @@ import { AlbumEditorPage } from "@/features/album-editor/AlbumEditorPage";
 import { ReviewPage } from "@/features/review/ReviewPage";
 import { PickPage } from "@/features/review/PickPage";
 import { DownloadPage } from "@/features/review/DownloadPage";
+import { SlideshowPage } from "@/features/slideshow/SlideshowPage";
 import { AppHeader } from "@/app/layout/AppHeader";
 import { StudioPage } from "@/features/studio/StudioPage";
 import { AdminPage } from "@/features/admin/AdminPage";
@@ -29,7 +30,8 @@ function Shell({ children }: { children: React.ReactNode }) {
   const isReview =
     location.pathname.startsWith("/review/") ||
     location.pathname.startsWith("/pick/") ||
-    location.pathname.startsWith("/download/");
+    location.pathname.startsWith("/download/") ||
+    location.pathname.startsWith("/slideshow/");
   const isAuthPage = AUTH_PAGES.includes(location.pathname);
 
   return (
@@ -64,6 +66,7 @@ export function App() {
               <Route path="/review/:token" element={<ReviewPage />} />
               <Route path="/pick/:token" element={<PickPage />} />
               <Route path="/download/:token" element={<DownloadPage />} />
+              <Route path="/slideshow/:token" element={<SlideshowPage />} />
               <Route path="/" element={<HomeRoute />} />
               <Route
                 path="/projects/:projectId"

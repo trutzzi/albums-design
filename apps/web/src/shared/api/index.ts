@@ -9,3 +9,4 @@ export * from "./studio";
 export * from "./picks";
 export * from "./delivery";
 export * from "./admin";
+export * from "./slideshows";
