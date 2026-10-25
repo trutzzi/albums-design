@@ -1942,6 +1942,13 @@ a:focus-visible,
 }
 .modal {
   width: min(420px, 100%);
+  /* Never taller than the screen: the overlay is fixed and centred, so a taller modal
+     (the gallery customiser, on a laptop or phone) was cut off at both ends with no way
+     to scroll. dvh follows the mobile address bar; vh is the fallback. */
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 10px;
