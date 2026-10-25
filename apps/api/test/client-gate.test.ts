@@ -169,6 +169,17 @@ describe("what the password gate may show", () => {
     );
   });
 
+  it("remembers a missing teaser for a while, and shares the work of simultaneous first requests", async () => {
+    const logger = new RecordingLogger();
+    const w = await world({ logger, failShrink: true });
+    await w.addPhoto("001.jpg");
+    const { token } = await w.openLink();
+    const results = await Promise.all([w.portal.teaser(token), w.portal.teaser(token), w.portal.teaser(token)]);
+    assert.ok(results.every((result) => result.isFailure));
+    await w.portal.teaser(token);
+    assert.equal(logger.entries.length, 1, "one attempt for three simultaneous requests and a repeat");
+  });
+
   it("has nothing to show while the cover has no display copies yet", async () => {
     const w = await world();
     await w.addPhoto("001.jpg", { derivatives: false });
@@ -198,7 +209,7 @@ describe("gate routes", () => {
     const teaser = await fetch(`${base}/download/${token}/teaser.jpg`);
     assert.equal(teaser.status, 200);
     assert.equal(teaser.headers.get("content-type"), "image/jpeg");
-    assert.equal(teaser.headers.get("cache-control"), "private, max-age=3600");
+    assert.equal(teaser.headers.get("cache-control"), "private, max-age=300");
     assert.equal(Buffer.from(await teaser.arrayBuffer()).toString(), "tiny jpeg");
 
     assert.equal((await fetch(`${base}/download/unknown-token-value/teaser.jpg`)).status, 404);

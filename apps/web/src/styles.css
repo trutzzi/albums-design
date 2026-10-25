@@ -5391,7 +5391,8 @@ body.is-previewing {
     gap: 8px;
     padding: 8px;
     border-radius: 999px;
-    background: #14181c;
+    /* An inverse bar from the gallery's own theme: dark on a light gallery, light on a dark one. */
+    background: var(--ink);
     box-shadow: 0 14px 34px rgba(20, 24, 28, 0.3);
   }
   .gallery-corner__download {
@@ -5404,8 +5405,8 @@ body.is-previewing {
   .gallery-corner__download-button {
     width: 100%;
     min-height: 46px;
-    background: #ffffff;
-    color: #14181c;
+    background: var(--bg);
+    color: var(--ink);
   }
   .gallery-corner__download-button .gallery-menu__chevron {
     display: none;
@@ -5414,8 +5415,8 @@ body.is-previewing {
     width: 46px;
     height: 46px;
     border: 0;
-    background: rgba(255, 255, 255, 0.14);
-    color: #ffffff;
+    background: color-mix(in srgb, var(--bg) 16%, transparent);
+    color: var(--bg);
     box-shadow: none;
   }
   .gallery-corner__contact {
@@ -5543,20 +5544,15 @@ body.is-previewing {
   place-items: center;
   height: 96px;
 }
-/* The cover arrives a few dozen pixels wide; enlarged and blurred it is a mood, not a photo. */
-/* A download link may have a cover: hold its room from the start. */
-.gate__art--reserved {
-  height: 200px;
-  border-radius: 18px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
+/* A cover expected (reserved, so nothing jumps) or shown: the same frame either way. */
+.gate__art--reserved,
 .gate__art--photo {
   height: 200px;
   overflow: hidden;
   border-radius: 18px;
   background: var(--surface-2);
 }
+/* The cover arrives a few dozen pixels wide; enlarged and blurred it is a mood, not a photo. */
 .gate__teaser {
   position: absolute;
   inset: -12px;
@@ -5736,10 +5732,7 @@ body.is-previewing {
   max-width: 880px;
   margin: 0 auto;
   padding: 18px 16px 28px;
-  color: #eef1ef;
-}
-body:has(.slideshow-start) {
-  background: #0f1214;
+  color: var(--ink);
 }
 .slideshow-start__top {
   display: flex;
@@ -5748,14 +5741,10 @@ body:has(.slideshow-start) {
   gap: 12px;
 }
 .slideshow-start__studio {
-  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
-  font-size: 1.1rem;
+  min-width: 0;
 }
-.slideshow-start .pick__lang .link-button {
-  color: #aab4bb;
-}
-.slideshow-start .pick__lang .pick__lang--on {
-  color: #ffffff;
+.slideshow-start__studio .client-brand {
+  margin: 0;
 }
 .slideshow-start__cover {
   position: relative;
@@ -5823,7 +5812,7 @@ body:has(.slideshow-start) {
 }
 .slideshow-start__hint {
   margin: 0;
-  color: #aab4bb;
+  color: var(--ink-soft);
   font-size: 0.9rem;
   text-align: center;
 }
@@ -5834,31 +5823,31 @@ body:has(.slideshow-start) {
 .slideshow-start__action {
   flex: 1;
   min-height: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: transparent;
-  color: #eef1ef;
+  background: var(--surface);
+  color: var(--ink);
   font: inherit;
   font-weight: 500;
   cursor: pointer;
 }
 .slideshow-start__action:hover {
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--ink-soft);
 }
 
 .slideshow-start__manual {
   display: grid;
   gap: 6px;
-  color: #c3cbd1;
+  color: var(--ink-soft);
   font-size: 0.9rem;
 }
 .slideshow-start__manual input {
   min-height: 44px;
   padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: transparent;
-  color: #ffffff;
+  background: var(--surface);
+  color: var(--ink);
   font: inherit;
 }
 
