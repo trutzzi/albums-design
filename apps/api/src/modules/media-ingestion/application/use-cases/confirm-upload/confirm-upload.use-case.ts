@@ -1,7 +1,8 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
+import { MAX_UPLOAD_BYTES } from "@albumflow/contracts";
 import { NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
-import type { ObjectStorage } from "../../ports/object-storage";
+import type { ObjectStorageWithBody } from "../../ports/object-storage";
 import type { JobQueue } from "../../ports/job-queue";
 import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 
@@ -25,7 +26,7 @@ export interface ConfirmUploadResult {
 export class ConfirmUploadUseCase {
   constructor(
     private readonly photos: PhotoRepository,
-    private readonly storage: ObjectStorage,
+    private readonly storage: ObjectStorageWithBody,
     private readonly jobs: JobQueue,
     /** Copy every uploaded original to long-term storage right after upload (LONG_TERM_ORIGINALS=all). */
     private readonly storeOriginalLongTerm = false,
@@ -44,6 +45,14 @@ export class ConfirmUploadUseCase {
       return Result.failure(
         new ValidationError("No object was found at the presigned storage key yet — upload may still be in flight."),
       );
+    }
+
+    // The presigned PUT does not bind its length, so the size asked for is only a claim; what
+    // actually landed is checked here, before anything decodes it or copies it to long-term storage.
+    // Only while it is still pending: a photo confirmed before this check existed is part of a shoot.
+    if (photo.status === "PENDING_UPLOAD" && head.byteSize > MAX_UPLOAD_BYTES) {
+      await this.discardOversized(photo.id, photo.storageKey.toString(), head.byteSize);
+      return Result.failure(new ValidationError("Files over 75MB are not accepted."));
     }
 
     photo.markUploaded({ byteSize: head.byteSize, checksum: command.reportedChecksum });
@@ -83,5 +92,25 @@ export class ConfirmUploadUseCase {
       status: photo.status,
       byteSize: photo.byteSize,
     });
+  }
+
+  /**
+   * Still PENDING_UPLOAD, so nothing refers to it yet: the object and the row both go, as for a
+   * cancelled upload. The row is what lets a later cancel find the object again, so it stays
+   * until the object is really gone.
+   */
+  private async discardOversized(photoId: UniqueEntityId, key: string, byteSize: number): Promise<void> {
+    this.logger.warn("rejected an upload larger than the limit", { photoId: photoId.toString(), byteSize });
+    try {
+      await this.storage.delete(key);
+    } catch (error) {
+      this.logger.error("could not delete a rejected oversized upload; its row is kept for cleanup", {
+        photoId: photoId.toString(),
+        byteSize,
+        err: error,
+      });
+      return;
+    }
+    await this.photos.delete(photoId);
   }
 }
