@@ -19,7 +19,8 @@ import {
 import { registerDownloadRoutes } from "../src/modules/review-collaboration/interface/http/download-routes";
 import { ClientGrantSigner } from "../src/shared-kernel/client-grant";
 import { SecretBox } from "../src/shared-kernel/secret-box";
-import { silentLogger } from "../src/shared-kernel/logger";
+import { silentLogger, type Logger } from "../src/shared-kernel/logger";
+import { RecordingLogger } from "./support/recording-logger";
 import type { StudioBrandingDirectory } from "../src/shared-kernel/studio-branding";
 import {
   InMemoryDownloadSessionRepository,
@@ -30,7 +31,7 @@ import {
 
 const SECRET = "test-secret-test-secret-test-secret-123";
 
-async function world(options: { teaser?: boolean } = {}) {
+async function world(options: { teaser?: boolean; logger?: Logger; failShrink?: boolean } = {}) {
   const projects = new InMemoryProjectRepository();
   const photos = new InMemoryPhotoRepository();
   const staging = new InMemoryObjectStorage();
@@ -76,6 +77,7 @@ async function world(options: { teaser?: boolean } = {}) {
   const shrunk: string[] = [];
   const images: TeaserImages = {
     shrink: async (image) => {
+      if (options.failShrink) throw new Error("corrupt thumbnail");
       shrunk.push(image.toString());
       return Buffer.from("tiny jpeg");
     },
@@ -85,7 +87,7 @@ async function world(options: { teaser?: boolean } = {}) {
     sessions,
     gateway,
     { photosDownloaded: async () => {} },
-    silentLogger,
+    options.logger ?? silentLogger,
     () => new Date(),
     access,
     gallery,
@@ -144,6 +146,27 @@ describe("what the password gate may show", () => {
     const teaser = (await w.portal.teaser(token)).getValue();
     assert.equal(teaser.toString(), "tiny jpeg");
     assert.deepEqual(w.shrunk, ["thumb 002.jpg"], "the thumbnail, never the original");
+  });
+
+  it("makes the teaser once and serves it from memory after that", async () => {
+    const w = await world();
+    await w.addPhoto("001.jpg");
+    const { token } = await w.openLink();
+    await w.portal.teaser(token);
+    await w.portal.teaser(token);
+    assert.equal(w.shrunk.length, 1);
+  });
+
+  it("logs a broken thumbnail and lets the gate fall back to the plain lock", async () => {
+    const logger = new RecordingLogger();
+    const w = await world({ logger, failShrink: true });
+    await w.addPhoto("001.jpg");
+    const { token } = await w.openLink();
+    assert.equal((await w.portal.teaser(token)).getError().code, "NOT_FOUND");
+    assert.deepEqual(
+      logger.entries.map((entry) => [entry.level, entry.message]),
+      [["warn", "could not make the gallery cover teaser"]],
+    );
   });
 
   it("has nothing to show while the cover has no display copies yet", async () => {

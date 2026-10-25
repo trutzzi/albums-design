@@ -2474,24 +2474,6 @@ a:focus-visible,
 /* ---- client download page ---- */
 
 /* ---- password gate & access details ---- */
-.gate {
-  max-width: 460px;
-  margin: 0 auto;
-}
-.gate__card {
-  display: grid;
-  gap: 12px;
-  margin-top: 24px;
-}
-.gate__card h1 {
-  margin: 0;
-  font-size: 1.4rem;
-}
-.gate .field input {
-  font-size: 1.1rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
 .access-modal {
   width: min(520px, 100%);
   display: grid;
@@ -5586,10 +5568,12 @@ body.is-previewing {
   justify-content: space-between;
   gap: 12px;
 }
+/* The text colour, not the studio's accent: an arbitrary colour cannot promise contrast. */
 .gate__studio {
+  min-height: 1.4em;
   font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
   font-size: 1.15rem;
-  color: var(--accent);
+  color: var(--ink);
 }
 .gate__art {
   position: relative;
@@ -5598,6 +5582,13 @@ body.is-previewing {
   height: 96px;
 }
 /* The cover arrives a few dozen pixels wide; enlarged and blurred it is a mood, not a photo. */
+/* A download link may have a cover: hold its room from the start. */
+.gate__art--reserved {
+  height: 200px;
+  border-radius: 18px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
 .gate__art--photo {
   height: 200px;
   overflow: hidden;
@@ -5659,10 +5650,11 @@ body.is-previewing {
   font-size: 1.2rem;
   font-weight: 600;
   letter-spacing: 0.12em;
+  text-transform: uppercase;
   text-align: center;
 }
 .gate .field input[aria-invalid="true"] {
-  border-color: #b4442b;
+  border-color: var(--danger);
 }
 .gate__note {
   color: var(--ink-soft);

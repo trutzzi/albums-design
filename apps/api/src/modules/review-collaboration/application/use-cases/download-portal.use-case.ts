@@ -61,7 +61,13 @@ export type DownloadScope = { kind: "all" } | { kind: "favorites" } | { kind: "s
  * Every client-facing operation is scoped by the share token — like the review
  * and pick portals there is no other authentication, so the token is the boundary.
  */
+/** A teaser stays the same for a while; serving it from memory spares the listing and the resize. */
+const TEASER_CACHE_MS = 60 * 60 * 1000;
+const TEASER_CACHE_MAX = 200;
+
 export class DownloadPortalUseCase {
+  private readonly teasers = new Map<string, { at: number; image: Buffer }>();
+
   constructor(
     private readonly sessions: DownloadSessionRepository,
     private readonly delivery: DeliveryGateway,
@@ -122,15 +128,34 @@ export class DownloadPortalUseCase {
     const found = await this.resolve(token);
     if (found.isFailure) return Result.failure(found.getError());
     const session = found.getValue();
+    // A newly chosen cover is a new key; an automatic one may lag by up to an hour, which is fine for a blur.
+    const key = `${session.id.toString()}:${session.coverPhotoId ?? "auto"}`;
+    const cached = this.teasers.get(key);
+    if (cached && this.now().getTime() - cached.at < TEASER_CACHE_MS) return Result.success(cached.image);
+
     const projectId = session.projectId.toString();
-    const [listed, traits] = await Promise.all([
-      this.gallery?.listPhotos(projectId) ?? [],
-      this.traitsFor(projectId).then((found) => found ?? new Map<string, PhotoTraits>()),
-    ]);
-    const coverId = chooseCover(listed, traits, session.coverPhotoId);
-    const thumbnail = coverId ? await teaser.source.thumbnail(coverId) : undefined;
-    if (!thumbnail) return Result.failure(new NotFoundError("Cover", "teaser"));
-    return Result.success(await teaser.images.shrink(thumbnail));
+    let coverId: string | null = null;
+    try {
+      const [listed, traits] = await Promise.all([
+        this.gallery?.listPhotos(projectId) ?? [],
+        this.traitsFor(projectId).then((found) => found ?? new Map<string, PhotoTraits>()),
+      ]);
+      coverId = chooseCover(listed, traits, session.coverPhotoId);
+      const thumbnail = coverId ? await teaser.source.thumbnail(coverId) : undefined;
+      if (!thumbnail) return Result.failure(new NotFoundError("Cover", "teaser"));
+      const image = await teaser.images.shrink(thumbnail);
+      if (this.teasers.size >= TEASER_CACHE_MAX) this.teasers.delete(this.teasers.keys().next().value!);
+      this.teasers.set(key, { at: this.now().getTime(), image });
+      return Result.success(image);
+    } catch (error) {
+      // The gate simply shows the plain lock; the photographer's gallery is unaffected.
+      this.logger.warn("could not make the gallery cover teaser", {
+        sessionId: session.id.toString(),
+        photoId: coverId,
+        err: error,
+      });
+      return Result.failure(new NotFoundError("Cover", "teaser"));
+    }
   }
 
   async view(token: string): Promise<Result<DownloadView, ApplicationError>> {

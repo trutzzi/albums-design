@@ -79,6 +79,7 @@ export function DownloadPage() {
         token={token}
         studio={gate.data ? { name: gate.data.studioName, accent: gate.data.accent } : undefined}
         teaserUrl={gate.data?.teaser ? downloadTeaserUrl(token) : null}
+        reserveArt
         onUnlocked={() => void queryClient.invalidateQueries({ queryKey: ["download", token] })}
       />
     );

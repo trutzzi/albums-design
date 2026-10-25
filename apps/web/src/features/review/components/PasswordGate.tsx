@@ -12,6 +12,8 @@ interface Props {
   studio?: { name: string | null; accent: string | null } | undefined;
   /** A tiny copy of the cover to blur behind the form; omitted when there is none. */
   teaserUrl?: string | null | undefined;
+  /** Keep room for the cover from the first paint, so nothing jumps while the client types. */
+  reserveArt?: boolean | undefined;
 }
 
 /** True when an API failure means "this link needs its password". */
@@ -24,7 +26,7 @@ export function needsPassword(error: unknown): boolean {
  * the link itself exists; it only asks for the password, and explains a wrong
  * one or a temporary lock in plain words.
  */
-export function PasswordGate({ kind, token, onUnlocked, studio, teaserUrl }: Props) {
+export function PasswordGate({ kind, token, onUnlocked, studio, teaserUrl, reserveArt = false }: Props) {
   const { t, language, setLanguage } = useLanguage();
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,7 +60,7 @@ export function PasswordGate({ kind, token, onUnlocked, studio, teaserUrl }: Pro
   return (
     <div className="page gate" style={accentStyle}>
       <div className="gate__top">
-        {studio?.name ? <span className="gate__studio">{studio.name}</span> : <span />}
+        <span className="gate__studio">{studio?.name ?? ""}</span>
         <div className="pick__lang" role="group" aria-label={t("pick.language")}>
           <ThemeToggle />
           {LANGUAGES.map((option) => (
@@ -73,7 +75,9 @@ export function PasswordGate({ kind, token, onUnlocked, studio, teaserUrl }: Pro
           ))}
         </div>
       </div>
-      <div className={`gate__art ${teaserUrl && !teaserFailed ? "gate__art--photo" : ""}`}>
+      <div
+        className={`gate__art ${teaserUrl && !teaserFailed ? "gate__art--photo" : ""} ${reserveArt ? "gate__art--reserved" : ""}`}
+      >
         {teaserUrl && !teaserFailed && (
           <img className="gate__teaser" src={teaserUrl} alt="" onError={() => setTeaserFailed(true)} />
         )}
