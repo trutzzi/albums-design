@@ -14,6 +14,7 @@ import { PickSessionAdminUseCase } from "../modules/review-collaboration/applica
 import { PickPortalUseCase } from "../modules/review-collaboration/application/use-cases/pick-portal.use-case";
 import { DownloadSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/download-session-admin.use-case";
 import { DownloadPortalUseCase } from "../modules/review-collaboration/application/use-cases/download-portal.use-case";
+import { ShootActivityUseCase } from "../modules/review-collaboration/application/use-cases/shoot-activity.use-case";
 import { SlideshowSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/slideshow-session-admin.use-case";
 import { SlideshowPortalUseCase } from "../modules/review-collaboration/application/use-cases/slideshow-portal.use-case";
 import { ReviewCollaborationSlideshowPhotos } from "../modules/review-collaboration/infrastructure/gateways/slideshow-photo-source";
@@ -183,6 +184,7 @@ export function buildReviewCollaborationModule(
       // The gallery's chapters and cover come from analysis; its favourites are the client's earlier picks.
       { traits: photoTraits, picks: pickSessions },
     ),
+    shootActivity: new ShootActivityUseCase(albums, pickSessions, reviewSessions, downloadSessions, slideshowSessions),
     slideshowAdmin: new SlideshowSessionAdminUseCase(
       slideshowSessions,
       slideshowPhotos,

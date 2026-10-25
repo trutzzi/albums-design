@@ -5170,3 +5170,101 @@ body.is-previewing {
     animation: none;
   }
 }
+
+/* ---- shoot page, refined: the steps beside who, where and what happened ---- */
+.shoot__layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+}
+.shoot__main {
+  flex: 999 1 640px;
+  min-width: 0;
+}
+.shoot__aside {
+  flex: 1 1 300px;
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}
+.shoot-side {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+.shoot-side__title {
+  margin: 0;
+  font-size: 1rem;
+}
+.shoot-side__client {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.shoot-side__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.shoot-side__who {
+  display: grid;
+  min-width: 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.shoot-side__name {
+  font-weight: 500;
+}
+.shoot-side__links {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+.shoot-side__links dt {
+  color: var(--ink);
+}
+.shoot-side__links dd {
+  margin: 0;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.shoot-side__activity {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.shoot-side__event {
+  display: flex;
+  gap: 10px;
+}
+.shoot-side__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.shoot-side__event--picksSubmitted .shoot-side__dot,
+.shoot-side__event--reviewNotes .shoot-side__dot,
+.shoot-side__event--reviewApproved .shoot-side__dot,
+.shoot-side__event--downloadFirst .shoot-side__dot,
+.shoot-side__event--slideshowWatched .shoot-side__dot {
+  background: #2f5d86;
+}
+.shoot-side__event--albumCreated .shoot-side__dot {
+  background: var(--accent);
+}

@@ -27,6 +27,18 @@ export function deleteProject(projectId: string): Promise<void> {
   return request(`/projects/${projectId}`, { method: "DELETE" });
 }
 
+/** One line of a shoot's history, newest first; `kind` names the translation. */
+export interface ShootActivityEvent {
+  kind: string;
+  at: string;
+  name: string | null;
+  count: number | null;
+}
+
+export function getShootActivity(projectId: string): Promise<ShootActivityEvent[]> {
+  return request(`/projects/${projectId}/activity`);
+}
+
 export function getProject(projectId: string): Promise<ProjectDTO> {
   return request(`/projects/${projectId}`);
 }

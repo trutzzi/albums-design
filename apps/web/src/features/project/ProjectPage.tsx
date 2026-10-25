@@ -28,6 +28,7 @@ import { SelectionPanel } from "@/features/project/components/SelectionPanel";
 import { AlbumPanel } from "@/features/project/components/AlbumPanel";
 import { DeliveryPanel } from "@/features/project/components/DeliveryPanel";
 import { SlideshowPanel } from "@/features/project/components/SlideshowPanel";
+import { ShootSidebar } from "@/features/project/components/ShootSidebar";
 import { Skeleton } from "@/shared/ui/Loading";
 
 /** The guided tour points at the step tabs, since only the open step's content is on the page. */
@@ -207,95 +208,105 @@ export function ProjectPage() {
         onChange={(event) => upload.handleFiles(event.target.files)}
       />
 
-      <nav className="steps" role="tablist" aria-label={t("project.steps.label")}>
-        {SHOOT_STEPS.map((key, index) => {
-          const info = workflow.steps[key];
-          return (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              id={`step-${key}`}
-              aria-selected={step === key}
-              aria-controls="step-panel"
-              data-tour={STEP_TOUR_TARGETS[key]}
-              className={`steps__tab ${step === key ? "steps__tab--on" : ""} ${info.done ? "steps__tab--done" : ""}`}
-              onClick={() => goTo(key)}
-            >
-              <span className="steps__number" aria-hidden="true">
-                {info.done ? "✓" : index + 1}
-              </span>
-              <span className="steps__text">
-                <span className="steps__label">{t(`project.step.${key}`)}</span>
-                <span className="steps__status">
-                  {info.done && <span className="visually-hidden">{t("project.step.done")}: </span>}
-                  {t(info.status.key, info.status.params)}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+      <div className="shoot__layout">
+        <div className="shoot__main">
+          <nav className="steps" role="tablist" aria-label={t("project.steps.label")}>
+            {SHOOT_STEPS.map((key, index) => {
+              const info = workflow.steps[key];
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  id={`step-${key}`}
+                  aria-selected={step === key}
+                  aria-controls="step-panel"
+                  data-tour={STEP_TOUR_TARGETS[key]}
+                  className={`steps__tab ${step === key ? "steps__tab--on" : ""} ${info.done ? "steps__tab--done" : ""}`}
+                  onClick={() => goTo(key)}
+                >
+                  <span className="steps__number" aria-hidden="true">
+                    {info.done ? "✓" : index + 1}
+                  </span>
+                  <span className="steps__text">
+                    <span className="steps__label">{t(`project.step.${key}`)}</span>
+                    <span className="steps__status">
+                      {info.done && <span className="visually-hidden">{t("project.step.done")}: </span>}
+                      {t(info.status.key, info.status.params)}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
 
-      <section className="next-step" aria-live="polite">
-        <div>
-          <h2 className="next-step__title">{t("project.next.title")}</h2>
-          <p className="next-step__text">{t(workflow.next.text.key, workflow.next.text.params)}</p>
-        </div>
-        {workflow.next.actions.length > 0 && (
-          <div className="next-step__actions">
-            {workflow.next.actions.map((action, index) => (
-              <button
-                key={action}
-                type="button"
-                className={`button ${index === 0 ? "button--primary" : ""}`}
-                onClick={runAction[action]}
-              >
-                {t(`project.next.${action}`)}
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
+          <section className="next-step" aria-live="polite">
+            <div>
+              <h2 className="next-step__title">{t("project.next.title")}</h2>
+              <p className="next-step__text">{t(workflow.next.text.key, workflow.next.text.params)}</p>
+            </div>
+            {workflow.next.actions.length > 0 && (
+              <div className="next-step__actions">
+                {workflow.next.actions.map((action, index) => (
+                  <button
+                    key={action}
+                    type="button"
+                    className={`button ${index === 0 ? "button--primary" : ""}`}
+                    onClick={runAction[action]}
+                  >
+                    {t(`project.next.${action}`)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
 
-      <div id="step-panel" role="tabpanel" aria-labelledby={`step-${step}`}>
-        {step === "photos" && (
-          <>
-            <PhotoUploader
-              upload={upload}
-              inputRef={inputRef}
-              useAi={useAi}
-              onUseAiChange={setUseAi}
-              photoCount={uploadedCount}
-              photoLimit={photoLimit}
-            />
-            <FailedAnalysisNotice projectId={projectId} failedCount={failedAnalysis} />
-            <PhotoBrowser
-              photos={photos.data ?? []}
-              analyses={analyses.data ?? []}
-              clientPicked={clientPicked}
-              view={photoView}
-              onViewChange={setPhotoView}
-            />
-          </>
-        )}
-        {/* Hidden rather than unmounted: a freshly created link is shown only once, and a
+          <div id="step-panel" role="tabpanel" aria-labelledby={`step-${step}`}>
+            {step === "photos" && (
+              <>
+                <PhotoUploader
+                  upload={upload}
+                  inputRef={inputRef}
+                  useAi={useAi}
+                  onUseAiChange={setUseAi}
+                  photoCount={uploadedCount}
+                  photoLimit={photoLimit}
+                />
+                <FailedAnalysisNotice projectId={projectId} failedCount={failedAnalysis} />
+                <PhotoBrowser
+                  photos={photos.data ?? []}
+                  analyses={analyses.data ?? []}
+                  clientPicked={clientPicked}
+                  view={photoView}
+                  onViewChange={setPhotoView}
+                />
+              </>
+            )}
+            {/* Hidden rather than unmounted: a freshly created link is shown only once, and a
             half-filled form should still be there after a look at another step. */}
-        <div hidden={step !== "selection"}>
-          <SelectionPanel projectId={projectId} contact={contact} albumFormat={albumSize.format} />
+            <div hidden={step !== "selection"}>
+              <SelectionPanel projectId={projectId} contact={contact} albumFormat={albumSize.format} />
+            </div>
+            <div hidden={step !== "album"}>
+              <AlbumPanel projectId={projectId} size={albumSize} analysed={analysed} />
+            </div>
+            <div hidden={step !== "delivery"}>
+              <DeliveryPanel
+                projectId={projectId}
+                contact={contact}
+                canSendDownloadLinks={canSendDownloadLinks}
+                canStyleGalleries={studio.data?.subscription.whiteLabel ?? false}
+              />
+              <SlideshowPanel projectId={projectId} contact={contact} canSendSlideshows={canSendSlideshows} />
+            </div>
+          </div>
         </div>
-        <div hidden={step !== "album"}>
-          <AlbumPanel projectId={projectId} size={albumSize} analysed={analysed} />
-        </div>
-        <div hidden={step !== "delivery"}>
-          <DeliveryPanel
-            projectId={projectId}
-            contact={contact}
-            canSendDownloadLinks={canSendDownloadLinks}
-            canStyleGalleries={studio.data?.subscription.whiteLabel ?? false}
-          />
-          <SlideshowPanel projectId={projectId} contact={contact} canSendSlideshows={canSendSlideshows} />
-        </div>
+        <ShootSidebar
+          projectId={projectId}
+          contact={contact}
+          picks={pickSessions.data ?? []}
+          downloads={downloadSessions.data ?? []}
+        />
       </div>
 
       <section className="danger-zone">
