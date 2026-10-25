@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "#src/db/client";
 import { ReviewSession } from "../../domain/review-session";
@@ -50,6 +50,20 @@ export class DrizzleReviewSessionRepository implements ReviewSessionRepository {
   async findByTokenHash(tokenHash: string): Promise<ReviewSession | undefined> {
     const [row] = await this.db.select().from(reviewSessions).where(eq(reviewSessions.tokenHash, tokenHash)).limit(1);
     return row ? toDomain(row) : undefined;
+  }
+
+  async findByAlbumIds(albumIds: UniqueEntityId[]): Promise<ReviewSession[]> {
+    if (albumIds.length === 0) return [];
+    const rows = await this.db
+      .select()
+      .from(reviewSessions)
+      .where(
+        inArray(
+          reviewSessions.albumId,
+          albumIds.map((id) => id.toString()),
+        ),
+      );
+    return rows.map(toDomain);
   }
 
   async findByAlbumId(albumId: UniqueEntityId): Promise<ReviewSession[]> {

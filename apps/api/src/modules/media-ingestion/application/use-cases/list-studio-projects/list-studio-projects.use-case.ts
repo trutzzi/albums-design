@@ -7,6 +7,7 @@ import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-
 import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
 import type { ObjectStorage } from "../../ports/object-storage";
 import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
+import type { ShootProgress, ShootProgressDirectory } from "../../ports/shoot-progress";
 
 const COVER_TTL_SECONDS = 60 * 60;
 
@@ -26,6 +27,8 @@ export interface ProjectSummaryView {
   albumCount: number;
   /** A photo to show on the card. Null while a shoot is still empty or being processed. */
   coverThumbnailUrl: string | null;
+  /** Its albums and client links, so the card and the dashboard can say what comes next. */
+  progress: ShootProgress | null;
 }
 
 /**
@@ -42,6 +45,7 @@ export class ListStudioProjectsUseCase {
     private readonly storage: ObjectStorage,
     private readonly permanent?: StorageProvider,
     private readonly logger: Logger = consoleLogger,
+    private readonly progress?: ShootProgressDirectory,
   ) {}
 
   async execute(studioId: string): Promise<ProjectSummaryView[]> {
@@ -49,10 +53,11 @@ export class ListStudioProjectsUseCase {
     if (projects.length === 0) return [];
 
     const ids = projects.map((project) => project.id);
-    const [photoCounts, albumCounts, coverPhotos] = await Promise.all([
+    const [photoCounts, albumCounts, coverPhotos, progress] = await Promise.all([
       this.photos.countByProjectIds(ids),
       this.albums.countByProjectIds(ids),
       this.photos.findCoverPhotos(ids),
+      this.progress?.forProjects(ids.map((id) => id.toString())),
     ]);
     const covers = await Promise.all(
       projects.map((project) => this.coverUrl(project, coverPhotos.get(project.id.toString()))),
@@ -71,6 +76,7 @@ export class ListStudioProjectsUseCase {
       processingCount: photoCounts[project.id.toString()]?.processing ?? 0,
       albumCount: albumCounts[project.id.toString()] ?? 0,
       coverThumbnailUrl: covers[index] ?? null,
+      progress: progress?.get(project.id.toString()) ?? null,
     }));
   }
 

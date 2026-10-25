@@ -251,6 +251,12 @@ export class InMemoryAlbumRepository implements AlbumRepository {
   async findByProjectId(projectId: UniqueEntityId) {
     return [...this.items.values()].filter((album) => album.projectId.toString() === projectId.toString());
   }
+  async statusesByProjectIds(projectIds: UniqueEntityId[]) {
+    const wanted = new Set(projectIds.map((id) => id.toString()));
+    return [...this.items.values()]
+      .filter((album) => wanted.has(album.projectId.toString()))
+      .map((album) => ({ id: album.id.toString(), projectId: album.projectId.toString(), status: album.status }));
+  }
   async countByProjectIds(projectIds: UniqueEntityId[]) {
     const wanted = new Set(projectIds.map((id) => id.toString()));
     const counts: Record<string, number> = {};
@@ -282,6 +288,10 @@ export class InMemoryReviewSessionRepository implements ReviewSessionRepository 
   async findByAlbumId(albumId: UniqueEntityId) {
     return [...this.items.values()].filter((session) => session.albumId.toString() === albumId.toString());
   }
+  async findByAlbumIds(albumIds: UniqueEntityId[]) {
+    const wanted = new Set(albumIds.map((id) => id.toString()));
+    return [...this.items.values()].filter((session) => wanted.has(session.albumId.toString()));
+  }
   async delete(id: UniqueEntityId) {
     this.items.delete(id.toString());
   }
@@ -300,6 +310,10 @@ export class InMemoryPickSessionRepository implements PickSessionRepository {
   }
   async findByProjectId(projectId: UniqueEntityId) {
     return [...this.items.values()].filter((session) => session.projectId.toString() === projectId.toString());
+  }
+  async findByProjectIds(projectIds: UniqueEntityId[]) {
+    const wanted = new Set(projectIds.map((id) => id.toString()));
+    return [...this.items.values()].filter((session) => wanted.has(session.projectId.toString()));
   }
   async deleteByProjectId(projectId: UniqueEntityId) {
     for (const [id, session] of this.items) {
@@ -321,6 +335,10 @@ export class InMemoryDownloadSessionRepository implements DownloadSessionReposit
   }
   async findByProjectId(projectId: UniqueEntityId) {
     return [...this.items.values()].filter((session) => session.projectId.toString() === projectId.toString());
+  }
+  async findByProjectIds(projectIds: UniqueEntityId[]) {
+    const wanted = new Set(projectIds.map((id) => id.toString()));
+    return [...this.items.values()].filter((session) => wanted.has(session.projectId.toString()));
   }
   async deleteByProjectId(projectId: UniqueEntityId) {
     for (const [id, session] of this.items) {
@@ -345,6 +363,10 @@ export class InMemorySlideshowSessionRepository implements SlideshowSessionRepos
   }
   async findByProjectId(projectId: UniqueEntityId) {
     return [...this.items.values()].filter((session) => session.projectId.toString() === projectId.toString());
+  }
+  async findByProjectIds(projectIds: UniqueEntityId[]) {
+    const wanted = new Set(projectIds.map((id) => id.toString()));
+    return [...this.items.values()].filter((session) => wanted.has(session.projectId.toString()));
   }
   async deleteByProjectId(projectId: UniqueEntityId) {
     for (const [id, session] of this.items) {

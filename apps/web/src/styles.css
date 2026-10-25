@@ -5170,3 +5170,107 @@ body.is-previewing {
     animation: none;
   }
 }
+
+/* ---- shoots dashboard, refined: greeting, what needs you, filters, card progress ---- */
+.shoots__greeting {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-weight: 400;
+}
+.attention {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.attention__card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.attention__mark {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+.attention__card--warm .attention__mark {
+  background: var(--accent);
+}
+.attention__card--client .attention__mark {
+  background: #2f5d86;
+}
+.attention__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+.attention__shoot {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attention__detail {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+.attention__action {
+  flex: none;
+  text-decoration: none;
+}
+.shoots__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.shoots__filter {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.shoots__filter--on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+}
+.shoots__filter-count {
+  opacity: 0.7;
+}
+.shoot-card__progress {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 2px;
+}
+.shoot-card__steps {
+  display: flex;
+  gap: 4px;
+}
+.shoot-card__step {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.shoot-card__step--done {
+  background: var(--accent);
+}
+.shoot-card__next {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}

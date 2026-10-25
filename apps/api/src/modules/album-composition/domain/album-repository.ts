@@ -8,5 +8,7 @@ export interface AlbumRepository {
   countCreatedSince(studioId: UniqueEntityId, since: Date): Promise<number>;
   /** How many albums each shoot has, in one query. */
   countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, number>>;
+  /** Every album's id and status for these shoots, in one query — the shoots list reads no spreads. */
+  statusesByProjectIds(projectIds: UniqueEntityId[]): Promise<{ id: string; projectId: string; status: string }[]>;
   delete(id: UniqueEntityId): Promise<void>;
 }
