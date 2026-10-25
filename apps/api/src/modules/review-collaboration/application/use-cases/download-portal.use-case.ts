@@ -93,8 +93,8 @@ export class DownloadPortalUseCase {
       this.delivery.listDeliverable(project.id),
       this.gallery?.listPhotos(project.id) ?? [],
       this.gallery?.countProcessing(project.id) ?? 0,
-      this.traitsFor(project.id),
-      this.favoritesFor(project.id),
+      this.traitsFor(project.id).then((found) => found ?? new Map<string, PhotoTraits>()),
+      this.favoritesFor(project.id).then((found) => found ?? []),
     ]);
     const photos = listed.map((photo) => ({ ...photo, section: traits.get(photo.id)?.category ?? null }));
 
@@ -134,6 +134,17 @@ export class DownloadPortalUseCase {
       return Result.failure(new ConflictError("There are no photos available to download yet."));
     }
     const available = await this.narrow(project.id, all, scope);
+    if (!available) {
+      // Unlike the gallery, a part of it cannot be zipped without knowing what is in it:
+      // answering "nothing here" would tell the client their photos are gone.
+      this.logger.error("could not narrow a delivery download to the part the client chose", {
+        sessionId: session.id.toString(),
+        scope: scope.kind,
+      });
+      return Result.failure(
+        new ConflictError("We could not prepare this part of the gallery right now. Please try again in a moment."),
+      );
+    }
     if (available.length === 0) {
       return Result.failure(
         new ConflictError(
@@ -178,28 +189,35 @@ export class DownloadPortalUseCase {
     projectId: string,
     photos: DeliverablePhoto[],
     scope: DownloadScope,
-  ): Promise<DeliverablePhoto[]> {
+  ): Promise<DeliverablePhoto[] | undefined> {
     if (scope.kind === "all") return photos;
     if (scope.kind === "favorites") {
-      const favorites = new Set(await this.favoritesFor(projectId));
-      return photos.filter((photo) => favorites.has(photo.photoId));
+      const favorites = await this.favoritesFor(projectId);
+      if (!favorites) return undefined;
+      const chosen = new Set(favorites);
+      return photos.filter((photo) => chosen.has(photo.photoId));
     }
     const traits = await this.traitsFor(projectId);
+    if (!traits) return undefined;
     return photos.filter((photo) => traits.get(photo.photoId)?.category === scope.section);
   }
 
-  private async traitsFor(projectId: string): Promise<Map<string, PhotoTraits>> {
+  /** Each photo's category and score; `undefined` when they could not be read (logged). */
+  private async traitsFor(projectId: string): Promise<Map<string, PhotoTraits> | undefined> {
     try {
       return (await this.arrangement.traits?.forProject(projectId)) ?? new Map();
     } catch (error) {
       // Chapters and the cover are a nicety; the client must still see and download their photos.
       this.logger.warn("could not read photo categories for the delivery gallery", { projectId, err: error });
-      return new Map();
+      return undefined;
     }
   }
 
-  /** The most recent picks the client sent; an open, unsent selection is not yet a choice. */
-  private async favoritesFor(projectId: string): Promise<string[]> {
+  /**
+   * The most recent picks the client sent; an open, unsent selection is not yet a choice.
+   * `undefined` when they could not be read (logged).
+   */
+  private async favoritesFor(projectId: string): Promise<string[] | undefined> {
     if (!this.arrangement.picks) return [];
     try {
       const sessions = await this.arrangement.picks.findByProjectId(UniqueEntityId.create(projectId));
@@ -209,7 +227,7 @@ export class DownloadPortalUseCase {
       return latest ? [...latest.pickedPhotoIds] : [];
     } catch (error) {
       this.logger.warn("could not read the client's picks for the delivery gallery", { projectId, err: error });
-      return [];
+      return undefined;
     }
   }
 

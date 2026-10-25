@@ -19,6 +19,8 @@ interface Props<Photo extends GalleryPhoto> {
   /** Shown in place of a photo that has no display copy yet. */
   placeholder?: (photo: Photo) => ReactNode;
   itemClassName?: (photo: Photo) => string;
+  /** Marks the photos that are the current choice, for a gallery used as a picker. */
+  itemPressed?: (photo: Photo) => boolean;
   /** About how wide a column should be; as many fit as the width allows. */
   columnWidth?: number;
   /** Photos are laid out in batches as the viewer scrolls, so thousands never load at once. */
@@ -52,6 +54,7 @@ export function PhotoGallery<Photo extends GalleryPhoto>({
   caption,
   placeholder,
   itemClassName,
+  itemPressed,
   columnWidth = 240,
   batchSize = 120,
   moreLabel,
@@ -150,6 +153,7 @@ export function PhotoGallery<Photo extends GalleryPhoto>({
                         type="button"
                         className="gallery__open"
                         aria-label={photo.fileName}
+                        aria-pressed={itemPressed?.(photo)}
                         onClick={() => onOpen(photo, index)}
                       >
                         {image}

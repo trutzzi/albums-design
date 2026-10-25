@@ -231,8 +231,9 @@ export class DownloadSessionAdminUseCase {
     if (!session || session.projectId.toString() !== projectId) {
       return Result.failure(new NotFoundError("Download link", sessionId));
     }
+    // A paid feature: without a plan that is known to include it, the answer is no.
     const features = await this.planFeatures?.forProject(projectId);
-    if (override && features && !features.clientBranding) {
+    if (override && !features?.clientBranding) {
       return Result.failure(new ConflictError("Styling a gallery comes with the Studio Pro plan."));
     }
     session.restyle(override ?? undefined);

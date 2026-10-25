@@ -25,6 +25,7 @@ import type { PhotoTraits, PhotoTraitsDirectory } from "../src/shared-kernel/pho
 import type { PickablePhoto } from "../src/modules/review-collaboration/application/ports/pick-gateway";
 import { RecordingLogger } from "./support/recording-logger";
 import { silentLogger } from "../src/shared-kernel/logger";
+import { NO_WATERMARKS, type PlanFeatureDirectory } from "../src/shared-kernel/plan-features";
 import {
   InMemoryDownloadSessionRepository,
   InMemoryObjectStorage,
@@ -125,7 +126,16 @@ async function world() {
       })),
     countProcessing: async () => 0,
   };
-  const admin = new DownloadSessionAdminUseCase(sessions, gateway);
+  const studioPro: PlanFeatureDirectory = { forProject: async () => ({ ...NO_WATERMARKS, clientBranding: true }) };
+  const admin = new DownloadSessionAdminUseCase(
+    sessions,
+    gateway,
+    () => new Date(),
+    undefined,
+    undefined,
+    undefined,
+    studioPro,
+  );
   const link = (await admin.open({ projectId: project.id.toString(), clientName: "Andreea" })).getValue();
   const portal = (directory: PhotoTraitsDirectory = traitsDirectory, logger = silentLogger) =>
     new DownloadPortalUseCase(sessions, gateway, noopNotifier, logger, () => new Date(), undefined, gallery, {
@@ -232,6 +242,20 @@ describe("downloading part of the gallery", () => {
     assert.match(favorites.getError().message, /no favourite photos/);
     const section = await portal.prepare(w.link.token, { kind: "section", section: "RECEPTION" });
     assert.equal(section.getError().code, "CONFLICT");
+  });
+
+  it("reports a failed category read as an error, not as an empty chapter", async () => {
+    const w = await world();
+    await w.addPhoto("001.jpg", "COUPLE");
+    const logger = new RecordingLogger();
+    const broken: PhotoTraitsDirectory = {
+      forProject: async () => {
+        throw new Error("database unavailable");
+      },
+    };
+    const section = await w.portal(broken, logger).prepare(w.link.token, { kind: "section", section: "COUPLE" });
+    assert.match(section.getError().message, /could not prepare/);
+    assert.ok(logger.entries.some((entry) => entry.level === "error"));
   });
 });
 
@@ -501,6 +525,26 @@ describe("restyling one gallery", () => {
     assert.equal(
       (await admin.restyle(UniqueEntityId.create().toString(), w.link.sessionId, null)).getError().code,
       "NOT_FOUND",
+    );
+  });
+
+  it("is refused when the plan cannot be confirmed", async () => {
+    const w = await world();
+    const unwired = new DownloadSessionAdminUseCase(w.sessions, w.gateway);
+    const project = w.project.id.toString();
+    assert.equal((await unwired.restyle(project, w.link.sessionId, { theme: "dark" })).getError().code, "CONFLICT");
+    const noSubscription = new DownloadSessionAdminUseCase(
+      w.sessions,
+      w.gateway,
+      () => new Date(),
+      undefined,
+      undefined,
+      undefined,
+      { forProject: async () => NO_WATERMARKS },
+    );
+    assert.equal(
+      (await noSubscription.restyle(project, w.link.sessionId, { theme: "dark" })).getError().code,
+      "CONFLICT",
     );
   });
 

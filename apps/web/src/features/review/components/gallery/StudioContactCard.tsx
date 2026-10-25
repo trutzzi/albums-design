@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientBrandingDTO } from "@albumflow/contracts";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { useDialogFocus } from "@/shared/ui/useDialogFocus";
+import { useDismiss } from "@/shared/ui/useDismiss";
 import { buildVCard, telUrl, whatsappUrl } from "@/features/review/lib/client-gallery";
 import { SocialLinks } from "./SocialLinks";
 
@@ -59,17 +61,10 @@ export function GalleryCornerButtons({ branding }: { branding: ClientBrandingDTO
 
 function ContactDialog({ branding, onClose }: { branding: ClientBrandingDTO; onClose: () => void }) {
   const { t } = useLanguage();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => closeRef.current?.focus(), []);
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useDialogFocus(dialogRef, closeRef);
+  useDismiss(true, onClose);
 
   const saveContact = () => {
     const card = buildVCard({
@@ -91,6 +86,7 @@ function ContactDialog({ branding, onClose }: { branding: ClientBrandingDTO; onC
   return (
     <div className="modal-overlay" role="presentation" onClick={onClose}>
       <div
+        ref={dialogRef}
         className="modal contact-card"
         role="dialog"
         aria-modal="true"

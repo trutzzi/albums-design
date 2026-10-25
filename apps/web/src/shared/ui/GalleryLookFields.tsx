@@ -8,6 +8,7 @@ import {
 } from "@albumflow/contracts";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { TITLE_FONT_LABELS, titleFontStack } from "@/shared/lib/client-style";
+import { useTitleFont } from "@/shared/ui/ClientBrand";
 
 type Look = GalleryOverride;
 
@@ -29,6 +30,8 @@ export function GalleryLookFields({
   inherit?: boolean;
 }) {
   const { t } = useLanguage();
+  // The studio pages never load the client fonts themselves; without this the sample is generic serif.
+  useTitleFont(value.titleFont);
   const set = <Key extends keyof Look>(key: Key, next: Look[Key] | "") => {
     const updated = { ...value };
     if (next === "") delete updated[key];

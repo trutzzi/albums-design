@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { GalleryOverride } from "@albumflow/contracts";
 import {
@@ -11,6 +11,8 @@ import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { PhotoGallery } from "@/shared/ui/PhotoGallery";
 import { GalleryLookFields } from "@/shared/ui/GalleryLookFields";
 import { SkeletonPhotoGrid } from "@/shared/ui/Loading";
+import { useDialogFocus } from "@/shared/ui/useDialogFocus";
+import { useDismiss } from "@/shared/ui/useDismiss";
 
 /**
  * One delivery gallery's own touches: the photo at the top (or the automatic one, the
@@ -47,13 +49,9 @@ export function GalleryCustomiseModal({
     },
   });
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef);
+  useDismiss(true, onClose);
 
   const choosable = (photos.data ?? []).filter((photo) => photo.thumbnailUrl);
   const current = choose.data?.coverPhotoId ?? session.coverPhotoId ?? null;
@@ -61,6 +59,7 @@ export function GalleryCustomiseModal({
   return (
     <div className="modal-overlay" role="presentation" onClick={onClose}>
       <div
+        ref={dialogRef}
         className="modal modal--wide"
         role="dialog"
         aria-modal="true"
@@ -86,6 +85,7 @@ export function GalleryCustomiseModal({
               columnWidth={150}
               onOpen={(photo) => choose.mutate(photo.id)}
               itemClassName={(photo) => (photo.id === current ? "cover-picker__item--on" : "")}
+              itemPressed={(photo) => photo.id === current}
               moreLabel={(remaining) => t("gallery.more", { count: remaining })}
             />
           </div>
