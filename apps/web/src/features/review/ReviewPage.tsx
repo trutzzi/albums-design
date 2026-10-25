@@ -9,6 +9,7 @@ import { BookPreview } from "@/shared/album/BookPreview";
 import { PasswordGate, needsPassword } from "@/features/review/components/PasswordGate";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { formatDayMonth } from "@/shared/i18n/locale";
 import { LANGUAGES } from "@/shared/i18n/translations";
 import { ClientPageSkeleton } from "@/shared/ui/Loading";
 
@@ -240,10 +241,7 @@ export function ReviewPage() {
           <span className="review__summary">
             {t("review.summary", {
               count: session.comments.length,
-              date: new Date(session.expiresAt).toLocaleDateString(language === "ro" ? "ro-RO" : "en-GB", {
-                day: "numeric",
-                month: "long",
-              }),
+              date: formatDayMonth(session.expiresAt, language),
             })}
           </span>
           {decide.isError && <p className="error">{(decide.error as Error).message}</p>}

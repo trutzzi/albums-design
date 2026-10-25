@@ -21,6 +21,10 @@ export function SlideshowPage() {
   const { t, language, setLanguage } = useLanguage();
   const [playing, setPlaying] = useState(false);
   const [shared, setShared] = useState(false);
+  // Where copying is refused (some in-app browsers), the link is shown to copy by hand.
+  const [manualLink, setManualLink] = useState<string | null>(null);
+  const sharedTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(sharedTimer.current), []);
   const [contactOpen, setContactOpen] = useState(false);
   const counted = useRef(false);
   const imageRetries = useRef(new Map<string, number>());
@@ -91,9 +95,10 @@ export function SlideshowPage() {
     try {
       await navigator.clipboard.writeText(url);
       setShared(true);
-      setTimeout(() => setShared(false), 2500);
+      window.clearTimeout(sharedTimer.current);
+      sharedTimer.current = window.setTimeout(() => setShared(false), 2500);
     } catch {
-      window.prompt(t("slideshow.share"), url);
+      setManualLink(url);
     }
   };
 
@@ -148,6 +153,12 @@ export function SlideshowPage() {
       <span className="visually-hidden" role="status">
         {shared ? t("slideshow.shared") : ""}
       </span>
+      {manualLink && (
+        <label className="slideshow-start__manual">
+          <span>{t("slideshow.copyManually")}</span>
+          <input readOnly value={manualLink} onFocus={(event) => event.currentTarget.select()} />
+        </label>
+      )}
       {contactOpen && hasContact(data.branding) && (
         <ContactDialog branding={data.branding} onClose={() => setContactOpen(false)} />
       )}

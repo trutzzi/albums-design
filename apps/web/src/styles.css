@@ -1348,10 +1348,14 @@ a:focus-visible,
   position: sticky;
   bottom: 0;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
   justify-content: flex-end;
-  padding: 14px 0;
-  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 -8px 24px rgba(20, 24, 28, 0.08);
 }
 
 /* ---- studio ---- */
@@ -2323,6 +2327,7 @@ a:focus-visible,
   margin: 12px 0;
 }
 .pick__filter {
+  min-height: 40px;
   padding: 6px 14px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -4208,10 +4213,6 @@ body.is-previewing {
   }
 }
 
-.review__book {
-  margin-top: 10px;
-}
-
 /* ---- the selected photo's toolbar, above the spread ---- */
 .spread-block__toolbar:empty {
   display: none;
@@ -5657,10 +5658,6 @@ body.is-previewing {
   background: var(--accent);
   transition: width 0.3s ease;
 }
-.pick__filter {
-  min-height: 40px;
-  border-radius: 999px;
-}
 .pick-heart svg {
   display: block;
 }
@@ -5700,31 +5697,24 @@ body.is-previewing {
   background: var(--ink);
   color: var(--bg);
 }
+/* The review page only: the album editor shares .spread-block and keeps its own layout. */
 @media (min-width: 1000px) {
-  .spread-block {
+  .review .spread-block {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 320px;
     gap: 12px 20px;
     align-items: start;
   }
-  .spread-block__head {
+  .review .spread-block__head {
     grid-column: 1 / -1;
   }
-  .spread-block .comments {
+  .review .spread-block .comments {
     margin-top: 0;
     padding: 16px;
     border: 1px solid var(--line);
     border-radius: 14px;
     background: var(--surface);
   }
-}
-.review__actions {
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 14px 16px;
-  border-top: 1px solid var(--line);
-  background: var(--surface);
-  box-shadow: 0 -8px 24px rgba(20, 24, 28, 0.08);
 }
 .review__summary {
   margin-right: auto;
@@ -5854,4 +5844,20 @@ body:has(.slideshow-start) {
 }
 .slideshow-start__action:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.slideshow-start__manual {
+  display: grid;
+  gap: 6px;
+  color: #c3cbd1;
+  font-size: 0.9rem;
+}
+.slideshow-start__manual input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
 }

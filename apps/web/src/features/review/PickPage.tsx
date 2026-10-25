@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { getPickView, setPhotoPicked, setPickStage, submitPicks, type PickView } from "@/shared/api";
 import { LANGUAGES } from "@/shared/i18n/translations";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { formatDayMonth, localeOf } from "@/shared/i18n/locale";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { PhotoLightbox } from "@/shared/ui/PhotoLightbox";
 import { PhotoGallery } from "@/shared/ui/PhotoGallery";
@@ -253,7 +254,7 @@ export function PickPage() {
       )}
       {data.processingCount > 0 && (
         <p className="notice" role="status">
-          {t("pick.processing", { count: data.processingCount.toLocaleString(language === "ro" ? "ro-RO" : "en-GB") })}
+          {t("pick.processing", { count: data.processingCount.toLocaleString(localeOf(language)) })}
         </p>
       )}
 
@@ -303,10 +304,7 @@ export function PickPage() {
           {isOpen && (
             <span className="pick__until">
               {t("pick.until", {
-                date: new Date(session.expiresAt).toLocaleDateString(language === "ro" ? "ro-RO" : "en-GB", {
-                  day: "numeric",
-                  month: "long",
-                }),
+                date: formatDayMonth(session.expiresAt, language),
               })}
             </span>
           )}

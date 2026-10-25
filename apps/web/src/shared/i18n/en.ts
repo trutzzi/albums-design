@@ -25,6 +25,7 @@ export const en: Record<string, string> = {
   "review.summary": "Notes so far: {count} · the link works until {date}",
   "slideshow.share": "Share with family",
   "slideshow.shared": "Link copied",
+  "slideshow.copyManually": "Copy this link and send it:",
   "slideshow.contact": "Studio contacts",
   "common.loading": "Loading…",
 

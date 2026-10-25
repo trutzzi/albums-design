@@ -25,6 +25,7 @@ export const ro: Record<string, string> = {
   "review.summary": "Note până acum: {count} · linkul funcționează până pe {date}",
   "slideshow.share": "Trimite familiei",
   "slideshow.shared": "Link copiat",
+  "slideshow.copyManually": "Copiază acest link și trimite-l:",
   "slideshow.contact": "Contact studio",
   "common.loading": "Se încarcă…",
 

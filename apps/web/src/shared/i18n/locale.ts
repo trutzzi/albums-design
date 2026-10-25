@@ -14,3 +14,8 @@ export function countKey(base: string, count: number, language: Language): strin
   const lastTwo = count % 100;
   return language === "ro" && (lastTwo === 0 || lastTwo >= 20) ? `${base}.many` : `${base}.other`;
 }
+
+/** "24 November" — the day a link ends, in the app's language. */
+export function formatDayMonth(iso: string, language: Language): string {
+  return new Date(iso).toLocaleDateString(localeOf(language), { day: "numeric", month: "long" });
+}
