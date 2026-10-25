@@ -5391,7 +5391,8 @@ body.is-previewing {
     gap: 8px;
     padding: 8px;
     border-radius: 999px;
-    background: #14181c;
+    /* An inverse bar from the gallery's own theme: dark on a light gallery, light on a dark one. */
+    background: var(--ink);
     box-shadow: 0 14px 34px rgba(20, 24, 28, 0.3);
   }
   .gallery-corner__download {
@@ -5404,8 +5405,8 @@ body.is-previewing {
   .gallery-corner__download-button {
     width: 100%;
     min-height: 46px;
-    background: #ffffff;
-    color: #14181c;
+    background: var(--bg);
+    color: var(--ink);
   }
   .gallery-corner__download-button .gallery-menu__chevron {
     display: none;
@@ -5414,8 +5415,8 @@ body.is-previewing {
     width: 46px;
     height: 46px;
     border: 0;
-    background: rgba(255, 255, 255, 0.14);
-    color: #ffffff;
+    background: color-mix(in srgb, var(--bg) 16%, transparent);
+    color: var(--bg);
     box-shadow: none;
   }
   .gallery-corner__contact {
@@ -5543,20 +5544,15 @@ body.is-previewing {
   place-items: center;
   height: 96px;
 }
-/* The cover arrives a few dozen pixels wide; enlarged and blurred it is a mood, not a photo. */
-/* A download link may have a cover: hold its room from the start. */
-.gate__art--reserved {
-  height: 200px;
-  border-radius: 18px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
+/* A cover expected (reserved, so nothing jumps) or shown: the same frame either way. */
+.gate__art--reserved,
 .gate__art--photo {
   height: 200px;
   overflow: hidden;
   border-radius: 18px;
   background: var(--surface-2);
 }
+/* The cover arrives a few dozen pixels wide; enlarged and blurred it is a mood, not a photo. */
 .gate__teaser {
   position: absolute;
   inset: -12px;

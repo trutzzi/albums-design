@@ -76,7 +76,7 @@ export function PasswordGate({ kind, token, onUnlocked, studio, teaserUrl, reser
         </div>
       </div>
       <div
-        className={`gate__art ${teaserUrl && !teaserFailed ? "gate__art--photo" : ""} ${reserveArt ? "gate__art--reserved" : ""}`}
+        className={`gate__art ${teaserUrl && !teaserFailed ? "gate__art--photo" : ""} ${reserveArt && !teaserFailed ? "gate__art--reserved" : ""}`}
       >
         {teaserUrl && !teaserFailed && (
           <img className="gate__teaser" src={teaserUrl} alt="" onError={() => setTeaserFailed(true)} />
