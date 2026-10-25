@@ -106,6 +106,12 @@ async function main() {
     });
     check("object storage accepts a presigned upload", put.ok, `status ${put.status}`);
 
+    // The same object without its signature must stay closed, or every link is permanent.
+    const unsigned = new URL(requested.uploadUrl);
+    unsigned.search = "";
+    const anonymousRead = await fetch(unsigned);
+    check("object storage refuses an unsigned read", anonymousRead.status === 403, `got ${anonymousRead.status}`);
+
     await api(`/photos/${requested.photoId}/confirm-upload`, {
       method: "POST",
       body: JSON.stringify({}),

@@ -1,5 +1,5 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { ClientBrandingDTO } from "@albumflow/contracts";
+import { DEFAULT_CLIENT_STYLE, type ClientBrandingDTO } from "@albumflow/contracts";
 import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
 import type { StudioBrandingDirectory } from "#src/shared-kernel/studio-branding";
 import type { StudioRepository, SubscriptionRepository } from "../../domain/repositories";
@@ -19,11 +19,16 @@ export class SubscriptionStudioBrandingDirectory implements StudioBrandingDirect
       this.studios.findById(project.studioId),
       this.subscriptions.findByStudioId(project.studioId),
     ]);
-    if (!studio?.branding || !subscription?.plan.whiteLabelReview) return null;
+    if (!studio || (!studio.branding && !studio.clientStyle) || !subscription?.plan.whiteLabelReview) return null;
+    const branding = studio.branding;
     return {
-      name: studio.branding.displayName || studio.name,
-      accent: studio.branding.accent,
-      logo: studio.branding.logo,
+      name: branding?.displayName || studio.name,
+      accent: branding?.accent ?? null,
+      logo: branding?.logo ?? null,
+      website: branding?.website ?? null,
+      phone: branding?.phone ?? null,
+      email: branding?.email ?? null,
+      style: studio.clientStyle ?? DEFAULT_CLIENT_STYLE,
     };
   }
 }

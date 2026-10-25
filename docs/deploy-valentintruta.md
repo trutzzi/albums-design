@@ -73,6 +73,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml config | grep -A
 nmap -Pn -p 5432,6379,9000 80.97.27.100   # should report all three filtered/closed
 ```
 
+The photo bucket is reachable as `storage.valentintruta.ro` (browsers open presigned
+URLs there) but must answer only signed requests. Both of these should print `403`:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://storage.valentintruta.ro/albumflow-photos/
+curl -s -o /dev/null -w '%{http_code}\n' https://storage.valentintruta.ro/albumflow-photos/studios/x.jpg
+```
+
 ### 2. Real secrets on the server, once
 
 ```bash
@@ -100,8 +108,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml exec api \
 ```
 
 After this, log in at `app.valentintruta.ro/login` with that email and
-password — the baked-in `VITE_STUDIO_API_KEY` build secret is no longer
-needed and can eventually be dropped from GitHub secrets.
+password. The web build no longer receives a studio API key; delete the old
+`VITE_STUDIO_API_KEY` GitHub secret.
 
 ### 2c. Optional settings added after the first deploy (DigiStorage, email)
 

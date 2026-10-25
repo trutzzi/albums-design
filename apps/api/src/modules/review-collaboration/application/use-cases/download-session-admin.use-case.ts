@@ -1,4 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
+import type { GalleryOverride } from "@albumflow/contracts";
 import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import { DownloadSession } from "../../domain/download-session";
 import type { DownloadSessionRepository } from "../../domain/download-session-repository";
@@ -25,6 +26,10 @@ export interface DownloadSessionSummary {
   expiresAt: string;
   daysLeft: number;
   createdAt: string;
+  /** The cover the photographer chose for the client gallery; null when it is chosen automatically. */
+  coverPhotoId: string | null;
+  /** How this gallery departs from the studio's style; null when it follows the studio. */
+  lookOverride: GalleryOverride | null;
 }
 
 /** The photographer's side of delivery: create a link, watch whether it was used, close it. */
@@ -197,6 +202,44 @@ export class DownloadSessionAdminUseCase {
     return Result.success(this.toSummary(session));
   }
 
+  /** The photo above the client gallery; `null` lets the gallery choose one again. */
+  async chooseCover(
+    projectId: string,
+    sessionId: string,
+    photoId: string | null,
+  ): Promise<Result<DownloadSessionSummary, ApplicationError>> {
+    const session = await this.sessions.findById(UniqueEntityId.create(sessionId));
+    if (!session || session.projectId.toString() !== projectId) {
+      return Result.failure(new NotFoundError("Download link", sessionId));
+    }
+    // The id comes from the browser: it must be one of this shoot's photos, never another studio's.
+    if (photoId && !(await this.delivery.hasPhoto(projectId, photoId))) {
+      return Result.failure(new NotFoundError("Photo", photoId));
+    }
+    session.chooseCover(photoId ?? undefined);
+    await this.sessions.save(session);
+    return Result.success(this.toSummary(session));
+  }
+
+  /** One gallery's own layout, font, theme or message (Studio Pro); `null` follows the studio again. */
+  async restyle(
+    projectId: string,
+    sessionId: string,
+    override: GalleryOverride | null,
+  ): Promise<Result<DownloadSessionSummary, ApplicationError>> {
+    const session = await this.sessions.findById(UniqueEntityId.create(sessionId));
+    if (!session || session.projectId.toString() !== projectId) {
+      return Result.failure(new NotFoundError("Download link", sessionId));
+    }
+    const features = await this.planFeatures?.forProject(projectId);
+    if (override && features && !features.clientBranding) {
+      return Result.failure(new ConflictError("Styling a gallery comes with the Studio Pro plan."));
+    }
+    session.restyle(override ?? undefined);
+    await this.sessions.save(session);
+    return Result.success(this.toSummary(session));
+  }
+
   private toSummary(session: DownloadSession): DownloadSessionSummary {
     const now = this.now();
     return {
@@ -212,6 +255,8 @@ export class DownloadSessionAdminUseCase {
       expiresAt: session.expiresAt.toISOString(),
       daysLeft: session.daysLeft(now),
       createdAt: session.createdAt.toISOString(),
+      coverPhotoId: session.coverPhotoId ?? null,
+      lookOverride: session.lookOverride ?? null,
     };
   }
 }

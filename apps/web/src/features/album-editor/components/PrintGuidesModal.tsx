@@ -1,4 +1,5 @@
 import { CUSTOM_PROFILE_ID, type PrintGuides } from "@/features/album-editor/hooks/usePrintGuides";
+import { SkeletonText } from "@/shared/ui/Loading";
 
 /** Picks the print profile the editor's trim and safe-area guides are drawn from. */
 export function PrintGuidesModal({ guides }: { guides: PrintGuides }) {
@@ -21,7 +22,7 @@ export function PrintGuidesModal({ guides }: { guides: PrintGuides }) {
           The trim line and safe-area guides come from a print profile's bleed and margin — pick the one this album will
           actually be printed with.
         </p>
-        {guides.profiles.isLoading && <p className="muted">Loading print profiles…</p>}
+        {guides.profiles.isLoading && <SkeletonText lines={3} />}
         <ul className="print-profile-options">
           {(guides.profiles.data ?? []).map((profile) => (
             <li key={profile.id}>

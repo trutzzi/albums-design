@@ -6,6 +6,7 @@ import { buildVisionClassifier } from "../modules/photo-intelligence/infrastruct
 import { MediaIngestionPhotoLifecycle } from "../modules/photo-intelligence/infrastructure/gateways/photo-lifecycle-gateway";
 import { AnalysisPhotoFocusDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-focus-directory";
 import { AnalysisPhotoDimensionsDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-dimensions-directory";
+import { AnalysisPhotoTraitsDirectory } from "../modules/photo-intelligence/infrastructure/gateways/photo-traits-directory";
 import type { ModuleInfrastructure, Repositories } from "./ports";
 
 /** Photo intelligence: scoring and categorising each upload, and where its subject sits. */
@@ -37,6 +38,8 @@ export function buildPhotoIntelligenceModule(
     photoFocus: new AnalysisPhotoFocusDirectory(analyses),
     /** Upright photo sizes, read by the client galleries to lay photos out uncropped. */
     photoDimensions: new AnalysisPhotoDimensionsDirectory(analyses),
+    /** Category and score per photo, read by the delivery gallery for its chapters and cover. */
+    photoTraits: new AnalysisPhotoTraitsDirectory(analyses),
   };
 }
 

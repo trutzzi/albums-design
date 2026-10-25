@@ -17,6 +17,7 @@ import { InProcessDependencyProbe } from "../modules/platform-admin/infrastructu
 import {
   InMemoryAlbumRepository,
   InMemoryDownloadSessionRepository,
+  InMemorySlideshowSessionRepository,
   InMemoryExportJobRepository,
   InMemoryPhotoAnalysisRepository,
   InMemoryPhotoRepository,
@@ -103,6 +104,7 @@ export function buildInMemoryAdapters({ settings, baseUrl, storageProvider, sour
     reviewSessions: new InMemoryReviewSessionRepository(),
     pickSessions: new InMemoryPickSessionRepository(),
     downloadSessions: new InMemoryDownloadSessionRepository(),
+    slideshowSessions: new InMemorySlideshowSessionRepository(),
     exportJobs: new InMemoryExportJobRepository(),
     feedback: new InMemoryFeedbackRepository(),
   } satisfies Repositories;

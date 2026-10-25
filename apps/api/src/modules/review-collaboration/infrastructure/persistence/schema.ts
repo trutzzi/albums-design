@@ -84,6 +84,41 @@ export const downloadSessions = pgTable(
     lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
     passwordHash: text("password_hash"),
     sealedSecret: text("sealed_secret"),
+    // No foreign key: deleting a photo must never be blocked by a gallery cover; a stale id falls back to automatic.
+    coverPhotoId: uuid("cover_photo_id"),
+    lookOverride: jsonb("look_override"),
   },
   (table) => [index("download_sessions_project_id_idx").on(table.projectId)],
+);
+
+export const slideshowStatusEnum = pgEnum("slideshow_status", ["ACTIVE", "REVOKED"]);
+export const slideshowSourceEnum = pgEnum("slideshow_source", ["PICKS", "ALBUM", "SHOOT"]);
+export const slideshowTransitionEnum = pgEnum("slideshow_transition", ["FADE", "NONE"]);
+
+/** A shareable, auto-playing slideshow of a shoot — no password, meant for the client's family. */
+export const slideshowSessions = pgTable(
+  "slideshow_sessions",
+  {
+    id: uuid("id").primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+    clientName: varchar("client_name", { length: 255 }).notNull(),
+    status: slideshowStatusEnum("status").notNull(),
+    source: slideshowSourceEnum("source").notNull(),
+    /** Deliberately no foreign key: deleting the album must not break a slideshow family already has. */
+    albumId: uuid("album_id"),
+    photoIds: jsonb("photo_ids").$type<string[]>().notNull(),
+    intervalSeconds: integer("interval_seconds").notNull(),
+    transition: slideshowTransitionEnum("transition").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    viewCount: integer("view_count").notNull(),
+    lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    lastSentTo: varchar("last_sent_to", { length: 320 }),
+    lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
+    sealedSecret: text("sealed_secret"),
+  },
+  (table) => [index("slideshow_sessions_project_id_idx").on(table.projectId)],
 );

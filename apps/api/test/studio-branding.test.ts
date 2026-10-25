@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import sharp from "sharp";
+import { DEFAULT_CLIENT_STYLE } from "@albumflow/contracts";
 import { Studio } from "../src/modules/identity/domain/studio";
 import { Subscription } from "../src/modules/identity/domain/subscription";
 import { Project } from "../src/modules/media-ingestion/domain/project";
@@ -87,6 +88,10 @@ describe("client branding", () => {
       name: "Golden Hour Studio",
       accent: "#1f6f5c",
       logo: stored!.logo,
+      website: null,
+      phone: null,
+      email: null,
+      style: DEFAULT_CLIENT_STYLE,
     });
   });
 

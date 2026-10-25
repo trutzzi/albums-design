@@ -50,6 +50,7 @@ services:
       retries: 10
 
   minio-init:
+    # Private, exactly as in production (see docker-compose.prod.yml).
     image: pgsty/mc:RELEASE.2026-09-16T00-00-00Z
     depends_on:
       minio:
@@ -58,7 +59,7 @@ services:
       /bin/sh -c "
       mc alias set local http://minio:9000 albumflow albumflow123 &&
       mc mb -p local/albumflow-photos &&
-      mc anonymous set download local/albumflow-photos
+      mc anonymous set none local/albumflow-photos
       "
 
   api:

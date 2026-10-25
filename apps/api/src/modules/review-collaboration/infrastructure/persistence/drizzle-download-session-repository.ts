@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
+import { galleryOverrideSchema } from "@albumflow/contracts";
 import type { Database } from "#src/db/client";
 import { DownloadSession } from "../../domain/download-session";
 import type { DownloadSessionRepository } from "../../domain/download-session-repository";
@@ -24,6 +25,8 @@ export class DrizzleDownloadSessionRepository implements DownloadSessionReposito
       lastSentAt: session.lastSentAt ?? null,
       passwordHash: session.passwordHash ?? null,
       sealedSecret: session.sealedSecret ?? null,
+      coverPhotoId: session.coverPhotoId ?? null,
+      lookOverride: session.lookOverride ?? null,
     };
     await this.db
       .insert(downloadSessions)
@@ -37,6 +40,8 @@ export class DrizzleDownloadSessionRepository implements DownloadSessionReposito
           lastDownloadedAt: row.lastDownloadedAt,
           lastSentTo: row.lastSentTo,
           lastSentAt: row.lastSentAt,
+          coverPhotoId: row.coverPhotoId,
+          lookOverride: row.lookOverride,
         },
       });
   }
@@ -84,7 +89,16 @@ function toDomain(row: typeof downloadSessions.$inferSelect): DownloadSession {
       lastSentAt: row.lastSentAt ?? undefined,
       passwordHash: row.passwordHash ?? undefined,
       sealedSecret: row.sealedSecret ?? undefined,
+      coverPhotoId: row.coverPhotoId ?? undefined,
+      lookOverride: readOverride(row.lookOverride),
     },
     UniqueEntityId.create(row.id),
   );
+}
+
+/** A stored override that no longer matches the schema is dropped rather than breaking the link. */
+function readOverride(stored: unknown) {
+  if (stored === null || stored === undefined) return undefined;
+  const parsed = galleryOverrideSchema.safeParse(stored);
+  return parsed.success ? parsed.data : undefined;
 }

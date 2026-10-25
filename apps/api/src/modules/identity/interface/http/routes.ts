@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { sendApplicationError } from "#src/interface/error-translator";
-import { loginInputSchema, registerInputSchema, studioBrandingSchema } from "@albumflow/contracts";
+import { clientStyleSchema, loginInputSchema, registerInputSchema, studioBrandingSchema } from "@albumflow/contracts";
 import { LAUNCH_PRICES_UNTIL, PLANS, currentPriceEur } from "../../domain/plan";
 import type { StudioAdministrationUseCase } from "../../application/use-cases/studio-administration.use-case";
 import type { RegisterUseCase } from "../../application/use-cases/register.use-case";
@@ -114,6 +114,14 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
     const { studioId } = studioParams.parse(request.params);
     const body = studioBrandingSchema.parse(request.body);
     const result = await deps.administration.setBranding(studioId, request.role, body);
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return { ...result.getValue(), billing: { provider: deps.billing.provider } };
+  });
+
+  app.put("/studios/:studioId/client-style", async (request, reply) => {
+    const { studioId } = studioParams.parse(request.params);
+    const style = clientStyleSchema.parse(request.body);
+    const result = await deps.administration.setClientStyle(studioId, request.role, style);
     if (result.isFailure) return sendApplicationError(reply, result.getError());
     return { ...result.getValue(), billing: { provider: deps.billing.provider } };
   });
