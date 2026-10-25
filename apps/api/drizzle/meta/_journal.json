@@ -134,6 +134,20 @@
       "when": 1790862516710,
       "tag": "0018_admin_error_log",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792882765939,
+      "tag": "0019_client_slideshows",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792887765936,
+      "tag": "0020_client_gallery",
+      "breakpoints": true
     }
   ]
 }

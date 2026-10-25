@@ -14,6 +14,9 @@ import { PickSessionAdminUseCase } from "../modules/review-collaboration/applica
 import { PickPortalUseCase } from "../modules/review-collaboration/application/use-cases/pick-portal.use-case";
 import { DownloadSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/download-session-admin.use-case";
 import { DownloadPortalUseCase } from "../modules/review-collaboration/application/use-cases/download-portal.use-case";
+import { SlideshowSessionAdminUseCase } from "../modules/review-collaboration/application/use-cases/slideshow-session-admin.use-case";
+import { SlideshowPortalUseCase } from "../modules/review-collaboration/application/use-cases/slideshow-portal.use-case";
+import { ReviewCollaborationSlideshowPhotos } from "../modules/review-collaboration/infrastructure/gateways/slideshow-photo-source";
 import {
   AlbumCompositionGateway,
   LoggingReviewNotifier,
@@ -36,7 +39,7 @@ import type { ModuleInfrastructure, Repositories } from "./ports";
 import type { IdentityModule } from "./identity.module";
 import type { PhotoIntelligenceModule } from "./photo-intelligence.module";
 
-/** Review & collaboration: the three client links — album review, photo picks, and delivery. */
+/** Review & collaboration: the client links — album review, photo picks, delivery, and slideshows. */
 export function buildReviewCollaborationModule(
   { env, logger, emailSender, storage, jobQueue, permanentStorage }: ModuleInfrastructure,
   repos: Repositories,
@@ -45,10 +48,21 @@ export function buildReviewCollaborationModule(
     studioBranding,
     photoFocus,
     photoDimensions,
+    photoTraits,
   }: Pick<IdentityModule, "planFeatures" | "studioBranding"> &
-    Pick<PhotoIntelligenceModule, "photoFocus" | "photoDimensions">,
+    Pick<PhotoIntelligenceModule, "photoFocus" | "photoDimensions" | "photoTraits">,
 ) {
-  const { projects, photos, albums, members, studios, reviewSessions, pickSessions, downloadSessions } = repos;
+  const {
+    projects,
+    photos,
+    albums,
+    members,
+    studios,
+    reviewSessions,
+    pickSessions,
+    downloadSessions,
+    slideshowSessions,
+  } = repos;
   const reviewLog = logger.child({ component: "review" });
   const pickLog = logger.child({ component: "picks" });
 
@@ -66,7 +80,8 @@ export function buildReviewCollaborationModule(
   );
   // Passwords for client links (album review and download): generated per link, checked
   // against a hash, and kept encrypted so the studio can look the link + password up again.
-  const clientAccess = new ClientAccessService(new SecretBox(env.JWT_SECRET), new ClientGrantSigner(env.JWT_SECRET));
+  const secretBox = new SecretBox(env.JWT_SECRET);
+  const clientAccess = new ClientAccessService(secretBox, new ClientGrantSigner(env.JWT_SECRET));
 
   // Album review.
   const reviewAlbumGateway = new AlbumCompositionGateway(
@@ -99,10 +114,11 @@ export function buildReviewCollaborationModule(
   const reviewNotifier = permanentStorage ? new PromoteOnApprovalNotifier(decided, jobQueue, reviewLog) : decided;
 
   // Client photo selection ("picks"), the step before an album exists.
+  const photoViews = new ListProjectPhotosUseCase(photos, storage, permanentStorage);
   const pickGateway = new MediaIngestionPickGateway(
     projects,
     photos,
-    new ListProjectPhotosUseCase(photos, storage, permanentStorage),
+    photoViews,
     // The pick page shows the studio's branding too, when its plan includes it.
     { branding: studioBranding, dimensions: photoDimensions },
   );
@@ -118,6 +134,15 @@ export function buildReviewCollaborationModule(
     storage,
     permanentStorage,
     studioBranding,
+  );
+
+  // Client slideshows: a shareable, password-free link that plays the picks, an album or the whole shoot.
+  const slideshowPhotos = new ReviewCollaborationSlideshowPhotos(
+    pickSessions,
+    albums,
+    photos,
+    photoViews,
+    photoDimensions,
   );
 
   return {
@@ -155,6 +180,24 @@ export function buildReviewCollaborationModule(
       () => new Date(),
       clientAccess,
       pickGateway,
+      // The gallery's chapters and cover come from analysis; its favourites are the client's earlier picks.
+      { traits: photoTraits, picks: pickSessions },
+    ),
+    slideshowAdmin: new SlideshowSessionAdminUseCase(
+      slideshowSessions,
+      slideshowPhotos,
+      pickGateway,
+      secretBox,
+      () => new Date(),
+      invitations,
+      clientContacts,
+      planFeatures,
+    ),
+    slideshowPortal: new SlideshowPortalUseCase(
+      slideshowSessions,
+      slideshowPhotos,
+      pickGateway,
+      logger.child({ component: "slideshow-portal" }),
     ),
   };
 }

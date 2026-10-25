@@ -10,6 +10,7 @@ import { GettingStarted, onboardingDismissed } from "@/features/project/componen
 import { GuidedTour, type TourStep } from "@/shared/ui/GuidedTour";
 import { howItWorksSeen, openHowItWorks, useHowItWorksOpen } from "@/shared/ui/HowItWorks";
 import { tip } from "@/shared/lib/tip";
+import { SkeletonShootCards } from "@/shared/ui/Loading";
 
 const SHOOTS_TOUR: TourStep[] = [
   { target: '[data-tour="new-shoot"]', titleKey: "tour.shoots.new.title", bodyKey: "tour.shoots.new.body" },
@@ -234,7 +235,7 @@ export function ProjectsPage() {
         </section>
       )}
 
-      {projects.isLoading && <p className="muted">{t("common.loading")}</p>}
+      {projects.isLoading && <SkeletonShootCards />}
 
       {!projects.isLoading && !adding && (
         <GettingStarted

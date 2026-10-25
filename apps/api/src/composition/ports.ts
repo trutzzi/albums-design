@@ -24,6 +24,7 @@ import type { AlbumRepository } from "../modules/album-composition/domain/album-
 import type { ReviewSessionRepository } from "../modules/review-collaboration/domain/review-session-repository";
 import type { PickSessionRepository } from "../modules/review-collaboration/domain/pick-session-repository";
 import type { DownloadSessionRepository } from "../modules/review-collaboration/domain/download-session-repository";
+import type { SlideshowSessionRepository } from "../modules/review-collaboration/domain/slideshow-session-repository";
 import type { ExportJobRepository } from "../modules/export-print/domain/export-job-repository";
 
 /** The settings the modules read. A subset of `Env`, so the demo can supply it without a database or S3. */
@@ -82,6 +83,7 @@ export interface Repositories {
   reviewSessions: ReviewSessionRepository;
   pickSessions: PickSessionRepository;
   downloadSessions: DownloadSessionRepository;
+  slideshowSessions: SlideshowSessionRepository;
   exportJobs: ExportJobRepository;
   feedback: FeedbackRepository;
 }

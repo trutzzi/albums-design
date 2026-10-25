@@ -14,6 +14,8 @@ export interface Plan {
   maxPhotosPerShoot: number;
   /** May send clients a link to download the full-resolution photos. */
   clientDownloadLinks: boolean;
+  /** May send clients an auto-playing slideshow link to share with family. */
+  clientSlideshows: boolean;
   /** Client review pages show a watermark: proofs are for choosing, not for keeping. */
   watermarkDrafts: boolean;
   /** Exported PDFs carry one too — only the free trial, so it cannot stand in for a paid plan. */
@@ -32,6 +34,7 @@ export const PLANS: Record<PlanCode, Plan> = {
     seats: 1,
     maxPhotosPerShoot: 80,
     clientDownloadLinks: false,
+    clientSlideshows: false,
     watermarkDrafts: true,
     watermarkExports: true,
     whiteLabelReview: false,
@@ -46,6 +49,7 @@ export const PLANS: Record<PlanCode, Plan> = {
     seats: 1,
     maxPhotosPerShoot: 80,
     clientDownloadLinks: false,
+    clientSlideshows: false,
     watermarkDrafts: true,
     watermarkExports: false,
     whiteLabelReview: false,
@@ -60,6 +64,7 @@ export const PLANS: Record<PlanCode, Plan> = {
     seats: 3,
     maxPhotosPerShoot: Number.POSITIVE_INFINITY,
     clientDownloadLinks: true,
+    clientSlideshows: true,
     watermarkDrafts: false,
     watermarkExports: false,
     whiteLabelReview: false,
@@ -74,6 +79,7 @@ export const PLANS: Record<PlanCode, Plan> = {
     seats: Number.POSITIVE_INFINITY,
     maxPhotosPerShoot: Number.POSITIVE_INFINITY,
     clientDownloadLinks: true,
+    clientSlideshows: true,
     watermarkDrafts: false,
     watermarkExports: false,
     whiteLabelReview: true,

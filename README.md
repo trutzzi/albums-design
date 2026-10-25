@@ -68,9 +68,9 @@ pnpm install
 docker compose up -d postgres redis minio minio-init
 
 pnpm db:generate && pnpm db:migrate
-pnpm db:seed          # prints a studio API key — put it in apps/web/.env
+pnpm db:seed          # prints how to give the demo studio a login
 
-cp apps/web/.env.example apps/web/.env   # then paste the key into VITE_STUDIO_API_KEY
+cp apps/web/.env.example apps/web/.env
 pnpm dev              # API + worker + web app together
 ```
 

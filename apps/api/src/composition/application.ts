@@ -33,6 +33,7 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     studioBranding: identity.studioBranding,
     photoFocus: intelligence.photoFocus,
     photoDimensions: intelligence.photoDimensions,
+    photoTraits: intelligence.photoTraits,
   });
   const admin = buildPlatformAdminModule(infra, repos, { deleteProject: ingestion.deleteProject });
 
@@ -73,6 +74,8 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     pickPortal: review.pickPortal,
     downloadAdmin: review.downloadAdmin,
     downloadPortal: review.downloadPortal,
+    slideshowAdmin: review.slideshowAdmin,
+    slideshowPortal: review.slideshowPortal,
     reviewAccess: review.reviewAccess,
     exportJobs: repos.exportJobs,
     requestExport: exportPrint.requestExport,

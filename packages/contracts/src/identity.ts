@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ClientStyle } from "./client-style";
 
 export const projectTypeSchema = z.enum(["WEDDING", "BAPTISM", "EVENT"]);
 export type ProjectType = z.infer<typeof projectTypeSchema>;
@@ -80,6 +81,22 @@ export const studioBrandingSchema = z.object({
     .nullable(),
   /** A data: URL; the server shrinks it to a small PNG before storing it. `null` removes the logo. */
   logo: z.string().max(3_000_000).nullable(),
+  // Contact details for the client gallery's Contacts card. Optional so older clients keep working.
+  // Rendered as a link on client pages, so only http(s) — never javascript: or data:.
+  website: z
+    .string()
+    .trim()
+    .max(200)
+    .regex(/^https?:\/\/[^\s]+$/i, "Websites start with https://.")
+    .nullable()
+    .optional(),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9 ()-]{6,24}$/, "Phone numbers use digits, spaces and an optional leading +.")
+    .nullable()
+    .optional(),
+  email: z.string().trim().email().max(320).nullable().optional(),
 });
 export type StudioBrandingInput = z.infer<typeof studioBrandingSchema>;
 
@@ -88,4 +105,9 @@ export interface ClientBrandingDTO {
   name: string;
   accent: string | null;
   logo: string | null;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+  /** Fonts, layout, theme, section names, social links and watermark for client pages. */
+  style: ClientStyle;
 }

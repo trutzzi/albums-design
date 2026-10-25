@@ -24,7 +24,12 @@ export interface InviteOutcome {
   error?: string;
 }
 
-const PATHS: Record<InvitationKind, string> = { pick: "pick", review: "review", download: "download" };
+const PATHS: Record<InvitationKind, string> = {
+  pick: "pick",
+  review: "review",
+  download: "download",
+  slideshow: "slideshow",
+};
 
 /**
  * Emails a client link on the photographer's behalf. Best effort by design: the link has

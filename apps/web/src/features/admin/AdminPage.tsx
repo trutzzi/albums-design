@@ -21,6 +21,7 @@ import {
 } from "@/shared/api";
 import { BarList, ColumnChart, StatTile } from "./charts";
 import { ErrorsTab } from "./ErrorsTab";
+import { LoadingState, SkeletonList } from "@/shared/ui/Loading";
 
 type Tab = "business" | "studios" | "feedback" | "server" | "errors";
 
@@ -47,7 +48,7 @@ export function AdminPage() {
   const tab = (params.get("tab") as Tab | null) ?? "business";
   const me = useQuery({ queryKey: ["admin-me-page"], queryFn: getAdminMe, retry: false });
 
-  if (me.isLoading) return <p className="page muted">Loading…</p>;
+  if (me.isLoading) return <LoadingState page />;
   if (!me.data?.admin) {
     return (
       <div className="page">
@@ -101,7 +102,7 @@ export function AdminPage() {
 
 function BusinessTab() {
   const stats = useQuery({ queryKey: ["admin-business"], queryFn: getBusinessStats, refetchInterval: 60_000 });
-  if (stats.isLoading) return <p className="muted">Loading…</p>;
+  if (stats.isLoading) return <LoadingState />;
   if (stats.isError || !stats.data) return <p className="error">{(stats.error as Error)?.message}</p>;
   const data = stats.data;
   const signups = data.funnel[0]?.studios ?? 0;
@@ -295,7 +296,7 @@ function StudiosTab() {
           </span>
         )}
       </div>
-      {studios.isLoading && <p className="muted">Loading…</p>}
+      {studios.isLoading && <SkeletonList rows={4} />}
       {studios.isError && <p className="error">{(studios.error as Error).message}</p>}
       {studios.data && (
         <section className="panel">
@@ -459,7 +460,7 @@ function FeedbackTab() {
           </select>
         </label>
       </div>
-      {items.isLoading && <p className="muted">Loading…</p>}
+      {items.isLoading && <SkeletonList rows={4} />}
       {items.isError && <p className="error">{(items.error as Error).message}</p>}
       {items.data?.length === 0 && <p className="muted">Nothing here yet.</p>}
       <ul className="admin-feedback">
@@ -528,7 +529,7 @@ function FeedbackCard({ item }: { item: AdminFeedback }) {
 function ServerTab() {
   const [, setParams] = useSearchParams();
   const stats = useQuery({ queryKey: ["admin-system"], queryFn: getSystemStats, refetchInterval: 15_000 });
-  if (stats.isLoading) return <p className="muted">Loading…</p>;
+  if (stats.isLoading) return <LoadingState />;
   if (stats.isError || !stats.data) return <p className="error">{(stats.error as Error)?.message}</p>;
   const data = stats.data;
   const minuteLabel = (minute: string) =>

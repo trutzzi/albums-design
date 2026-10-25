@@ -58,7 +58,10 @@ async function main() {
   console.log(`  studioId:  ${studio.id.toString()}`);
   console.log(`  projectId: ${project.id.toString()}`);
   console.log(`  apiKey:    ${apiKey}`);
-  console.log("\nPut the API key in apps/web/.env as VITE_STUDIO_API_KEY to use the studio app.");
+  console.log(
+    `\nTo sign in to the studio app, give ${studio.ownerEmail} a password:\n` +
+      `  pnpm --filter @albumflow/api auth:set-password --email ${studio.ownerEmail} --password '<password>'`,
+  );
 
   await close();
 }

@@ -27,9 +27,13 @@ interface Props<Photo extends GalleryPhoto> {
   moreLabel: (remaining: number) => string;
   /** Change it (a new filter, a new sort) to start again from the first batch. */
   resetKey?: string;
+  /** Photos at their own proportions (the default), or cropped to a uniform square grid. */
+  layout?: "masonry" | "square";
+  /** Space between photos, in pixels. */
+  gap?: number;
 }
 
-const GAP = 10;
+const DEFAULT_GAP = 10;
 /** A 3:2 landscape — the commonest camera shape — until a photo's real size is known. */
 const FALLBACK_RATIO = 2 / 3;
 const CAPTION_HEIGHT = 30;
@@ -52,6 +56,8 @@ export function PhotoGallery<Photo extends GalleryPhoto>({
   batchSize = 120,
   moreLabel,
   resetKey,
+  layout = "masonry",
+  gap = DEFAULT_GAP,
 }: Props<Photo>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -86,12 +92,16 @@ export function PhotoGallery<Photo extends GalleryPhoto>({
   }, [shown, photos.length, batchSize]);
 
   const ratioOf = (photo: Photo) =>
-    photo.width && photo.height ? photo.height / photo.width : (measured[photo.id] ?? FALLBACK_RATIO);
+    layout === "square"
+      ? 1
+      : photo.width && photo.height
+        ? photo.height / photo.width
+        : (measured[photo.id] ?? FALLBACK_RATIO);
 
-  const fitting = Math.floor((width + GAP) / (columnWidth + GAP));
+  const fitting = Math.floor((width + gap) / (columnWidth + gap));
   // Two across even on a phone: one column of full-width photos is a slog to scroll.
   const columnCount = width === 0 ? 0 : Math.min(6, Math.max(2, fitting));
-  const columnPixels = columnCount ? (width - GAP * (columnCount - 1)) / columnCount : 0;
+  const columnPixels = columnCount ? (width - gap * (columnCount - 1)) / columnCount : 0;
   const columns: { photo: Photo; index: number }[][] = Array.from({ length: columnCount }, () => []);
   const heights = new Array<number>(columnCount).fill(0);
   photos.slice(0, shown).forEach((photo, index) => {
@@ -101,7 +111,7 @@ export function PhotoGallery<Photo extends GalleryPhoto>({
       if (heights[column]! < heights[target]! - 1) target = column;
     }
     columns[target]?.push({ photo, index });
-    heights[target]! += columnPixels * ratioOf(photo) + GAP + (caption ? CAPTION_HEIGHT : 0);
+    heights[target]! += columnPixels * ratioOf(photo) + gap + (caption ? CAPTION_HEIGHT : 0);
   });
 
   const remember = (photo: Photo, image: HTMLImageElement) => {
@@ -114,9 +124,12 @@ export function PhotoGallery<Photo extends GalleryPhoto>({
 
   return (
     <div ref={containerRef} className="gallery">
-      <div className="gallery__columns" style={{ gridTemplateColumns: `repeat(${columnCount || 1}, minmax(0, 1fr))` }}>
+      <div
+        className="gallery__columns"
+        style={{ gridTemplateColumns: `repeat(${columnCount || 1}, minmax(0, 1fr))`, gap }}
+      >
         {columns.map((column, columnIndex) => (
-          <div key={columnIndex} className="gallery__column">
+          <div key={columnIndex} className="gallery__column" style={{ gap }}>
             {column.map(({ photo, index }) => {
               const image = photo.thumbnailUrl ? (
                 <img
