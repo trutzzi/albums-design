@@ -122,11 +122,14 @@ export function registerDownloadRoutes(app: FastifyInstance, deps: DownloadDepen
     const { token } = tokenParams.parse(request.params);
     const result = await deps.downloadPortal.teaser(token);
     if (result.isFailure) return sendApplicationError(reply, result.getError());
-    return reply
-      .header("Content-Type", "image/jpeg")
-      .header("Cache-Control", "private, max-age=3600")
-      .header("X-Content-Type-Options", "nosniff")
-      .send(result.getValue());
+    return (
+      reply
+        .header("Content-Type", "image/jpeg")
+        // Short, so a revoked link's teaser does not linger in a browser for long.
+        .header("Cache-Control", "private, max-age=300")
+        .header("X-Content-Type-Options", "nosniff")
+        .send(result.getValue())
+    );
   });
 
   app.get("/download/:token", async (request, reply) => {

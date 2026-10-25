@@ -1,5 +1,5 @@
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
+import type { ShootAlbums } from "../ports/shoot-albums";
 import type { PickSession } from "../../domain/pick-session";
 import type { PickSessionRepository } from "../../domain/pick-session-repository";
 import type { ReviewSession } from "../../domain/review-session";
@@ -88,7 +88,7 @@ export function buildShootActivity(
 /** The shoot page's activity sidebar. Every source is read at once. */
 export class ShootActivityUseCase {
   constructor(
-    private readonly albums: Pick<AlbumRepository, "findByProjectId">,
+    private readonly albums: ShootAlbums,
     private readonly picks: Pick<PickSessionRepository, "findByProjectId">,
     private readonly reviews: Pick<ReviewSessionRepository, "findByAlbumId">,
     private readonly downloads: Pick<DownloadSessionRepository, "findByProjectId">,
@@ -98,13 +98,15 @@ export class ShootActivityUseCase {
   async execute(projectId: string): Promise<ActivityEvent[]> {
     const id = UniqueEntityId.create(projectId);
     const [albums, picks, downloads, slideshows] = await Promise.all([
-      this.albums.findByProjectId(id),
+      this.albums.forProject(projectId),
       this.picks.findByProjectId(id),
       this.downloads.findByProjectId(id),
       this.slideshows.findByProjectId(id),
     ]);
     // A shoot has one album, sometimes two: one quick query each, side by side.
-    const reviews = (await Promise.all(albums.map((album) => this.reviews.findByAlbumId(album.id)))).flat();
+    const reviews = (
+      await Promise.all(albums.map((album) => this.reviews.findByAlbumId(UniqueEntityId.create(album.id))))
+    ).flat();
     return buildShootActivity({ albums, picks, reviews, downloads, slideshows });
   }
 }

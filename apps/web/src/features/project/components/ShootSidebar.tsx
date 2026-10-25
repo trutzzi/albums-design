@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getShootActivity, type DownloadSessionSummary, type PickSessionSummary } from "@/shared/api";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { localeOf } from "@/shared/i18n/locale";
 import { SkeletonText } from "@/shared/ui/Loading";
 import type { ClientContact } from "@/features/project/hooks/useClientContact";
 import { activityKey, relativeTime } from "@/features/project/lib/activity";
@@ -26,7 +27,7 @@ export function ShootSidebar({
   linksState: "loading" | "error" | "ready";
 }) {
   const { t, language } = useLanguage();
-  const locale = language === "ro" ? "ro-RO" : "en-GB";
+  const locale = localeOf(language);
   const activity = useQuery({
     queryKey: ["activity", projectId],
     queryFn: () => getShootActivity(projectId),
@@ -41,9 +42,16 @@ export function ShootSidebar({
     ...downloads.map((session) => `${session.id}:${session.status}:${session.downloadCount}`),
     ...(slideshows.data ?? []).map((session) => `${session.id}:${session.status}:${session.viewCount}`),
   ].join("|");
+  // Only a change after everything has loaded counts: not the first load, nor each query arriving.
+  const linksReady = linksState === "ready" && slideshows.isSuccess;
+  const seenSignature = useRef<string | null>(null);
   useEffect(() => {
-    void queryClient.invalidateQueries({ queryKey: ["activity", projectId] });
-  }, [linksSignature, projectId, queryClient]);
+    if (!linksReady) return;
+    if (seenSignature.current !== null && seenSignature.current !== linksSignature) {
+      void queryClient.invalidateQueries({ queryKey: ["activity", projectId] });
+    }
+    seenSignature.current = linksSignature;
+  }, [linksReady, linksSignature, projectId, queryClient]);
   const linksStatus =
     linksState === "ready" && slideshows.isError
       ? "error"
