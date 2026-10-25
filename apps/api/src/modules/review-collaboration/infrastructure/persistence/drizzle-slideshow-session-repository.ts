@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "#src/db/client";
 import { SlideshowSession } from "../../domain/slideshow-session";
@@ -54,6 +54,13 @@ export class DrizzleSlideshowSessionRepository implements SlideshowSessionReposi
       .where(eq(slideshowSessions.id, id.toString()))
       .limit(1);
     return row ? toDomain(row) : undefined;
+  }
+
+  async recordView(id: UniqueEntityId, at: Date): Promise<void> {
+    await this.db
+      .update(slideshowSessions)
+      .set({ viewCount: sql`${slideshowSessions.viewCount} + 1`, lastViewedAt: at })
+      .where(eq(slideshowSessions.id, id.toString()));
   }
 
   async findByTokenHash(tokenHash: string): Promise<SlideshowSession | undefined> {
