@@ -4538,23 +4538,6 @@ body.is-previewing {
   align-items: center;
   gap: 8px 20px;
 }
-.gallery-bar__action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 0;
-  border: 0;
-  background: none;
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
-}
-.gallery-bar__action--on {
-  color: var(--accent);
-}
-.gallery-bar__action--on svg path {
-  fill: currentColor;
-}
 .gallery-bar__count {
   min-width: 20px;
   padding: 0 6px;
@@ -4569,49 +4552,8 @@ body.is-previewing {
   color: var(--ink-soft);
   font-size: 0.85rem;
 }
-.gallery-bar__download {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 22px;
-  border: 1px solid var(--ink);
-  font-weight: 700;
-}
 .gallery-menu {
   position: relative;
-}
-.gallery-menu__list {
-  position: absolute;
-  top: calc(100% + 6px);
-  z-index: 15;
-  display: grid;
-  min-width: 220px;
-  padding: 6px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-.gallery-menu__list--start {
-  left: 0;
-}
-.gallery-menu__list--end {
-  right: 0;
-}
-.gallery-menu__list button {
-  padding: 10px 12px;
-  border: 0;
-  border-radius: 6px;
-  background: none;
-  color: var(--ink);
-  font: inherit;
-  text-align: left;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.gallery-menu__list button:hover,
-.gallery-menu__list button:focus-visible {
-  background: var(--surface-2);
 }
 
 .gallery-corner {
@@ -4633,17 +4575,6 @@ body.is-previewing {
   border-radius: 50%;
   background: var(--surface);
   color: var(--ink);
-  box-shadow: var(--shadow);
-  cursor: pointer;
-}
-.gallery-corner__contact {
-  padding: 12px 20px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--ink);
-  color: var(--bg);
-  font: inherit;
-  font-weight: 600;
   box-shadow: var(--shadow);
   cursor: pointer;
 }
@@ -5167,6 +5098,477 @@ body.is-previewing {
     animation-duration: 2.4s;
   }
   .skeleton {
+    animation: none;
+  }
+}
+
+/* ---- delivery gallery, refined: cover, bar, download menu, corner (see features/review/components/gallery) ---- */
+.gallery-cover__date {
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 0.78rem;
+}
+.gallery-cover__title {
+  font-weight: 300;
+}
+/* A short hairline between the title and who took the photos. */
+.gallery-cover__title::after {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 1px;
+  margin: 22px auto 0;
+  background: var(--line);
+}
+.gallery-cover__welcome {
+  max-width: 28rem;
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+.gallery-cover__controls .pick__lang {
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.social-links {
+  gap: 8px;
+}
+.social-links a {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--ink-soft);
+}
+.social-links a:hover {
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+.gallery-cover__scroll {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  animation: gallery-nudge 2.4s ease-in-out infinite;
+}
+@keyframes gallery-nudge {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, 6px);
+  }
+}
+
+.gallery-bar__tab {
+  padding: 18px 0 16px;
+  gap: 6px;
+}
+.gallery-bar__tab-count {
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.gallery-bar__actions {
+  gap: 8px;
+}
+.gallery-bar__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.gallery-bar__pill:hover {
+  border-color: var(--ink-soft);
+}
+.gallery-bar__pill--on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.gallery-bar__icon--heart {
+  color: var(--accent);
+}
+.gallery-bar__icon--heart path {
+  fill: currentColor;
+}
+.gallery-bar__expires {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+}
+.gallery-bar__download-button,
+.gallery-corner__download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gallery-bar__download-button:disabled,
+.gallery-corner__download-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gallery-menu__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  z-index: 15;
+  min-width: 280px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(20, 24, 28, 0.16);
+}
+.gallery-menu__panel--start {
+  left: 0;
+}
+.gallery-menu__panel--end {
+  right: 0;
+}
+.gallery-menu__list {
+  display: grid;
+}
+.gallery-menu__choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.gallery-menu__choice:hover,
+.gallery-menu__choice:focus-visible {
+  background: var(--surface-2);
+}
+.gallery-menu__choice-label {
+  font-weight: 500;
+}
+.gallery-menu__choice-detail {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.gallery-menu__note {
+  max-width: 280px;
+  margin: 0;
+  padding: 8px 12px 6px;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+/* Only a phone draws the menu as a sheet. */
+.gallery-menu__backdrop,
+.gallery-menu__sheet-head {
+  display: none;
+}
+
+.gallery-page__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin: 28px 0 16px;
+}
+.gallery-page__heading h2 {
+  margin: 0;
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-weight: 300;
+  font-size: 2.1rem;
+}
+.gallery-page__heading p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+/* The photos the client chose earlier, marked with a small heart. */
+.gallery__item--favorite::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z' fill='%23b4442b'/%3E%3C/svg%3E")
+    center / 14px no-repeat;
+  pointer-events: none;
+}
+
+.gallery-corner__download {
+  display: none;
+}
+.gallery-corner__top {
+  width: 48px;
+  height: 48px;
+}
+.gallery-corner__contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 20px 0 7px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 10px 26px rgba(20, 24, 28, 0.22);
+  cursor: pointer;
+}
+.gallery-corner__avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-size: 1rem;
+}
+
+@media (max-width: 800px) {
+  /* The cover photo first, then the title on a card that slides up over it. */
+  .gallery-cover__photo {
+    height: 60svh;
+  }
+  .gallery-cover__text {
+    position: relative;
+    z-index: 1;
+    margin-top: -28px;
+    border-radius: 24px 24px 0 0;
+    background: var(--surface);
+  }
+  .gallery-bar__tabs {
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 6px;
+    padding: 6px 0 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .gallery-bar__tab {
+    flex: none;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .gallery-bar__tab--on {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .gallery-bar__tab--on .gallery-bar__tab-count {
+    color: inherit;
+    opacity: 0.7;
+  }
+  .gallery-bar__actions {
+    justify-content: flex-start;
+  }
+  .gallery-bar__pill {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+    position: relative;
+  }
+  .gallery-bar__pill-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .gallery-bar__pill .gallery-bar__count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+  }
+  .gallery-bar__expires {
+    font-size: 0.78rem;
+  }
+  /* On a phone the download lives in the floating bar below. */
+  .gallery-bar__download {
+    display: none;
+  }
+  .gallery-page__heading h2 {
+    font-size: 1.6rem;
+  }
+
+  /* One dark bar along the bottom: download, then the studio and back to top. */
+  .gallery-corner {
+    left: 12px;
+    right: 12px;
+    bottom: 16px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 999px;
+    /* An inverse bar from the gallery's own theme: dark on a light gallery, light on a dark one. */
+    background: var(--ink);
+    box-shadow: 0 14px 34px rgba(20, 24, 28, 0.3);
+  }
+  .gallery-corner__download {
+    display: block;
+    flex: 1;
+  }
+  .gallery-corner__download .gallery-menu {
+    position: static;
+  }
+  .gallery-corner__download-button {
+    width: 100%;
+    min-height: 46px;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .gallery-corner__download-button .gallery-menu__chevron {
+    display: none;
+  }
+  .gallery-corner__top {
+    width: 46px;
+    height: 46px;
+    border: 0;
+    background: color-mix(in srgb, var(--bg) 16%, transparent);
+    color: var(--bg);
+    box-shadow: none;
+  }
+  .gallery-corner__contact {
+    width: 46px;
+    min-height: 46px;
+    padding: 0;
+    justify-content: center;
+    box-shadow: none;
+  }
+  .gallery-corner__avatar {
+    background: none;
+    font-size: 1.1rem;
+  }
+  .gallery-corner__contact-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* The download choices rise from the bottom as a sheet. */
+  .gallery-menu--sheet .gallery-menu__backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(20, 24, 28, 0.5);
+  }
+  .gallery-menu--sheet .gallery-menu__panel {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 41;
+    min-width: 0;
+    padding: 10px 20px calc(24px + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -18px 40px rgba(20, 24, 28, 0.25);
+    color: var(--ink);
+  }
+  .gallery-menu--sheet .gallery-menu__sheet-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 10px 8px;
+    margin-bottom: 12px;
+  }
+  .gallery-menu__grabber {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 40px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--line);
+  }
+  .gallery-menu__sheet-title {
+    font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+    font-size: 1.5rem;
+  }
+  .gallery-menu__close {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .gallery-menu--sheet .gallery-menu__list {
+    gap: 8px;
+  }
+  .gallery-menu--sheet .gallery-menu__choice {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+    min-height: 64px;
+    padding: 0 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .gallery-menu--sheet .gallery-menu__note {
+    max-width: none;
+    padding: 14px 4px 0;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-cover__scroll {
     animation: none;
   }
 }
