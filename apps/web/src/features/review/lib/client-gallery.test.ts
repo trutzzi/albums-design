@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildVCard, displayWebsite, filterGallery, filterKey, splitTabs, telUrl, whatsappUrl } from "./client-gallery";
+import {
+  buildVCard,
+  displayWebsite,
+  filterGallery,
+  filterKey,
+  formatBytes,
+  scopeBytes,
+  sectionCounts,
+  splitTabs,
+  telUrl,
+  whatsappUrl,
+} from "./client-gallery";
 
 const photos = [
   { id: "a", section: "PREPARATION" },
@@ -83,5 +94,41 @@ describe("contact links", () => {
   it("leaves out what the studio has not filled in", () => {
     const card = buildVCard({ name: "Artzz Foto" });
     assert.doesNotMatch(card, /TEL|EMAIL|URL|TITLE/);
+  });
+});
+
+describe("sectionCounts", () => {
+  it("counts each chapter and leaves out photos with none", () => {
+    const counted = sectionCounts([...photos, { id: "d", section: "CEREMONY" }]);
+    assert.deepEqual(
+      [...counted],
+      [
+        ["PREPARATION", 1],
+        ["CEREMONY", 2],
+      ],
+    );
+  });
+});
+
+describe("scopeBytes", () => {
+  const sized = [
+    { id: "a", section: "PREPARATION", byteSize: 100 },
+    { id: "b", section: "CEREMONY", byteSize: 250 },
+    { id: "c", section: "CEREMONY", byteSize: null },
+  ];
+
+  it("adds up the photos in the download, skipping ones no longer stored", () => {
+    assert.equal(scopeBytes(sized, { kind: "all" }, new Set()), 350);
+    assert.equal(scopeBytes(sized, { kind: "section", section: "CEREMONY" }, new Set()), 250);
+    assert.equal(scopeBytes(sized, { kind: "favorites" }, new Set(["a", "c"])), 100);
+  });
+});
+
+describe("formatBytes", () => {
+  it("reads like a person would say it", () => {
+    assert.equal(formatBytes(300), "1 KB");
+    assert.equal(formatBytes(512 * 1024), "512 KB");
+    assert.equal(formatBytes(5.25 * 1024 * 1024), "5.3 MB");
+    assert.equal(formatBytes(9.8 * 1024 * 1024 * 1024), "9.80 GB");
   });
 });
