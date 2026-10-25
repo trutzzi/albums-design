@@ -829,6 +829,12 @@ describe("email settings", () => {
     assert.deepEqual(logger.problems[0]?.context, { recipients: 1 });
   });
 
+  it("keeps the content out when nobody chose otherwise", async () => {
+    const logger = new RecordingLogger();
+    await new LoggingEmailSender(logger).send(message);
+    assert.ok(!JSON.stringify(logger.entries).includes("secret-token"));
+  });
+
   it("still shows the whole email in a demo, where reading the link from the log is the point", async () => {
     const logger = new RecordingLogger();
     await buildEmailSender(loadEnv(base), logger).send(message);

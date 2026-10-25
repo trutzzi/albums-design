@@ -12,7 +12,8 @@ export class LoggingEmailSender implements EmailSender {
   readonly id = "log";
   constructor(
     private readonly logger: Logger = consoleLogger,
-    private readonly options: { includeContent: boolean } = { includeContent: true },
+    /** Off unless a caller that is certainly not production asks: forgetting it must not leak. */
+    private readonly options: { includeContent: boolean } = { includeContent: false },
   ) {}
 
   async send(message: EmailMessage): Promise<void> {
