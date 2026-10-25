@@ -14,6 +14,7 @@ import { GalleryCover } from "@/features/review/components/gallery/GalleryCover"
 import { GalleryToolbar } from "@/features/review/components/gallery/GalleryToolbar";
 import { GalleryCornerButtons } from "@/features/review/components/gallery/StudioContactCard";
 import { filterGallery, filterKey, type GalleryFilter } from "@/features/review/lib/client-gallery";
+import { ClientPageSkeleton } from "@/shared/ui/Loading";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -56,7 +57,7 @@ export function DownloadPage() {
     [view.data?.photos, filter, favorites],
   );
 
-  if (view.isLoading) return <p className="page muted">{t("download.loading")}</p>;
+  if (view.isLoading) return <ClientPageSkeleton label={t("download.loading")} />;
   if (needsPassword(view.error)) {
     return (
       <PasswordGate

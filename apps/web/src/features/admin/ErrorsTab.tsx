@@ -8,6 +8,7 @@ import {
   type ErrorIssueStatus,
   type ErrorSource,
 } from "@/shared/api";
+import { SkeletonList, SkeletonText } from "@/shared/ui/Loading";
 
 const SOURCE_LABELS: Record<ErrorSource, string> = { api: "API", worker: "Worker" };
 const STATUS_LABELS: Record<ErrorIssueStatus, string> = { OPEN: "Open", RESOLVED: "Resolved" };
@@ -88,7 +89,7 @@ export function ErrorsTab({ initialSearch = "" }: { initialSearch?: string }) {
         </button>
       </form>
       {search && <p className="muted admin-errors__hint">Searching open and resolved errors for “{search}”.</p>}
-      {issues.isLoading && <p className="muted">Loading…</p>}
+      {issues.isLoading && <SkeletonList rows={4} />}
       {issues.isError && <p className="error">{(issues.error as Error).message}</p>}
       {issues.data?.length === 0 && (
         <p className="muted">
@@ -157,7 +158,7 @@ function ErrorIssueCard({ issue }: { issue: AdminErrorIssue }) {
       {update.isError && <p className="error">{(update.error as Error).message}</p>}
       {open && (
         <div className="admin-errors__detail">
-          {detail.isLoading && <p className="muted">Loading…</p>}
+          {detail.isLoading && <SkeletonText lines={4} />}
           {detail.isError && <p className="error">{(detail.error as Error).message}</p>}
           {detail.data && (
             <>

@@ -17,6 +17,7 @@ export const ro: Record<string, string> = {
   "common.cancel": "Anulează",
   "common.delete": "Șterge",
   "common.save": "Salvează",
+  "albumEditor.loading": "Se deschide albumul…",
   "common.loading": "Se încarcă…",
 
   // --- Auth ---------------------------------------------------------

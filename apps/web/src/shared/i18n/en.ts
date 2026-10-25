@@ -17,6 +17,7 @@ export const en: Record<string, string> = {
   "common.cancel": "Cancel",
   "common.delete": "Delete",
   "common.save": "Save",
+  "albumEditor.loading": "Opening the album…",
   "common.loading": "Loading…",
 
   // --- Auth ---------------------------------------------------------

@@ -44,6 +44,7 @@ import { FeedbackPanel } from "@/features/album-editor/components/FeedbackPanel"
 import { ExportPanel } from "@/features/album-editor/components/ExportPanel";
 import { PrintGuidesModal } from "@/features/album-editor/components/PrintGuidesModal";
 import { InsertSpreadModal } from "@/features/album-editor/components/InsertSpreadModal";
+import { LoadingState } from "@/shared/ui/Loading";
 
 const EDITOR_TOUR: TourStep[] = [
   { target: '[data-tour="editor-cover"]', titleKey: "tour.editor.cover.title", bodyKey: "tour.editor.cover.body" },
@@ -455,7 +456,7 @@ export function AlbumEditorPage() {
     },
   );
 
-  if (album.isLoading) return <p className="page muted">Loading album…</p>;
+  if (album.isLoading) return <LoadingState page label={t("albumEditor.loading")} />;
   if (album.isError) return <p className="page error">{(album.error as Error).message}</p>;
   if (!current) return null;
   const locked = current.status === "APPROVED";

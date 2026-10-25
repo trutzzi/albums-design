@@ -15,6 +15,7 @@ import { tip } from "@/shared/lib/tip";
 import { PlanPrice } from "@/shared/ui/LaunchOffer";
 import { BrandingPanel } from "./components/BrandingPanel";
 import { GalleryStylePanel } from "./components/GalleryStylePanel";
+import { LoadingState } from "@/shared/ui/Loading";
 
 export function StudioPage() {
   const { studioId } = useAuth();
@@ -47,7 +48,7 @@ export function StudioPage() {
     mutationFn: async () => window.location.assign((await openBillingPortal(studioId)).url),
   });
 
-  if (overview.isLoading) return <p className="page muted">{t("common.loading")}</p>;
+  if (overview.isLoading) return <LoadingState page />;
   if (overview.isError) return <p className="page error">{(overview.error as Error).message}</p>;
   if (!overview.data) return null;
 
