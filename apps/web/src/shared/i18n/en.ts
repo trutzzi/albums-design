@@ -94,6 +94,9 @@ export const en: Record<string, string> = {
   "project.activity.downloadCreated.anon": "Download link created",
   "project.activity.downloadFirst.anon": "The client downloaded the photos",
   "project.activity.slideshowCreated.anon": "Slideshow link created",
+  "landing.pricing.loading": "Loading the plans…",
+  "landing.pricing.error": "The plans could not be loaded right now.",
+  "landing.pricing.contact": "Ask us about prices",
   "common.loading": "Loading…",
 
   // --- Auth ---------------------------------------------------------

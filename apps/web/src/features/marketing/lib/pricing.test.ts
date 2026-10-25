@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { PlanDto } from "@/shared/api";
-import { hasLaunchDiscount, isRecommended, planHighlights } from "./pricing";
+import { hasLaunchDiscount, isRecommended, isTrial, planHighlights } from "./pricing";
 
 const base: PlanDto = {
   code: "TRIAL",
@@ -60,5 +60,12 @@ describe("planHighlights", () => {
   it("strikes the list price only while the launch price is lower", () => {
     assert.ok(hasLaunchDiscount({ ...base, monthlyPriceEur: 10, regularPriceEur: 20 }));
     assert.ok(!hasLaunchDiscount({ ...base, monthlyPriceEur: 20, regularPriceEur: 20 }));
+  });
+});
+
+describe("isTrial", () => {
+  it("knows the trial by its code, not its price", () => {
+    assert.ok(isTrial(base));
+    assert.ok(!isTrial({ ...base, code: "STARTER", monthlyPriceEur: 0 }));
   });
 });

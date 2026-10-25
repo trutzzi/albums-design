@@ -94,6 +94,9 @@ export const ro: Record<string, string> = {
   "project.activity.downloadCreated.anon": "Link de descărcare creat",
   "project.activity.downloadFirst.anon": "Clientul a descărcat fotografiile",
   "project.activity.slideshowCreated.anon": "Link de slideshow creat",
+  "landing.pricing.loading": "Se încarcă planurile…",
+  "landing.pricing.error": "Planurile nu s-au putut încărca acum.",
+  "landing.pricing.contact": "Întreabă-ne despre prețuri",
   "common.loading": "Se încarcă…",
 
   // --- Auth ---------------------------------------------------------
