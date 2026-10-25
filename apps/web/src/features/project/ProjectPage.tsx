@@ -27,6 +27,7 @@ import { DEFAULT_PHOTO_VIEW, PhotoBrowser, type PhotoView } from "@/features/pro
 import { SelectionPanel } from "@/features/project/components/SelectionPanel";
 import { AlbumPanel } from "@/features/project/components/AlbumPanel";
 import { DeliveryPanel } from "@/features/project/components/DeliveryPanel";
+import { SlideshowPanel } from "@/features/project/components/SlideshowPanel";
 
 /** The guided tour points at the step tabs, since only the open step's content is on the page. */
 const STEP_TOUR_TARGETS: Record<ShootStep, string | undefined> = {
@@ -104,6 +105,7 @@ export function ProjectPage() {
   const plan = plans.data?.find((item) => item.code === studio.data?.subscription.planCode);
   const photoLimit = plan?.maxPhotosPerShoot ?? null;
   const canSendDownloadLinks = plan?.clientDownloadLinks ?? true;
+  const canSendSlideshows = plan?.clientSlideshows ?? true;
 
   const photos = useQuery({
     queryKey: ["photos", projectId],
@@ -284,6 +286,7 @@ export function ProjectPage() {
             canSendDownloadLinks={canSendDownloadLinks}
             canStyleGalleries={studio.data?.subscription.whiteLabel ?? false}
           />
+          <SlideshowPanel projectId={projectId} contact={contact} canSendSlideshows={canSendSlideshows} />
         </div>
       </div>
 

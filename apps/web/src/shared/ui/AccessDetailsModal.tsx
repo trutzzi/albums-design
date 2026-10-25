@@ -6,7 +6,8 @@ interface Props {
   title: string;
   /** Builds the client-facing URL from the token, e.g. `/review/<token>`. */
   urlFor: (token: string) => string;
-  load: () => Promise<{ token: string; password: string }>;
+  /** A slideshow link has no password; the modal then shows the link alone. */
+  load: () => Promise<{ token: string; password?: string }>;
   queryKey: readonly unknown[];
   /** Emails this link to the client. Omitted when the server has no email configured. */
   onSend?: ((input: { email: string; language: "en" | "ro" }) => Promise<unknown>) | undefined;
@@ -76,21 +77,25 @@ export function AccessDetailsModal({ title, urlFor, load, queryKey, onSend, defa
                 {copied === "link" ? t("access.details.copied") : t("access.details.copyLink")}
               </button>
             </div>
-            <div className="access-modal__row">
-              <span className="muted">{t("access.details.password")}</span>
-              <code className="access-modal__value access-modal__password">{password}</code>
-              <button type="button" className="button button--small" onClick={() => copy("password", password)}>
-                {copied === "password" ? t("access.details.copied") : t("access.details.copyPassword")}
-              </button>
-            </div>
-            <button
-              type="button"
-              className="button button--primary"
-              onClick={() => copy("both", t("access.details.message", { link: url, password }))}
-            >
-              {copied === "both" ? t("access.details.copied") : t("access.details.copyBoth")}
-            </button>
-            <p className="muted">{t("access.details.note")}</p>
+            {password && (
+              <>
+                <div className="access-modal__row">
+                  <span className="muted">{t("access.details.password")}</span>
+                  <code className="access-modal__value access-modal__password">{password}</code>
+                  <button type="button" className="button button--small" onClick={() => copy("password", password)}>
+                    {copied === "password" ? t("access.details.copied") : t("access.details.copyPassword")}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="button button--primary"
+                  onClick={() => copy("both", t("access.details.message", { link: url, password }))}
+                >
+                  {copied === "both" ? t("access.details.copied") : t("access.details.copyBoth")}
+                </button>
+                <p className="muted">{t("access.details.note")}</p>
+              </>
+            )}
 
             {onSend && (
               <form className="access-modal__send" onSubmit={send}>
