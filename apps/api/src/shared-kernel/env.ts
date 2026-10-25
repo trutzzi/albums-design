@@ -65,6 +65,16 @@ const envSchema = z.object({
   /** Signs and verifies the per-person login JWT. `openssl rand -hex 32`. */
   JWT_SECRET: z.string().min(32),
   VISION_PROVIDER: z.enum(["heuristic", "anthropic", "ollama"]).default("heuristic"),
+  /**
+   * "true" once the studios have been told that AI analysis sends photos to Anthropic in the
+   * US: the landing and changelog texts no longer say photos never leave, the privacy policy
+   * and sub-processor list name Anthropic, and its DPA is signed. Production will not run
+   * VISION_PROVIDER=anthropic without it (see `assertDisclosedProcessing`).
+   */
+  VISION_THIRD_PARTY_DISCLOSED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
   OLLAMA_BASE_URL: z.string().min(1).default("http://localhost:11434"),
   OLLAMA_MODEL: z.string().min(1).default("qwen2.5vl:7b"),
   // An empty string must mean the same as "not set" — Docker Compose's
@@ -165,7 +175,25 @@ export type Env = z.infer<typeof envSchema>;
 export type DatabaseEnv = z.infer<typeof databaseEnvSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  return parseOrThrow(envSchema, source);
+  const env = parseOrThrow(envSchema, source);
+  assertDisclosedProcessing(env);
+  return env;
+}
+
+/**
+ * The site tells photographers their photos are never sent to a third party, which is true
+ * for the heuristic and a local Ollama — but one setting would quietly make it false and start
+ * a transfer of their clients' faces to the US (GDPR Art. 13, 28, 44). Refusing to start keeps
+ * that a deliberate decision, taken after the texts and contracts have caught up.
+ */
+function assertDisclosedProcessing(env: Env): void {
+  if (env.NODE_ENV !== "production" || env.VISION_PROVIDER !== "anthropic" || env.VISION_THIRD_PARTY_DISCLOSED) return;
+  throw new Error(
+    "VISION_PROVIDER=anthropic sends photos to Anthropic (US), but the site still promises they are never sent " +
+      "to a third party. Update that text (landing.feature.aiOptIn.desc, changelog.item.aiAnalysis in en.ts and " +
+      "ro.ts), the privacy policy and sub-processor list, sign Anthropic's DPA, then set " +
+      "VISION_THIRD_PARTY_DISCLOSED=true.",
+  );
 }
 
 export function loadAppSettings(source: NodeJS.ProcessEnv = process.env): z.infer<typeof appSettingsSchema> {

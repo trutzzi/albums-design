@@ -64,6 +64,7 @@ services:
       WEB_ORIGIN: https://app.valentintruta.ro
       VISION_PROVIDER: ${VISION_PROVIDER:-heuristic}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      VISION_THIRD_PARTY_DISCLOSED: ${VISION_THIRD_PARTY_DISCLOSED:-false}
       JWT_SECRET: ${JWT_SECRET}
       # Caddy is the only way in (the port mapping above is removed), so the client's
       # address in X-Forwarded-For can be trusted — the login lockout counts per address.
@@ -83,6 +84,7 @@ services:
       WEB_ORIGIN: https://app.valentintruta.ro
       VISION_PROVIDER: ${VISION_PROVIDER:-heuristic}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      VISION_THIRD_PARTY_DISCLOSED: ${VISION_THIRD_PARTY_DISCLOSED:-false}
       JWT_SECRET: ${JWT_SECRET}
       # Nightly database dumps from `db-backup` below, copied to DigiStorage when
       # STORAGE_PROVIDER=digistorage. Mounted read-only: the worker never changes them.

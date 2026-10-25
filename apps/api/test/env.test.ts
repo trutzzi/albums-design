@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { loadDatabaseEnv, loadEnv } from "../src/shared-kernel/env";
 
@@ -33,6 +34,33 @@ describe("environment configuration", () => {
     assert.equal(env.S3_BUCKET, "albumflow-photos");
     assert.equal(env.S3_REGION, "us-east-1", "a sensible default went missing");
     assert.equal(env.VISION_PROVIDER, "heuristic");
+  });
+
+  describe("sending photos to a third-party AI", () => {
+    const production = { ...FULL, NODE_ENV: "production", VISION_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "sk-ant" };
+
+    it("refuses to start in production until the transfer has been disclosed", () => {
+      // The site promises photos are never sent to a third party; one setting must not silently break that.
+      assert.throws(() => loadEnv(production as NodeJS.ProcessEnv), /VISION_THIRD_PARTY_DISCLOSED/);
+    });
+
+    it("starts once the operator confirms the texts and contracts were updated", () => {
+      const env = loadEnv({ ...production, VISION_THIRD_PARTY_DISCLOSED: "true" } as NodeJS.ProcessEnv);
+      assert.equal(env.VISION_PROVIDER, "anthropic");
+    });
+
+    it("reaches both production containers next to the provider it unlocks", () => {
+      const compose = readFileSync(new URL("../../../docker-compose.prod.yml", import.meta.url), "utf8");
+      const forwarded = compose.match(/VISION_THIRD_PARTY_DISCLOSED: \$\{VISION_THIRD_PARTY_DISCLOSED:-false\}/g);
+      assert.equal(forwarded?.length, 2, "the api and the worker both need it");
+    });
+
+    it("leaves local providers and development alone", () => {
+      for (const VISION_PROVIDER of ["heuristic", "ollama"]) {
+        assert.doesNotThrow(() => loadEnv({ ...production, VISION_PROVIDER } as NodeJS.ProcessEnv));
+      }
+      assert.doesNotThrow(() => loadEnv({ ...production, NODE_ENV: "development" } as NodeJS.ProcessEnv));
+    });
   });
 
   it("treats a blank ANTHROPIC_API_KEY the same as an absent one", () => {
