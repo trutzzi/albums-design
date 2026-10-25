@@ -6151,3 +6151,102 @@ body.is-previewing {
   font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
   font-weight: 400;
 }
+
+/* ---- landing, refined: serif display type and a pricing section ---- */
+.landing-hero__title,
+.landing-section-heading {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-weight: 400;
+}
+.landing-pricing {
+  scroll-margin-top: 24px;
+}
+.landing-pricing__plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+.landing-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.landing-plan--recommended {
+  border: 2px solid var(--accent);
+}
+.landing-plan__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.landing-plan__head h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.landing-plan__badge {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.landing-plan__price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+}
+.landing-plan__amount {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-size: 2.3rem;
+}
+.landing-plan__was {
+  color: var(--ink-faint);
+}
+.landing-plan__features {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+.landing-plan__features li {
+  position: relative;
+  padding-left: 22px;
+}
+/* The tick takes the theme's accent, like everything else that is the studio's colour. */
+.landing-plan__features li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2.5 7.5l3 3 6-7' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+.landing-plan__cta {
+  margin-top: auto;
+  justify-content: center;
+  text-decoration: none;
+}
+
+/* ---- sign in and register, refined ---- */
+.auth-panel h1 {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-weight: 400;
+}
+.auth-form input {
+  min-height: 44px;
+}
+.auth-form .button--primary {
+  min-height: 48px;
+}
