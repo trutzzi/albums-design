@@ -7,10 +7,18 @@ import type { PickSessionRepository } from "../../domain/pick-session-repository
 import { chooseCover, storySections } from "../../domain/client-gallery";
 import { hashToken } from "../../domain/review-session";
 import type { DeliverablePhoto, DeliveryGateway, DownloadNotifier } from "../ports/delivery-gateway";
+import type { CoverThumbnails, TeaserImages } from "../ports/cover-teaser";
 import type { PickGateway, PickablePhoto } from "../ports/pick-gateway";
 import type { ClientAccessService } from "../services/client-access.service";
 import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 import type { PhotoTraits, PhotoTraitsDirectory } from "#src/shared-kernel/photo-traits";
+
+export interface GateInfo {
+  studioName: string | null;
+  accent: string | null;
+  /** Whether `/teaser.jpg` can be shown behind the form. */
+  teaser: boolean;
+}
 
 export interface DownloadView {
   clientName: string;
@@ -64,6 +72,8 @@ export class DownloadPortalUseCase {
       traits?: PhotoTraitsDirectory | undefined;
       /** Where the client's earlier picks come from. Without it there are no favourites. */
       picks?: Pick<PickSessionRepository, "findByProjectId"> | undefined;
+      /** The blurred cover behind the password gate. Without it the gate shows no photo. */
+      teaser?: { source: CoverThumbnails; images: TeaserImages } | undefined;
     } = {},
   ) {}
 
@@ -80,6 +90,43 @@ export class DownloadPortalUseCase {
     if (!this.access) return Result.failure(new NotFoundError("Download link", "token"));
     const granted = await this.access.unlock("download", found.getValue(), password);
     return granted.isFailure ? Result.failure(granted.getError()) : Result.success({ grant: granted.getValue() });
+  }
+
+  /**
+   * What the password gate may show before the password: the studio's name and colour, and
+   * whether there is a cover teaser. Never the shoot's name or anything from its photos.
+   */
+  async gate(token: string): Promise<Result<GateInfo, ApplicationError>> {
+    const found = await this.resolve(token);
+    if (found.isFailure) return Result.failure(found.getError());
+    const project = await this.delivery.loadProject(found.getValue().projectId.toString());
+    if (!project) return Result.failure(new NotFoundError("Download link", "token"));
+    return Result.success({
+      studioName: project.branding?.name ?? null,
+      accent: project.branding?.accent ?? null,
+      teaser: Boolean(this.arrangement.teaser),
+    });
+  }
+
+  /**
+   * The gallery's cover shrunk to a few dozen pixels, for the gate to blur behind its form.
+   * Shown before the password by the owner's choice; the size keeps it a mood, not a photo.
+   */
+  async teaser(token: string): Promise<Result<Buffer, ApplicationError>> {
+    const teaser = this.arrangement.teaser;
+    if (!teaser) return Result.failure(new NotFoundError("Cover", "teaser"));
+    const found = await this.resolve(token);
+    if (found.isFailure) return Result.failure(found.getError());
+    const session = found.getValue();
+    const projectId = session.projectId.toString();
+    const [listed, traits] = await Promise.all([
+      this.gallery?.listPhotos(projectId) ?? [],
+      this.traitsFor(projectId).then((found) => found ?? new Map<string, PhotoTraits>()),
+    ]);
+    const coverId = chooseCover(listed, traits, session.coverPhotoId);
+    const thumbnail = coverId ? await teaser.source.thumbnail(coverId) : undefined;
+    if (!thumbnail) return Result.failure(new NotFoundError("Cover", "teaser"));
+    return Result.success(await teaser.images.shrink(thumbnail));
   }
 
   async view(token: string): Promise<Result<DownloadView, ApplicationError>> {

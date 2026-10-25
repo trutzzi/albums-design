@@ -3,7 +3,7 @@ import { useClientStyle } from "@/shared/ui/ClientBrand";
 import { sectionLabel } from "@/shared/lib/client-style";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { downloadZipUrl, getDownloadView, type DownloadScope } from "@/shared/api";
+import { downloadTeaserUrl, downloadZipUrl, getDownloadGate, getDownloadView, type DownloadScope } from "@/shared/api";
 import { LANGUAGES } from "@/shared/i18n/translations";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
@@ -52,6 +52,15 @@ export function DownloadPage() {
     refetchInterval: (query) => ((query.state.data?.processingCount ?? 0) > 0 ? 5000 : false),
   });
 
+  const locked = needsPassword(view.error);
+  // Only for a locked link: who sent it, and whether the cover may be blurred behind the form.
+  const gate = useQuery({
+    queryKey: ["download-gate", token],
+    queryFn: () => getDownloadGate(token),
+    enabled: locked,
+    retry: false,
+    staleTime: Infinity,
+  });
   const look = useClientStyle(view.data?.branding);
   const favorites = useMemo(() => new Set(view.data?.favoritePhotoIds ?? []), [view.data?.favoritePhotoIds]);
   const shown = useMemo(
@@ -60,11 +69,13 @@ export function DownloadPage() {
   );
 
   if (view.isLoading) return <ClientPageSkeleton label={t("download.loading")} />;
-  if (needsPassword(view.error)) {
+  if (locked) {
     return (
       <PasswordGate
         kind="download"
         token={token}
+        studio={gate.data ? { name: gate.data.studioName, accent: gate.data.accent } : undefined}
+        teaserUrl={gate.data?.teaser ? downloadTeaserUrl(token) : null}
         onUnlocked={() => void queryClient.invalidateQueries({ queryKey: ["download", token] })}
       />
     );
