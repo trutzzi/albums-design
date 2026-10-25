@@ -48,8 +48,9 @@ export function buildReviewCollaborationModule(
     studioBranding,
     photoFocus,
     photoDimensions,
+    photoTraits,
   }: Pick<IdentityModule, "planFeatures" | "studioBranding"> &
-    Pick<PhotoIntelligenceModule, "photoFocus" | "photoDimensions">,
+    Pick<PhotoIntelligenceModule, "photoFocus" | "photoDimensions" | "photoTraits">,
 ) {
   const {
     projects,
@@ -179,6 +180,8 @@ export function buildReviewCollaborationModule(
       () => new Date(),
       clientAccess,
       pickGateway,
+      // The gallery's chapters and cover come from analysis; its favourites are the client's earlier picks.
+      { traits: photoTraits, picks: pickSessions },
     ),
     slideshowAdmin: new SlideshowSessionAdminUseCase(
       slideshowSessions,

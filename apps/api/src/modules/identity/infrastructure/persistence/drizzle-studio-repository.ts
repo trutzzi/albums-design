@@ -1,5 +1,6 @@
 import { and, count, desc, eq, ilike, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
+import { readClientStyle } from "@albumflow/contracts";
 import type { Database } from "#src/db/client";
 import type { StudioMemberRepository, StudioRepository, SubscriptionRepository } from "../../domain/repositories";
 import { Studio } from "../../domain/studio";
@@ -202,6 +203,10 @@ function brandingColumns(studio: Studio) {
     brandName: studio.branding?.displayName ?? null,
     brandAccent: studio.branding?.accent ?? null,
     brandLogo: studio.branding?.logo ?? null,
+    brandWebsite: studio.branding?.website ?? null,
+    brandPhone: studio.branding?.phone ?? null,
+    brandEmail: studio.branding?.email ?? null,
+    brandStyle: studio.clientStyle ?? null,
   };
 }
 
@@ -212,10 +217,19 @@ function toStudio(row: typeof studios.$inferSelect): Studio {
       ownerEmail: row.ownerEmail,
       apiKeyHash: row.apiKeyHash,
       createdAt: row.createdAt,
-      branding:
-        row.brandName !== null || row.brandAccent !== null || row.brandLogo !== null
-          ? { displayName: row.brandName ?? "", accent: row.brandAccent, logo: row.brandLogo }
-          : undefined,
+      branding: [row.brandName, row.brandAccent, row.brandLogo, row.brandWebsite, row.brandPhone, row.brandEmail].some(
+        (value) => value !== null,
+      )
+        ? {
+            displayName: row.brandName ?? "",
+            accent: row.brandAccent,
+            logo: row.brandLogo,
+            website: row.brandWebsite,
+            phone: row.brandPhone,
+            email: row.brandEmail,
+          }
+        : undefined,
+      clientStyle: row.brandStyle === null ? undefined : readClientStyle(row.brandStyle),
     },
     UniqueEntityId.create(row.id),
   );

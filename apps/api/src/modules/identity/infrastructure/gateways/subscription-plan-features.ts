@@ -15,14 +15,21 @@ export class SubscriptionPlanFeatureDirectory implements PlanFeatureDirectory {
     if (!project) return NO_WATERMARKS;
     const subscription = await this.subscriptions.findByStudioId(project.studioId);
     if (!subscription) return NO_WATERMARKS;
-    const { watermarkDrafts, watermarkExports, maxPhotosPerShoot, clientDownloadLinks, clientSlideshows } =
-      subscription.plan;
+    const {
+      watermarkDrafts,
+      watermarkExports,
+      maxPhotosPerShoot,
+      clientDownloadLinks,
+      clientSlideshows,
+      whiteLabelReview,
+    } = subscription.plan;
     return {
       watermarkDrafts,
       watermarkExports,
       maxPhotosPerShoot: Number.isFinite(maxPhotosPerShoot) ? maxPhotosPerShoot : null,
       clientDownloadLinks,
       clientSlideshows,
+      clientBranding: whiteLabelReview,
     };
   }
 }

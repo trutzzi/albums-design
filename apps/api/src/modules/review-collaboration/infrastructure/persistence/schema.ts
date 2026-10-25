@@ -84,6 +84,9 @@ export const downloadSessions = pgTable(
     lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
     passwordHash: text("password_hash"),
     sealedSecret: text("sealed_secret"),
+    // No foreign key: deleting a photo must never be blocked by a gallery cover; a stale id falls back to automatic.
+    coverPhotoId: uuid("cover_photo_id"),
+    lookOverride: jsonb("look_override"),
   },
   (table) => [index("download_sessions_project_id_idx").on(table.projectId)],
 );

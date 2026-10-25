@@ -12,6 +12,8 @@ export interface DeliveryProject {
   name: string;
   /** The studio's own look for the client page, when its plan includes it. */
   branding?: ClientBrandingDTO | null;
+  /** The day of the shoot, shown on the gallery cover. */
+  eventDate?: Date | null;
 }
 
 /**
@@ -23,6 +25,7 @@ export interface DeliveryProject {
 export interface DeliveryGateway {
   loadProject(projectId: string): Promise<DeliveryProject | undefined>;
   listDeliverable(projectId: string): Promise<{ available: DeliverablePhoto[]; missing: number }>;
+  hasPhoto(projectId: string, photoId: string): Promise<boolean>;
 }
 
 export interface DownloadNotifier {

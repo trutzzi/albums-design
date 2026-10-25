@@ -70,6 +70,7 @@ describe("plan features by shoot", () => {
       maxPhotosPerShoot: 80,
       clientDownloadLinks: false,
       clientSlideshows: false,
+      clientBranding: false,
     });
   });
 
@@ -80,6 +81,7 @@ describe("plan features by shoot", () => {
       maxPhotosPerShoot: 80,
       clientDownloadLinks: false,
       clientSlideshows: false,
+      clientBranding: false,
     });
   });
 
@@ -90,6 +92,7 @@ describe("plan features by shoot", () => {
       maxPhotosPerShoot: null,
       clientDownloadLinks: true,
       clientSlideshows: true,
+      clientBranding: false,
     });
   });
 
@@ -104,6 +107,7 @@ describe("plan features by shoot", () => {
       maxPhotosPerShoot: null,
       clientDownloadLinks: true,
       clientSlideshows: true,
+      clientBranding: true,
     });
   });
 });

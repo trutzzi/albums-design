@@ -10,6 +10,7 @@ import type {
 import { SpreadCanvas, type SpreadPlacement } from "./SpreadCanvas";
 import { CoverPreview } from "./CoverEditor";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import type { ProofMark } from "@/shared/ui/ClientBrand";
 
 /**
  * The album as the client will hold it: one spread at a time, full screen, turned like a
@@ -23,6 +24,7 @@ export function BookPreview({
   focusFor,
   startAt = 0,
   watermark = false,
+  mark,
   onClose,
 }: {
   /** The editor's album or the client proof's — both carry what a page needs. */
@@ -38,6 +40,8 @@ export function BookPreview({
   startAt?: number;
   /** The client proof's watermark, drawn over every page exactly as on the review page. */
   watermark?: boolean;
+  /** The studio's own mark over the pages instead (Studio Pro); takes the place of `watermark`. */
+  mark?: ProofMark | undefined;
   onClose: () => void;
 }) {
   const { t } = useLanguage();
@@ -118,8 +122,9 @@ export function BookPreview({
         <div
           key={page}
           className={`book-preview__page book-preview__page--${turn} ${onCover ? "book-preview__page--cover" : ""} ${
-            watermark ? "proof-watermark" : ""
+            mark?.className ?? (watermark ? "proof-watermark" : "")
           }`}
+          style={mark?.style}
         >
           {onCover && album.cover ? (
             <CoverPreview

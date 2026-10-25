@@ -280,7 +280,12 @@ export function ProjectPage() {
           <AlbumPanel projectId={projectId} size={albumSize} analysed={analysed} />
         </div>
         <div hidden={step !== "delivery"}>
-          <DeliveryPanel projectId={projectId} contact={contact} canSendDownloadLinks={canSendDownloadLinks} />
+          <DeliveryPanel
+            projectId={projectId}
+            contact={contact}
+            canSendDownloadLinks={canSendDownloadLinks}
+            canStyleGalleries={studio.data?.subscription.whiteLabel ?? false}
+          />
           <SlideshowPanel projectId={projectId} contact={contact} canSendSlideshows={canSendSlideshows} />
         </div>
       </div>
