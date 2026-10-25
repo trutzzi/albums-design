@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { ClientBrandingDTO } from "@albumflow/contracts";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { useDialogFocus } from "@/shared/ui/useDialogFocus";
@@ -18,9 +18,17 @@ export function hasContact(branding: ClientBrandingDTO | null): branding is Clie
 /**
  * The floating buttons in the corner of a client gallery: back to the top once the client
  * has scrolled, and "Contacts" — the studio's card with call, WhatsApp, email, the website,
- * and a vCard to save them to the phone's address book.
+ * and a vCard to save them to the phone's address book. On a phone they join `download` in
+ * one bar along the bottom, where a thumb reaches.
  */
-export function GalleryCornerButtons({ branding }: { branding: ClientBrandingDTO | null }) {
+export function GalleryCornerButtons({
+  branding,
+  download,
+}: {
+  branding: ClientBrandingDTO | null;
+  /** Shown here only on a phone; on a wide screen the download lives in the top bar. */
+  download?: ReactNode;
+}) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -36,6 +44,7 @@ export function GalleryCornerButtons({ branding }: { branding: ClientBrandingDTO
   return (
     <>
       <div className="gallery-corner">
+        {download && <div className="gallery-corner__download">{download}</div>}
         {scrolled && (
           <button
             type="button"
@@ -50,7 +59,10 @@ export function GalleryCornerButtons({ branding }: { branding: ClientBrandingDTO
         )}
         {hasContact(branding) && (
           <button type="button" className="gallery-corner__contact" onClick={() => setOpen(true)}>
-            {t("studioContact.open")}
+            <span className="gallery-corner__avatar" aria-hidden="true">
+              {branding.name.trim().charAt(0).toUpperCase()}
+            </span>
+            <span className="gallery-corner__contact-label">{t("studioContact.open")}</span>
           </button>
         )}
       </div>
@@ -59,7 +71,8 @@ export function GalleryCornerButtons({ branding }: { branding: ClientBrandingDTO
   );
 }
 
-function ContactDialog({ branding, onClose }: { branding: ClientBrandingDTO; onClose: () => void }) {
+/** The studio's contact card: call, WhatsApp, email, website, and a vCard to save. */
+export function ContactDialog({ branding, onClose }: { branding: ClientBrandingDTO; onClose: () => void }) {
   const { t } = useLanguage();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);

@@ -9,6 +9,7 @@ import { BookPreview } from "@/shared/album/BookPreview";
 import { PasswordGate, needsPassword } from "@/features/review/components/PasswordGate";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { formatDayMonth } from "@/shared/i18n/locale";
 import { LANGUAGES } from "@/shared/i18n/translations";
 import { ClientPageSkeleton } from "@/shared/ui/Loading";
 
@@ -75,9 +76,14 @@ export function ReviewPage() {
           <p className="muted">{t("review.eyebrow", { name: session.clientName })}</p>
           <h1>{album.title}</h1>
           <p className="muted">{t("review.subtitle", { count: album.spreads.length })}</p>
-          <button type="button" className="button button--primary review__book" onClick={() => setAsBook(true)}>
-            {t("review.viewAsBook")}
-          </button>
+          <div className="review__views" role="group" aria-label={t("review.views")}>
+            <button type="button" aria-pressed={!asBook} onClick={() => setAsBook(false)}>
+              {t("review.viewSpreads")}
+            </button>
+            <button type="button" aria-pressed={asBook} onClick={() => setAsBook(true)}>
+              {t("review.viewAsBook")}
+            </button>
+          </div>
         </div>
         <div className="pick__lang" role="group" aria-label={t("pick.language")}>
           <span className={`chip chip--${session.status.toLowerCase()}`}>{t(`review.status.${session.status}`)}</span>
@@ -232,6 +238,12 @@ export function ReviewPage() {
 
       {!closed && (
         <footer className="review__actions">
+          <span className="review__summary">
+            {t("review.summary", {
+              count: session.comments.length,
+              date: formatDayMonth(session.expiresAt, language),
+            })}
+          </span>
           {decide.isError && <p className="error">{(decide.error as Error).message}</p>}
           <button
             type="button"
