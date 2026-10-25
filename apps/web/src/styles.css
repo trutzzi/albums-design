@@ -6101,3 +6101,53 @@ body.is-previewing {
     border-radius: 12px;
   }
 }
+
+/* ---- studio settings, refined: the sections as a grid of cards ---- */
+.studio {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.studio > .page__header,
+.studio > :not(.panel) {
+  grid-column: 1 / -1;
+}
+.studio > .panel {
+  margin: 0;
+  border-radius: 14px;
+}
+.studio .panel__head h2,
+.studio > .panel > h2 {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-weight: 400;
+}
+.studio .usage__bar {
+  height: 6px;
+}
+
+/* ---- platform admin, refined: a dark tab bar and display numbers ---- */
+/* An inverse bar from the theme's own colours: dark on the light theme, light on the dark one. */
+.admin__tabs {
+  flex-wrap: wrap;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--ink);
+}
+.admin__tabs [role="tab"] {
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: color-mix(in srgb, var(--bg) 78%, transparent);
+}
+.admin__tabs [aria-selected="true"] {
+  background: color-mix(in srgb, var(--bg) 16%, transparent);
+  color: var(--bg);
+}
+.stat-tile {
+  border-radius: 12px;
+}
+.stat-tile__value {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-weight: 400;
+}
