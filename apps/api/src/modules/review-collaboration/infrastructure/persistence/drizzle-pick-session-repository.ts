@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "#src/db/client";
 import { PickSession } from "../../domain/pick-session";
-import type { PickSessionRepository } from "../../domain/pick-session-repository";
+import type { PickProgress, PickSessionRepository } from "../../domain/pick-session-repository";
 import { pickSessions } from "./schema";
 
 export class DrizzlePickSessionRepository implements PickSessionRepository {
@@ -54,6 +54,25 @@ export class DrizzlePickSessionRepository implements PickSessionRepository {
   async findByTokenHash(tokenHash: string): Promise<PickSession | undefined> {
     const [row] = await this.db.select().from(pickSessions).where(eq(pickSessions.tokenHash, tokenHash)).limit(1);
     return row ? toDomain(row) : undefined;
+  }
+
+  async progressByProjectIds(projectIds: UniqueEntityId[]): Promise<PickProgress[]> {
+    if (projectIds.length === 0) return [];
+    return this.db
+      .select({
+        projectId: pickSessions.projectId,
+        status: pickSessions.status,
+        clientName: pickSessions.clientName,
+        pickedCount: sql<number>`jsonb_array_length(${pickSessions.pickedPhotoIds})`.mapWith(Number),
+        submittedAt: pickSessions.submittedAt,
+      })
+      .from(pickSessions)
+      .where(
+        inArray(
+          pickSessions.projectId,
+          projectIds.map((id) => id.toString()),
+        ),
+      );
   }
 
   async findByProjectId(projectId: UniqueEntityId): Promise<PickSession[]> {

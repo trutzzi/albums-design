@@ -6,5 +6,7 @@ export interface DownloadSessionRepository {
   findById(id: UniqueEntityId): Promise<DownloadSession | undefined>;
   findByTokenHash(tokenHash: string): Promise<DownloadSession | undefined>;
   findByProjectId(projectId: UniqueEntityId): Promise<DownloadSession[]>;
+  /** Many shoots' download links in one query, for the shoots list. */
+  findByProjectIds(projectIds: UniqueEntityId[]): Promise<DownloadSession[]>;
   deleteByProjectId(projectId: UniqueEntityId): Promise<void>;
 }

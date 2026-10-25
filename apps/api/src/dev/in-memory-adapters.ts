@@ -251,6 +251,12 @@ export class InMemoryAlbumRepository implements AlbumRepository {
   async findByProjectId(projectId: UniqueEntityId) {
     return [...this.items.values()].filter((album) => album.projectId.toString() === projectId.toString());
   }
+  async statusesByProjectIds(projectIds: UniqueEntityId[]) {
+    const wanted = new Set(projectIds.map((id) => id.toString()));
+    return [...this.items.values()]
+      .filter((album) => wanted.has(album.projectId.toString()))
+      .map((album) => ({ id: album.id.toString(), projectId: album.projectId.toString(), status: album.status }));
+  }
   async countByProjectIds(projectIds: UniqueEntityId[]) {
     const wanted = new Set(projectIds.map((id) => id.toString()));
     const counts: Record<string, number> = {};
@@ -282,6 +288,16 @@ export class InMemoryReviewSessionRepository implements ReviewSessionRepository 
   async findByAlbumId(albumId: UniqueEntityId) {
     return [...this.items.values()].filter((session) => session.albumId.toString() === albumId.toString());
   }
+  async progressByAlbumIds(albumIds: UniqueEntityId[]) {
+    const wanted = new Set(albumIds.map((id) => id.toString()));
+    return [...this.items.values()]
+      .filter((session) => wanted.has(session.albumId.toString()))
+      .map((session) => ({
+        albumId: session.albumId.toString(),
+        status: session.status,
+        openComments: session.openComments.length,
+      }));
+  }
   async delete(id: UniqueEntityId) {
     this.items.delete(id.toString());
   }
@@ -300,6 +316,18 @@ export class InMemoryPickSessionRepository implements PickSessionRepository {
   }
   async findByProjectId(projectId: UniqueEntityId) {
     return [...this.items.values()].filter((session) => session.projectId.toString() === projectId.toString());
+  }
+  async progressByProjectIds(projectIds: UniqueEntityId[]) {
+    const wanted = new Set(projectIds.map((id) => id.toString()));
+    return [...this.items.values()]
+      .filter((session) => wanted.has(session.projectId.toString()))
+      .map((session) => ({
+        projectId: session.projectId.toString(),
+        status: session.status,
+        clientName: session.clientName,
+        pickedCount: session.pickedPhotoIds.length,
+        submittedAt: session.submittedAt ?? null,
+      }));
   }
   async deleteByProjectId(projectId: UniqueEntityId) {
     for (const [id, session] of this.items) {
@@ -321,6 +349,10 @@ export class InMemoryDownloadSessionRepository implements DownloadSessionReposit
   }
   async findByProjectId(projectId: UniqueEntityId) {
     return [...this.items.values()].filter((session) => session.projectId.toString() === projectId.toString());
+  }
+  async findByProjectIds(projectIds: UniqueEntityId[]) {
+    const wanted = new Set(projectIds.map((id) => id.toString()));
+    return [...this.items.values()].filter((session) => wanted.has(session.projectId.toString()));
   }
   async deleteByProjectId(projectId: UniqueEntityId) {
     for (const [id, session] of this.items) {

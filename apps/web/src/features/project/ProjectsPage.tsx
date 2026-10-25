@@ -6,11 +6,26 @@ import { createProject, listProjects } from "@/shared/api";
 import { analysisProgress, shootsRefreshInterval } from "@/features/project/lib/shoot-progress";
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { localeOf } from "@/shared/i18n/locale";
 import { GettingStarted, onboardingDismissed } from "@/features/project/components/GettingStarted";
 import { GuidedTour, type TourStep } from "@/shared/ui/GuidedTour";
 import { howItWorksSeen, openHowItWorks, useHowItWorksOpen } from "@/shared/ui/HowItWorks";
 import { tip } from "@/shared/lib/tip";
 import { SkeletonShootCards } from "@/shared/ui/Loading";
+import {
+  attentionFor,
+  filterCounts,
+  greetingKey,
+  matchesFilter,
+  type Attention,
+  type ShootFilter,
+} from "@/features/project/lib/dashboard";
+import { AttentionCard } from "@/features/project/components/AttentionCard";
+import { ShootProgressBar } from "@/features/project/components/ShootProgressBar";
+
+const FILTERS: ShootFilter[] = ["all", "needs", "client", "delivered"];
+/** More than this and the row stops being a glance; the "Needs you" tab holds the rest. */
+const ATTENTION_SHOWN = 3;
 
 const SHOOTS_TOUR: TourStep[] = [
   { target: '[data-tour="new-shoot"]', titleKey: "tour.shoots.new.title", bodyKey: "tour.shoots.new.body" },
@@ -39,7 +54,9 @@ const TYPES: { value: ProjectType; labelKey: string }[] = [
 const SEARCHABLE_FROM = 6;
 
 export function ProjectsPage() {
-  const { studioId } = useAuth();
+  const { studioId, name } = useAuth();
+  // A blank or whitespace-only name greets with the page title rather than "Good morning, ".
+  const firstName = name.trim().split(/\s+/)[0] ?? "";
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -52,6 +69,7 @@ export function ProjectsPage() {
   }>({ name: "", type: "WEDDING", eventDate: "", clientName: "", clientEmail: "" });
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<ShootFilter>("all");
   const [onboardingHidden, setOnboardingHidden] = useState(onboardingDismissed);
 
   const projects = useQuery({
@@ -80,7 +98,7 @@ export function ProjectsPage() {
     (type: ProjectType) => t(TYPES.find((option) => option.value === type)?.labelKey ?? type),
     [t],
   );
-  const locale = language === "ro" ? "ro-RO" : "en-GB";
+  const locale = localeOf(language);
   /**
    * "1 album" but "5 albums" — and Romanian needs a third form from twenty up
    * ("20 de albume"), which is exactly where a card reads wrong if you ignore it.
@@ -118,11 +136,21 @@ export function ProjectsPage() {
   }, [welcoming]);
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    if (!needle) return all;
-    return all.filter((project) =>
-      [project.name, project.clientName ?? "", typeLabel(project.type)].join(" ").toLowerCase().includes(needle),
+    return all.filter(
+      (project) =>
+        matchesFilter(project, filter) &&
+        (!needle ||
+          [project.name, project.clientName ?? "", typeLabel(project.type)].join(" ").toLowerCase().includes(needle)),
     );
-  }, [all, search, typeLabel]);
+  }, [all, search, filter, typeLabel]);
+  const counts = useMemo(() => filterCounts(all), [all]);
+  const waiting = useMemo(
+    () =>
+      all
+        .map((project) => ({ project, item: attentionFor(project) }))
+        .filter((entry): entry is { project: ProjectSummaryDTO; item: Attention } => entry.item !== null),
+    [all],
+  );
 
   const newShootForm = (
     <form
@@ -197,9 +225,15 @@ export function ProjectsPage() {
       <GuidedTour id="shoots" steps={SHOOTS_TOUR} ready={projects.isSuccess && !welcoming && !overviewOpen} />
       <header className="page__header">
         <div>
-          <h1>{t("projects.title")}</h1>
+          <h1 className="shoots__greeting">
+            {firstName ? t(greetingKey(new Date()), { name: firstName }) : t("projects.title")}
+          </h1>
           <p className="muted">
-            {all.length > 0 ? t("projects.subtitleCount", { count: all.length }) : t("projects.subtitle")}
+            {waiting.length > 0
+              ? t("projects.needsYou", { count: waiting.length })
+              : all.length > 0
+                ? t("projects.subtitleCount", { count: all.length })
+                : t("projects.subtitle")}
           </p>
         </div>
         <div className="page__header-actions">
@@ -257,7 +291,38 @@ export function ProjectsPage() {
         </section>
       )}
 
-      {all.length > 0 && visible.length === 0 && <p className="muted">{t("projects.search.none")}</p>}
+      {waiting.length > 0 && (
+        <section className="attention" aria-labelledby="attention-title">
+          <h2 id="attention-title" className="visually-hidden">
+            {t("projects.attention.title")}
+          </h2>
+          {waiting.slice(0, ATTENTION_SHOWN).map(({ project, item }) => (
+            <AttentionCard key={project.id} project={project} item={item} />
+          ))}
+        </section>
+      )}
+
+      {all.length > 0 && (
+        <div className="shoots__filters" role="group" aria-label={t("projects.filter.label")}>
+          {FILTERS.map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={filter === value}
+              className={`shoots__filter ${filter === value ? "shoots__filter--on" : ""}`}
+              onClick={() => setFilter(value)}
+            >
+              {t(`projects.filter.${value}`)} <span className="shoots__filter-count">{counts[value]}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {all.length > 0 && visible.length === 0 && (
+        <p className="muted">
+          {search.trim() || filter === "all" ? t("projects.search.none") : t("projects.filter.none")}
+        </p>
+      )}
 
       <div className="shoot-grid" data-tour={visible.length > 0 ? "shoot-grid" : undefined}>
         {visible.map((project: ProjectSummaryDTO) => (
@@ -275,6 +340,7 @@ export function ProjectsPage() {
             <div className="shoot-card__body">
               <h3>{project.name}</h3>
               {project.clientName && <p className="shoot-card__client">{project.clientName}</p>}
+              <ShootProgressBar project={project} />
               <p className="muted shoot-card__meta">
                 {renderPhotoCount(project)}
                 {project.albumCount > 0 && ` · ${countLabel(project.albumCount, "projects.card.albums")}`}
