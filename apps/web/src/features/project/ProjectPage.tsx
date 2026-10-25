@@ -306,6 +306,13 @@ export function ProjectPage() {
           contact={contact}
           picks={pickSessions.data ?? []}
           downloads={downloadSessions.data ?? []}
+          linksState={
+            pickSessions.isLoading || downloadSessions.isLoading
+              ? "loading"
+              : pickSessions.isError || downloadSessions.isError
+                ? "error"
+                : "ready"
+          }
         />
       </div>
 

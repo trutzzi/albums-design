@@ -1,14 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import {
-  getShootActivity,
-  listSlideshowSessions,
-  type DownloadSessionSummary,
-  type PickSessionSummary,
-} from "@/shared/api";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getShootActivity, type DownloadSessionSummary, type PickSessionSummary } from "@/shared/api";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { SkeletonText } from "@/shared/ui/Loading";
 import type { ClientContact } from "@/features/project/hooks/useClientContact";
-import { relativeTime } from "@/features/project/lib/activity";
+import { activityKey, relativeTime } from "@/features/project/lib/activity";
+import { useSlideshowSessions } from "@/features/project/hooks/useSlideshowSessions";
 
 /**
  * What sits beside a shoot's steps on a wide screen: who the client is, where each link
@@ -19,11 +16,14 @@ export function ShootSidebar({
   contact,
   picks,
   downloads,
+  linksState,
 }: {
   projectId: string;
   contact: ClientContact;
   picks: PickSessionSummary[];
   downloads: DownloadSessionSummary[];
+  /** The page's link queries are still loading, or failed — never shown as "Not sent yet". */
+  linksState: "loading" | "error" | "ready";
 }) {
   const { t, language } = useLanguage();
   const locale = language === "ro" ? "ro-RO" : "en-GB";
@@ -33,11 +33,23 @@ export function ShootSidebar({
     refetchInterval: 30000,
   });
   // The same query the slideshow panel holds, so this costs no extra request.
-  const slideshows = useQuery({
-    queryKey: ["slideshow-sessions", projectId],
-    queryFn: () => listSlideshowSessions(projectId),
-    refetchInterval: 15000,
-  });
+  const slideshows = useSlideshowSessions(projectId);
+  // When a link changes — created, sent, picked, downloaded — the timeline follows at once.
+  const queryClient = useQueryClient();
+  const linksSignature = [
+    ...picks.map((session) => `${session.id}:${session.status}:${session.lastSentAt ?? ""}`),
+    ...downloads.map((session) => `${session.id}:${session.status}:${session.downloadCount}`),
+    ...(slideshows.data ?? []).map((session) => `${session.id}:${session.status}:${session.viewCount}`),
+  ].join("|");
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ["activity", projectId] });
+  }, [linksSignature, projectId, queryClient]);
+  const linksStatus =
+    linksState === "ready" && slideshows.isError
+      ? "error"
+      : linksState === "ready" && slideshows.isLoading
+        ? "loading"
+        : linksState;
 
   const pick = picks[0];
   const download = downloads.find((session) => session.status === "ACTIVE") ?? downloads[0];
@@ -74,28 +86,32 @@ export function ShootSidebar({
         <h2 id="side-links" className="shoot-side__title">
           {t("project.sidebar.links")}
         </h2>
-        <dl className="shoot-side__links">
-          <dt>{t("project.sidebar.selection")}</dt>
-          <dd>
-            {pick
-              ? pick.status === "SUBMITTED"
-                ? t("project.sidebar.picksIn", { count: pick.pickedPhotoIds.length })
-                : t("project.sidebar.choosing")
-              : t("project.sidebar.notSent")}
-          </dd>
-          <dt>{t("project.sidebar.download")}</dt>
-          <dd>
-            {download
-              ? download.downloadCount > 0
-                ? t("project.sidebar.downloads", { count: download.downloadCount })
-                : t(`project.delivery.status.${download.status.toLowerCase()}`)
-              : t("project.sidebar.notSent")}
-          </dd>
-          <dt>{t("project.sidebar.slideshow")}</dt>
-          <dd>
-            {slideshow ? t("project.sidebar.views", { count: slideshow.viewCount }) : t("project.sidebar.notSent")}
-          </dd>
-        </dl>
+        {linksStatus === "loading" && <SkeletonText lines={3} />}
+        {linksStatus === "error" && <p className="muted">{t("project.sidebar.linksError")}</p>}
+        {linksStatus === "ready" && (
+          <dl className="shoot-side__links">
+            <dt>{t("project.sidebar.selection")}</dt>
+            <dd>
+              {pick
+                ? pick.status === "SUBMITTED"
+                  ? t("project.sidebar.picksIn", { count: pick.pickedPhotoIds.length })
+                  : t("project.sidebar.choosing")
+                : t("project.sidebar.notSent")}
+            </dd>
+            <dt>{t("project.sidebar.download")}</dt>
+            <dd>
+              {download
+                ? download.downloadCount > 0
+                  ? t("project.sidebar.downloads", { count: download.downloadCount })
+                  : t(`project.delivery.status.${download.status.toLowerCase()}`)
+                : t("project.sidebar.notSent")}
+            </dd>
+            <dt>{t("project.sidebar.slideshow")}</dt>
+            <dd>
+              {slideshow ? t("project.sidebar.views", { count: slideshow.viewCount }) : t("project.sidebar.notSent")}
+            </dd>
+          </dl>
+        )}
       </section>
 
       <section className="shoot-side panel" aria-labelledby="side-activity">
@@ -114,7 +130,7 @@ export function ShootSidebar({
               >
                 <span className="shoot-side__dot" aria-hidden="true" />
                 <span>
-                  {t(`project.activity.${event.kind}`, { name: event.name ?? "", count: event.count ?? 0 })}{" "}
+                  {t(activityKey(event), { name: event.name ?? "", count: event.count ?? 0 })}{" "}
                   <time className="muted" dateTime={event.at}>
                     · {relativeTime(event.at, new Date(), locale)}
                   </time>

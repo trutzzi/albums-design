@@ -74,6 +74,16 @@ export const en: Record<string, string> = {
   "slideshow.shared": "Link copied",
   "slideshow.copyManually": "Copy this link and send it:",
   "slideshow.contact": "Studio contacts",
+  "project.sidebar.linksError": "The links could not be loaded.",
+  "project.activity.pickCreated.anon": "Selection link created",
+  "project.activity.pickSent.anon": "Selection link emailed to the client",
+  "project.activity.picksSubmitted.anon": "The client sent their picks: {count}",
+  "project.activity.reviewSent.anon": "Album sent to the client for review",
+  "project.activity.reviewNotes.anon": "The client left notes: {count}",
+  "project.activity.reviewApproved.anon": "The client approved the album",
+  "project.activity.downloadCreated.anon": "Download link created",
+  "project.activity.downloadFirst.anon": "The client downloaded the photos",
+  "project.activity.slideshowCreated.anon": "Slideshow link created",
   "common.loading": "Loading…",
 
   // --- Auth ---------------------------------------------------------

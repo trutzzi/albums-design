@@ -74,6 +74,16 @@ export const ro: Record<string, string> = {
   "slideshow.shared": "Link copiat",
   "slideshow.copyManually": "Copiază acest link și trimite-l:",
   "slideshow.contact": "Contact studio",
+  "project.sidebar.linksError": "Linkurile nu s-au putut încărca.",
+  "project.activity.pickCreated.anon": "Link de selecție creat",
+  "project.activity.pickSent.anon": "Link de selecție trimis clientului pe email",
+  "project.activity.picksSubmitted.anon": "Clientul a trimis selecția: {count}",
+  "project.activity.reviewSent.anon": "Album trimis clientului spre aprobare",
+  "project.activity.reviewNotes.anon": "Clientul a lăsat note: {count}",
+  "project.activity.reviewApproved.anon": "Clientul a aprobat albumul",
+  "project.activity.downloadCreated.anon": "Link de descărcare creat",
+  "project.activity.downloadFirst.anon": "Clientul a descărcat fotografiile",
+  "project.activity.slideshowCreated.anon": "Link de slideshow creat",
   "common.loading": "Se încarcă…",
 
   // --- Auth ---------------------------------------------------------

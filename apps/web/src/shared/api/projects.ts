@@ -28,8 +28,22 @@ export function deleteProject(projectId: string): Promise<void> {
 }
 
 /** One line of a shoot's history, newest first; `kind` names the translation. */
+export type ShootActivityKind =
+  | "albumCreated"
+  | "pickCreated"
+  | "pickSent"
+  | "picksSubmitted"
+  | "reviewSent"
+  | "reviewNotes"
+  | "reviewApproved"
+  | "downloadCreated"
+  | "downloadFirst"
+  | "downloadLatest"
+  | "slideshowCreated"
+  | "slideshowWatched";
+
 export interface ShootActivityEvent {
-  kind: string;
+  kind: ShootActivityKind;
   at: string;
   name: string | null;
   count: number | null;
