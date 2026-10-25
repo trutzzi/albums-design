@@ -56,6 +56,8 @@ export interface PlanDto {
   /** `null` means unlimited. */
   maxPhotosPerShoot: number | null;
   clientDownloadLinks: boolean;
+  /** Older API builds do not send it; treat a missing flag as included. */
+  clientSlideshows?: boolean;
 }
 
 export function listPlans(): Promise<PlanDto[]> {

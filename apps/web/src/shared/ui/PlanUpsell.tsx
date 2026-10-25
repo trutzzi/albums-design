@@ -6,11 +6,12 @@ import { useLanguage } from "@/shared/i18n/LanguageContext";
 /** Plan changes go through us until self-serve checkout is switched on. */
 export const UPGRADE_EMAIL = "contact@valentintruta.ro";
 
-export type UpsellFeature = "downloadLinks" | "branding" | "photos" | "watermark";
+export type UpsellFeature = "downloadLinks" | "slideshows" | "branding" | "photos" | "watermark";
 
 /** Whether a plan includes the feature. Branding is the one flag plans do not list publicly. */
 const INCLUDES: Record<UpsellFeature, (plan: PlanDto) => boolean> = {
   downloadLinks: (plan) => plan.clientDownloadLinks,
+  slideshows: (plan) => plan.clientSlideshows ?? true,
   branding: (plan) => plan.code === "STUDIO_PRO",
   photos: (plan) => plan.maxPhotosPerShoot === null,
   watermark: (plan) => !plan.watermarkDrafts,
