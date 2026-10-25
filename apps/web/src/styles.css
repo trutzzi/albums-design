@@ -5732,10 +5732,7 @@ body.is-previewing {
   max-width: 880px;
   margin: 0 auto;
   padding: 18px 16px 28px;
-  color: #eef1ef;
-}
-body:has(.slideshow-start) {
-  background: #0f1214;
+  color: var(--ink);
 }
 .slideshow-start__top {
   display: flex;
@@ -5744,14 +5741,10 @@ body:has(.slideshow-start) {
   gap: 12px;
 }
 .slideshow-start__studio {
-  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
-  font-size: 1.1rem;
+  min-width: 0;
 }
-.slideshow-start .pick__lang .link-button {
-  color: #aab4bb;
-}
-.slideshow-start .pick__lang .pick__lang--on {
-  color: #ffffff;
+.slideshow-start__studio .client-brand {
+  margin: 0;
 }
 .slideshow-start__cover {
   position: relative;
@@ -5819,7 +5812,7 @@ body:has(.slideshow-start) {
 }
 .slideshow-start__hint {
   margin: 0;
-  color: #aab4bb;
+  color: var(--ink-soft);
   font-size: 0.9rem;
   text-align: center;
 }
@@ -5830,30 +5823,30 @@ body:has(.slideshow-start) {
 .slideshow-start__action {
   flex: 1;
   min-height: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: transparent;
-  color: #eef1ef;
+  background: var(--surface);
+  color: var(--ink);
   font: inherit;
   font-weight: 500;
   cursor: pointer;
 }
 .slideshow-start__action:hover {
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--ink-soft);
 }
 
 .slideshow-start__manual {
   display: grid;
   gap: 6px;
-  color: #c3cbd1;
+  color: var(--ink-soft);
   font-size: 0.9rem;
 }
 .slideshow-start__manual input {
   min-height: 44px;
   padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: transparent;
-  color: #ffffff;
+  background: var(--surface);
+  color: var(--ink);
   font: inherit;
 }
