@@ -5,9 +5,7 @@ import type { PlanCode } from "../../domain/plan";
 import type { LogoProcessor } from "../ports/logo-processor";
 import { ForbiddenError } from "./billing.use-case";
 import type { StudioMemberRepository, StudioRepository, SubscriptionRepository } from "../../domain/repositories";
-import { Studio } from "../../domain/studio";
 import { StudioMember, type StudioRole } from "../../domain/studio-member";
-import { Subscription } from "../../domain/subscription";
 
 export interface StudioOverview {
   studio: {
@@ -49,24 +47,6 @@ export class StudioAdministrationUseCase {
     private readonly members: StudioMemberRepository,
     private readonly logos?: LogoProcessor,
   ) {}
-
-  async onboard(params: {
-    name: string;
-    ownerEmail: string;
-  }): Promise<Result<{ studioId: string; apiKey: string }, ApplicationError>> {
-    const { studio, apiKey } = Studio.create({ name: params.name, ownerEmail: params.ownerEmail });
-    await this.studios.save(studio);
-    await this.subscriptions.save(Subscription.startDefault(studio.id));
-    await this.members.save(
-      StudioMember.invite({
-        studioId: studio.id,
-        email: params.ownerEmail,
-        name: params.ownerEmail.split("@")[0] ?? "Owner",
-        role: "OWNER",
-      }),
-    );
-    return Result.success({ studioId: studio.id.toString(), apiKey });
-  }
 
   async overview(studioId: string): Promise<Result<StudioOverview, ApplicationError>> {
     const id = UniqueEntityId.create(studioId);
