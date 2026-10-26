@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { hasLaunchDiscount, isRecommended, planHighlights } from "@/features/marketing/lib/pricing";
 import { localeOf } from "@/shared/i18n/locale";
@@ -40,6 +41,12 @@ const STEPS: { titleKey: string; descKey: string; image: string }[] = [
 /** The first thing a prospective photographer sees, before they've created an account. */
 export function LandingPage() {
   const { t } = useLanguage();
+  // The router changes the URL without scrolling: "Pricing" in the header (#pricing) lands
+  // here from any page, so go to the section it names.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" });
+  }, [hash]);
 
   return (
     <div className="page landing">

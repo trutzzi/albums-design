@@ -88,8 +88,7 @@ export function AppHeader() {
           <button type="button" className="link-button" onClick={openHowItWorks}>
             {t("howItWorks.nav")}
           </button>
-          {/* A plain link, not a router one: it lands on the pricing section from any page. */}
-          {!auth.isAuthenticated && <a href="/#pricing">{t("nav.pricing")}</a>}
+          {!auth.isAuthenticated && <Link to={{ pathname: "/", hash: "#pricing" }}>{t("nav.pricing")}</Link>}
           <Link to="/changelog">{t("nav.changelog")}</Link>
           <Link to="/contact">{t("nav.contact")}</Link>
           {auth.isAuthenticated ? (
