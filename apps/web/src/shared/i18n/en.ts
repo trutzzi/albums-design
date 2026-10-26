@@ -67,6 +67,7 @@ export const en: Record<string, string> = {
   "projects.attention.deliverAction": "Deliver",
   "projects.attention.expiring": "Download link ends soon (days left: {days}) and is not downloaded yet",
   "projects.attention.open": "Open",
+  "projects.sortedByNext": "Sorted by next action",
   "projects.filter.label": "Show shoots",
   "projects.filter.all": "All",
   "projects.filter.needs": "Needs you",

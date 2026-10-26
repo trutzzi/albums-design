@@ -18,6 +18,7 @@ import {
   filterCounts,
   greetingKey,
   matchesFilter,
+  byNextAction,
   type Attention,
   type ShootFilter,
 } from "@/features/project/lib/dashboard";
@@ -128,11 +129,13 @@ export function ProjectsPage() {
   }, [welcoming]);
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return all.filter(
-      (project) =>
-        matchesFilter(project, filter) &&
-        (!needle ||
-          [project.name, project.clientName ?? "", typeLabel(project.type)].join(" ").toLowerCase().includes(needle)),
+    return byNextAction(
+      all.filter(
+        (project) =>
+          matchesFilter(project, filter) &&
+          (!needle ||
+            [project.name, project.clientName ?? "", typeLabel(project.type)].join(" ").toLowerCase().includes(needle)),
+      ),
     );
   }, [all, search, filter, typeLabel]);
   const counts = useMemo(() => filterCounts(all), [all]);
@@ -295,18 +298,21 @@ export function ProjectsPage() {
       )}
 
       {all.length > 0 && (
-        <div className="shoots__filters" role="group" aria-label={t("projects.filter.label")}>
-          {FILTERS.map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={filter === value}
-              className={`shoots__filter ${filter === value ? "shoots__filter--on" : ""}`}
-              onClick={() => setFilter(value)}
-            >
-              {t(`projects.filter.${value}`)} <span className="shoots__filter-count">{counts[value]}</span>
-            </button>
-          ))}
+        <div className="shoots__filter-bar">
+          <div className="shoots__filters" role="group" aria-label={t("projects.filter.label")}>
+            {FILTERS.map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={filter === value}
+                className={`shoots__filter ${filter === value ? "shoots__filter--on" : ""}`}
+                onClick={() => setFilter(value)}
+              >
+                {t(`projects.filter.${value}`)} <span className="shoots__filter-count">{counts[value]}</span>
+              </button>
+            ))}
+          </div>
+          <span className="muted shoots__sorted">{t("projects.sortedByNext")}</span>
         </div>
       )}
 

@@ -67,6 +67,7 @@ export const ro: Record<string, string> = {
   "projects.attention.deliverAction": "Livrează",
   "projects.attention.expiring": "Linkul de descărcare expiră curând (zile rămase: {days}) și nu a fost descărcat",
   "projects.attention.open": "Deschide",
+  "projects.sortedByNext": "Ordonate după următorul pas",
   "projects.filter.label": "Arată ședințele",
   "projects.filter.all": "Toate",
   "projects.filter.needs": "Te așteaptă",

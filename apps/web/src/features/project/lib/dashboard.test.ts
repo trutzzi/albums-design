@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ProjectSummaryDTO } from "@albumflow/contracts";
-import { attentionFor, filterCounts, filterOf, greetingKey, matchesFilter, stepsDone, workflowOf } from "./dashboard";
+import {
+  attentionFor,
+  byNextAction,
+  filterCounts,
+  filterOf,
+  greetingKey,
+  matchesFilter,
+  stepsDone,
+  workflowOf,
+} from "./dashboard";
 
 type Progress = NonNullable<ProjectSummaryDTO["progress"]>;
 
@@ -102,5 +111,33 @@ describe("greetingKey", () => {
     assert.equal(greetingKey(new Date(2026, 9, 25, 8)), "projects.greeting.morning");
     assert.equal(greetingKey(new Date(2026, 9, 25, 14)), "projects.greeting.afternoon");
     assert.equal(greetingKey(new Date(2026, 9, 25, 21)), "projects.greeting.evening");
+  });
+});
+
+describe("byNextAction", () => {
+  it("puts what waits on you first, most urgent first, then the client's, then the rest, delivered last", () => {
+    const named = (name: string, progress: Parameters<typeof shoot>[0]) => ({ ...shoot(progress), name });
+    const delivered = named("delivered", { deliveries: [{ status: "ACTIVE", downloadCount: 2, daysLeft: 10 }] });
+    const quiet = named("quiet", {});
+    const withClient = named("with client", { picks: [open] });
+    const picks = named("picks", { picks: [submitted] });
+    const changes = named("changes", {
+      reviews: [{ albumId: "a1", status: "CHANGES_REQUESTED", openComments: 2 }],
+      albums: [{ id: "a1", status: "IN_REVIEW" }],
+    });
+    const sorted = byNextAction([delivered, quiet, withClient, picks, changes]);
+    assert.deepEqual(
+      sorted.map((item) => item.name),
+      ["changes", "picks", "with client", "quiet", "delivered"],
+    );
+  });
+
+  it("keeps the incoming order between shoots of the same rank", () => {
+    const first = { ...shoot({}), name: "first" };
+    const second = { ...shoot({}), name: "second" };
+    assert.deepEqual(
+      byNextAction([first, second]).map((item) => item.name),
+      ["first", "second"],
+    );
   });
 });
