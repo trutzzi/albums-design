@@ -1,5 +1,5 @@
 import { useLanguage } from "@/shared/i18n/LanguageContext";
-import { neighboursOf, type EditorView } from "@/features/album-editor/lib/editor-view";
+import type { EditorView } from "@/features/album-editor/lib/editor-view";
 
 /**
  * Above the spreads: the switch between all spreads and one at a time and, in the focus
@@ -13,7 +13,6 @@ export function FocusBar(props: {
   onJump: (index: number) => void;
 }) {
   const { t } = useLanguage();
-  const { previous, next } = neighboursOf(props.index, props.count);
   return (
     <div className="focus-bar">
       <div className="focus-bar__views" role="group" aria-label={t("editor.view.label")}>
@@ -35,8 +34,8 @@ export function FocusBar(props: {
             type="button"
             className="focus-bar__step"
             aria-label={t("editor.focus.previous")}
-            disabled={previous === null}
-            onClick={() => previous !== null && props.onJump(previous)}
+            disabled={props.index === 0}
+            onClick={() => props.onJump(props.index - 1)}
           >
             ‹
           </button>
@@ -45,8 +44,8 @@ export function FocusBar(props: {
             type="button"
             className="focus-bar__step"
             aria-label={t("editor.focus.next")}
-            disabled={next === null}
-            onClick={() => next !== null && props.onJump(next)}
+            disabled={props.index >= props.count - 1}
+            onClick={() => props.onJump(props.index + 1)}
           >
             ›
           </button>

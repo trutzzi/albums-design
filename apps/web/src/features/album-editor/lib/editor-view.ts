@@ -24,8 +24,3 @@ export function saveEditorView(view: EditorView): void {
     // Not remembered — the choice still applies for this visit.
   }
 }
-
-/** The spread before and after `index`, or null at either end: the focus view's ‹ › buttons. */
-export function neighboursOf(index: number, count: number): { previous: number | null; next: number | null } {
-  return { previous: index > 0 ? index - 1 : null, next: index < count - 1 ? index + 1 : null };
-}

@@ -6416,11 +6416,11 @@ body.is-previewing {
   opacity: 0.4;
   cursor: default;
 }
-/* The one spread gets the room the stack used to share, centred like a page on a desk. */
 /* display: flex on .spread-slot-group would otherwise win over the hidden attribute. */
 .editor--focus .spread-slot-group[hidden] {
   display: none;
 }
+/* The one spread gets the room the stack used to share, centred like a page on a desk. */
 .editor--focus .spread-slot-group:not([hidden]) {
   max-width: 1100px;
   margin: 0 auto;

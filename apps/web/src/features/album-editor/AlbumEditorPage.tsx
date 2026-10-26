@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { PhotoTreatment } from "@albumflow/contracts";
@@ -102,10 +102,6 @@ export function AlbumEditorPage() {
   // The sidebar shows one section at a time, so the photo tray can use the whole height of the window.
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("photos");
   const [view, setViewState] = useState<EditorView>(loadEditorView);
-  const setView = useCallback((next: EditorView) => {
-    setViewState(next);
-    saveEditorView(next);
-  }, []);
   const [checkOpen, setCheckOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -143,6 +139,23 @@ export function AlbumEditorPage() {
   const { current, runEdit } = draft;
   const spreadCount = current?.spreads.length ?? 0;
   const [currentSpread, setCurrentSpread] = useCurrentSpread(spreadCount);
+  // Removing the last spread must not leave the current one pointing past the end.
+  useEffect(() => {
+    if (spreadCount > 0 && currentSpread >= spreadCount) setCurrentSpread(spreadCount - 1);
+  }, [spreadCount, currentSpread, setCurrentSpread]);
+  const setView = useCallback(
+    (next: EditorView) => {
+      setViewState(next);
+      saveEditorView(next);
+      // Back in the stack, land on the spread you were working on rather than wherever the page was.
+      if (next === "scroll") {
+        requestAnimationFrame(() =>
+          document.getElementById(`spread-${currentSpread}`)?.scrollIntoView({ block: "start" }),
+        );
+      }
+    },
+    [currentSpread],
+  );
   const layouts = useSpreadLayouts({ albumId, projectId, album: current, currentSpread, commit: draft.commit });
 
   const removeAlbum = useMutation({
@@ -307,13 +320,31 @@ export function AlbumEditorPage() {
     (spreadIndex: number, locked: boolean) => runEdit({ type: "SET_SPREAD_LOCK", spreadIndex, locked }),
     [runEdit],
   );
+  const jumpToSpread = useCallback(
+    (spreadIndex: number, slotId?: string) => {
+      setCurrentSpread(spreadIndex);
+      // After the render: in the focus view the spread is only shown once it is current.
+      requestAnimationFrame(() =>
+        document.getElementById(`spread-${spreadIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      );
+      if (slotId) {
+        setAddingToSpread(null);
+        setSelectedText(null);
+        setSelected({ spreadIndex, slotId });
+      }
+    },
+    [setCurrentSpread],
+  );
+
   const insertSpread = useCallback(
     (templateId: string) => {
       if (insertAt === null) return;
       runEdit({ type: "ADD_SPREAD", atIndex: insertAt, templateId, photoIds: [] });
       setInsertAt(null);
+      // Go to the new spread: in the focus view it would otherwise be added out of sight.
+      jumpToSpread(insertAt);
     },
-    [insertAt, runEdit],
+    [insertAt, runEdit, jumpToSpread],
   );
 
   const spreadsRef = useRef(current?.spreads);
@@ -329,15 +360,12 @@ export function AlbumEditorPage() {
     [templateById],
   );
 
-  const jumpToComment = useCallback((comment: FeedbackComment) => {
-    const target = document.getElementById(`spread-${comment.spreadIndex}`);
-    target?.scrollIntoView({ behavior: "smooth", block: "start" });
-    // Selecting the slot the client named puts the editing tools straight onto it.
-    if (comment.slotId) {
-      setAddingToSpread(null);
-      setSelected({ spreadIndex: comment.spreadIndex, slotId: comment.slotId });
-    }
-  }, []);
+  // Through jumpToSpread, so the focus view shows the spread; selecting the slot the client
+  // named puts the editing tools straight onto it.
+  const jumpToComment = useCallback(
+    (comment: FeedbackComment) => jumpToSpread(comment.spreadIndex, comment.slotId ?? undefined),
+    [jumpToSpread],
+  );
 
   const { cycleDesign } = layouts;
   const runShuffle = useCallback((spreadIndex: number) => cycleDesign(spreadIndex, 1), [cycleDesign]);
@@ -412,22 +440,6 @@ export function AlbumEditorPage() {
       setPicked((prev) => (prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId]));
     },
     [runEdit],
-  );
-
-  const jumpToSpread = useCallback(
-    (spreadIndex: number, slotId?: string) => {
-      setCurrentSpread(spreadIndex);
-      // After the render: in the focus view the spread is only shown once it is current.
-      requestAnimationFrame(() =>
-        document.getElementById(`spread-${spreadIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      );
-      if (slotId) {
-        setAddingToSpread(null);
-        setSelectedText(null);
-        setSelected({ spreadIndex, slotId });
-      }
-    },
-    [setCurrentSpread],
   );
 
   const headerRef = useRef<HTMLElement>(null);
