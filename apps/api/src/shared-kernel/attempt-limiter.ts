@@ -1,11 +1,11 @@
+/** How many keys are held before a write first clears out the expired ones. */
+const SWEEP_FROM = 1000;
+
 /**
  * Stops someone guessing a client password: after `maxFailures` wrong tries a
  * key is locked until the window passes. Held in memory, which is enough for a
  * single API process; a second instance would need this in Redis.
  */
-/** How many keys are held before a write first clears out the expired ones. */
-const SWEEP_FROM = 1000;
-
 export class AttemptLimiter {
   private readonly failures = new Map<string, { count: number; since: number }>();
 

@@ -860,6 +860,7 @@ export const en: Record<string, string> = {
   "contact.name": "Your name",
   "contact.email": "Your email",
   "contact.message": "Message",
+  "contact.website": "Website",
   "contact.send": "Send message",
   "contact.sending": "Sending…",
   "contact.sent": "Thank you — your message is on its way. We'll reply to your email soon.",

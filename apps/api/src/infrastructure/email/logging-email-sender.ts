@@ -1,6 +1,9 @@
 import type { EmailMessage, EmailSender } from "../../shared-kernel/email";
 import { consoleLogger, type Logger } from "../../shared-kernel/logger";
 
+/** The id of the log-only sender: what composition checks to know mail would not arrive. */
+export const LOGGING_SENDER_ID = "log";
+
 /**
  * Used when no mail server is configured: the email is written to the log instead of sent, so the feature is visible in demos.
  *
@@ -8,9 +11,6 @@ import { consoleLogger, type Logger } from "../../shared-kernel/logger";
  * client link passwords, and the address and subject name people. Production only learns that a
  * message was dropped — at warn, because someone is now waiting for an email that never comes.
  */
-/** The id of the log-only sender: what composition checks to know mail would not arrive. */
-export const LOGGING_SENDER_ID = "log";
-
 export class LoggingEmailSender implements EmailSender {
   readonly id = LOGGING_SENDER_ID;
   constructor(

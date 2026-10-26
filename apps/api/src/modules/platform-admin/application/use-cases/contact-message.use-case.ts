@@ -20,6 +20,9 @@ export interface ContactMessage {
  * level (it reaches the Errors tab and Sentry) and the visitor is asked to try again, so no
  * message disappears silently — including when no mail server is configured at all, where
  * the log-only sender would otherwise "succeed".
+ *
+ * Sent within the request, like every other email in the app, so the visitor can be told
+ * when it failed; the SMTP timeouts bound the wait, and the rate limits bound how often.
  */
 export class ContactMessageUseCase {
   constructor(

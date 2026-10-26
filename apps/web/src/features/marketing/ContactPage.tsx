@@ -65,7 +65,7 @@ export function ContactPage() {
             </div>
             {/* The honeypot: off-screen and skipped by keyboard and screen readers, so only a bot fills it. */}
             <div className="contact-form__trap" aria-hidden="true">
-              <label htmlFor="contact-website">Website</label>
+              <label htmlFor="contact-website">{t("contact.website")}</label>
               <input id="contact-website" tabIndex={-1} autoComplete="off" {...field("website")} />
             </div>
             {send.isError && (
