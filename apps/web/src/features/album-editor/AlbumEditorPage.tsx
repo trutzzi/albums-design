@@ -45,6 +45,8 @@ import { ExportPanel } from "@/features/album-editor/components/ExportPanel";
 import { PrintGuidesModal } from "@/features/album-editor/components/PrintGuidesModal";
 import { InsertSpreadModal } from "@/features/album-editor/components/InsertSpreadModal";
 import { LoadingState } from "@/shared/ui/Loading";
+import { FocusBar } from "@/features/album-editor/components/FocusBar";
+import { loadEditorView, saveEditorView, type EditorView } from "@/features/album-editor/lib/editor-view";
 
 const EDITOR_TOUR: TourStep[] = [
   { target: '[data-tour="editor-cover"]', titleKey: "tour.editor.cover.title", bodyKey: "tour.editor.cover.body" },
@@ -90,6 +92,14 @@ export function AlbumEditorPage() {
   // instead of replacing a slot or building a new one. Mutually exclusive with
   // `selected` — engaging one clears the other, so a click is never ambiguous.
   const [addingToSpread, setAddingToSpread] = useState<number | null>(null);
+  // A selection or an armed "+ Add photo" left on another spread would let the photo tools,
+  // Delete or the next tray click act on a spread the focus view no longer shows: moving to
+  // a spread drops them elsewhere.
+  const keepSelectionOn = useCallback((spreadIndex: number) => {
+    setSelected((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
+    setSelectedText((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
+    setAddingToSpread((armed) => (armed !== null && armed !== spreadIndex ? null : armed));
+  }, []);
   // Set to the position a new spread should land at when the "+" between two
   // spreads (or "+ Add spread" at the end) is clicked — non-null shows the
   // layout-choice modal.
@@ -99,6 +109,7 @@ export function AlbumEditorPage() {
   const [picked, setPicked] = useState<string[]>([]);
   // The sidebar shows one section at a time, so the photo tray can use the whole height of the window.
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("photos");
+  const [view, setViewState] = useState<EditorView>(loadEditorView);
   const [checkOpen, setCheckOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -135,7 +146,25 @@ export function AlbumEditorPage() {
   const draft = useAlbumDraft(albumId, album.data);
   const { current, runEdit } = draft;
   const spreadCount = current?.spreads.length ?? 0;
-  const [currentSpread, setCurrentSpread] = useCurrentSpread(spreadCount);
+  const [trackedSpread, setCurrentSpread] = useCurrentSpread(spreadCount);
+  // Derived, not corrected in an effect: removing the last spread must not leave the current
+  // one pointing past the end, not even for the one frame an effect would take.
+  const currentSpread = Math.max(0, Math.min(trackedSpread, spreadCount - 1));
+  const setView = useCallback(
+    (next: EditorView) => {
+      setViewState(next);
+      saveEditorView(next);
+      if (next === "focus") {
+        keepSelectionOn(currentSpread);
+      } else {
+        // Back in the stack, land on the spread you were working on rather than wherever the page was.
+        requestAnimationFrame(() =>
+          document.getElementById(`spread-${currentSpread}`)?.scrollIntoView({ block: "start" }),
+        );
+      }
+    },
+    [currentSpread, keepSelectionOn],
+  );
   const layouts = useSpreadLayouts({ albumId, projectId, album: current, currentSpread, commit: draft.commit });
 
   const removeAlbum = useMutation({
@@ -300,13 +329,34 @@ export function AlbumEditorPage() {
     (spreadIndex: number, locked: boolean) => runEdit({ type: "SET_SPREAD_LOCK", spreadIndex, locked }),
     [runEdit],
   );
+  const jumpToSpread = useCallback(
+    (spreadIndex: number, slotId?: string) => {
+      setCurrentSpread(spreadIndex);
+      // After the render: in the focus view the spread is only shown once it is current.
+      requestAnimationFrame(() =>
+        document.getElementById(`spread-${spreadIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      );
+      if (slotId) {
+        setAddingToSpread(null);
+        setSelectedText(null);
+        setSelected({ spreadIndex, slotId });
+      } else {
+        keepSelectionOn(spreadIndex);
+      }
+    },
+    [setCurrentSpread, keepSelectionOn],
+  );
+
   const insertSpread = useCallback(
     (templateId: string) => {
       if (insertAt === null) return;
-      runEdit({ type: "ADD_SPREAD", atIndex: insertAt, templateId, photoIds: [] });
+      const at = insertAt;
+      // Go to the new spread once the server has added it (before, it does not exist yet):
+      // in the focus view it would otherwise be added out of sight.
+      runEdit({ type: "ADD_SPREAD", atIndex: at, templateId, photoIds: [] }, { onSuccess: () => jumpToSpread(at) });
       setInsertAt(null);
     },
-    [insertAt, runEdit],
+    [insertAt, runEdit, jumpToSpread],
   );
 
   const spreadsRef = useRef(current?.spreads);
@@ -322,15 +372,12 @@ export function AlbumEditorPage() {
     [templateById],
   );
 
-  const jumpToComment = useCallback((comment: FeedbackComment) => {
-    const target = document.getElementById(`spread-${comment.spreadIndex}`);
-    target?.scrollIntoView({ behavior: "smooth", block: "start" });
-    // Selecting the slot the client named puts the editing tools straight onto it.
-    if (comment.slotId) {
-      setAddingToSpread(null);
-      setSelected({ spreadIndex: comment.spreadIndex, slotId: comment.slotId });
-    }
-  }, []);
+  // Through jumpToSpread, so the focus view shows the spread; selecting the slot the client
+  // named puts the editing tools straight onto it.
+  const jumpToComment = useCallback(
+    (comment: FeedbackComment) => jumpToSpread(comment.spreadIndex, comment.slotId ?? undefined),
+    [jumpToSpread],
+  );
 
   const { cycleDesign } = layouts;
   const runShuffle = useCallback((spreadIndex: number) => cycleDesign(spreadIndex, 1), [cycleDesign]);
@@ -407,19 +454,6 @@ export function AlbumEditorPage() {
     [runEdit],
   );
 
-  const jumpToSpread = useCallback(
-    (spreadIndex: number, slotId?: string) => {
-      document.getElementById(`spread-${spreadIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-      setCurrentSpread(spreadIndex);
-      if (slotId) {
-        setAddingToSpread(null);
-        setSelectedText(null);
-        setSelected({ spreadIndex, slotId });
-      }
-    },
-    [setCurrentSpread],
-  );
-
   const headerRef = useRef<HTMLElement>(null);
   useHeaderHeightVariable(headerRef, album.data !== undefined);
 
@@ -462,9 +496,11 @@ export function AlbumEditorPage() {
   const locked = current.status === "APPROVED";
   const aspectRatio = (current.format.pageWidthMm * 2) / current.format.pageHeightMm;
   const historyBusy = draft.restoreSpreads.isPending;
+  // An album with no spreads has nothing to focus on; the stack shows the cover and "Add spread".
+  const focused = view === "focus" && current.spreads.length > 0;
 
   return (
-    <div className="page editor editor--with-strip">
+    <div className={`page editor editor--with-strip ${focused ? "editor--focus" : ""}`}>
       <GuidedTour id="editor" steps={EDITOR_TOUR} ready={current.spreads.length > 0} />
       <header className="page__header" ref={headerRef}>
         <div>
@@ -508,20 +544,32 @@ export function AlbumEditorPage() {
 
       <div className={`editor__layout ${tray.prefs.wide ? "editor__layout--wide" : ""}`}>
         <main className="spreads">
-          <CoverEditor
-            cover={current.cover ?? null}
-            albumStyle={current.style ?? DEFAULT_STYLE}
-            aspectRatio={current.format.pageWidthMm / current.format.pageHeightMm}
-            albumTitle={current.title}
-            previewUrlFor={previewUrlFor}
-            focusFor={focusFor}
-            locked={locked}
-            onChange={setCover}
+          <FocusBar
+            view={view}
+            onViewChange={setView}
+            index={currentSpread}
+            count={current.spreads.length}
+            onJump={jumpToSpread}
           />
+          {/* The cover is not a spread: it is edited from the all-spreads view. */}
+          {!focused && (
+            <CoverEditor
+              cover={current.cover ?? null}
+              albumStyle={current.style ?? DEFAULT_STYLE}
+              aspectRatio={current.format.pageWidthMm / current.format.pageHeightMm}
+              albumTitle={current.title}
+              previewUrlFor={previewUrlFor}
+              focusFor={focusFor}
+              locked={locked}
+              onChange={setCover}
+            />
+          )}
           {current.spreads.map((spread, spreadIndex) => {
             const design = layouts.designPositionOf(spread);
             return (
-              <div key={spreadIndex} className="spread-slot-group">
+              // Hidden, not unmounted, in the focus view: every spread keeps its decoded photos
+              // and its place for the scroll tracker, so switching back is instant.
+              <div key={spreadIndex} className="spread-slot-group" hidden={focused && spreadIndex !== currentSpread}>
                 <SpreadBlock
                   // Keyed by position alone. Including the template id would change the
                   // key whenever the layout changed, remounting the section and forcing
@@ -595,7 +643,7 @@ export function AlbumEditorPage() {
             );
           })}
 
-          {!locked && (
+          {!locked && !focused && (
             <button type="button" className="button add-spread" onClick={() => setInsertAt(current.spreads.length)}>
               {t("album.addSpread")}
             </button>

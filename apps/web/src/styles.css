@@ -6392,3 +6392,65 @@ body.is-previewing {
   margin: 6px 0 2px;
   font-size: 0.88rem;
 }
+
+/* ---- editor focus view: one spread at a time, as on the design's editor board ---- */
+.focus-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.focus-bar__views,
+.focus-bar__pager {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.focus-bar__view,
+.focus-bar__step {
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.focus-bar__view {
+  padding: 0 12px;
+}
+.focus-bar__view--on {
+  background: var(--ink);
+  color: var(--surface);
+  font-weight: 600;
+}
+.focus-bar__pager span {
+  padding: 0 6px;
+  font-size: 0.85rem;
+}
+.focus-bar__step {
+  width: 36px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 1.1rem;
+}
+.focus-bar__step[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+/* display: flex on .spread-slot-group would otherwise win over the hidden attribute. */
+.editor--focus .spread-slot-group[hidden] {
+  display: none;
+}
+/* The one spread gets the room the stack used to share, centred like a page on a desk. */
+.editor--focus .spread-slot-group:not([hidden]) {
+  max-width: 1100px;
+  margin: 0 auto;
+}
