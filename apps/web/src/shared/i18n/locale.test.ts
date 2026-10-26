@@ -32,5 +32,7 @@ describe("formatFullDate", () => {
   it("adds the year, in the app's language", () => {
     assert.equal(formatFullDate("2025-09-14T10:00:00Z", "en"), "14 September 2025");
     assert.equal(formatFullDate("2025-09-14T10:00:00Z", "ro"), "14 septembrie 2025");
+    // Stored as UTC midnight: the same day wherever the photographer is.
+    assert.equal(formatFullDate("2025-09-14T00:00:00.000Z", "en"), "14 September 2025");
   });
 });

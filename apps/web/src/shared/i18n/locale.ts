@@ -20,7 +20,16 @@ export function formatDayMonth(iso: string, language: Language): string {
   return new Date(iso).toLocaleDateString(localeOf(language), { day: "numeric", month: "long" });
 }
 
-/** "14 September 2026" — a shoot's date, with the year so an older shoot is never ambiguous. */
+/**
+ * "14 September 2026" — a shoot's date, with the year so an older shoot is never ambiguous.
+ * Read in UTC: the form stores the chosen day as UTC midnight, which west of UTC would
+ * otherwise show as the day before.
+ */
 export function formatFullDate(iso: string, language: Language): string {
-  return new Date(iso).toLocaleDateString(localeOf(language), { day: "numeric", month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString(localeOf(language), {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
