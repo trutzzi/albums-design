@@ -46,7 +46,9 @@ export function LandingPage() {
   // second click on the same link scrolls back down.
   const { hash, key } = useLocation();
   useEffect(() => {
-    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" });
+    if (!hash) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
   }, [hash, key]);
 
   return (
