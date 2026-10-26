@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { sendContactMessage } from "@/shared/api";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
@@ -11,6 +11,11 @@ export function ContactPage() {
   const { t } = useLanguage();
   const [form, setForm] = useState(EMPTY);
   const send = useMutation({ mutationFn: sendContactMessage, onSuccess: () => setForm(EMPTY) });
+  // The form is replaced by the thank-you: move focus there, so it is read out and not lost.
+  const sentRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (send.isSuccess) sentRef.current?.focus();
+  }, [send.isSuccess]);
   const field = (key: keyof typeof EMPTY) => ({
     value: form[key],
     onChange: (event: { target: { value: string } }) => setForm((current) => ({ ...current, [key]: event.target.value })),
@@ -27,7 +32,7 @@ export function ContactPage() {
 
       <section className="panel contact-panel">
         {send.isSuccess ? (
-          <div className="notice notice--good" role="status">
+          <div className="notice notice--good" role="status" tabIndex={-1} ref={sentRef}>
             <p>{t("contact.sent")}</p>
             <button type="button" className="button button--small" onClick={() => send.reset()}>
               {t("contact.another")}

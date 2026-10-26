@@ -2304,7 +2304,7 @@ a:focus-visible,
 .contact-panel .notice p {
   margin: 0 0 10px;
 }
-.contact-panel p {
+.contact-panel p:not(.error) {
   margin: 0 0 16px;
   color: var(--ink-soft);
   line-height: 1.6;
