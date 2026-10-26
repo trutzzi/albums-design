@@ -6359,3 +6359,7 @@ body.is-previewing {
   border-radius: 14px;
   background: var(--surface);
 }
+.shoot__kind {
+  margin: 6px 0 2px;
+  font-size: 0.88rem;
+}

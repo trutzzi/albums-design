@@ -30,6 +30,8 @@ import { SlideshowPanel } from "@/features/project/components/SlideshowPanel";
 import { ShootSidebar } from "@/features/project/components/ShootSidebar";
 import { Skeleton } from "@/shared/ui/Loading";
 import { usePlans } from "@/shared/ui/usePlans";
+import { formatDayMonth } from "@/shared/i18n/locale";
+import { shootTypeKey } from "@/features/project/lib/shoot-types";
 
 /** The guided tour points at the step tabs, since only the open step's content is on the page. */
 const STEP_TOUR_TARGETS: Record<ShootStep, string | undefined> = {
@@ -70,7 +72,7 @@ const PROJECT_TOUR: TourStep[] = [
  */
 export function ProjectPage() {
   const { studioId } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { projectId = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -185,6 +187,12 @@ export function ProjectPage() {
           <Link to="/" className="muted back-link">
             {t("project.back")}
           </Link>
+          {project.data && (
+            <p className="muted shoot__kind">
+              {t(shootTypeKey(project.data.type))}
+              {project.data.eventDate && ` · ${formatDayMonth(project.data.eventDate, language)}`}
+            </p>
+          )}
           <h1>
             {project.data?.name ?? (
               <>
@@ -194,6 +202,11 @@ export function ProjectPage() {
             )}
           </h1>
           <p className="muted">{t("project.stats", { uploaded: uploadedCount, analysed, albumWorthy })}</p>
+        </div>
+        <div className="page__header-actions">
+          <button type="button" className="button" onClick={() => inputRef.current?.click()}>
+            {t("project.next.addPhotos")}
+          </button>
         </div>
       </header>
 

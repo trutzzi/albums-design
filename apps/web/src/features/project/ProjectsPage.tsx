@@ -7,6 +7,7 @@ import { analysisProgress, shootsRefreshInterval } from "@/features/project/lib/
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { localeOf } from "@/shared/i18n/locale";
+import { SHOOT_TYPES, shootTypeKey } from "@/features/project/lib/shoot-types";
 import { GettingStarted, onboardingDismissed } from "@/features/project/components/GettingStarted";
 import { GuidedTour, type TourStep } from "@/shared/ui/GuidedTour";
 import { howItWorksSeen, openHowItWorks, useHowItWorksOpen } from "@/shared/ui/HowItWorks";
@@ -42,12 +43,6 @@ const SHOOTS_TOUR: TourStep[] = [
     bodyKey: "tour.shoots.feedback.body",
   },
   { target: '[data-tour="nav-guide"]', titleKey: "tour.shoots.guide.title", bodyKey: "tour.shoots.guide.body" },
-];
-
-const TYPES: { value: ProjectType; labelKey: string }[] = [
-  { value: "WEDDING", labelKey: "projects.new.type.wedding" },
-  { value: "BAPTISM", labelKey: "projects.new.type.baptism" },
-  { value: "EVENT", labelKey: "projects.new.type.event" },
 ];
 
 /** A search box only earns its place once the list is long enough to scan. */
@@ -94,10 +89,7 @@ export function ProjectsPage() {
     },
   });
 
-  const typeLabel = useCallback(
-    (type: ProjectType) => t(TYPES.find((option) => option.value === type)?.labelKey ?? type),
-    [t],
-  );
+  const typeLabel = useCallback((type: ProjectType) => t(shootTypeKey(type)), [t]);
   const locale = localeOf(language);
   /**
    * "1 album" but "5 albums" — and Romanian needs a third form from twenty up
@@ -178,7 +170,7 @@ export function ProjectsPage() {
           value={form.type}
           onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value as ProjectType }))}
         >
-          {TYPES.map((option) => (
+          {SHOOT_TYPES.map((option) => (
             <option key={option.value} value={option.value}>
               {t(option.labelKey)}
             </option>
