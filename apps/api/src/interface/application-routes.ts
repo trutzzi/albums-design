@@ -29,6 +29,7 @@ export function registerApplicationRoutes(app: FastifyInstance, application: App
   registerPlatformAdminRoutes(app, {
     access: application.adminAccess,
     feedback: application.feedback,
+    contactMessage: application.contactMessage,
     dashboard: application.adminDashboard,
     plans: application.studioPlans,
     deleteStudio: application.deleteStudio,

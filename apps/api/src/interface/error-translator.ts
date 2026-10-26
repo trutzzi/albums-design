@@ -17,6 +17,8 @@ const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   TOO_MANY_ATTEMPTS: 429,
   // The job queue is down: not the client's mistake, and worth retrying shortly.
   RETRY_NOT_QUEUED: 503,
+  // The mail server refused or was unreachable: worth trying again, and already logged.
+  MESSAGE_NOT_SENT: 503,
 };
 
 export function httpStatusFor(error: ApplicationError): number {

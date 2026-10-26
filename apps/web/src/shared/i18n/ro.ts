@@ -869,7 +869,21 @@ export const ro: Record<string, string> = {
   "contact.title": "Contact",
   "contact.subtitle":
     "Întrebări, feedback sau o funcționalitate pe care ai vrea să o vezi — ne-ar face plăcere să auzim de la tine.",
-  "contact.body": "Trimite-ne un email și îți vom răspunde cât mai rapid posibil.",
+  "contact.body": "Scrie-ne mai jos și îți vom răspunde pe email cât mai repede posibil.",
+  "contact.name": "Numele tău",
+  "contact.email": "Emailul tău",
+  "contact.message": "Mesaj",
+  "contact.trap": "Lasă gol",
+  "contact.send": "Trimite mesajul",
+  "contact.sending": "Se trimite…",
+  "contact.sent": "Mulțumim — mesajul tău a fost trimis. Îți vom răspunde în curând pe email.",
+  "contact.another": "Trimite alt mesaj",
+  "contact.direct": "Preferi emailul?",
+  "contact.error.tooMany":
+    "Ai trimis mai multe mesaje într-un timp scurt. Încearcă din nou peste o oră sau scrie-ne la {email}.",
+  "contact.error.notSent":
+    "Mesajul nu a putut fi trimis acum. Încearcă din nou în câteva minute sau scrie-ne la {email}.",
+  "contact.error.generic": "Ceva nu a mers la trimiterea mesajului. Încearcă din nou sau scrie-ne la {email}.",
 
   // --- Album editor (toolbar) ------------------------------------------
   "album.back": "← Înapoi la sesiune",
