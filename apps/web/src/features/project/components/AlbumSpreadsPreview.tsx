@@ -5,6 +5,7 @@ import type { AlbumDTO } from "@albumflow/contracts";
 import { listLayoutTemplates, listProjectPhotos } from "@/shared/api";
 import { SpreadCanvas } from "@/shared/album/SpreadCanvas";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { Skeleton } from "@/shared/ui/Loading";
 
 /** Enough to see the album's flow at a glance; the editor shows the rest. */
 const PREVIEW_SPREADS = 8;
@@ -31,13 +32,24 @@ export function AlbumSpreadsPreview({ album }: { album: AlbumDTO }) {
   if (album.spreads.length === 0) return null;
   // Spreads drawn before their layouts and photos arrive would show as empty frames.
   if (photos.isError || templates.isError) return <p className="muted">{t("project.album.previewError")}</p>;
-  if (!photos.data || !templates.data) return null;
+  if (!photos.data || !templates.data) {
+    return (
+      <div className="album-preview" aria-hidden="true">
+        {album.spreads.slice(0, PREVIEW_SPREADS).map((_, spreadIndex) => (
+          <Skeleton key={spreadIndex} height="auto" style={{ display: "block", aspectRatio: "2 / 1" }} />
+        ))}
+      </div>
+    );
+  }
   const aspectRatio = (album.format.pageWidthMm * 2) / album.format.pageHeightMm;
   const more = album.spreads.length - PREVIEW_SPREADS;
 
   return (
-    <Link to={`/albums/${album.id}`} className="album-preview" aria-label={t("project.next.openAlbum")}>
+    // A shortcut for the mouse only: the card's "Open the album" button is the one link
+    // keyboard and screen-reader users meet, rather than two identical ones per album.
+    <Link to={`/albums/${album.id}`} className="album-preview" aria-hidden="true" tabIndex={-1}>
       {album.spreads.slice(0, PREVIEW_SPREADS).map((spread, spreadIndex) => (
+        // By position: a spread has no id of its own, and this list never reorders in place.
         <figure key={spreadIndex} className="album-preview__spread">
           <SpreadCanvas
             spreadIndex={spreadIndex}
