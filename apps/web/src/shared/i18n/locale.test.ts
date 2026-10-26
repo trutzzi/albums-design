@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { countKey, formatDayMonth, localeOf } from "./locale";
+import { countKey, formatDayMonth, formatFullDate, localeOf } from "./locale";
 
 describe("countKey", () => {
   it("picks one, other, and Romanian's form from twenty up", () => {
@@ -25,5 +25,12 @@ describe("formatDayMonth", () => {
   it("gives the day and month in the app's language", () => {
     assert.equal(formatDayMonth("2026-11-24T10:00:00Z", "en"), "24 November");
     assert.equal(formatDayMonth("2026-11-24T10:00:00Z", "ro"), "24 noiembrie");
+  });
+});
+
+describe("formatFullDate", () => {
+  it("adds the year, in the app's language", () => {
+    assert.equal(formatFullDate("2025-09-14T10:00:00Z", "en"), "14 September 2025");
+    assert.equal(formatFullDate("2025-09-14T10:00:00Z", "ro"), "14 septembrie 2025");
   });
 });

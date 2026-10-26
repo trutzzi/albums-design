@@ -19,3 +19,8 @@ export function countKey(base: string, count: number, language: Language): strin
 export function formatDayMonth(iso: string, language: Language): string {
   return new Date(iso).toLocaleDateString(localeOf(language), { day: "numeric", month: "long" });
 }
+
+/** "14 September 2026" — a shoot's date, with the year so an older shoot is never ambiguous. */
+export function formatFullDate(iso: string, language: Language): string {
+  return new Date(iso).toLocaleDateString(localeOf(language), { day: "numeric", month: "long", year: "numeric" });
+}
