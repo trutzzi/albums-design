@@ -875,6 +875,14 @@ export const en: Record<string, string> = {
 
   // --- Album editor (toolbar) ------------------------------------------
   "album.back": "← Back to shoot",
+  "album.status.DRAFT": "Draft",
+  "album.status.IN_REVIEW": "With the client",
+  "album.status.CHANGES_REQUESTED": "Changes requested",
+  "album.status.APPROVED": "Approved",
+  "album.status.EXPORTED": "Exported",
+  "project.album.more": "+{count} more in the editor",
+  "project.pdf.title": "Print-ready PDF",
+  "project.pdf.noAlbum": "Generate and approve an album first; its PDF for the print lab is made here.",
   "album.stats": "{spreads} spreads · {pages} pages · {photos} photos",
   "album.undo": "↶ Undo",
   "album.redo": "↷ Redo",

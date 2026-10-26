@@ -41,7 +41,7 @@ import { EditorToolbar } from "@/features/album-editor/components/EditorToolbar"
 import { TrayPanel } from "@/features/album-editor/components/TrayPanel";
 import { ReviewPanel } from "@/features/album-editor/components/ReviewPanel";
 import { FeedbackPanel } from "@/features/album-editor/components/FeedbackPanel";
-import { ExportPanel } from "@/features/album-editor/components/ExportPanel";
+import { ExportPanel } from "@/shared/ui/ExportPanel";
 import { PrintGuidesModal } from "@/features/album-editor/components/PrintGuidesModal";
 import { InsertSpreadModal } from "@/features/album-editor/components/InsertSpreadModal";
 import { LoadingState } from "@/shared/ui/Loading";

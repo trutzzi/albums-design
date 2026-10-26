@@ -7,6 +7,7 @@ import { tip } from "@/shared/lib/tip";
 import type { AlbumSize } from "@/features/project/hooks/useAlbumSize";
 import { AlbumSizeModal } from "./AlbumSizeModal";
 import { LanguagePrompt } from "./LanguagePrompt";
+import { AlbumSpreadsPreview } from "./AlbumSpreadsPreview";
 
 /** Generating the album draft, and the shoot's albums. */
 export function AlbumPanel({ projectId, size, analysed }: { projectId: string; size: AlbumSize; analysed: number }) {
@@ -68,16 +69,31 @@ export function AlbumPanel({ projectId, size, analysed }: { projectId: string; s
       {albums.data && albums.data.length > 0 && (
         <ul className="album-list">
           {albums.data.map((album) => (
-            <li key={album.id}>
-              <div>
-                <Link to={`/albums/${album.id}`} className="album-list__title">
-                  {album.title}
-                </Link>
-                <p className="muted">
-                  {album.spreadCount} spreads · {album.pageCount} pages · {album.photoCount} photos
-                </p>
+            <li key={album.id} className="album-card">
+              <div className="album-card__head">
+                <div>
+                  <Link to={`/albums/${album.id}`} className="album-list__title">
+                    {album.title}
+                  </Link>
+                  <p className="muted">
+                    {t("dimension.chip", {
+                      width: album.format.pageWidthMm / 10,
+                      height: album.format.pageHeightMm / 10,
+                    })}{" "}
+                    ·{" "}
+                    {t("album.stats", { spreads: album.spreadCount, pages: album.pageCount, photos: album.photoCount })}
+                  </p>
+                </div>
+                <div className="panel__actions">
+                  <span className={`chip chip--${album.status.toLowerCase()}`}>
+                    {t(`album.status.${album.status}`)}
+                  </span>
+                  <Link to={`/albums/${album.id}`} className="button button--primary button--small">
+                    {t("project.next.openAlbum")}
+                  </Link>
+                </div>
               </div>
-              <span className={`chip chip--${album.status.toLowerCase()}`}>{album.status}</span>
+              <AlbumSpreadsPreview album={album} />
             </li>
           ))}
         </ul>

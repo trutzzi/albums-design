@@ -888,6 +888,14 @@ export const ro: Record<string, string> = {
 
   // --- Album editor (toolbar) ------------------------------------------
   "album.back": "← Înapoi la sesiune",
+  "album.status.DRAFT": "Ciornă",
+  "album.status.IN_REVIEW": "La client",
+  "album.status.CHANGES_REQUESTED": "Modificări cerute",
+  "album.status.APPROVED": "Aprobat",
+  "album.status.EXPORTED": "Exportat",
+  "project.album.more": "Încă {count} în editor",
+  "project.pdf.title": "PDF gata de tipar",
+  "project.pdf.noAlbum": "Generează și aprobă mai întâi un album; PDF-ul pentru tipografie se face aici.",
   "album.stats": "{spreads} pagini duble · {pages} pagini · {photos} fotografii",
   "album.undo": "↶ Anulează",
   "album.redo": "↷ Refă",

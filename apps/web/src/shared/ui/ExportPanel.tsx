@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteExport, getExportDownload, listExports, requestExport } from "@/shared/api";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 
-/** Print-ready PDF exports: start one, follow it while it renders, download or delete it. */
-export function ExportPanel({ albumId, hidden }: { albumId: string; hidden: boolean }) {
+/**
+ * Print-ready PDF exports: start one, follow it while it renders, download or delete it.
+ * Shared by the editor's Export tab and the shoot's Delivery step (`title` names the album there).
+ */
+export function ExportPanel({ albumId, hidden = false, title }: { albumId: string; hidden?: boolean; title?: string }) {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const exports = useQuery({
@@ -21,7 +24,7 @@ export function ExportPanel({ albumId, hidden }: { albumId: string; hidden: bool
 
   return (
     <section className={`panel ${hidden ? "is-hidden" : ""}`}>
-      <h2>{t("album.export.title")}</h2>
+      <h2>{title ?? t("album.export.title")}</h2>
       <button type="button" className="button" disabled={startExport.isPending} onClick={() => startExport.mutate()}>
         {startExport.isPending ? t("album.export.queueing") : t("album.export.button")}
       </button>
