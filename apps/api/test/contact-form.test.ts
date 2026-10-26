@@ -19,14 +19,16 @@ const message = {
   ip: "203.0.113.7",
 };
 
-function setup(sender?: EmailSender) {
+function setup(sender?: EmailSender, options: { delivers?: boolean; overall?: number } = {}) {
   const sent: EmailMessage[] = [];
   const logger = new RecordingLogger();
   const contact = new ContactMessageUseCase(
     sender ?? { id: "test", send: async (email) => void sent.push(email) },
     INBOX,
     logger,
+    options.delivers ?? true,
     new AttemptLimiter(2, 60 * 60 * 1000),
+    new AttemptLimiter(options.overall ?? 100, 60 * 60 * 1000),
   );
   return { contact, sent, logger };
 }
@@ -61,6 +63,23 @@ describe("the contact form", () => {
     assert.match(third.getError().message, /Too many messages/);
     assert.equal(sent.length, 2);
     assert.ok((await contact.send({ ...message, ip: "198.51.100.1" })).isSuccess, "another address is not affected");
+  });
+
+  it("caps all messages together, whatever address they come from", async () => {
+    const { contact, sent } = setup(undefined, { overall: 3 });
+    for (let i = 0; i < 3; i++) assert.ok((await contact.send({ ...message, ip: `198.51.100.${i}` })).isSuccess);
+    const fourth = await contact.send({ ...message, ip: "198.51.100.99" });
+    assert.equal(fourth.isFailure && fourth.getError().code, "TOO_MANY_ATTEMPTS");
+    assert.equal(sent.length, 3);
+  });
+
+  it("never says sent when no mail server is configured", async () => {
+    const { contact, sent, logger } = setup(undefined, { delivers: false });
+    const result = await contact.send(message);
+    assert.equal(result.isFailure && result.getError().code, "MESSAGE_NOT_SENT");
+    assert.equal(sent.length, 0);
+    assert.equal(logger.problems[0]?.level, "error");
+    assert.match(logger.problems[0]!.message, /no mail server/);
   });
 
   it("logs a failed send at error level and asks the visitor to try again", async () => {

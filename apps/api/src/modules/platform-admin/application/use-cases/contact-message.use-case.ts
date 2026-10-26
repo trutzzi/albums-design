@@ -18,25 +18,36 @@ export interface ContactMessage {
  * The public contact form: each message is emailed to AlbumFlow, with Reply-To set to the
  * visitor so answering is one click. Nothing is stored. A failed send is logged at error
  * level (it reaches the Errors tab and Sentry) and the visitor is asked to try again, so no
- * message disappears silently.
+ * message disappears silently — including when no mail server is configured at all, where
+ * the log-only sender would otherwise "succeed".
  */
 export class ContactMessageUseCase {
   constructor(
     private readonly email: EmailSender,
     private readonly recipient: string,
     private readonly logger: Logger,
+    /** False when `email` only writes to the log (EMAIL_PROVIDER=none): nothing would arrive. */
+    private readonly delivers: boolean,
     /** Caps messages per address, so the form cannot flood the inbox. */
     private readonly limiter: AttemptLimiter = new AttemptLimiter(5, 60 * 60 * 1000),
+    /** Caps all messages together: a backstop if many addresses send at once. */
+    private readonly overall: AttemptLimiter = new AttemptLimiter(100, 60 * 60 * 1000),
   ) {}
 
   async send(contact: ContactMessage): Promise<Result<void, ApplicationError>> {
     // Answer a bot exactly as a person, so it learns nothing from the honeypot.
     if (contact.website?.trim()) return Result.success(undefined);
 
+    if (!this.delivers) {
+      this.logger.error("contact message not sent: no mail server is configured (EMAIL_PROVIDER)");
+      return Result.failure(notSent());
+    }
+
     const key = `contact:${contact.ip}`;
-    const locked = this.limiter.lockedFor(key);
+    const locked = Math.max(this.limiter.lockedFor(key), this.overall.lockedFor(OVERALL));
     if (locked > 0) return Result.failure(new TooManyAttemptsError(locked, "messages"));
     this.limiter.recordFailure(key);
+    this.overall.recordFailure(OVERALL);
 
     const name = contact.name.trim();
     const from = contact.email.trim();
@@ -54,9 +65,13 @@ export class ContactMessageUseCase {
         provider: this.email.id,
         error: error instanceof Error ? error.message : String(error),
       });
-      return Result.failure(
-        new ApplicationError("Your message could not be sent. Please try again in a few minutes.", "MESSAGE_NOT_SENT"),
-      );
+      return Result.failure(notSent());
     }
   }
+}
+
+const OVERALL = "contact:all";
+
+function notSent(): ApplicationError {
+  return new ApplicationError("Your message could not be sent. Please try again in a few minutes.", "MESSAGE_NOT_SENT");
 }

@@ -10,6 +10,7 @@ import {
   PurgeUnconfirmedSignupsUseCase,
 } from "../modules/platform-admin/application/use-cases/studio-deletion.use-cases";
 import { ContactMessageUseCase } from "../modules/platform-admin/application/use-cases/contact-message.use-case";
+import { LOGGING_SENDER_ID } from "../infrastructure/email/logging-email-sender";
 import { ErrorInboxUseCase } from "../modules/platform-admin/application/use-cases/error-inbox.use-case";
 import type { ModuleInfrastructure, Repositories } from "./ports";
 import type { MediaIngestionModule } from "./media-ingestion.module";
@@ -65,6 +66,7 @@ export function buildPlatformAdminModule(
       emailSender,
       env.CONTACT_EMAIL,
       logger.child({ component: "contact-form" }),
+      emailSender.id !== LOGGING_SENDER_ID,
     ),
     errorInbox: new ErrorInboxUseCase(errorLog, env.ERROR_LOG_RETENTION_DAYS),
     deleteStudio,

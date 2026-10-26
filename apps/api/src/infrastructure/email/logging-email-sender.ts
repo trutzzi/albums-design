@@ -8,8 +8,11 @@ import { consoleLogger, type Logger } from "../../shared-kernel/logger";
  * client link passwords, and the address and subject name people. Production only learns that a
  * message was dropped — at warn, because someone is now waiting for an email that never comes.
  */
+/** The id of the log-only sender: what composition checks to know mail would not arrive. */
+export const LOGGING_SENDER_ID = "log";
+
 export class LoggingEmailSender implements EmailSender {
-  readonly id = "log";
+  readonly id = LOGGING_SENDER_ID;
   constructor(
     private readonly logger: Logger = consoleLogger,
     /** Off unless a caller that is certainly not production asks: forgetting it must not leak. */
