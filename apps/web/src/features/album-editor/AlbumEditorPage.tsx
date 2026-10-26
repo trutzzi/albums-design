@@ -87,17 +87,19 @@ export function AlbumEditorPage() {
   const [selected, setSelected] = useState<{ spreadIndex: number; slotId: string } | null>(null);
   // A photo and a text block are never both selected: each one's tools sit in the same place.
   const [selectedText, setSelectedText] = useState<{ spreadIndex: number; blockId: string } | null>(null);
-  // A selection left on another spread would let the photo tools and Delete act on a photo
-  // the focus view no longer shows: moving to a spread drops any selection elsewhere.
-  const keepSelectionOn = useCallback((spreadIndex: number) => {
-    setSelected((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
-    setSelectedText((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
-  }, []);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // Armed by "+ Add photo" on a spread: the next tray click grows that spread
   // instead of replacing a slot or building a new one. Mutually exclusive with
   // `selected` — engaging one clears the other, so a click is never ambiguous.
   const [addingToSpread, setAddingToSpread] = useState<number | null>(null);
+  // A selection or an armed "+ Add photo" left on another spread would let the photo tools,
+  // Delete or the next tray click act on a spread the focus view no longer shows: moving to
+  // a spread drops them elsewhere.
+  const keepSelectionOn = useCallback((spreadIndex: number) => {
+    setSelected((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
+    setSelectedText((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
+    setAddingToSpread((armed) => (armed !== null && armed !== spreadIndex ? null : armed));
+  }, []);
   // Set to the position a new spread should land at when the "+" between two
   // spreads (or "+ Add spread" at the end) is clicked — non-null shows the
   // layout-choice modal.
