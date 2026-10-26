@@ -889,6 +889,8 @@ export const en: Record<string, string> = {
   "project.album.more": "+{count} more in the editor",
   "project.pdf.title": "Print-ready PDF",
   "project.pdf.noAlbum": "Generate and approve an album first; its PDF for the print lab is made here.",
+  "project.pdf.loadError": "The albums could not be loaded. Refresh the page to try again.",
+  "project.album.previewError": "The spread previews could not be loaded; the editor still opens.",
   "album.stats": "{spreads} spreads · {pages} pages · {photos} photos",
   "album.undo": "↶ Undo",
   "album.redo": "↷ Redo",

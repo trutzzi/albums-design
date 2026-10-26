@@ -902,6 +902,8 @@ export const ro: Record<string, string> = {
   "project.album.more": "Încă {count} în editor",
   "project.pdf.title": "PDF gata de tipar",
   "project.pdf.noAlbum": "Generează și aprobă mai întâi un album; PDF-ul pentru tipografie se face aici.",
+  "project.pdf.loadError": "Albumele nu au putut fi încărcate. Reîncarcă pagina pentru a încerca din nou.",
+  "project.album.previewError": "Previzualizările nu au putut fi încărcate; editorul se deschide în continuare.",
   "album.stats": "{spreads} pagini duble · {pages} pagini · {photos} fotografii",
   "album.undo": "↶ Anulează",
   "album.redo": "↷ Refă",

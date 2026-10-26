@@ -306,7 +306,9 @@ export function ProjectPage() {
               <AlbumPanel projectId={projectId} size={albumSize} analysed={analysed} />
             </div>
             <div className="shoot__delivery" hidden={step !== "delivery"}>
-              <PrintPdfPanel projectId={projectId} />
+              {/* Mounted only on this step: unlike the link forms it holds no state, and its
+              export lists would otherwise load and poll on every visit to the shoot. */}
+              {step === "delivery" && <PrintPdfPanel projectId={projectId} />}
               <DeliveryPanel
                 projectId={projectId}
                 contact={contact}
