@@ -29,6 +29,9 @@ export function AlbumSpreadsPreview({ album }: { album: AlbumDTO }) {
     [templates.data],
   );
   if (album.spreads.length === 0) return null;
+  // Spreads drawn before their layouts and photos arrive would show as empty frames.
+  if (photos.isError || templates.isError) return <p className="muted">{t("project.album.previewError")}</p>;
+  if (!photos.data || !templates.data) return null;
   const aspectRatio = (album.format.pageWidthMm * 2) / album.format.pageHeightMm;
   const more = album.spreads.length - PREVIEW_SPREADS;
 
