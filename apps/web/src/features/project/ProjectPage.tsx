@@ -30,7 +30,7 @@ import { SlideshowPanel } from "@/features/project/components/SlideshowPanel";
 import { ShootSidebar } from "@/features/project/components/ShootSidebar";
 import { Skeleton } from "@/shared/ui/Loading";
 import { usePlans } from "@/shared/ui/usePlans";
-import { formatDayMonth } from "@/shared/i18n/locale";
+import { formatFullDate } from "@/shared/i18n/locale";
 import { shootTypeKey } from "@/features/project/lib/shoot-types";
 
 /** The guided tour points at the step tabs, since only the open step's content is on the page. */
@@ -190,7 +190,7 @@ export function ProjectPage() {
           {project.data && (
             <p className="muted shoot__kind">
               {t(shootTypeKey(project.data.type))}
-              {project.data.eventDate && ` · ${formatDayMonth(project.data.eventDate, language)}`}
+              {project.data.eventDate && ` · ${formatFullDate(project.data.eventDate, language)}`}
             </p>
           )}
           <h1>
