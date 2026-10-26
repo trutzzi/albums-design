@@ -351,10 +351,11 @@ export function AlbumEditorPage() {
   const insertSpread = useCallback(
     (templateId: string) => {
       if (insertAt === null) return;
-      runEdit({ type: "ADD_SPREAD", atIndex: insertAt, templateId, photoIds: [] });
+      const at = insertAt;
+      // Go to the new spread once the server has added it (before, it does not exist yet):
+      // in the focus view it would otherwise be added out of sight.
+      runEdit({ type: "ADD_SPREAD", atIndex: at, templateId, photoIds: [] }, { onSuccess: () => jumpToSpread(at) });
       setInsertAt(null);
-      // Go to the new spread: in the focus view it would otherwise be added out of sight.
-      jumpToSpread(insertAt);
     },
     [insertAt, runEdit, jumpToSpread],
   );

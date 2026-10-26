@@ -79,7 +79,11 @@ export function useAlbumDraft(albumId: string, album: AlbumDTO | undefined) {
   // identity across renders. The mutation object does not, so route through a ref.
   const editRef = useRef(edit.mutate);
   editRef.current = edit.mutate;
-  const runEdit = useCallback((command: AlbumEditInput) => editRef.current(command), []);
+  // `onSuccess` runs after the edit is committed, for a caller that needs the new album state.
+  const runEdit = useCallback(
+    (command: AlbumEditInput, options?: { onSuccess?: () => void }) => editRef.current(command, options),
+    [],
+  );
 
   const historyMove = useRef<{ direction: "undo" | "redo"; leaving: Spread[] } | null>(null);
   const restoreSpreads = useMutation({
