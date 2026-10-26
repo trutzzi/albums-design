@@ -2273,7 +2273,36 @@ a:focus-visible,
 
 /* ---- contact page ---- */
 .contact-panel {
-  max-width: 480px;
+  max-width: 640px;
+}
+.contact-form {
+  display: grid;
+  gap: 4px;
+}
+.contact-form__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 0 16px;
+}
+.contact-form textarea {
+  resize: vertical;
+}
+.contact-form .button {
+  justify-self: start;
+}
+/* The honeypot: kept out of sight without display: none, which some bots skip. */
+.contact-form__trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.contact-panel__direct {
+  margin: 16px 0 0;
+}
+.contact-panel .notice p {
+  margin: 0 0 10px;
 }
 .contact-panel p {
   margin: 0 0 16px;

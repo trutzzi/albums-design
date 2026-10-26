@@ -29,3 +29,18 @@ export function requestPasswordReset(email: string, language: "en" | "ro"): Prom
 export function resetPassword(token: string, password: string): Promise<AuthSession> {
   return request("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) });
 }
+
+// --- Contact -----------------------------------------------------------
+
+export interface ContactMessageInput {
+  name: string;
+  email: string;
+  message: string;
+  /** The honeypot: hidden from people, so it is only ever filled in by a bot. */
+  website: string;
+}
+
+/** The public contact form; emailed to AlbumFlow, nothing stored. */
+export function sendContactMessage(input: ContactMessageInput): Promise<{ ok: true }> {
+  return request("/contact", { method: "POST", body: JSON.stringify(input) });
+}

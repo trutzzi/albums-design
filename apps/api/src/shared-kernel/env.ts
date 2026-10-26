@@ -45,6 +45,8 @@ const envSchema = z.object({
         .map((email) => email.trim())
         .filter(Boolean),
     ),
+  /** Where the public contact form's messages are emailed. */
+  CONTACT_EMAIL: z.string().email().default("contact@valentintruta.ro"),
   /** Error monitoring. Unset (the default) sends nothing anywhere. */
   SENTRY_DSN: optionalString,
   /** Lowest level written to the log. Every `error` entry also goes to Sentry when SENTRY_DSN is set. */
@@ -168,6 +170,7 @@ const appSettingsSchema = envSchema.pick({
   OLLAMA_BASE_URL: true,
   OLLAMA_MODEL: true,
   ADMIN_EMAILS: true,
+  CONTACT_EMAIL: true,
   ERROR_LOG_RETENTION_DAYS: true,
 });
 
