@@ -89,7 +89,7 @@ const ATTENTION_ORDER: Attention["kind"][] = ["changes", "picks", "deliver", "ex
  * Where a shoot sits in "sorted by next action": what waits on the photographer first (most
  * urgent first), then what is with the client, then shoots in progress, delivered ones last.
  */
-export function nextActionRank(shoot: ProjectSummaryDTO): number {
+function nextActionRank(shoot: ProjectSummaryDTO): number {
   const item = attentionFor(shoot);
   if (item) return ATTENTION_ORDER.indexOf(item.kind);
   const filter = filterOf(shoot);
