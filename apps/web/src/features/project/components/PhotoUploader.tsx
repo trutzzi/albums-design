@@ -35,89 +35,92 @@ export function PhotoUploader({
 
   return (
     <>
-      <div className="ai-toggle-row">
-        <label className="ruler-toggle">
-          <input
-            type="checkbox"
-            className="ruler-toggle__input"
-            checked={useAi}
-            disabled={!aiStatus.data?.available}
-            onChange={(event) => {
-              // Off by default: AI analysis costs real time (and, with a paid provider,
-              // real money) that the free heuristic doesn't — turning it on asks first.
-              if (event.target.checked) setConsentOpen(true);
-              else onUseAiChange(false);
-            }}
-          />
-          <span className="ruler-toggle__track" aria-hidden="true">
-            <span className="ruler-toggle__thumb" />
+      {/* One card for everything about adding photos, as on the design's shoot board. */}
+      <div className="panel shoot-upload">
+        <div className="ai-toggle-row">
+          <label className="ruler-toggle">
+            <input
+              type="checkbox"
+              className="ruler-toggle__input"
+              checked={useAi}
+              disabled={!aiStatus.data?.available}
+              onChange={(event) => {
+                // Off by default: AI analysis costs real time (and, with a paid provider,
+                // real money) that the free heuristic doesn't — turning it on asks first.
+                if (event.target.checked) setConsentOpen(true);
+                else onUseAiChange(false);
+              }}
+            />
+            <span className="ruler-toggle__track" aria-hidden="true">
+              <span className="ruler-toggle__thumb" />
+            </span>
+            {t("project.upload.useAi")}
+          </label>
+          <span
+            className={`chip ai-status-chip chip--${aiStatus.data?.available ? "active" : "queued"}`}
+            title={aiStatus.data?.available ? t("ai.status.online.title") : t("project.upload.useAi.unavailable")}
+          >
+            {aiStatus.data?.available ? t("ai.status.online") : t("ai.status.offline")}
           </span>
-          {t("project.upload.useAi")}
-        </label>
-        <span
-          className={`chip ai-status-chip chip--${aiStatus.data?.available ? "active" : "queued"}`}
-          title={aiStatus.data?.available ? t("ai.status.online.title") : t("project.upload.useAi.unavailable")}
-        >
-          {aiStatus.data?.available ? t("ai.status.online") : t("ai.status.offline")}
-        </span>
-      </div>
+        </div>
 
-      <section
-        data-tour="project-upload"
-        role="button"
-        tabIndex={0}
-        className={`dropzone ${photoCount > 0 ? "dropzone--compact" : ""} ${isDragging ? "dropzone--active" : ""}`}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragging(false);
-          upload.handleFiles(event.dataTransfer.files);
-        }}
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
+        <section
+          data-tour="project-upload"
+          role="button"
+          tabIndex={0}
+          className={`dropzone ${photoCount > 0 ? "dropzone--compact" : ""} ${isDragging ? "dropzone--active" : ""}`}
+          onDragOver={(event) => {
             event.preventDefault();
-            inputRef.current?.click();
-          }
-        }}
-      >
-        {photoCount === 0 ? (
-          <>
-            <p className="dropzone__title">{t("project.dropzone.title")}</p>
-            <p className="muted">{t("project.dropzone.subtitle")}</p>
-          </>
-        ) : (
-          <p className="dropzone__title">{t("project.upload.more")}</p>
-        )}
-        {photoLimit !== null && (
-          <p className="muted">{t("project.limit.count", { count: photoCount, limit: photoLimit })}</p>
-        )}
-      </section>
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            upload.handleFiles(event.dataTransfer.files);
+          }}
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
+        >
+          {photoCount === 0 ? (
+            <>
+              <p className="dropzone__title">{t("project.dropzone.title")}</p>
+              <p className="muted">{t("project.dropzone.subtitle")}</p>
+            </>
+          ) : (
+            <p className="dropzone__title">{t("project.upload.more")}</p>
+          )}
+          {photoLimit !== null && (
+            <p className="muted">{t("project.limit.count", { count: photoCount, limit: photoLimit })}</p>
+          )}
+        </section>
 
-      {upload.limitNotice && (
-        <>
-          <p className="notice">{upload.limitNotice}</p>
-          <PlanUpsell feature="photos" />
-        </>
-      )}
-      {upload.inFlight.length > 0 && (
-        <p className="muted upload-status">
-          {t("project.uploading", { count: upload.inFlight.length, plural: upload.inFlight.length === 1 ? "" : "s" })}
-        </p>
-      )}
-      {upload.failed.length > 0 && (
-        <ul className="error-list">
-          {upload.failed.map((transfer) => (
-            <li key={transfer.key}>
-              {transfer.fileName}: {transfer.message}
-            </li>
-          ))}
-        </ul>
-      )}
+        {upload.limitNotice && (
+          <>
+            <p className="notice">{upload.limitNotice}</p>
+            <PlanUpsell feature="photos" />
+          </>
+        )}
+        {upload.inFlight.length > 0 && (
+          <p className="muted upload-status">
+            {t("project.uploading", { count: upload.inFlight.length, plural: upload.inFlight.length === 1 ? "" : "s" })}
+          </p>
+        )}
+        {upload.failed.length > 0 && (
+          <ul className="error-list">
+            {upload.failed.map((transfer) => (
+              <li key={transfer.key}>
+                {transfer.fileName}: {transfer.message}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {consentOpen && (
         <div className="modal-overlay" role="presentation" onClick={() => setConsentOpen(false)}>
