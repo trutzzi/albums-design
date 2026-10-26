@@ -331,6 +331,11 @@ export function AlbumEditorPage() {
         setAddingToSpread(null);
         setSelectedText(null);
         setSelected({ spreadIndex, slotId });
+      } else {
+        // A selection left on another spread would let the photo tools and Delete act on a
+        // photo the focus view no longer shows.
+        setSelected((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
+        setSelectedText((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
       }
     },
     [setCurrentSpread],
