@@ -8,6 +8,7 @@ const SWEEP_FROM = 1000;
  */
 export class AttemptLimiter {
   private readonly failures = new Map<string, { count: number; since: number }>();
+  private lastSweep = 0;
 
   constructor(
     private readonly maxFailures = 8,
@@ -24,7 +25,8 @@ export class AttemptLimiter {
 
   recordFailure(key: string): void {
     // Keys that are never seen again would otherwise stay forever; public forms key by address.
-    if (this.failures.size >= SWEEP_FROM) this.sweep();
+    // At most once a window: nothing can have expired sooner, and each sweep scans every key.
+    if (this.failures.size >= SWEEP_FROM && this.now() - this.lastSweep >= this.windowMs) this.sweep();
     const entry = this.live(key);
     if (entry) entry.count += 1;
     else this.failures.set(key, { count: 1, since: this.now() });
@@ -42,6 +44,7 @@ export class AttemptLimiter {
   /** Drops every entry whose window has passed. */
   private sweep(): void {
     const now = this.now();
+    this.lastSweep = now;
     for (const [key, entry] of this.failures) {
       if (now - entry.since >= this.windowMs) this.failures.delete(key);
     }
