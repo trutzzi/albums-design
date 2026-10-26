@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { PhotoTreatment } from "@albumflow/contracts";
@@ -146,11 +146,10 @@ export function AlbumEditorPage() {
   const draft = useAlbumDraft(albumId, album.data);
   const { current, runEdit } = draft;
   const spreadCount = current?.spreads.length ?? 0;
-  const [currentSpread, setCurrentSpread] = useCurrentSpread(spreadCount);
-  // Removing the last spread must not leave the current one pointing past the end.
-  useEffect(() => {
-    if (spreadCount > 0 && currentSpread >= spreadCount) setCurrentSpread(spreadCount - 1);
-  }, [spreadCount, currentSpread, setCurrentSpread]);
+  const [trackedSpread, setCurrentSpread] = useCurrentSpread(spreadCount);
+  // Derived, not corrected in an effect: removing the last spread must not leave the current
+  // one pointing past the end, not even for the one frame an effect would take.
+  const currentSpread = Math.max(0, Math.min(trackedSpread, spreadCount - 1));
   const setView = useCallback(
     (next: EditorView) => {
       setViewState(next);
