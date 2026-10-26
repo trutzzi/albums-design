@@ -45,8 +45,8 @@ const envSchema = z.object({
         .map((email) => email.trim())
         .filter(Boolean),
     ),
-  /** Where the public contact form's messages are emailed. */
-  CONTACT_EMAIL: z.string().email().default("contact@valentintruta.ro"),
+  /** Where the public contact form's messages are emailed. Blank (an unset deploy secret) means the default. */
+  CONTACT_EMAIL: optionalString.pipe(z.string().email().default("contact@valentintruta.ro")),
   /** Error monitoring. Unset (the default) sends nothing anywhere. */
   SENTRY_DSN: optionalString,
   /** Lowest level written to the log. Every `error` entry also goes to Sentry when SENTRY_DSN is set. */

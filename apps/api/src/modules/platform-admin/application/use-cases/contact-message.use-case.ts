@@ -24,6 +24,9 @@ export interface ContactMessage {
  *
  * Sent within the request, like every other email in the app, so the visitor can be told
  * when it failed; the SMTP timeouts bound the wait, and the rate limits bound how often.
+ * The overall cap is a deliberate trade: someone spreading over ~20 addresses can pause the
+ * form for everyone for an hour, rather than flood the inbox. Every limit counts sends, not
+ * failures, despite the limiter's method name.
  */
 export class ContactMessageUseCase {
   constructor(
