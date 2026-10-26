@@ -141,7 +141,8 @@ export function ProjectsPage() {
   const counts = useMemo(() => filterCounts(all), [all]);
   const waiting = useMemo(
     () =>
-      all
+      // In the same order as the list below, so the two never disagree.
+      byNextAction(all)
         .map((project) => ({ project, item: attentionFor(project) }))
         .filter((entry): entry is { project: ProjectSummaryDTO; item: Attention } => entry.item !== null),
     [all],

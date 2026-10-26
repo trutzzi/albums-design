@@ -151,4 +151,11 @@ describe("the contact form", () => {
     assert.ok(limited.headers["retry-after"]);
     await server.close();
   });
+
+  it("holds the limit against a burst of parallel requests", async () => {
+    const { contact, sent } = setup();
+    const results = await Promise.all(Array.from({ length: 6 }, () => contact.send(message)));
+    assert.equal(results.filter((result) => result.isSuccess).length, 2);
+    assert.equal(sent.length, 2);
+  });
 });
