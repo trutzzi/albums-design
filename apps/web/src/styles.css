@@ -6250,3 +6250,112 @@ body.is-previewing {
 .auth-form .button--primary {
   min-height: 48px;
 }
+
+/* ---- shoot page panels, as on the design's Shoot boards. Scoped to .shoot: the client
+   pages share .panel, .notice and .pick__filter. ---- */
+.shoot .page__header h1 {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 400;
+}
+/* Steps: done ones are cards with a dark tick, the open one is dark, later ones are outlines. */
+.shoot .steps__tab {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink-soft);
+}
+.shoot .steps__number {
+  width: 30px;
+  height: 30px;
+}
+.shoot .steps__tab--done {
+  background: var(--surface);
+  color: var(--ink);
+}
+.shoot .steps__tab--done .steps__number {
+  background: var(--ink);
+  color: var(--surface);
+}
+.shoot .steps__tab--on,
+.shoot .steps__tab--on:hover {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: none;
+}
+.shoot .steps__tab--on .steps__number {
+  background: var(--accent);
+  color: #fff;
+}
+.shoot .steps__tab--on .steps__status {
+  color: inherit;
+  opacity: 0.85;
+}
+.shoot .next-step {
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.shoot .next-step__title {
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+}
+.shoot .next-step__text {
+  max-width: 60ch;
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-size: 1.3rem;
+  line-height: 1.35;
+}
+.shoot .panel {
+  padding: 22px;
+  border-radius: 14px;
+  box-shadow: none;
+}
+.shoot .pick__filter--on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+/* The "could not be analysed" banner: message on the left, its actions on the right. */
+.shoot .notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 0.92rem;
+}
+.shoot .notice p {
+  margin: 0;
+}
+.shoot-upload .dropzone {
+  margin-bottom: 0;
+  background: transparent;
+}
+.shoot-upload .dropzone + * {
+  margin-top: 14px;
+}
+.shoot-upload > :last-child {
+  margin-bottom: 0;
+}
+/* Delivery: the download link and the slideshow side by side, stacked when narrow.
+   :not([hidden]) because display: grid would otherwise show a hidden step. */
+.shoot__delivery:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.shoot__delivery > .panel {
+  margin-bottom: 0;
+}
+.shoot .danger-zone {
+  padding: 18px 22px;
+  border-radius: 14px;
+  background: var(--surface);
+}

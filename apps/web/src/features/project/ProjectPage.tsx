@@ -290,7 +290,7 @@ export function ProjectPage() {
             <div hidden={step !== "album"}>
               <AlbumPanel projectId={projectId} size={albumSize} analysed={analysed} />
             </div>
-            <div hidden={step !== "delivery"}>
+            <div className="shoot__delivery" hidden={step !== "delivery"}>
               <DeliveryPanel
                 projectId={projectId}
                 contact={contact}
