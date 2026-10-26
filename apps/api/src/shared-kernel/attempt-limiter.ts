@@ -32,6 +32,11 @@ export class AttemptLimiter {
     else this.failures.set(key, { count: 1, since: this.now() });
   }
 
+  /** Counts one attempt whatever its outcome: for limits on how often something may happen. */
+  record(key: string): void {
+    this.recordFailure(key);
+  }
+
   /** How many keys are held: lets a test see expired ones go. */
   get size(): number {
     return this.failures.size;

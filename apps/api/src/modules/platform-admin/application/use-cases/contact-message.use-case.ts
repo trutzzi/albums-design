@@ -25,8 +25,7 @@ export interface ContactMessage {
  * Sent within the request, like every other email in the app, so the visitor can be told
  * when it failed; the SMTP timeouts bound the wait, and the rate limits bound how often.
  * The overall cap is a deliberate trade: someone spreading over ~20 addresses can pause the
- * form for everyone for an hour, rather than flood the inbox. Every limit counts sends, not
- * failures, despite the limiter's method name.
+ * form for everyone for an hour, rather than flood the inbox.
  */
 export class ContactMessageUseCase {
   constructor(
@@ -53,8 +52,8 @@ export class ContactMessageUseCase {
     const key = `contact:${addressKey(contact.ip)}`;
     const locked = Math.max(this.limiter.lockedFor(key), this.overall.lockedFor(OVERALL));
     if (locked > 0) return Result.failure(new TooManyAttemptsError(locked, "messages"));
-    this.limiter.recordFailure(key);
-    this.overall.recordFailure(OVERALL);
+    this.limiter.record(key);
+    this.overall.record(OVERALL);
 
     const name = contact.name.trim();
     const from = contact.email.trim();
