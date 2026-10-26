@@ -13,6 +13,9 @@ export function FocusBar(props: {
   onJump: (index: number) => void;
 }) {
   const { t } = useLanguage();
+  // aria-disabled rather than disabled: a disabled button drops keyboard focus at either end.
+  const atStart = props.index === 0;
+  const atEnd = props.index >= props.count - 1;
   return (
     <div className="focus-bar">
       <div className="focus-bar__views" role="group" aria-label={t("editor.view.label")}>
@@ -34,8 +37,8 @@ export function FocusBar(props: {
             type="button"
             className="focus-bar__step"
             aria-label={t("editor.focus.previous")}
-            disabled={props.index === 0}
-            onClick={() => props.onJump(props.index - 1)}
+            aria-disabled={atStart}
+            onClick={() => !atStart && props.onJump(props.index - 1)}
           >
             ‹
           </button>
@@ -44,8 +47,8 @@ export function FocusBar(props: {
             type="button"
             className="focus-bar__step"
             aria-label={t("editor.focus.next")}
-            disabled={props.index >= props.count - 1}
-            onClick={() => props.onJump(props.index + 1)}
+            aria-disabled={atEnd}
+            onClick={() => !atEnd && props.onJump(props.index + 1)}
           >
             ›
           </button>

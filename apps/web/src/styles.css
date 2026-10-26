@@ -6412,7 +6412,7 @@ body.is-previewing {
   color: var(--ink);
   font-size: 1.1rem;
 }
-.focus-bar__step:disabled {
+.focus-bar__step[aria-disabled="true"] {
   opacity: 0.4;
   cursor: default;
 }

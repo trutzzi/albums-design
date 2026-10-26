@@ -496,7 +496,8 @@ export function AlbumEditorPage() {
   const locked = current.status === "APPROVED";
   const aspectRatio = (current.format.pageWidthMm * 2) / current.format.pageHeightMm;
   const historyBusy = draft.restoreSpreads.isPending;
-  const focused = view === "focus";
+  // An album with no spreads has nothing to focus on; the stack shows the cover and "Add spread".
+  const focused = view === "focus" && current.spreads.length > 0;
 
   return (
     <div className={`page editor editor--with-strip ${focused ? "editor--focus" : ""}`}>
