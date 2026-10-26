@@ -1,4 +1,5 @@
 import { Result } from "@albumflow/domain-kernel";
+import { addressKey } from "#src/shared-kernel/address-key";
 import { AttemptLimiter } from "#src/shared-kernel/attempt-limiter";
 import type { EmailSender } from "#src/shared-kernel/email";
 import { ApplicationError, TooManyAttemptsError } from "#src/shared-kernel/errors";
@@ -46,7 +47,7 @@ export class ContactMessageUseCase {
       return Result.failure(notSent());
     }
 
-    const key = `contact:${contact.ip}`;
+    const key = `contact:${addressKey(contact.ip)}`;
     const locked = Math.max(this.limiter.lockedFor(key), this.overall.lockedFor(OVERALL));
     if (locked > 0) return Result.failure(new TooManyAttemptsError(locked, "messages"));
     this.limiter.recordFailure(key);

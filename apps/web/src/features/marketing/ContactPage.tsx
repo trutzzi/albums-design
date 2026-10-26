@@ -68,10 +68,11 @@ export function ContactPage() {
               <label htmlFor="contact-message">{t("contact.message")}</label>
               <textarea id="contact-message" rows={6} required minLength={10} maxLength={4000} {...field("message")} />
             </div>
-            {/* The honeypot: off-screen and skipped by keyboard and screen readers, so only a bot fills it. */}
-            <div className="contact-form__trap" aria-hidden="true">
-              <label htmlFor="contact-website">{t("contact.website")}</label>
-              <input id="contact-website" tabIndex={-1} autoComplete="off" {...field("website")} />
+            {/* The honeypot: inert (no focus, no screen reader, no autofill) and off-screen, so only a
+            bot that fills every field reaches it. Its name and label avoid words autofill recognises. */}
+            <div className="contact-form__trap" inert>
+              <label htmlFor="contact-hp">{t("contact.trap")}</label>
+              <input id="contact-hp" name="hp_field" tabIndex={-1} autoComplete="off" {...field("website")} />
             </div>
             {send.isError && (
               <p className="error" role="alert">

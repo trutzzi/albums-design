@@ -873,7 +873,7 @@ export const ro: Record<string, string> = {
   "contact.name": "Numele tău",
   "contact.email": "Emailul tău",
   "contact.message": "Mesaj",
-  "contact.website": "Site web",
+  "contact.trap": "Lasă gol",
   "contact.send": "Trimite mesajul",
   "contact.sending": "Se trimite…",
   "contact.sent": "Mulțumim — mesajul tău a fost trimis. Îți vom răspunde în curând pe email.",

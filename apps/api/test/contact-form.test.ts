@@ -63,6 +63,12 @@ describe("the contact form", () => {
     assert.match(third.getError().message, /Too many messages/);
     assert.equal(sent.length, 2);
     assert.ok((await contact.send({ ...message, ip: "198.51.100.1" })).isSuccess, "another address is not affected");
+
+    // IPv6 counts by /64, so rotating addresses inside one network does not reset the limit.
+    await contact.send({ ...message, ip: "2001:db8:1:2::1" });
+    await contact.send({ ...message, ip: "2001:db8:1:2::2" });
+    const rotated = await contact.send({ ...message, ip: "2001:db8:1:2::3" });
+    assert.equal(rotated.isFailure && rotated.getError().code, "TOO_MANY_ATTEMPTS");
   });
 
   it("caps all messages together, whatever address they come from", async () => {
