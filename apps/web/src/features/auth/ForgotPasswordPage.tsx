@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { ApiError, requestPasswordReset } from "@/shared/api";
+import { AuthPhoto } from "@/features/auth/components/AuthPhoto";
 
 export function ForgotPasswordPage() {
   const { t, language } = useLanguage();
@@ -12,7 +13,7 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="page auth-page">
-      <img src="/images/photographer-ceremony.webp" alt="" className="auth-page__image" />
+      <AuthPhoto src="/images/photographer-ceremony.webp" />
       <section className="panel auth-panel">
         <img src="/logo-full.png" alt="AlbumFlow Studio" className="auth-panel__logo" />
         <div className="panel__head">

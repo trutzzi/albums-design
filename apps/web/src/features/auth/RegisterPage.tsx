@@ -4,6 +4,7 @@ import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { ApiError, resendConfirmation } from "@/shared/api";
 import { Turnstile, TURNSTILE_SITE_KEY } from "@/features/auth/components/Turnstile";
+import { AuthPhoto } from "@/features/auth/components/AuthPhoto";
 
 export function RegisterPage() {
   const auth = useAuth();
@@ -22,7 +23,7 @@ export function RegisterPage() {
 
   return (
     <div className="page auth-page">
-      <img src="/images/bouquet-album.webp" alt="" className="auth-page__image" />
+      <AuthPhoto src="/images/bouquet-album.webp" />
       <section className="panel auth-panel">
         <img src="/logo-full.png" alt="AlbumFlow Studio" className="auth-panel__logo" />
         <div className="panel__head">

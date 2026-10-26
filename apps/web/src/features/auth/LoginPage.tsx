@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { ApiError, resendConfirmation } from "@/shared/api";
+import { AuthPhoto } from "@/features/auth/components/AuthPhoto";
 
 export function LoginPage() {
   const auth = useAuth();
@@ -20,7 +21,7 @@ export function LoginPage() {
 
   return (
     <div className="page auth-page">
-      <img src="/images/photographer-ceremony.webp" alt="" className="auth-page__image" />
+      <AuthPhoto src="/images/photographer-ceremony.webp" />
       <section className="panel auth-panel">
         <img src="/logo-full.png" alt="AlbumFlow Studio" className="auth-panel__logo" />
         <div className="panel__head">
