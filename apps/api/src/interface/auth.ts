@@ -24,6 +24,8 @@ const PUBLIC_AUTH_POSTS = [
   "/auth/verify-email",
   "/auth/resend-confirmation",
   "/billing/webhook",
+  // The contact form is for people without an account; it is rate-limited per address.
+  "/contact",
 ];
 
 export interface StudioAuthOptions {

@@ -9,6 +9,7 @@ import type {
   StudioPlansUseCase,
 } from "../../application/use-cases/admin.use-cases";
 import type { DeleteStudioUseCase } from "../../application/use-cases/studio-deletion.use-cases";
+import type { ContactMessageUseCase } from "../../application/use-cases/contact-message.use-case";
 import type { ErrorInboxUseCase } from "../../application/use-cases/error-inbox.use-case";
 import "#src/interface/request-context";
 
@@ -20,6 +21,12 @@ const submitSchema = z.object({
   message: z.string().min(1).max(4000),
   rating: z.number().int().min(1).max(5).optional(),
   page: z.string().max(512).optional(),
+});
+const contactSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().email().max(254),
+  message: z.string().trim().min(10).max(4000),
+  website: z.string().max(200).optional(),
 });
 const listSchema = z.object({ status: statuses.optional(), kind: kinds.optional() });
 const triageSchema = z.object({ status: statuses.optional(), adminNote: z.string().max(4000).optional() });
@@ -40,6 +47,8 @@ const errorParams = z.object({ issueId: z.string().uuid() });
 export interface PlatformAdminDependencies {
   access: AdminAccess;
   feedback: FeedbackUseCase;
+  /** Absent where no public contact form is served. */
+  contactMessage?: ContactMessageUseCase | undefined;
   dashboard: AdminDashboardUseCase;
   plans: StudioPlansUseCase;
   deleteStudio?: DeleteStudioUseCase | undefined;
@@ -48,6 +57,17 @@ export interface PlatformAdminDependencies {
 }
 
 export function registerPlatformAdminRoutes(app: FastifyInstance, deps: PlatformAdminDependencies): void {
+  // The public contact form: no account needed (listed in auth.ts), limited per address.
+  if (deps.contactMessage) {
+    const contact = deps.contactMessage;
+    app.post("/contact", async (request, reply) => {
+      const body = contactSchema.parse(request.body);
+      const result = await contact.send({ ...body, ip: request.ip });
+      if (result.isFailure) return sendApplicationError(reply, result.getError());
+      return reply.code(202).send({ ok: true });
+    });
+  }
+
   // Any signed-in studio can tell us something.
   app.post("/feedback", async (request, reply) => {
     const body = submitSchema.parse(request.body);

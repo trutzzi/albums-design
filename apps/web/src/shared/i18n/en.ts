@@ -856,7 +856,21 @@ export const en: Record<string, string> = {
   // --- Contact page -------------------------------------------------------
   "contact.title": "Contact",
   "contact.subtitle": "Questions, feedback, or a feature you'd like to see — we'd love to hear from you.",
-  "contact.body": "Send us an email and we'll get back to you as soon as we can.",
+  "contact.body": "Write to us below and we'll reply to your email as soon as we can.",
+  "contact.name": "Your name",
+  "contact.email": "Your email",
+  "contact.message": "Message",
+  "contact.trap": "Leave this empty",
+  "contact.send": "Send message",
+  "contact.sending": "Sending…",
+  "contact.sent": "Thank you — your message is on its way. We'll reply to your email soon.",
+  "contact.another": "Send another message",
+  "contact.direct": "Prefer email?",
+  "contact.error.tooMany":
+    "You've sent several messages in a short time. Please try again in an hour, or email {email}.",
+  "contact.error.notSent":
+    "Your message couldn't be sent just now. Please try again in a few minutes, or email {email}.",
+  "contact.error.generic": "Something went wrong sending your message. Please try again, or email {email}.",
 
   // --- Album editor (toolbar) ------------------------------------------
   "album.back": "← Back to shoot",

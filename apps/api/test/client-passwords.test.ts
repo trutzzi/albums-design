@@ -91,6 +91,16 @@ describe("AttemptLimiter", () => {
     assert.equal(limiter.lockedFor("k"), 0);
   });
 
+  it("clears out expired keys once many are held, so a public form cannot grow it forever", () => {
+    let now = 0;
+    const limiter = new AttemptLimiter(5, 60_000, () => now);
+    for (let i = 0; i < 1000; i++) limiter.recordFailure(`ip-${i}`);
+    assert.equal(limiter.size, 1000);
+    now = 61_000;
+    limiter.recordFailure("fresh");
+    assert.equal(limiter.size, 1, "only the new key is left");
+  });
+
   it("keeps keys apart and forgets on success", () => {
     const limiter = new AttemptLimiter(1);
     limiter.recordFailure("a");

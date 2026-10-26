@@ -125,7 +125,7 @@ into the server's `.env` on every deploy — each key replaces its old line, eve
 
 `STORAGE_PROVIDER`, `DIGISTORAGE_WEBDAV_URL`, `DIGISTORAGE_USERNAME`, `DIGISTORAGE_APP_PASSWORD`,
 `DIGISTORAGE_ROOT_PATH`, `EMAIL_PROVIDER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`,
-`SMTP_PASSWORD`, `MAIL_FROM` (`PUBLIC_API_URL` is set by the workflow itself).
+`SMTP_PASSWORD`, `MAIL_FROM`, and optionally `CONTACT_EMAIL` — where the contact form's messages go, `contact@valentintruta.ro` when unset (`PUBLIC_API_URL` is set by the workflow itself).
 
 A secret value must not contain a single quote (`'`) or a line break — the job stops with an
 error naming the secret if one does. When `STORAGE_PROVIDER` is `digistorage`, the deploy also

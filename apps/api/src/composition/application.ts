@@ -86,6 +86,8 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     requestMetrics: admin.requestMetrics,
     adminAccess: admin.adminAccess,
     feedback: admin.feedback,
+    /** The public contact form, emailed to AlbumFlow. */
+    contactMessage: admin.contactMessage,
     adminDashboard: admin.adminDashboard,
     studioPlans: admin.studioPlans,
     deleteStudio: admin.deleteStudio,

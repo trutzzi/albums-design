@@ -89,4 +89,17 @@ describe("environment configuration", () => {
       }
     }
   });
+
+  it("sends contact messages to the default address unless one is set, a blank one included", () => {
+    assert.equal(loadEnv(FULL as NodeJS.ProcessEnv).CONTACT_EMAIL, "contact@valentintruta.ro");
+    assert.equal(
+      loadEnv({ ...FULL, CONTACT_EMAIL: "" } as NodeJS.ProcessEnv).CONTACT_EMAIL,
+      "contact@valentintruta.ro",
+    );
+    assert.equal(
+      loadEnv({ ...FULL, CONTACT_EMAIL: "hi@studio.test" } as NodeJS.ProcessEnv).CONTACT_EMAIL,
+      "hi@studio.test",
+    );
+    assert.throws(() => loadEnv({ ...FULL, CONTACT_EMAIL: "not-an-address" } as NodeJS.ProcessEnv), /CONTACT_EMAIL/);
+  });
 });

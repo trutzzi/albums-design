@@ -70,9 +70,12 @@ export class InvalidPasswordError extends ApplicationError {
 }
 
 export class TooManyAttemptsError extends ApplicationError {
-  constructor(readonly retryAfterSeconds: number) {
+  constructor(
+    readonly retryAfterSeconds: number,
+    what = "wrong passwords",
+  ) {
     super(
-      `Too many wrong passwords. Try again in ${Math.max(1, Math.ceil(retryAfterSeconds / 60))} minute(s).`,
+      `Too many ${what}. Try again in ${Math.max(1, Math.ceil(retryAfterSeconds / 60))} minute(s).`,
       "TOO_MANY_ATTEMPTS",
     );
   }
