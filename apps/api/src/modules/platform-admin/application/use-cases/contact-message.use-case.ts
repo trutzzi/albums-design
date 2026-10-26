@@ -42,8 +42,10 @@ export class ContactMessageUseCase {
     private readonly delivers: boolean,
     /** Caps messages per address, so the form cannot flood the inbox. */
     private readonly limiter: AttemptLimiter = new AttemptLimiter(5, 60 * 60 * 1000),
-    /** Caps all messages together: a backstop if many addresses send at once. */
+    /** Caps all messages together, sent or failed: a backstop if many addresses send at once. */
     private readonly overall: AttemptLimiter = new AttemptLimiter(100, 60 * 60 * 1000),
+    /** Caps failed sends per address, so retrying through an outage cannot hammer the mail server. */
+    private readonly failures: AttemptLimiter = new AttemptLimiter(10, 60 * 60 * 1000),
   ) {}
 
   async send(contact: ContactMessage): Promise<Result<void, ApplicationError>> {
@@ -60,10 +62,12 @@ export class ContactMessageUseCase {
     }
 
     const key = `contact:${addressKey(contact.ip)}`;
-    const locked = Math.max(this.limiter.lockedFor(key), this.overall.lockedFor(OVERALL));
+    const locked = Math.max(this.limiter.lockedFor(key), this.overall.lockedFor(OVERALL), this.failures.lockedFor(key));
     if (locked > 0) return Result.failure(new TooManyAttemptsError(locked, "messages"));
-    // Reserved before sending, so parallel requests cannot all pass the check; given back if
-    // the send fails, so a visitor retrying through a mail outage, as asked, is not locked out.
+    // Reserved before sending, so parallel requests cannot all pass the check. A failed send
+    // gives back the address's message slot (a visitor retrying through an outage, as asked,
+    // is not locked out) but keeps its place in the overall cap and counts toward the
+    // address's failure budget, so failures are never free.
     this.limiter.record(key);
     this.overall.record(OVERALL);
 
@@ -80,7 +84,7 @@ export class ContactMessageUseCase {
       return Result.success(undefined);
     } catch (error) {
       this.limiter.release(key);
-      this.overall.release(OVERALL);
+      this.failures.record(key);
       this.logger.error("contact message not sent", {
         provider: this.email.id,
         error: error instanceof Error ? error.message : String(error),
