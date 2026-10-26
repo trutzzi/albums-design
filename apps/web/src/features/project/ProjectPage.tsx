@@ -170,8 +170,9 @@ export function ProjectPage() {
     picks: pickSessions.data ?? [],
     deliveries: downloadSessions.data ?? [],
   });
+  const openFilePicker = () => inputRef.current?.click();
   const runAction: Record<NextAction, () => void> = {
-    addPhotos: () => inputRef.current?.click(),
+    addPhotos: openFilePicker,
     toSelection: () => goTo("selection"),
     toAlbum: () => goTo("album"),
     seePicks: () => goTo("selection"),
@@ -204,7 +205,7 @@ export function ProjectPage() {
           <p className="muted">{t("project.stats", { uploaded: uploadedCount, analysed, albumWorthy })}</p>
         </div>
         <div className="page__header-actions">
-          <button type="button" className="button" onClick={() => inputRef.current?.click()}>
+          <button type="button" className="button" onClick={openFilePicker}>
             {t("project.next.addPhotos")}
           </button>
         </div>
