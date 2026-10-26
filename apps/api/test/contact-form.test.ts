@@ -19,7 +19,7 @@ const message = {
   ip: "203.0.113.7",
 };
 
-function setup(sender?: EmailSender, options: { delivers?: boolean; overall?: number } = {}) {
+function setup(sender?: EmailSender, options: { delivers?: boolean; overall?: number; failures?: number } = {}) {
   const sent: EmailMessage[] = [];
   const logger = new RecordingLogger();
   const contact = new ContactMessageUseCase(
@@ -29,6 +29,7 @@ function setup(sender?: EmailSender, options: { delivers?: boolean; overall?: nu
     options.delivers ?? true,
     new AttemptLimiter(2, 60 * 60 * 1000),
     new AttemptLimiter(options.overall ?? 100, 60 * 60 * 1000),
+    new AttemptLimiter(options.failures ?? 10, 60 * 60 * 1000),
   );
   return { contact, sent, logger };
 }
@@ -157,5 +158,39 @@ describe("the contact form", () => {
     const results = await Promise.all(Array.from({ length: 6 }, () => contact.send(message)));
     assert.equal(results.filter((result) => result.isSuccess).length, 2);
     assert.equal(sent.length, 2);
+  });
+
+  it("caps failed sends per address, so an outage cannot be hammered", async () => {
+    let calls = 0;
+    const { contact } = setup(
+      {
+        id: "smtp",
+        send: async () => {
+          calls += 1;
+          throw new Error("connection refused");
+        },
+      },
+      { failures: 3 },
+    );
+    for (let i = 0; i < 3; i++) await contact.send(message);
+    const fourth = await contact.send(message);
+    assert.equal(fourth.isFailure && fourth.getError().code, "TOO_MANY_ATTEMPTS");
+    assert.equal(calls, 3, "the mail server is not called once the failure budget is spent");
+  });
+
+  it("keeps failed sends in the overall cap", async () => {
+    const { contact } = setup(
+      {
+        id: "smtp",
+        send: async () => {
+          throw new Error("connection refused");
+        },
+      },
+      { overall: 2 },
+    );
+    await contact.send({ ...message, ip: "198.51.100.1" });
+    await contact.send({ ...message, ip: "198.51.100.2" });
+    const third = await contact.send({ ...message, ip: "198.51.100.3" });
+    assert.equal(third.isFailure && third.getError().code, "TOO_MANY_ATTEMPTS");
   });
 });
