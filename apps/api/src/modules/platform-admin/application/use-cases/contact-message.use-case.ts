@@ -40,20 +40,24 @@ export class ContactMessageUseCase {
     private readonly overall: AttemptLimiter = new AttemptLimiter(100, 60 * 60 * 1000),
   ) {}
 
+  private reportedNoMailServer = false;
+
   async send(contact: ContactMessage): Promise<Result<void, ApplicationError>> {
     // Answer a bot exactly as a person, so it learns nothing from the honeypot.
     if (contact.website?.trim()) return Result.success(undefined);
 
     if (!this.delivers) {
-      this.logger.error("contact message not sent: no mail server is configured (EMAIL_PROVIDER)");
+      // Once, not per request: anyone can post to the form, and the setting is what is wrong.
+      if (!this.reportedNoMailServer) {
+        this.logger.error("contact message not sent: no mail server is configured (EMAIL_PROVIDER)");
+        this.reportedNoMailServer = true;
+      }
       return Result.failure(notSent());
     }
 
     const key = `contact:${addressKey(contact.ip)}`;
     const locked = Math.max(this.limiter.lockedFor(key), this.overall.lockedFor(OVERALL));
     if (locked > 0) return Result.failure(new TooManyAttemptsError(locked, "messages"));
-    this.limiter.record(key);
-    this.overall.record(OVERALL);
 
     const name = contact.name.trim();
     const from = contact.email.trim();
@@ -65,6 +69,9 @@ export class ContactMessageUseCase {
         subject: `Contact form: ${name}`,
         text: `${contact.message.trim()}\n\n— ${name} <${from}>`,
       });
+      // Counted once sent: a visitor retrying through a mail outage, as asked, is not locked out.
+      this.limiter.record(key);
+      this.overall.record(OVERALL);
       return Result.success(undefined);
     } catch (error) {
       this.logger.error("contact message not sent", {

@@ -79,13 +79,31 @@ describe("the contact form", () => {
     assert.equal(sent.length, 3);
   });
 
-  it("never says sent when no mail server is configured", async () => {
+  it("never says sent when no mail server is configured, and says why once", async () => {
     const { contact, sent, logger } = setup(undefined, { delivers: false });
     const result = await contact.send(message);
     assert.equal(result.isFailure && result.getError().code, "MESSAGE_NOT_SENT");
+    await contact.send(message);
     assert.equal(sent.length, 0);
+    assert.equal(logger.problems.length, 1, "logged once, not per request");
     assert.equal(logger.problems[0]?.level, "error");
     assert.match(logger.problems[0]!.message, /no mail server/);
+  });
+
+  it("does not count failed sends, so a visitor can retry through an outage", async () => {
+    let failing = true;
+    const delivered: EmailMessage[] = [];
+    const { contact } = setup({
+      id: "smtp",
+      send: async (email) => {
+        if (failing) throw new Error("connection refused");
+        delivered.push(email);
+      },
+    });
+    for (let i = 0; i < 4; i++) assert.equal((await contact.send(message)).isFailure, true);
+    failing = false;
+    assert.ok((await contact.send(message)).isSuccess, "four failures did not use up the limit of two");
+    assert.equal(delivered.length, 1);
   });
 
   it("logs a failed send at error level and asks the visitor to try again", async () => {
