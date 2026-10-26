@@ -87,6 +87,12 @@ export function AlbumEditorPage() {
   const [selected, setSelected] = useState<{ spreadIndex: number; slotId: string } | null>(null);
   // A photo and a text block are never both selected: each one's tools sit in the same place.
   const [selectedText, setSelectedText] = useState<{ spreadIndex: number; blockId: string } | null>(null);
+  // A selection left on another spread would let the photo tools and Delete act on a photo
+  // the focus view no longer shows: moving to a spread drops any selection elsewhere.
+  const keepSelectionOn = useCallback((spreadIndex: number) => {
+    setSelected((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
+    setSelectedText((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
+  }, []);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // Armed by "+ Add photo" on a spread: the next tray click grows that spread
   // instead of replacing a slot or building a new one. Mutually exclusive with
@@ -147,14 +153,16 @@ export function AlbumEditorPage() {
     (next: EditorView) => {
       setViewState(next);
       saveEditorView(next);
-      // Back in the stack, land on the spread you were working on rather than wherever the page was.
-      if (next === "scroll") {
+      if (next === "focus") {
+        keepSelectionOn(currentSpread);
+      } else {
+        // Back in the stack, land on the spread you were working on rather than wherever the page was.
         requestAnimationFrame(() =>
           document.getElementById(`spread-${currentSpread}`)?.scrollIntoView({ block: "start" }),
         );
       }
     },
-    [currentSpread],
+    [currentSpread, keepSelectionOn],
   );
   const layouts = useSpreadLayouts({ albumId, projectId, album: current, currentSpread, commit: draft.commit });
 
@@ -332,13 +340,10 @@ export function AlbumEditorPage() {
         setSelectedText(null);
         setSelected({ spreadIndex, slotId });
       } else {
-        // A selection left on another spread would let the photo tools and Delete act on a
-        // photo the focus view no longer shows.
-        setSelected((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
-        setSelectedText((selection) => (selection && selection.spreadIndex !== spreadIndex ? null : selection));
+        keepSelectionOn(spreadIndex);
       }
     },
-    [setCurrentSpread],
+    [setCurrentSpread, keepSelectionOn],
   );
 
   const insertSpread = useCallback(
@@ -490,8 +495,6 @@ export function AlbumEditorPage() {
   const aspectRatio = (current.format.pageWidthMm * 2) / current.format.pageHeightMm;
   const historyBusy = draft.restoreSpreads.isPending;
   const focused = view === "focus";
-  // Clamped: removing the last spread must not leave the focus view showing nothing.
-  const focusIndex = Math.max(0, Math.min(currentSpread, current.spreads.length - 1));
 
   return (
     <div className={`page editor editor--with-strip ${focused ? "editor--focus" : ""}`}>
@@ -541,7 +544,7 @@ export function AlbumEditorPage() {
           <FocusBar
             view={view}
             onViewChange={setView}
-            index={focusIndex}
+            index={currentSpread}
             count={current.spreads.length}
             onJump={jumpToSpread}
           />
@@ -563,7 +566,7 @@ export function AlbumEditorPage() {
             return (
               // Hidden, not unmounted, in the focus view: every spread keeps its decoded photos
               // and its place for the scroll tracker, so switching back is instant.
-              <div key={spreadIndex} className="spread-slot-group" hidden={focused && spreadIndex !== focusIndex}>
+              <div key={spreadIndex} className="spread-slot-group" hidden={focused && spreadIndex !== currentSpread}>
                 <SpreadBlock
                   // Keyed by position alone. Including the template id would change the
                   // key whenever the layout changed, remounting the section and forcing
