@@ -28,6 +28,12 @@ export interface ContactMessage {
  * form for everyone for an hour, rather than flood the inbox.
  */
 export class ContactMessageUseCase {
+  /**
+   * Whether the missing mail server was logged. Never reset: `delivers` is fixed when the
+   * process starts, so the setting can only be fixed by a restart, which starts a new count.
+   */
+  private reportedNoMailServer = false;
+
   constructor(
     private readonly email: EmailSender,
     private readonly recipient: string,
@@ -39,8 +45,6 @@ export class ContactMessageUseCase {
     /** Caps all messages together: a backstop if many addresses send at once. */
     private readonly overall: AttemptLimiter = new AttemptLimiter(100, 60 * 60 * 1000),
   ) {}
-
-  private reportedNoMailServer = false;
 
   async send(contact: ContactMessage): Promise<Result<void, ApplicationError>> {
     // Answer a bot exactly as a person, so it learns nothing from the honeypot.
@@ -58,6 +62,10 @@ export class ContactMessageUseCase {
     const key = `contact:${addressKey(contact.ip)}`;
     const locked = Math.max(this.limiter.lockedFor(key), this.overall.lockedFor(OVERALL));
     if (locked > 0) return Result.failure(new TooManyAttemptsError(locked, "messages"));
+    // Reserved before sending, so parallel requests cannot all pass the check; given back if
+    // the send fails, so a visitor retrying through a mail outage, as asked, is not locked out.
+    this.limiter.record(key);
+    this.overall.record(OVERALL);
 
     const name = contact.name.trim();
     const from = contact.email.trim();
@@ -69,11 +77,10 @@ export class ContactMessageUseCase {
         subject: `Contact form: ${name}`,
         text: `${contact.message.trim()}\n\n— ${name} <${from}>`,
       });
-      // Counted once sent: a visitor retrying through a mail outage, as asked, is not locked out.
-      this.limiter.record(key);
-      this.overall.record(OVERALL);
       return Result.success(undefined);
     } catch (error) {
+      this.limiter.release(key);
+      this.overall.release(OVERALL);
       this.logger.error("contact message not sent", {
         provider: this.email.id,
         error: error instanceof Error ? error.message : String(error),

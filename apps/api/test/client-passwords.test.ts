@@ -101,6 +101,18 @@ describe("AttemptLimiter", () => {
     assert.equal(limiter.size, 1, "only the new key is left");
   });
 
+  it("gives back a released attempt", () => {
+    const limiter = new AttemptLimiter(2);
+    limiter.record("k");
+    limiter.record("k");
+    assert.ok(limiter.lockedFor("k") > 0);
+    limiter.release("k");
+    assert.equal(limiter.lockedFor("k"), 0);
+    limiter.release("k");
+    limiter.release("k");
+    assert.equal(limiter.size, 0, "releasing past zero leaves nothing behind");
+  });
+
   it("keeps keys apart and forgets on success", () => {
     const limiter = new AttemptLimiter(1);
     limiter.recordFailure("a");

@@ -37,6 +37,14 @@ export class AttemptLimiter {
     this.recordFailure(key);
   }
 
+  /** Gives back one counted attempt: a reservation that did not go through. */
+  release(key: string): void {
+    const entry = this.live(key);
+    if (!entry) return;
+    if (entry.count <= 1) this.failures.delete(key);
+    else entry.count -= 1;
+  }
+
   /** How many keys are held: lets a test see expired ones go. */
   get size(): number {
     return this.failures.size;
