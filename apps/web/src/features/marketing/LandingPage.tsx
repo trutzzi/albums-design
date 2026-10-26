@@ -42,11 +42,12 @@ const STEPS: { titleKey: string; descKey: string; image: string }[] = [
 export function LandingPage() {
   const { t } = useLanguage();
   // The router changes the URL without scrolling: "Pricing" in the header (#pricing) lands
-  // here from any page, so go to the section it names.
-  const { hash } = useLocation();
+  // here from any page, so go to the section it names. Keyed on the navigation too, so a
+  // second click on the same link scrolls back down.
+  const { hash, key } = useLocation();
   useEffect(() => {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" });
-  }, [hash]);
+  }, [hash, key]);
 
   return (
     <div className="page landing">
