@@ -6900,11 +6900,12 @@ body.is-previewing {
 }
 
 /* ---- album editor, full screen as on its board: spreads rail · spread · tools ----
-   From 901px the editor drops the page's width cap and becomes three panes, edge to
+   From 1200px the editor drops the page's width cap and becomes three panes, edge to
    edge: the page strip turns into a rail down the left, the spreads take the middle,
    the tools sit flush right. Both side panes stay pinned under the editor bar. On a
-   phone everything stays stacked, with the strip along the bottom as before. */
-@media (min-width: 901px) {
+   narrower screen it keeps the two columns and the strip along the bottom, as before:
+   below ~1200px a rail and the tools would squeeze the spread to a few hundred pixels. */
+@media (min-width: 1200px) {
   .page.editor {
     max-width: none;
     padding: 0;
