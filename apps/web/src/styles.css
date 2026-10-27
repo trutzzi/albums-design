@@ -6464,3 +6464,52 @@ body.is-previewing {
   max-width: 1100px;
   margin: 0 auto;
 }
+
+/* ---- shoot album step: each album with its first spreads, as on the shoot board ---- */
+.album-list li.album-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 14px;
+}
+.album-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+.album-card__head p {
+  margin: 2px 0 0;
+}
+.album-card__head .button {
+  text-decoration: none;
+}
+.album-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+.album-preview__spread {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  /* Read-only here: a click opens the editor, it never selects a photo. */
+  pointer-events: none;
+}
+.album-preview__spread figcaption,
+.album-preview__more {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+.album-preview__more {
+  align-self: center;
+  justify-self: start;
+}
+.album-preview:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 8px;
+}

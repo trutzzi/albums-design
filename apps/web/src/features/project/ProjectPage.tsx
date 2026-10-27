@@ -27,6 +27,7 @@ import { SelectionPanel } from "@/features/project/components/SelectionPanel";
 import { AlbumPanel } from "@/features/project/components/AlbumPanel";
 import { DeliveryPanel } from "@/features/project/components/DeliveryPanel";
 import { SlideshowPanel } from "@/features/project/components/SlideshowPanel";
+import { PrintPdfPanel } from "@/features/project/components/PrintPdfPanel";
 import { ShootSidebar } from "@/features/project/components/ShootSidebar";
 import { Skeleton } from "@/shared/ui/Loading";
 import { usePlans } from "@/shared/ui/usePlans";
@@ -305,6 +306,9 @@ export function ProjectPage() {
               <AlbumPanel projectId={projectId} size={albumSize} analysed={analysed} />
             </div>
             <div className="shoot__delivery" hidden={step !== "delivery"}>
+              {/* Mounted only on this step: unlike the link forms it holds no state, and its
+              export lists would otherwise load and poll on every visit to the shoot. */}
+              {step === "delivery" && <PrintPdfPanel projectId={projectId} />}
               <DeliveryPanel
                 projectId={projectId}
                 contact={contact}
