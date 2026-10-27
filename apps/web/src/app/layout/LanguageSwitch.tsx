@@ -10,7 +10,6 @@ export function LanguageSwitch() {
       type="button"
       className="header-chip"
       aria-label={t("language.switchTo", { language: other.label })}
-      lang={other.value}
       onClick={() => setLanguage(other.value)}
     >
       {LANGUAGES.map((option, index) => (
