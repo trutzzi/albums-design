@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { ApiError } from "@/shared/api";
+import { AuthPhoto } from "@/features/auth/components/AuthPhoto";
 
 /** Where the link in the reset email lands: choose a new password, then straight into the app. */
 export function ResetPasswordPage() {
@@ -18,7 +19,7 @@ export function ResetPasswordPage() {
 
   return (
     <div className="page auth-page">
-      <img src="/images/bouquet-album.webp" alt="" className="auth-page__image" />
+      <AuthPhoto src="/images/bouquet-album.webp" />
       <section className="panel auth-panel">
         <img src="/logo-full.png" alt="AlbumFlow Studio" className="auth-panel__logo" />
         <div className="panel__head">

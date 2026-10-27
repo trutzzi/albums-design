@@ -4,6 +4,7 @@ export const en: Record<string, string> = {
   "nav.shoots": "Shoots",
   "nav.studio": "Studio",
   "nav.changelog": "What's new",
+  "nav.pricing": "Pricing",
   "nav.contact": "Contact",
   "nav.login": "Log in",
   "nav.signup": "Sign up",
@@ -100,7 +101,8 @@ export const en: Record<string, string> = {
   "common.loading": "Loading…",
 
   // --- Auth ---------------------------------------------------------
-  "auth.login.title": "Log in",
+  "auth.login.title": "Welcome back",
+  "auth.photo.caption": "From the last shot to the finished album.",
   "auth.login.email": "Email",
   "auth.login.password": "Password",
   "auth.login.submit": "Log in",
@@ -542,12 +544,12 @@ export const en: Record<string, string> = {
   "landing.feature.delivery.title": "Deliver every photo, on a deadline",
   "landing.feature.delivery.desc":
     "Give clients one link to look through every photo in a gallery, then download them all at full size as a single ZIP — available for the period you choose, with a clear confirmation before they start.",
-  "access.gate.title": "This link is protected",
+  "access.gate.title": "Your photos are private",
   "access.gate.hint": "Enter the password your photographer sent you.",
   "access.gate.password": "Password",
   "access.gate.note": "Capitals and the dash don't matter.",
   "access.gate.help": "No password? Reply to your photographer's email.",
-  "access.gate.submit": "Open",
+  "access.gate.submit": "Open my photos",
   "access.gate.checking": "Checking…",
   "access.gate.invalid": "That password is not correct. Check it and try again.",
   "access.gate.locked": "Too many wrong attempts. Please wait a few minutes and try again.",
@@ -629,10 +631,10 @@ export const en: Record<string, string> = {
   "landing.feature.dark.title": "Easy on the eyes",
   "landing.feature.dark.desc":
     "A dark theme for late-night editing sessions. It follows your device and remembers your choice.",
-  "landing.steps.pick.title": "2. Let clients choose",
+  "landing.steps.pick.title": "Let clients choose",
   "landing.steps.pick.desc":
     "Send a private, password-protected gallery link. Your client hearts their favourites and sends the selection — you're emailed straight away.",
-  "landing.steps.deliver.title": "5. Deliver the photos",
+  "landing.steps.deliver.title": "Deliver the photos",
   "landing.steps.deliver.desc":
     "Send a download link with a deadline. Clients browse the gallery, then download everything at full size — and you're notified.",
   "changelog.release.v130.heading": "AlbumFlow 1.3.0 — a new look, and what needs you at a glance",
@@ -812,8 +814,12 @@ export const en: Record<string, string> = {
   "landing.hero.title": "From memory card to happy client — in one workflow",
   "landing.hero.subtitle":
     "AlbumFlow covers the whole job. It scores your photos, lets clients pick their favourites, builds the spreads, gets the sign-off and delivers every photo on a deadline — so you spend less time on admin and more time behind the camera.",
+  "landing.hero.cta.how": "See how it works",
+  "landing.hero.card.alt": "An open wedding album: two spreads of the couple",
+  "landing.hero.card.title": "Elena & Radu · Spread 3",
+  "landing.hero.card.status": "Approved by the client",
+  "landing.footer.label": "More about AlbumFlow",
   "landing.hero.cta.primary": "Get started free",
-  "landing.hero.cta.secondary": "Log in",
   "landing.features.heading": "Everything a photographer needs, nothing they don't",
   "landing.features.subheading": "Built for the whole professional workflow: cull, pick, design, approve, deliver.",
   "landing.feature.scoring.title": "Smart photo scoring",
@@ -841,13 +847,13 @@ export const en: Record<string, string> = {
   "landing.feature.language.desc":
     "The whole app — this page included — works in English and Romanian, switchable any time.",
   "landing.steps.heading": "From memory card to finished album",
-  "landing.steps.upload.title": "1. Upload the shoot",
+  "landing.steps.upload.title": "Upload the shoot",
   "landing.steps.upload.desc":
     "Drop in a folder of JPEGs — AlbumFlow analyses every one while you get on with your day.",
-  "landing.steps.design.title": "3. Design the album",
+  "landing.steps.design.title": "Design the album",
   "landing.steps.design.desc":
     "Build from your client's picks. Accept the layout AlbumFlow suggests, or drag, resize, and rearrange until it's exactly right.",
-  "landing.steps.approve.title": "4. Get the sign-off",
+  "landing.steps.approve.title": "Get the sign-off",
   "landing.steps.approve.desc":
     "Share a password-protected review link with your client, resolve their notes, and export a print-ready PDF.",
   "landing.cta.heading": "Ready to run your next shoot from start to delivery?",

@@ -4,6 +4,7 @@ export const ro: Record<string, string> = {
   "nav.shoots": "Sesiuni foto",
   "nav.studio": "Studio",
   "nav.changelog": "Noutăți",
+  "nav.pricing": "Prețuri",
   "nav.contact": "Contact",
   "nav.login": "Autentificare",
   "nav.signup": "Înregistrare",
@@ -100,7 +101,8 @@ export const ro: Record<string, string> = {
   "common.loading": "Se încarcă…",
 
   // --- Auth ---------------------------------------------------------
-  "auth.login.title": "Autentificare",
+  "auth.login.title": "Bine ai revenit",
+  "auth.photo.caption": "De la ultima fotografie la albumul gata.",
   "auth.login.email": "Email",
   "auth.login.password": "Parolă",
   "auth.login.submit": "Autentificare",
@@ -552,12 +554,12 @@ export const ro: Record<string, string> = {
   "landing.feature.delivery.title": "Livrează toate fotografiile, cu termen limită",
   "landing.feature.delivery.desc":
     "Oferă clienților un singur link prin care răsfoiesc toate fotografiile într-o galerie, apoi le descarcă pe toate la dimensiune completă, într-un singur ZIP — disponibil perioada aleasă de tine, cu o confirmare clară înainte să înceapă.",
-  "access.gate.title": "Acest link este protejat",
+  "access.gate.title": "Fotografiile tale sunt private",
   "access.gate.hint": "Introdu parola primită de la fotograful tău.",
   "access.gate.password": "Parola",
   "access.gate.note": "Majusculele și cratima nu contează.",
   "access.gate.help": "Nu ai parola? Răspunde la emailul primit de la fotograf.",
-  "access.gate.submit": "Deschide",
+  "access.gate.submit": "Deschide fotografiile",
   "access.gate.checking": "Se verifică…",
   "access.gate.invalid": "Parola nu este corectă. Verific-o și încearcă din nou.",
   "access.gate.locked": "Prea multe încercări greșite. Așteaptă câteva minute și încearcă din nou.",
@@ -640,10 +642,10 @@ export const ro: Record<string, string> = {
   "landing.feature.dark.title": "Blând cu ochii",
   "landing.feature.dark.desc":
     "O temă întunecată pentru sesiunile de editare de noapte. Urmează dispozitivul tău și îți reține alegerea.",
-  "landing.steps.pick.title": "2. Lasă clienții să aleagă",
+  "landing.steps.pick.title": "Lasă clienții să aleagă",
   "landing.steps.pick.desc":
     "Trimite un link către o galerie privată, protejată cu parolă. Clientul își marchează favoritele și trimite selecția — primești imediat un email.",
-  "landing.steps.deliver.title": "5. Livrează fotografiile",
+  "landing.steps.deliver.title": "Livrează fotografiile",
   "landing.steps.deliver.desc":
     "Trimite un link de descărcare cu termen limită. Clienții răsfoiesc galeria, apoi descarcă tot la dimensiune completă — iar tu ești anunțat.",
   "changelog.release.v130.heading": "AlbumFlow 1.3.0 — un aspect nou și ce te așteaptă dintr-o privire",
@@ -823,8 +825,12 @@ export const ro: Record<string, string> = {
   "landing.hero.title": "De la cardul de memorie la clientul mulțumit — într-un singur flux",
   "landing.hero.subtitle":
     "AlbumFlow acoperă toată munca. Evaluează fotografiile, lasă clienții să-și aleagă favoritele, construiește paginile duble, obține aprobarea și livrează toate fotografiile cu termen limită — așa că petreci mai puțin timp cu administrativul și mai mult în spatele aparatului.",
+  "landing.hero.cta.how": "Vezi cum funcționează",
+  "landing.hero.card.alt": "Un album de nuntă deschis: două pagini duble cu mirii",
+  "landing.hero.card.title": "Elena & Radu · Pagina dublă 3",
+  "landing.hero.card.status": "Aprobat de client",
+  "landing.footer.label": "Mai multe despre AlbumFlow",
   "landing.hero.cta.primary": "Începe gratuit",
-  "landing.hero.cta.secondary": "Conectează-te",
   "landing.features.heading": "Tot ce are nevoie un fotograf, nimic în plus",
   "landing.features.subheading":
     "Construit pentru întregul flux profesional: selecție, alegerea clientului, design, aprobare, livrare.",
@@ -853,13 +859,13 @@ export const ro: Record<string, string> = {
   "landing.feature.language.desc":
     "Întreaga aplicație — inclusiv această pagină — funcționează în română și engleză, comutabile în orice moment.",
   "landing.steps.heading": "De la cardul de memorie la albumul finalizat",
-  "landing.steps.upload.title": "1. Încarcă ședința foto",
+  "landing.steps.upload.title": "Încarcă ședința foto",
   "landing.steps.upload.desc":
     "Adaugă un folder cu fotografii JPEG — AlbumFlow le analizează pe toate cât tu continui cu ziua ta.",
-  "landing.steps.design.title": "3. Proiectează albumul",
+  "landing.steps.design.title": "Proiectează albumul",
   "landing.steps.design.desc":
     "Construiește din selecția clientului. Acceptă aspectul propus de AlbumFlow sau trage, redimensionează și rearanjează până este exact cum vrei.",
-  "landing.steps.approve.title": "4. Obține aprobarea",
+  "landing.steps.approve.title": "Obține aprobarea",
   "landing.steps.approve.desc":
     "Trimite clientului un link de recenzie protejat cu parolă, rezolvă observațiile lui și exportă un PDF pregătit pentru tipar.",
   "landing.cta.heading": "Ești pregătit să-ți duci următoarea ședință foto de la început până la livrare?",

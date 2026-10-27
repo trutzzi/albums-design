@@ -88,6 +88,7 @@ export function AppHeader() {
           <button type="button" className="link-button" onClick={openHowItWorks}>
             {t("howItWorks.nav")}
           </button>
+          {!auth.isAuthenticated && <Link to={{ pathname: "/", hash: "#pricing" }}>{t("nav.pricing")}</Link>}
           <Link to="/changelog">{t("nav.changelog")}</Link>
           <Link to="/contact">{t("nav.contact")}</Link>
           {auth.isAuthenticated ? (
@@ -97,7 +98,9 @@ export function AppHeader() {
           ) : (
             <>
               <Link to="/login">{t("nav.login")}</Link>
-              <Link to="/register">{t("nav.signup")}</Link>
+              <Link to="/register" className="app-header__signup">
+                {t("nav.signup")}
+              </Link>
             </>
           )}
         </nav>

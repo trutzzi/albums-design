@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { ApiError } from "@/shared/api";
+import { AuthPhoto } from "@/features/auth/components/AuthPhoto";
 
 /** Where the link in the confirmation email lands: opens the account, then straight into the app. */
 export function VerifyEmailPage() {
@@ -26,7 +27,7 @@ export function VerifyEmailPage() {
 
   return (
     <div className="page auth-page">
-      <img src="/images/bouquet-album.webp" alt="" className="auth-page__image" />
+      <AuthPhoto src="/images/bouquet-album.webp" />
       <section className="panel auth-panel">
         <img src="/logo-full.png" alt="AlbumFlow Studio" className="auth-panel__logo" />
         <div className="panel__head">

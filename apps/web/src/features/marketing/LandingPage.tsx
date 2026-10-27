@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { hasLaunchDiscount, isRecommended, planHighlights } from "@/features/marketing/lib/pricing";
 import { localeOf } from "@/shared/i18n/locale";
@@ -28,24 +29,27 @@ const FEATURES: Feature[] = [
   { icon: "🌐", titleKey: "landing.feature.language.title", descKey: "landing.feature.language.desc" },
 ];
 
-const STEPS: { titleKey: string; descKey: string }[] = [
-  { titleKey: "landing.steps.upload.title", descKey: "landing.steps.upload.desc" },
-  { titleKey: "landing.steps.pick.title", descKey: "landing.steps.pick.desc" },
-  { titleKey: "landing.steps.design.title", descKey: "landing.steps.design.desc" },
-  { titleKey: "landing.steps.approve.title", descKey: "landing.steps.approve.desc" },
-  { titleKey: "landing.steps.deliver.title", descKey: "landing.steps.deliver.desc" },
-];
-
-/** Photo tiles under the hero, captioned with the feature each one illustrates. */
-const SHOWCASE: { image: string; titleKey: string }[] = [
-  { image: "/images/photographer-desk.webp", titleKey: "landing.feature.layouts.title" },
-  { image: "/images/client-approval.webp", titleKey: "landing.feature.review.title" },
-  { image: "/images/album-delivery.webp", titleKey: "landing.feature.delivery.title" },
+/** The five steps, each with the photo that shows it, as on the landing board. */
+const STEPS: { titleKey: string; descKey: string; image: string }[] = [
+  { titleKey: "landing.steps.upload.title", descKey: "landing.steps.upload.desc", image: "/images/memory-card-to-album.webp" },
+  { titleKey: "landing.steps.pick.title", descKey: "landing.steps.pick.desc", image: "/images/bouquet-album.webp" },
+  { titleKey: "landing.steps.design.title", descKey: "landing.steps.design.desc", image: "/images/photographer-desk.webp" },
+  { titleKey: "landing.steps.approve.title", descKey: "landing.steps.approve.desc", image: "/images/client-approval.webp" },
+  { titleKey: "landing.steps.deliver.title", descKey: "landing.steps.deliver.desc", image: "/images/album-delivery.webp" },
 ];
 
 /** The first thing a prospective photographer sees, before they've created an account. */
 export function LandingPage() {
   const { t } = useLanguage();
+  // The router changes the URL without scrolling: "Pricing" in the header (#pricing) lands
+  // here from any page, so go to the section it names. Keyed on the navigation too, so a
+  // second click on the same link scrolls back down.
+  const { hash, key } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+  }, [hash, key]);
 
   return (
     <div className="page landing">
@@ -58,21 +62,38 @@ export function LandingPage() {
             <Link to="/register" className="button button--primary">
               {t("landing.hero.cta.primary")}
             </Link>
-            <Link to="/login" className="button">
-              {t("landing.hero.cta.secondary")}
-            </Link>
+            <a href="#how" className="button">
+              {t("landing.hero.cta.how")}
+            </a>
           </div>
         </div>
+        {/* An example of what the client sees at the end: a spread they approved. */}
+        <figure className="landing-hero__card">
+          <img src="/images/hero-album.webp" alt={t("landing.hero.card.alt")} />
+          <figcaption>
+            <span className="landing-hero__card-title">{t("landing.hero.card.title")}</span>
+            <span className="chip chip--approved">{t("landing.hero.card.status")}</span>
+          </figcaption>
+        </figure>
       </section>
 
-      <div className="landing-showcase">
-        {SHOWCASE.map((tile) => (
-          <figure key={tile.titleKey} className="landing-showcase__tile">
-            <img src={tile.image} alt="" loading="lazy" />
-            <figcaption>{t(tile.titleKey)}</figcaption>
-          </figure>
-        ))}
-      </div>
+      <section id="how" className="landing-how" aria-labelledby="how-title">
+        <h2 id="how-title" className="landing-section-heading">
+          {t("landing.steps.heading")}
+        </h2>
+        <ol className="landing-steps">
+          {STEPS.map((step, index) => (
+            <li key={step.titleKey} className="landing-step">
+              <img src={step.image} alt="" loading="lazy" className="landing-step__photo" />
+              <span className="landing-step__number" aria-hidden="true">
+                {index + 1}
+              </span>
+              <h3>{t(step.titleKey)}</h3>
+              <p>{t(step.descKey)}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <h2 className="landing-section-heading">{t("landing.features.heading")}</h2>
       <p className="landing-section-subheading">{t("landing.features.subheading")}</p>
@@ -88,18 +109,6 @@ export function LandingPage() {
         ))}
       </div>
 
-      <h2 className="landing-section-heading">{t("landing.steps.heading")}</h2>
-      <img src="/images/memory-card-to-album.webp" alt="" loading="lazy" className="landing-steps__banner" />
-      <div className="landing-steps">
-        {STEPS.map((step, index) => (
-          <div key={step.titleKey} className="landing-step">
-            <span className="landing-step__number">{index + 1}</span>
-            <h3>{t(step.titleKey)}</h3>
-            <p>{t(step.descKey)}</p>
-          </div>
-        ))}
-      </div>
-
       <Pricing />
 
       <section className="landing-cta">
@@ -109,6 +118,14 @@ export function LandingPage() {
           {t("landing.cta.button")}
         </Link>
       </section>
+
+      <footer className="landing-footer">
+        <img src="/logo-full.png" alt="AlbumFlow Studio" className="landing-footer__logo" />
+        <nav aria-label={t("landing.footer.label")} className="landing-footer__links">
+          <Link to="/contact">{t("nav.contact")}</Link>
+          <Link to="/changelog">{t("nav.changelog")}</Link>
+        </nav>
+      </footer>
     </div>
   );
 }
