@@ -24,6 +24,10 @@ export function AccountMenu() {
     <div
       className="header-menu"
       ref={ref}
+      onBlur={(event) => {
+        // Tabbing out of the menu closes it, as pressing outside does.
+        if (open && !ref.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+      }}
       onKeyDown={(event) => {
         if (event.key !== "Escape" || !open) return;
         // Handled here so the phone menu around it stays open.
@@ -50,7 +54,11 @@ export function AccountMenu() {
           id="account-menu"
           className="header-menu__panel"
           onClick={(event) => {
-            if ((event.target as HTMLElement).closest("a, button")) setOpen(false);
+            if (!(event.target as HTMLElement).closest("a, button")) return;
+            setOpen(false);
+            // The chosen item unmounts with the panel; focus goes back to the avatar
+            // rather than to the top of the page.
+            buttonRef.current?.focus();
           }}
         >
           {auth.name.trim() && <p className="header-menu__who">{auth.name}</p>}

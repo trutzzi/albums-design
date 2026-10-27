@@ -17,6 +17,10 @@ export function PrefsMenu() {
     <div
       className="header-menu"
       ref={ref}
+      onBlur={(event) => {
+        // Tabbing out of the menu closes it, as pressing outside does.
+        if (open && !ref.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+      }}
       onKeyDown={(event) => {
         if (event.key !== "Escape" || !open) return;
         event.stopPropagation();
