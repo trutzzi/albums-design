@@ -10,13 +10,14 @@ const THEMES = ["light", "dark"] as const;
 export function PrefsMenu() {
   const { t, language, setLanguage } = useLanguage();
   const [theme, setTheme] = useTheme();
-  const { open, setOpen, ref } = useDisclosure<HTMLDivElement>();
+  const { open, setOpen, ref, onBlur } = useDisclosure<HTMLDivElement>();
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div
       className="header-menu"
       ref={ref}
+      onBlur={onBlur}
       onKeyDown={(event) => {
         if (event.key !== "Escape" || !open) return;
         event.stopPropagation();

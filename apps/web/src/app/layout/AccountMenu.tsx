@@ -17,13 +17,14 @@ export function AccountMenu() {
   const auth = useAuth();
   const { t } = useLanguage();
   const tour = useAvailableTour();
-  const { open, setOpen, ref } = useDisclosure<HTMLDivElement>();
+  const { open, setOpen, ref, onBlur } = useDisclosure<HTMLDivElement>();
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div
       className="header-menu"
       ref={ref}
+      onBlur={onBlur}
       onKeyDown={(event) => {
         if (event.key !== "Escape" || !open) return;
         // Handled here so the phone menu around it stays open.
@@ -50,7 +51,11 @@ export function AccountMenu() {
           id="account-menu"
           className="header-menu__panel"
           onClick={(event) => {
-            if ((event.target as HTMLElement).closest("a, button")) setOpen(false);
+            if (!(event.target as HTMLElement).closest("a, button")) return;
+            setOpen(false);
+            // The chosen item unmounts with the panel; focus goes back to the avatar
+            // rather than to the top of the page.
+            buttonRef.current?.focus();
           }}
         >
           {auth.name.trim() && <p className="header-menu__who">{auth.name}</p>}

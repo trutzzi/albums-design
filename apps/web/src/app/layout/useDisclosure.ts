@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FocusEvent } from "react";
 import { useLocation } from "react-router-dom";
 
 /**
@@ -24,5 +24,16 @@ export function useDisclosure<T extends HTMLElement>() {
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
-  return { open, setOpen, ref };
+  /**
+   * Tabbing out closes it too. Only when focus really lands elsewhere: Safari and macOS
+   * Firefox do not focus a button on click, so a press on an item blurs to nothing
+   * (`relatedTarget` null) before its click fires — closing then would swallow the click.
+   * Presses outside are the pointer listener's job.
+   */
+  const onBlur = (event: FocusEvent<T>) => {
+    const next = event.relatedTarget as Node | null;
+    if (open && next && !ref.current?.contains(next)) setOpen(false);
+  };
+
+  return { open, setOpen, ref, onBlur };
 }
