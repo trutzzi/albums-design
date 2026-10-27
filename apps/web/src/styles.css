@@ -3884,6 +3884,9 @@ a:focus-visible,
   height: 0;
   border-top: none;
 }
+.page-strip--collapsed .page-strip__list {
+  display: none;
+}
 .page-strip__list {
   display: flex;
   gap: 10px;
@@ -6910,9 +6913,21 @@ body.is-previewing {
   .page.editor > .error {
     margin: 12px 24px;
   }
+  /* Placed by area, not by source order: the strip comes last in the page (after the
+     spreads and tools) but is drawn as the left rail. */
   .editor .editor__layout {
     grid-template-columns: 190px minmax(0, 1fr) 320px;
+    grid-template-areas: "rail spreads tools";
     gap: 0;
+  }
+  .editor .editor__layout > .spreads {
+    grid-area: spreads;
+  }
+  .editor .editor__layout > .sidebar {
+    grid-area: tools;
+  }
+  .editor .editor__layout > .page-strip {
+    grid-area: rail;
   }
   .editor .editor__layout--wide {
     grid-template-columns: 190px minmax(0, 1fr) 460px;
@@ -6922,7 +6937,8 @@ body.is-previewing {
     padding: 24px 32px 48px;
     border-radius: 0;
   }
-  .editor .page-strip {
+  .editor .page-strip,
+  .editor .page-strip--collapsed {
     position: sticky;
     top: var(--editor-header-h, 0px);
     bottom: auto;
@@ -6940,7 +6956,9 @@ body.is-previewing {
   .editor .page-strip__toggle {
     display: none;
   }
-  .editor .page-strip__list {
+  .editor .page-strip__list,
+  .editor .page-strip--collapsed .page-strip__list {
+    display: flex;
     flex-direction: column;
     gap: 12px;
     padding: 14px;
