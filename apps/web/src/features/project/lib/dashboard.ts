@@ -83,6 +83,31 @@ export function filterCounts(shoots: readonly ProjectSummaryDTO[]): Record<Shoot
   return counts;
 }
 
+/** Most urgent first. A Record, so a new kind of attention cannot be left out unnoticed. */
+const ATTENTION_RANK: Record<Attention["kind"], number> = { changes: 0, picks: 1, deliver: 2, expiring: 3 };
+const AFTER_ATTENTION = Object.keys(ATTENTION_RANK).length;
+
+/**
+ * Where a shoot sits in "sorted by next action": what waits on the photographer first (most
+ * urgent first), then what is with the client, then shoots in progress, delivered ones last.
+ */
+function nextActionRank(shoot: ProjectSummaryDTO): number {
+  const item = attentionFor(shoot);
+  if (item) return ATTENTION_RANK[item.kind];
+  const filter = filterOf(shoot);
+  if (filter === "client") return AFTER_ATTENTION;
+  if (filter === "delivered") return AFTER_ATTENTION + 2;
+  return AFTER_ATTENTION + 1;
+}
+
+/** Sorts by next action. Stable, so shoots of equal rank keep the order they came in (newest first). */
+export function byNextAction(shoots: readonly ProjectSummaryDTO[]): ProjectSummaryDTO[] {
+  return shoots
+    .map((shoot) => ({ shoot, rank: nextActionRank(shoot) }))
+    .sort((a, b) => a.rank - b.rank)
+    .map(({ shoot }) => shoot);
+}
+
 /** "Good morning" before noon, "Good afternoon" until six, then "Good evening". */
 export function greetingKey(
   now: Date,

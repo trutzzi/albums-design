@@ -25,9 +25,17 @@ export interface ContactMessage {
  * Sent within the request, like every other email in the app, so the visitor can be told
  * when it failed; the SMTP timeouts bound the wait, and the rate limits bound how often.
  * The overall cap is a deliberate trade: someone spreading over ~20 addresses can pause the
- * form for everyone for an hour, rather than flood the inbox.
+ * form for everyone for an hour, rather than flood the inbox. Failed sends count toward it
+ * too, so a long mail outage closes the form after about 100 failures; it is down then anyway,
+ * and every failure is already in the error log.
  */
 export class ContactMessageUseCase {
+  /**
+   * Whether the missing mail server was logged. Never reset: `delivers` is fixed when the
+   * process starts, so the setting can only be fixed by a restart, which starts a new count.
+   */
+  private reportedNoMailServer = false;
+
   constructor(
     private readonly email: EmailSender,
     private readonly recipient: string,
@@ -36,8 +44,10 @@ export class ContactMessageUseCase {
     private readonly delivers: boolean,
     /** Caps messages per address, so the form cannot flood the inbox. */
     private readonly limiter: AttemptLimiter = new AttemptLimiter(5, 60 * 60 * 1000),
-    /** Caps all messages together: a backstop if many addresses send at once. */
+    /** Caps all messages together, sent or failed: a backstop if many addresses send at once. */
     private readonly overall: AttemptLimiter = new AttemptLimiter(100, 60 * 60 * 1000),
+    /** Caps failed sends per address, so retrying through an outage cannot hammer the mail server. */
+    private readonly failures: AttemptLimiter = new AttemptLimiter(10, 60 * 60 * 1000),
   ) {}
 
   async send(contact: ContactMessage): Promise<Result<void, ApplicationError>> {
@@ -45,13 +55,21 @@ export class ContactMessageUseCase {
     if (contact.website?.trim()) return Result.success(undefined);
 
     if (!this.delivers) {
-      this.logger.error("contact message not sent: no mail server is configured (EMAIL_PROVIDER)");
+      // Once, not per request: anyone can post to the form, and the setting is what is wrong.
+      if (!this.reportedNoMailServer) {
+        this.logger.error("contact message not sent: no mail server is configured (EMAIL_PROVIDER)");
+        this.reportedNoMailServer = true;
+      }
       return Result.failure(notSent());
     }
 
     const key = `contact:${addressKey(contact.ip)}`;
-    const locked = Math.max(this.limiter.lockedFor(key), this.overall.lockedFor(OVERALL));
+    const locked = Math.max(this.limiter.lockedFor(key), this.overall.lockedFor(OVERALL), this.failures.lockedFor(key));
     if (locked > 0) return Result.failure(new TooManyAttemptsError(locked, "messages"));
+    // Reserved before sending, so parallel requests cannot all pass the check. A failed send
+    // gives back the address's message slot (a visitor retrying through an outage, as asked,
+    // is not locked out) but keeps its place in the overall cap and counts toward the
+    // address's failure budget, so failures are never free.
     this.limiter.record(key);
     this.overall.record(OVERALL);
 
@@ -67,6 +85,8 @@ export class ContactMessageUseCase {
       });
       return Result.success(undefined);
     } catch (error) {
+      this.limiter.release(key);
+      this.failures.record(key);
       this.logger.error("contact message not sent", {
         provider: this.email.id,
         error: error instanceof Error ? error.message : String(error),
