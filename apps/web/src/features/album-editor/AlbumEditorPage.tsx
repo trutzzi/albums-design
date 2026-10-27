@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import type { PhotoTreatment } from "@albumflow/contracts";
 import {
   DEFAULT_STYLE,
@@ -13,6 +13,7 @@ import {
   deleteAlbum,
   getAlbum,
   getAlbumFeedback,
+  getProject,
   listLayoutTemplates,
   listPickSessions,
   listProjectAnalyses,
@@ -44,7 +45,8 @@ import { FeedbackPanel } from "@/features/album-editor/components/FeedbackPanel"
 import { ExportPanel } from "@/shared/ui/ExportPanel";
 import { PrintGuidesModal } from "@/features/album-editor/components/PrintGuidesModal";
 import { InsertSpreadModal } from "@/features/album-editor/components/InsertSpreadModal";
-import { LoadingState } from "@/shared/ui/Loading";
+import { LoadingState, Skeleton } from "@/shared/ui/Loading";
+import { CrumbBar } from "@/app/layout/CrumbBar";
 import { FocusBar } from "@/features/album-editor/components/FocusBar";
 import { loadEditorView, saveEditorView, type EditorView } from "@/features/album-editor/lib/editor-view";
 
@@ -119,6 +121,12 @@ export function AlbumEditorPage() {
   const album = useQuery({ queryKey: ["album", albumId], queryFn: () => getAlbum(albumId) });
   const templates = useQuery({ queryKey: ["templates"], queryFn: listLayoutTemplates });
   const projectId = album.data?.projectId ?? "";
+  // For the breadcrumb only; the shoot page has usually filled this cache already.
+  const project = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: () => getProject(projectId),
+    enabled: projectId !== "",
+  });
   const photos = useQuery({
     queryKey: ["photos", projectId],
     queryFn: () => listProjectPhotos(projectId),
@@ -490,9 +498,19 @@ export function AlbumEditorPage() {
     },
   );
 
-  if (album.isLoading) return <LoadingState page label={t("albumEditor.loading")} />;
-  if (album.isError) return <p className="page error">{(album.error as Error).message}</p>;
-  if (!current) return null;
+  const crumbBack = {
+    to: projectId ? `/projects/${projectId}` : "/",
+    label: project.data?.name ?? t("nav.shoots"),
+  };
+  if (album.isLoading || album.isError || !current) {
+    return (
+      <>
+        <CrumbBar back={crumbBack} current={<Skeleton width="min(200px, 40vw)" height="1em" />} />
+        {album.isLoading && <LoadingState page label={t("albumEditor.loading")} />}
+        {album.isError && <p className="page error">{(album.error as Error).message}</p>}
+      </>
+    );
+  }
   const locked = current.status === "APPROVED";
   const aspectRatio = (current.format.pageWidthMm * 2) / current.format.pageHeightMm;
   const historyBusy = draft.restoreSpreads.isPending;
@@ -500,21 +518,26 @@ export function AlbumEditorPage() {
   const focused = view === "focus" && current.spreads.length > 0;
 
   return (
-    <div className={`page editor editor--with-strip ${focused ? "editor--focus" : ""}`}>
-      <GuidedTour id="editor" steps={EDITOR_TOUR} ready={current.spreads.length > 0} />
-      <header className="page__header" ref={headerRef}>
-        <div>
-          <Link to={projectId ? `/projects/${projectId}` : "/"} className="muted back-link">
-            {t("album.back")}
-          </Link>
-          <span className="dimension-badge">
-            {t("dimension.chip", { width: current.format.pageWidthMm / 10, height: current.format.pageHeightMm / 10 })}
-          </span>
-          <h1>{current.title}</h1>
-          <p className="muted">
-            {t("album.stats", { spreads: current.spreadCount, pages: current.pageCount, photos: current.photoCount })}
-          </p>
-        </div>
+    <>
+      <CrumbBar
+        ref={headerRef}
+        className="crumb-bar--editor"
+        back={crumbBack}
+        current={
+          <>
+            <span className="crumb-bar__title">{current.title}</span>
+            <span className="dimension-badge">
+              {t("dimension.chip", {
+                width: current.format.pageWidthMm / 10,
+                height: current.format.pageHeightMm / 10,
+              })}
+            </span>
+            <span className="crumb-bar__meta">
+              {t("album.stats", { spreads: current.spreadCount, pages: current.pageCount, photos: current.photoCount })}
+            </span>
+          </>
+        }
+      >
         <EditorToolbar
           saving={saving}
           needsAttention={needsAttention}
@@ -534,274 +557,279 @@ export function AlbumEditorPage() {
           onMarkReady={() => draft.edit.mutate({ type: "SUBMIT_FOR_REVIEW" })}
           onDelete={() => setConfirmingDelete(true)}
         />
-      </header>
+      </CrumbBar>
+      <div className={`page editor editor--with-strip ${focused ? "editor--focus" : ""}`}>
+        <GuidedTour id="editor" steps={EDITOR_TOUR} ready={current.spreads.length > 0} />
+        {/* The title is shown in the bar above; the page still needs its heading. */}
+        <h1 className="visually-hidden">{current.title}</h1>
 
-      {draft.edit.isError && <p className="error">{(draft.edit.error as Error).message}</p>}
-      {draft.restoreSpreads.isError && <p className="error">{(draft.restoreSpreads.error as Error).message}</p>}
-      {locked && (
-        <p className="notice">This album is approved and locked. Reopen it if the client asked for another change.</p>
-      )}
+        {draft.edit.isError && <p className="error">{(draft.edit.error as Error).message}</p>}
+        {draft.restoreSpreads.isError && <p className="error">{(draft.restoreSpreads.error as Error).message}</p>}
+        {locked && (
+          <p className="notice">This album is approved and locked. Reopen it if the client asked for another change.</p>
+        )}
 
-      <div className={`editor__layout ${tray.prefs.wide ? "editor__layout--wide" : ""}`}>
-        <main className="spreads">
-          <FocusBar
-            view={view}
-            onViewChange={setView}
-            index={currentSpread}
-            count={current.spreads.length}
-            onJump={jumpToSpread}
-          />
-          {/* The cover is not a spread: it is edited from the all-spreads view. */}
-          {!focused && (
-            <CoverEditor
-              cover={current.cover ?? null}
-              albumStyle={current.style ?? DEFAULT_STYLE}
-              aspectRatio={current.format.pageWidthMm / current.format.pageHeightMm}
-              albumTitle={current.title}
-              previewUrlFor={previewUrlFor}
-              focusFor={focusFor}
-              locked={locked}
-              onChange={setCover}
+        <div className={`editor__layout ${tray.prefs.wide ? "editor__layout--wide" : ""}`}>
+          <main className="spreads">
+            <FocusBar
+              view={view}
+              onViewChange={setView}
+              index={currentSpread}
+              count={current.spreads.length}
+              onJump={jumpToSpread}
             />
-          )}
-          {current.spreads.map((spread, spreadIndex) => {
-            const design = layouts.designPositionOf(spread);
-            return (
-              // Hidden, not unmounted, in the focus view: every spread keeps its decoded photos
-              // and its place for the scroll tracker, so switching back is instant.
-              <div key={spreadIndex} className="spread-slot-group" hidden={focused && spreadIndex !== currentSpread}>
-                <SpreadBlock
-                  // Keyed by position alone. Including the template id would change the
-                  // key whenever the layout changed, remounting the section and forcing
-                  // the browser to re-decode every photo on it.
-                  spread={spread}
-                  spreadIndex={spreadIndex}
-                  spreadCount={current.spreads.length}
-                  template={templateById.get(spread.templateId)}
-                  templates={templateList}
-                  previewUrlFor={previewUrlFor}
-                  aspectRatio={aspectRatio}
-                  pageWidthMm={current.format.pageWidthMm}
-                  pageHeightMm={current.format.pageHeightMm}
-                  showRuler={showRuler}
-                  showGuides={guides.show}
-                  safeMarginMm={guides.show ? (guides.selected?.safeMarginMm ?? 0) : 0}
-                  snapEnabled={snapEnabled}
-                  selectedSlotId={selected?.spreadIndex === spreadIndex ? selected.slotId : null}
-                  locked={locked}
-                  shuffling={layouts.shuffle.isPending}
-                  designIndex={design.index}
-                  designTotal={design.total}
-                  addingPhoto={addingToSpread === spreadIndex}
-                  addPhotoDisabled={spread.placements.length >= MAX_PHOTOS_PER_SPREAD}
-                  openComments={commentsBySpread.get(spreadIndex) ?? 0}
-                  onSelectSlot={selectSlot}
-                  onReorder={reorderSpread}
-                  onResetFrames={resetFrames}
-                  onCycleDesign={cycleDesign}
-                  onAddPhoto={armAddToSpread}
-                  onSpreadTreatment={setSpreadTreatment}
-                  onRemove={removeSpread}
-                  onSlotDrop={dropPhotoInSlot}
-                  onCropChange={draft.changeCrop}
-                  onTreatmentChange={setSlotTreatment}
-                  onFrameChange={draft.changeFrame}
-                  onFramesChange={draft.changeFrames}
-                  onMirror={mirrorSpread}
-                  onToggleLock={toggleSpreadLock}
-                  chapterLabel={chapters[spreadIndex] ? t(`chapter.${chapters[spreadIndex]}`) : undefined}
-                  onReorderPlacement={reorderPlacement}
-                  onMoveToNeighbor={moveToNeighbor}
-                  onMovePlacementAcrossSpreads={movePlacementAcrossSpreads}
-                  onMovePhotoAsNewPhoto={movePhotoAsNewPhotoDrop}
-                  onPickTemplate={pickTemplate}
-                  onAddPhotoDrop={addPhotoDrop}
-                  onRemovePhoto={removePhoto}
-                  onReplacePhoto={replacePhoto}
-                  onCloseTools={closeTools}
-                  albumStyle={current.style ?? DEFAULT_STYLE}
-                  selectedTextId={selectedText?.spreadIndex === spreadIndex ? selectedText.blockId : null}
-                  onAddText={addText}
-                  onTextSelect={selectText}
-                  onTextChange={draft.changeText}
-                  onTextRemove={removeText}
-                  focusFor={focusFor}
-                />
+            {/* The cover is not a spread: it is edited from the all-spreads view. */}
+            {!focused && (
+              <CoverEditor
+                cover={current.cover ?? null}
+                albumStyle={current.style ?? DEFAULT_STYLE}
+                aspectRatio={current.format.pageWidthMm / current.format.pageHeightMm}
+                albumTitle={current.title}
+                previewUrlFor={previewUrlFor}
+                focusFor={focusFor}
+                locked={locked}
+                onChange={setCover}
+              />
+            )}
+            {current.spreads.map((spread, spreadIndex) => {
+              const design = layouts.designPositionOf(spread);
+              return (
+                // Hidden, not unmounted, in the focus view: every spread keeps its decoded photos
+                // and its place for the scroll tracker, so switching back is instant.
+                <div key={spreadIndex} className="spread-slot-group" hidden={focused && spreadIndex !== currentSpread}>
+                  <SpreadBlock
+                    // Keyed by position alone. Including the template id would change the
+                    // key whenever the layout changed, remounting the section and forcing
+                    // the browser to re-decode every photo on it.
+                    spread={spread}
+                    spreadIndex={spreadIndex}
+                    spreadCount={current.spreads.length}
+                    template={templateById.get(spread.templateId)}
+                    templates={templateList}
+                    previewUrlFor={previewUrlFor}
+                    aspectRatio={aspectRatio}
+                    pageWidthMm={current.format.pageWidthMm}
+                    pageHeightMm={current.format.pageHeightMm}
+                    showRuler={showRuler}
+                    showGuides={guides.show}
+                    safeMarginMm={guides.show ? (guides.selected?.safeMarginMm ?? 0) : 0}
+                    snapEnabled={snapEnabled}
+                    selectedSlotId={selected?.spreadIndex === spreadIndex ? selected.slotId : null}
+                    locked={locked}
+                    shuffling={layouts.shuffle.isPending}
+                    designIndex={design.index}
+                    designTotal={design.total}
+                    addingPhoto={addingToSpread === spreadIndex}
+                    addPhotoDisabled={spread.placements.length >= MAX_PHOTOS_PER_SPREAD}
+                    openComments={commentsBySpread.get(spreadIndex) ?? 0}
+                    onSelectSlot={selectSlot}
+                    onReorder={reorderSpread}
+                    onResetFrames={resetFrames}
+                    onCycleDesign={cycleDesign}
+                    onAddPhoto={armAddToSpread}
+                    onSpreadTreatment={setSpreadTreatment}
+                    onRemove={removeSpread}
+                    onSlotDrop={dropPhotoInSlot}
+                    onCropChange={draft.changeCrop}
+                    onTreatmentChange={setSlotTreatment}
+                    onFrameChange={draft.changeFrame}
+                    onFramesChange={draft.changeFrames}
+                    onMirror={mirrorSpread}
+                    onToggleLock={toggleSpreadLock}
+                    chapterLabel={chapters[spreadIndex] ? t(`chapter.${chapters[spreadIndex]}`) : undefined}
+                    onReorderPlacement={reorderPlacement}
+                    onMoveToNeighbor={moveToNeighbor}
+                    onMovePlacementAcrossSpreads={movePlacementAcrossSpreads}
+                    onMovePhotoAsNewPhoto={movePhotoAsNewPhotoDrop}
+                    onPickTemplate={pickTemplate}
+                    onAddPhotoDrop={addPhotoDrop}
+                    onRemovePhoto={removePhoto}
+                    onReplacePhoto={replacePhoto}
+                    onCloseTools={closeTools}
+                    albumStyle={current.style ?? DEFAULT_STYLE}
+                    selectedTextId={selectedText?.spreadIndex === spreadIndex ? selectedText.blockId : null}
+                    onAddText={addText}
+                    onTextSelect={selectText}
+                    onTextChange={draft.changeText}
+                    onTextRemove={removeText}
+                    focusFor={focusFor}
+                  />
 
-                {!locked && (
-                  <button
-                    type="button"
-                    className="spread-insert"
-                    title={t("spread.insert.title")}
-                    aria-label={t("spread.insert.title")}
-                    onClick={() => setInsertAt(spreadIndex + 1)}
-                  >
-                    +
-                  </button>
-                )}
+                  {!locked && (
+                    <button
+                      type="button"
+                      className="spread-insert"
+                      title={t("spread.insert.title")}
+                      aria-label={t("spread.insert.title")}
+                      onClick={() => setInsertAt(spreadIndex + 1)}
+                    >
+                      +
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+            {!locked && !focused && (
+              <button type="button" className="button add-spread" onClick={() => setInsertAt(current.spreads.length)}>
+                {t("album.addSpread")}
+              </button>
+            )}
+          </main>
+
+          <aside className="sidebar">
+            <div
+              className="sidebar__tabs"
+              role="tablist"
+              aria-label={t("album.sidebar.label")}
+              data-tour="editor-sidebar"
+            >
+              {(
+                [
+                  ["photos", t("album.sidebar.photos"), 0],
+                  ["design", t("album.sidebar.design"), 0],
+                  ["review", t("album.sidebar.review"), feedback.data?.openCount ?? 0],
+                  ["export", t("album.sidebar.export"), 0],
+                ] as [SidebarTab, string, number][]
+              ).map(([tab, label, badge]) => (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={sidebarTab === tab}
+                  className={`sidebar__tab ${sidebarTab === tab ? "sidebar__tab--on" : ""}`}
+                  onClick={() => setSidebarTab(tab)}
+                >
+                  {label}
+                  {badge > 0 && <span className="sidebar__badge">{badge}</span>}
+                </button>
+              ))}
+            </div>
+            <section className={`panel ${sidebarTab === "design" ? "" : "is-hidden"}`}>
+              <div className="panel__head">
+                <h2>{t("style.title")}</h2>
               </div>
-            );
-          })}
-
-          {!locked && !focused && (
-            <button type="button" className="button add-spread" onClick={() => setInsertAt(current.spreads.length)}>
-              {t("album.addSpread")}
-            </button>
-          )}
-        </main>
-
-        <aside className="sidebar">
-          <div
-            className="sidebar__tabs"
-            role="tablist"
-            aria-label={t("album.sidebar.label")}
-            data-tour="editor-sidebar"
-          >
-            {(
-              [
-                ["photos", t("album.sidebar.photos"), 0],
-                ["design", t("album.sidebar.design"), 0],
-                ["review", t("album.sidebar.review"), feedback.data?.openCount ?? 0],
-                ["export", t("album.sidebar.export"), 0],
-              ] as [SidebarTab, string, number][]
-            ).map(([tab, label, badge]) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={sidebarTab === tab}
-                className={`sidebar__tab ${sidebarTab === tab ? "sidebar__tab--on" : ""}`}
-                onClick={() => setSidebarTab(tab)}
-              >
-                {label}
-                {badge > 0 && <span className="sidebar__badge">{badge}</span>}
-              </button>
-            ))}
-          </div>
-          <section className={`panel ${sidebarTab === "design" ? "" : "is-hidden"}`}>
-            <div className="panel__head">
-              <h2>{t("style.title")}</h2>
-            </div>
-            <StylePanel style={current.style ?? DEFAULT_STYLE} locked={locked} onChange={setStyle} />
-          </section>
-          <TrayPanel
-            tray={tray}
-            hidden={sidebarTab !== "photos"}
-            locked={locked}
-            addingToSpread={addingToSpread}
-            selectedSpread={selected?.spreadIndex ?? null}
-            picked={picked}
-            onClearPicked={() => setPicked([])}
-            onAddPicked={() => layouts.addAsSpread.mutate(picked, { onSuccess: () => setPicked([]) })}
-            addingPicked={layouts.addAsSpread.isPending}
-            errors={[
-              layouts.addAsSpread,
-              layouts.shuffle,
-              layouts.addPhoto,
-              layouts.removePhoto,
-              layouts.movePhoto,
-            ].map((mutation) => (mutation.isError ? (mutation.error as Error) : null))}
-            onPhotoClick={trayPhotoClick}
-            analysisByPhoto={analysisByPhoto}
-            rankedCount={analyses.data?.length ?? 0}
-            usedPhotoIds={usedPhotoIds}
-            clientPickedIds={clientPickedIds}
-          />
-          <ReviewPanel albumId={albumId} hidden={sidebarTab !== "review"} />
-          <FeedbackPanel
-            albumId={albumId}
-            feedback={feedback}
-            hidden={sidebarTab !== "review"}
-            onJumpTo={jumpToComment}
-            photoNumber={feedbackPhotoNumber}
-          />
-          <ExportPanel albumId={albumId} hidden={sidebarTab !== "export"} />
-        </aside>
-      </div>
-
-      <PageStrip
-        spreads={current.spreads}
-        templateById={templateById}
-        thumbnailUrlFor={thumbnailUrlFor}
-        albumStyle={current.style ?? DEFAULT_STYLE}
-        aspectRatio={aspectRatio}
-        currentIndex={currentSpread}
-        locked={locked}
-        openCommentsBySpread={commentsBySpread}
-        issuesBySpread={issueCounts}
-        chapters={chapters}
-        onJump={jumpToSpread}
-        onReorder={reorderSpread}
-        onDropPhoto={addPhotoDrop}
-      />
-
-      {checkOpen && (
-        <AlbumCheckPanel
-          issues={issues}
-          thumbnailUrlFor={thumbnailUrlFor}
-          onJump={jumpToSpread}
-          onShowUnused={() => {
-            setSidebarTab("photos");
-            tray.setShow("unused");
-            tray.setSort("score");
-          }}
-          onClose={() => setCheckOpen(false)}
-        />
-      )}
-      {previewOpen && (
-        <BookPreview
-          album={{ ...current, style: current.style ?? DEFAULT_STYLE }}
-          templateById={templateById}
-          previewUrlFor={previewUrlFor}
-          focusFor={focusFor}
-          startAt={currentSpread}
-          onClose={() => setPreviewOpen(false)}
-        />
-      )}
-      {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
-
-      {confirmingDelete && (
-        <div
-          className="modal-overlay"
-          role="presentation"
-          onClick={() => !removeAlbum.isPending && setConfirmingDelete(false)}
-        >
-          <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-album-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 id="delete-album-title">{t("album.deleteAlbum.title")}</h2>
-            <p>{t("album.deleteAlbum.body", { title: current.title })}</p>
-            {removeAlbum.isError && <p className="error">{(removeAlbum.error as Error).message}</p>}
-            <div className="modal__actions">
-              <button
-                type="button"
-                className="button"
-                disabled={removeAlbum.isPending}
-                onClick={() => setConfirmingDelete(false)}
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                className="button button--danger"
-                disabled={removeAlbum.isPending}
-                onClick={() => removeAlbum.mutate()}
-              >
-                {removeAlbum.isPending ? t("album.deleteAlbum.deleting") : t("album.deleteAlbum")}
-              </button>
-            </div>
-          </div>
+              <StylePanel style={current.style ?? DEFAULT_STYLE} locked={locked} onChange={setStyle} />
+            </section>
+            <TrayPanel
+              tray={tray}
+              hidden={sidebarTab !== "photos"}
+              locked={locked}
+              addingToSpread={addingToSpread}
+              selectedSpread={selected?.spreadIndex ?? null}
+              picked={picked}
+              onClearPicked={() => setPicked([])}
+              onAddPicked={() => layouts.addAsSpread.mutate(picked, { onSuccess: () => setPicked([]) })}
+              addingPicked={layouts.addAsSpread.isPending}
+              errors={[
+                layouts.addAsSpread,
+                layouts.shuffle,
+                layouts.addPhoto,
+                layouts.removePhoto,
+                layouts.movePhoto,
+              ].map((mutation) => (mutation.isError ? (mutation.error as Error) : null))}
+              onPhotoClick={trayPhotoClick}
+              analysisByPhoto={analysisByPhoto}
+              rankedCount={analyses.data?.length ?? 0}
+              usedPhotoIds={usedPhotoIds}
+              clientPickedIds={clientPickedIds}
+            />
+            <ReviewPanel albumId={albumId} hidden={sidebarTab !== "review"} />
+            <FeedbackPanel
+              albumId={albumId}
+              feedback={feedback}
+              hidden={sidebarTab !== "review"}
+              onJumpTo={jumpToComment}
+              photoNumber={feedbackPhotoNumber}
+            />
+            <ExportPanel albumId={albumId} hidden={sidebarTab !== "export"} />
+          </aside>
         </div>
-      )}
 
-      {insertAt !== null && (
-        <InsertSpreadModal templates={templateList} onPick={insertSpread} onClose={() => setInsertAt(null)} />
-      )}
-      {guides.modalOpen && <PrintGuidesModal guides={guides} />}
-    </div>
+        <PageStrip
+          spreads={current.spreads}
+          templateById={templateById}
+          thumbnailUrlFor={thumbnailUrlFor}
+          albumStyle={current.style ?? DEFAULT_STYLE}
+          aspectRatio={aspectRatio}
+          currentIndex={currentSpread}
+          locked={locked}
+          openCommentsBySpread={commentsBySpread}
+          issuesBySpread={issueCounts}
+          chapters={chapters}
+          onJump={jumpToSpread}
+          onReorder={reorderSpread}
+          onDropPhoto={addPhotoDrop}
+        />
+
+        {checkOpen && (
+          <AlbumCheckPanel
+            issues={issues}
+            thumbnailUrlFor={thumbnailUrlFor}
+            onJump={jumpToSpread}
+            onShowUnused={() => {
+              setSidebarTab("photos");
+              tray.setShow("unused");
+              tray.setSort("score");
+            }}
+            onClose={() => setCheckOpen(false)}
+          />
+        )}
+        {previewOpen && (
+          <BookPreview
+            album={{ ...current, style: current.style ?? DEFAULT_STYLE }}
+            templateById={templateById}
+            previewUrlFor={previewUrlFor}
+            focusFor={focusFor}
+            startAt={currentSpread}
+            onClose={() => setPreviewOpen(false)}
+          />
+        )}
+        {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
+
+        {confirmingDelete && (
+          <div
+            className="modal-overlay"
+            role="presentation"
+            onClick={() => !removeAlbum.isPending && setConfirmingDelete(false)}
+          >
+            <div
+              className="modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-album-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h2 id="delete-album-title">{t("album.deleteAlbum.title")}</h2>
+              <p>{t("album.deleteAlbum.body", { title: current.title })}</p>
+              {removeAlbum.isError && <p className="error">{(removeAlbum.error as Error).message}</p>}
+              <div className="modal__actions">
+                <button
+                  type="button"
+                  className="button"
+                  disabled={removeAlbum.isPending}
+                  onClick={() => setConfirmingDelete(false)}
+                >
+                  {t("common.cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="button button--danger"
+                  disabled={removeAlbum.isPending}
+                  onClick={() => removeAlbum.mutate()}
+                >
+                  {removeAlbum.isPending ? t("album.deleteAlbum.deleting") : t("album.deleteAlbum")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {insertAt !== null && (
+          <InsertSpreadModal templates={templateList} onPick={insertSpread} onClose={() => setInsertAt(null)} />
+        )}
+        {guides.modalOpen && <PrintGuidesModal guides={guides} />}
+      </div>
+    </>
   );
 }

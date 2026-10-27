@@ -3,11 +3,10 @@ import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { applyTheme, currentTheme, loadTheme, saveTheme, systemTheme, type Theme } from "@/shared/lib/theme";
 
 /**
- * Light/dark switch. Until it is pressed the theme follows the operating system
- * (including when that changes at sunset); pressing it makes the choice stick.
+ * The theme on screen and a way to choose one. Until a choice is made it follows the
+ * operating system (including when that changes at sunset); choosing makes it stick.
  */
-export function ThemeToggle() {
-  const { t } = useLanguage();
+export function useTheme(): [Theme, (next: Theme) => void] {
   const [theme, setTheme] = useState<Theme>(currentTheme);
 
   useEffect(() => {
@@ -28,6 +27,17 @@ export function ThemeToggle() {
     return () => media.removeEventListener("change", onChange);
   }, []);
 
+  const choose = (next: Theme) => {
+    saveTheme(next);
+    setTheme(next);
+  };
+  return [theme, choose];
+}
+
+/** Light/dark switch, for the pages without the studio's language and theme menu. */
+export function ThemeToggle() {
+  const { t } = useLanguage();
+  const [theme, choose] = useTheme();
   const next: Theme = theme === "dark" ? "light" : "dark";
   return (
     <button
@@ -35,10 +45,7 @@ export function ThemeToggle() {
       className="link-button theme-toggle"
       aria-label={next === "dark" ? t("theme.toDark") : t("theme.toLight")}
       title={next === "dark" ? t("theme.toDark") : t("theme.toLight")}
-      onClick={() => {
-        saveTheme(next);
-        setTheme(next);
-      }}
+      onClick={() => choose(next)}
     >
       <span aria-hidden="true">{theme === "dark" ? "☀️" : "🌙"}</span>
     </button>

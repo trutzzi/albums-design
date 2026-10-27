@@ -121,34 +121,42 @@ h2 {
   height: 26px;
   width: auto;
 }
-.app-header__greeting {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--ink-soft);
-}
-.app-header__greeting--menu {
-  display: none;
-}
-.app-header > .app-header__greeting {
-  margin-inline: auto; /* centred between the logo and the links, as before */
-}
 .app-header__nav {
   display: flex;
+  flex: 1;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
+  min-width: 0;
 }
-/* Without a greeting (signed out) the links still sit at the right edge. */
-.app-header__mark + .app-header__nav {
-  margin-left: auto;
+.app-header__links,
+.app-header__end {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.app-header__end {
+  gap: 12px;
+  min-width: 0; /* on a mid-size screen the search gives up width before anything overlaps */
 }
 .app-header__nav a {
   color: var(--ink-soft);
   text-decoration: none;
   font-size: 0.9rem;
 }
+.app-header__links a {
+  padding: 10px 14px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
 .app-header__nav a:hover {
   color: var(--accent);
+}
+/* The page you are on, as on the Studio board. */
+.app-header__links a[aria-current="page"] {
+  background: var(--surface-2);
+  color: var(--ink);
+  font-weight: 600;
 }
 .app-header__tools {
   display: flex;
@@ -166,14 +174,6 @@ h2 {
   }
   .app-header--open {
     z-index: 45; /* above the backdrop, below nothing else that matters */
-  }
-  .app-header > .app-header__greeting {
-    display: none;
-  }
-  .app-header__greeting--menu {
-    display: block;
-    padding: 4px 0 10px;
-    border-bottom: 1px solid var(--line);
   }
   .app-header__tools {
     margin-left: auto;
@@ -244,6 +244,25 @@ h2 {
   .app-header__nav--open {
     display: flex;
   }
+  .app-header__links,
+  .app-header__end {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+  .app-header__links a {
+    border-radius: 0;
+  }
+  .app-header__links a[aria-current="page"] {
+    background: none;
+    color: var(--accent);
+  }
+  .app-header__end {
+    padding-top: 10px;
+  }
+  .app-header__end .header-search {
+    margin-bottom: 4px;
+  }
   .app-header__nav a,
   .app-header__nav .link-button {
     display: block;
@@ -275,21 +294,6 @@ h2 {
   gap: 16px;
   flex-wrap: wrap;
   margin-bottom: 22px;
-}
-.page.editor .page__header {
-  /* The editor page is the long-scrolling one — a real album runs to twenty-odd
-     spreads. Pinning the ruler toggle and the review action here means neither
-     needs a scroll back to the top to reach. Only this page opts in: the
-     shorter pages (shoots, projects) don't need it and shouldn't pay for a
-     sticky repaint on every scroll frame. */
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: var(--bg);
-  padding-top: 12px;
-  padding-bottom: 12px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--line);
 }
 .page__header-actions {
   display: flex;
@@ -2775,9 +2779,6 @@ a:focus-visible,
 }
 
 /* ---- shoots ---- */
-.shoot-search {
-  min-width: 200px;
-}
 .shoot-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -3239,11 +3240,6 @@ a:focus-visible,
 }
 
 /* ---- admin dashboard ---- */
-.admin__tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 16px;
-}
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -6100,10 +6096,10 @@ body.is-previewing {
   background: none;
   color: var(--ink);
 }
-.editor .page__header-actions {
+.crumb-bar--editor .page__header-actions {
   gap: 6px;
 }
-.editor .page__header-actions .button {
+.crumb-bar--editor .page__header-actions .button {
   border-radius: 10px;
 }
 .editor .album-check__item {
@@ -6142,22 +6138,6 @@ body.is-previewing {
 
 /* ---- platform admin, refined: a dark tab bar and display numbers ---- */
 /* An inverse bar from the theme's own colours: dark on the light theme, light on the dark one. */
-.admin__tabs {
-  flex-wrap: wrap;
-  padding: 4px;
-  border-radius: 12px;
-  background: var(--ink);
-}
-.admin__tabs [role="tab"] {
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: color-mix(in srgb, var(--bg) 78%, transparent);
-}
-.admin__tabs [aria-selected="true"] {
-  background: color-mix(in srgb, var(--bg) 16%, transparent);
-  color: var(--bg);
-}
 .stat-tile {
   border-radius: 12px;
 }
@@ -6616,4 +6596,302 @@ body.is-previewing {
 }
 .landing-footer__links a {
   color: color-mix(in srgb, var(--accent) 55%, var(--bg));
+}
+
+/* ---- headers, as on the boards: the studio's bar, its menus, the breadcrumb and admin bars ---- */
+.header-chip {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font:
+    500 0.88rem "IBM Plex Sans",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.header-chip:hover {
+  border-color: var(--accent);
+}
+.header-search {
+  display: flex;
+  flex: 0 1 300px;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink-faint);
+}
+/* Room for the whole placeholder once the bar has it to spare. */
+@media (min-width: 1100px) {
+  .header-search {
+    min-width: 250px;
+  }
+}
+/* In the phone menu the search is one more full-width row. */
+@media (max-width: 820px) {
+  .header-search {
+    flex: none;
+  }
+}
+.header-search:focus-within {
+  border-color: var(--accent);
+}
+.header-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+/* "Send feedback" is a button on the Studio board, not a text link. */
+.app-header__end .link-button[data-tour="nav-feedback"] {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.app-header__end .link-button[data-tour="nav-feedback"]:hover {
+  border-color: var(--accent);
+}
+.avatar-button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: #2f5d86;
+  color: #fff;
+  font:
+    600 0.88rem "IBM Plex Sans",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+.avatar-button[aria-expanded="true"] {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.header-menu {
+  position: relative;
+}
+.header-menu__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.header-menu__who {
+  margin: 0;
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.header-menu__item {
+  display: block;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.header-menu__item:hover,
+.header-menu__item:focus-visible {
+  background: var(--surface-2);
+}
+.header-menu__group {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 6px 4px;
+  border: 0;
+}
+.header-menu__group + .header-menu__group {
+  border-top: 1px solid var(--line);
+}
+.header-menu__group legend {
+  padding: 4px 6px;
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+}
+.header-menu__choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.header-menu__choice:hover {
+  background: var(--surface-2);
+}
+
+.crumb-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.crumb-bar__mark {
+  display: flex;
+}
+.crumb-bar__trail {
+  display: flex;
+  flex: 1 1 0; /* shares the row with the logo and avatar even on a phone; the title wraps inside */
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.crumb-bar__back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.crumb-bar__back:hover {
+  color: var(--accent);
+}
+.crumb-bar__slash {
+  color: var(--line);
+}
+.crumb-bar__current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+  font-weight: 600;
+}
+.crumb-bar__tools {
+  display: flex;
+  flex: 1 1 400px;
+  justify-content: flex-end;
+}
+.crumb-bar__tools .page__header-actions {
+  justify-content: flex-end;
+}
+/* The editor's bar carries its tools, so it stays pinned while the spreads scroll. */
+.crumb-bar--editor {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.crumb-bar--editor .crumb-bar__current {
+  font-weight: 400;
+}
+/* The editor has more tools than one row beside the title can hold, so they get their
+   own row: the trail and avatar above, the tools across the full width below. */
+.crumb-bar--editor .crumb-bar__tools {
+  order: 1;
+  flex-basis: 100%;
+}
+.crumb-bar__title {
+  font-family: "IBM Plex Serif", ui-serif, Georgia, serif;
+  font-size: 1.2rem;
+}
+.crumb-bar__meta {
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+@media (max-width: 1100px) {
+  .crumb-bar__meta {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .crumb-bar {
+    padding: 8px 12px;
+  }
+  .crumb-bar__tools {
+    justify-content: flex-start;
+  }
+}
+
+.admin-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08); /* still a bar on the dark theme's page */
+  background: #14181c;
+  color: #eef1ef;
+}
+.admin-bar__mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.admin-bar__mark img {
+  filter: invert(1);
+}
+.admin-bar__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.admin-bar__tab {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #c3cbd1;
+  font:
+    500 0.88rem "IBM Plex Sans",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+.admin-bar__tab:hover {
+  color: #fff;
+}
+.admin-bar__tab[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-weight: 600;
+}
+.admin-bar__back {
+  margin-left: auto;
+  color: #e8a179;
 }
