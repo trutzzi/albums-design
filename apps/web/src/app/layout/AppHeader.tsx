@@ -1,37 +1,30 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminMe } from "@/shared/api";
 import { FeedbackButton } from "./FeedbackButton";
-import { useAvailableTour } from "@/shared/ui/GuidedTour";
-import { HowItWorksHost, openHowItWorks } from "@/shared/ui/HowItWorks";
-import { LaunchOfferHost } from "@/shared/ui/LaunchOffer";
 import { useAuth } from "@/app/AuthContext";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
-
-/** A warm, time-of-day greeting — the kind of touch a boutique studio owner would want their own tool to have. */
-function greetingKeyForHour(hour: number): string {
-  if (hour < 12) return "greeting.morning";
-  if (hour < 17) return "greeting.afternoon";
-  if (hour < 22) return "greeting.evening";
-  return "greeting.night";
-}
+import { AccountMenu } from "./AccountMenu";
+import { HeaderSearch } from "./HeaderSearch";
+import { LanguageSwitch } from "./LanguageSwitch";
+import { PrefsMenu } from "./PrefsMenu";
 
 /**
- * The studio's top bar. On a wide screen it is the familiar row of links. Below
- * ~820px the links would not fit (they used to run off the edge and make the whole
- * page scroll sideways), so they fold into a menu opened by a button: a full-width
- * panel with large tap targets. Everything that closes it is local to this component
- * — the button, a backdrop element, choosing a link, a route change, and Escape while
- * focus is inside the header — rather than a listener on the whole document.
+ * The top bar, as on the Landing and Studio boards. A visitor sees the site's sections,
+ * EN · RO and the way in; the studio sees its four places, a search, feedback, its
+ * language and theme, and an avatar holding the rest. Below ~820px the links fold into
+ * a menu opened by a button: a full-width panel with large tap targets. Everything that
+ * closes it is local to this component — the button, a backdrop element, choosing a
+ * link, a route change, and Escape while focus is inside the header — rather than a
+ * listener on the whole document.
  */
 export function AppHeader() {
   const location = useLocation();
   const auth = useAuth();
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
-  const tour = useAvailableTour();
   const adminMe = useQuery({
     queryKey: ["admin-me", auth.studioId],
     queryFn: getAdminMe,
@@ -39,9 +32,6 @@ export function AppHeader() {
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
-  const firstName = auth.name.trim().split(/\s+/)[0];
-  const greeting =
-    auth.isAuthenticated && firstName ? `${t(greetingKeyForHour(new Date().getHours()))}, ${firstName} 👋` : null;
 
   // Navigating anywhere (including back/forward) leaves the menu closed.
   useEffect(() => {
@@ -61,9 +51,8 @@ export function AppHeader() {
           <img src="/logo-icon.png" alt="" className="app-header__logo" />
           AlbumFlow
         </Link>
-        {greeting && <p className="app-header__greeting">{greeting}</p>}
 
-        <nav
+        <div
           id="app-nav"
           className={`app-header__nav ${open ? "app-header__nav--open" : ""}`}
           // A tap on any link or button inside the menu is a choice: close it.
@@ -71,42 +60,51 @@ export function AppHeader() {
             if ((event.target as HTMLElement).closest("a, button")) setOpen(false);
           }}
         >
-          {greeting && <p className="app-header__greeting app-header__greeting--menu">{greeting}</p>}
-          {auth.isAuthenticated && <Link to="/">{t("nav.shoots")}</Link>}
-          {auth.isAuthenticated && (
-            <Link to="/studio" data-tour="nav-studio">
-              {t("nav.studio")}
-            </Link>
-          )}
-          {auth.isAuthenticated && adminMe.data?.admin && <Link to="/admin">{t("nav.admin")}</Link>}
-          {auth.isAuthenticated && <FeedbackButton />}
-          {auth.isAuthenticated && tour && (
-            <button type="button" className="link-button" onClick={tour.start} data-tour="nav-guide">
-              {t("nav.guide")}
-            </button>
-          )}
-          <button type="button" className="link-button" onClick={openHowItWorks}>
-            {t("howItWorks.nav")}
-          </button>
-          {!auth.isAuthenticated && <Link to={{ pathname: "/", hash: "#pricing" }}>{t("nav.pricing")}</Link>}
-          <Link to="/changelog">{t("nav.changelog")}</Link>
-          <Link to="/contact">{t("nav.contact")}</Link>
           {auth.isAuthenticated ? (
-            <button type="button" className="link-button" onClick={auth.logout}>
-              {t("nav.logout")}
-            </button>
+            <>
+              <nav className="app-header__links" aria-label={t("nav.main")}>
+                <NavLink to="/" end>
+                  {t("nav.shoots")}
+                </NavLink>
+                <NavLink to="/studio" data-tour="nav-studio">
+                  {t("nav.studio")}
+                </NavLink>
+                {adminMe.data?.admin && <NavLink to="/admin">{t("nav.admin")}</NavLink>}
+                <NavLink to="/changelog">{t("nav.changelog")}</NavLink>
+              </nav>
+              <div className="app-header__end">
+                <HeaderSearch />
+                <FeedbackButton />
+              </div>
+            </>
           ) : (
             <>
-              <Link to="/login">{t("nav.login")}</Link>
-              <Link to="/register" className="app-header__signup">
-                {t("nav.signup")}
-              </Link>
+              <nav className="app-header__links" aria-label={t("nav.main")}>
+                <Link to={{ pathname: "/", hash: "#how" }}>{t("howItWorks.nav")}</Link>
+                <Link to={{ pathname: "/", hash: "#pricing" }}>{t("nav.pricing")}</Link>
+                <NavLink to="/changelog">{t("nav.changelog")}</NavLink>
+                <NavLink to="/contact">{t("nav.contact")}</NavLink>
+              </nav>
+              <div className="app-header__end">
+                <LanguageSwitch />
+                <Link to="/login">{t("nav.login")}</Link>
+                <Link to="/register" className="app-header__signup">
+                  {t("nav.signup")}
+                </Link>
+              </div>
             </>
           )}
-        </nav>
+        </div>
 
         <div className="app-header__tools">
-          <ThemeToggle />
+          {auth.isAuthenticated ? (
+            <>
+              <PrefsMenu />
+              <AccountMenu />
+            </>
+          ) : (
+            <ThemeToggle />
+          )}
           <button
             type="button"
             className="app-header__menu-button"
@@ -119,8 +117,6 @@ export function AppHeader() {
           </button>
         </div>
       </header>
-      <HowItWorksHost />
-      <LaunchOfferHost />
     </>
   );
 }

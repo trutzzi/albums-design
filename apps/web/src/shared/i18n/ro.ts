@@ -9,10 +9,6 @@ export const ro: Record<string, string> = {
   "nav.login": "Autentificare",
   "nav.signup": "Înregistrare",
   "nav.logout": "Deconectare",
-  "greeting.morning": "Bună dimineața",
-  "greeting.afternoon": "Bună ziua",
-  "greeting.evening": "Bună seara",
-  "greeting.night": "Lucrezi până târziu",
 
   // --- Common -----------------------------------------------------------
   "common.cancel": "Anulează",
@@ -175,7 +171,6 @@ export const ro: Record<string, string> = {
   "projects.all.empty": "Nicio sesiune încă — creează una mai sus pentru a încărca fotografii.",
 
   // --- Project (single shoot) ------------------------------------------
-  "project.back": "← Toate sesiunile",
   "project.stats": "{uploaded} încărcate · {analysed} analizate · {albumWorthy} bune pentru album",
   "project.deleteShoot": "Șterge sesiunea",
   "project.deleteShoot.title": "Ștergi această sesiune?",
@@ -737,6 +732,16 @@ export const ro: Record<string, string> = {
   "spread.closeTools": "Închide",
   "nav.menu.open": "Meniu",
   "nav.menu.close": "Închide meniul",
+  "nav.main": "Principal",
+  "nav.home": "Prima pagină AlbumFlow",
+  "nav.breadcrumb": "Unde te afli",
+  "nav.account": "Cont",
+  "nav.prefs": "Limbă și temă",
+  "nav.search.placeholder": "Caută sesiuni sau clienți",
+  "theme.title": "Temă",
+  "theme.light": "Luminoasă",
+  "theme.dark": "Întunecată",
+  "language.switchTo": "Schimbă în {language}",
   "changelog.item.responsive": "Funcționează pe telefoane și tablete",
   "changelog.item.responsive.desc":
     "Întreaga aplicație se potrivește acum ecranelor mici. Pe telefon, bara de sus se transformă într-un buton de meniu, paginile nu mai derulează lateral, iar butoanele și panourile se așază frumos pe rânduri în loc să iasă din ecran — inclusiv editorul de album. Linkurile pentru clienți (selecție, recenzie și descărcare) funcționau deja bine pe telefon și continuă să funcționeze.",
@@ -893,7 +898,6 @@ export const ro: Record<string, string> = {
   "contact.error.generic": "Ceva nu a mers la trimiterea mesajului. Încearcă din nou sau scrie-ne la {email}.",
 
   // --- Album editor (toolbar) ------------------------------------------
-  "album.back": "← Înapoi la sesiune",
   "album.status.DRAFT": "Ciornă",
   "album.status.IN_REVIEW": "La client",
   "album.status.CHANGES_REQUESTED": "Modificări cerute",
@@ -1310,7 +1314,7 @@ export const ro: Record<string, string> = {
     "O idee, o problemă sau o întrebare — ajunge direct la echipa care construiește AlbumFlow.",
   "tour.shoots.guide.title": "Revezi ghidul",
   "tour.shoots.guide.body":
-    "Fiecare pagină principală are un ghid scurt ca acesta. Îl deschizi de aici ori de câte ori ai nevoie.",
+    "Reiei ghidul paginii, deschizi prezentarea, ne scrii sau te deconectezi — toate din meniul contului tău.",
   "tour.project.upload.title": "1. Încarcă selecția",
   "tour.project.upload.body":
     "Trage aici fotografiile alese sau apasă pentru a le selecta. Fiecare primește un scor pentru claritate, expunere și compoziție.",

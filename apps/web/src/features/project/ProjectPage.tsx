@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   deleteProject,
   getProject,
@@ -12,6 +12,7 @@ import {
   listProjectPhotos,
 } from "@/shared/api";
 import { useAuth } from "@/app/AuthContext";
+import { CrumbBar } from "@/app/layout/CrumbBar";
 import { GuidedTour, type TourStep } from "@/shared/ui/GuidedTour";
 import { tip } from "@/shared/lib/tip";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
@@ -182,215 +183,218 @@ export function ProjectPage() {
   };
 
   return (
-    <div className="page shoot">
-      <GuidedTour id="project" steps={PROJECT_TOUR} ready={project.isSuccess} />
-      <header className="page__header">
-        <div>
-          <Link to="/" className="muted back-link">
-            {t("project.back")}
-          </Link>
-          {project.data && (
-            <p className="muted shoot__kind">
-              {t(shootTypeKey(project.data.type))}
-              {project.data.eventDate && ` · ${formatFullDate(project.data.eventDate, language)}`}
-            </p>
-          )}
-          <h1>
-            {project.data?.name ?? (
-              <>
-                <span className="visually-hidden">{t("common.loading")}</span>
-                <Skeleton width="min(320px, 70vw)" height="1.4em" />
-              </>
-            )}
-          </h1>
-          <p className="muted">{t("project.stats", { uploaded: uploadedCount, analysed, albumWorthy })}</p>
-        </div>
-        <div className="page__header-actions">
-          <button type="button" className="button" onClick={openFilePicker}>
-            {t("project.next.addPhotos")}
-          </button>
-        </div>
-      </header>
-
-      {/* Mounted on every step, so "Add photos" works from wherever the photographer is. */}
-      <input
-        id="photo-input"
-        ref={inputRef}
-        type="file"
-        multiple
-        accept="image/jpeg,image/png,image/tiff,image/webp"
-        hidden
-        onChange={(event) => upload.handleFiles(event.target.files)}
+    <>
+      <CrumbBar
+        back={{ to: "/", label: t("nav.shoots") }}
+        current={project.data?.name ?? <Skeleton width="min(200px, 40vw)" height="1em" />}
       />
-
-      <div className="shoot__layout">
-        <div className="shoot__main">
-          <nav className="steps" role="tablist" aria-label={t("project.steps.label")}>
-            {SHOOT_STEPS.map((key, index) => {
-              const info = workflow.steps[key];
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  id={`step-${key}`}
-                  aria-selected={step === key}
-                  aria-controls="step-panel"
-                  data-tour={STEP_TOUR_TARGETS[key]}
-                  className={`steps__tab ${step === key ? "steps__tab--on" : ""} ${info.done ? "steps__tab--done" : ""}`}
-                  onClick={() => goTo(key)}
-                >
-                  <span className="steps__number" aria-hidden="true">
-                    {info.done ? "✓" : index + 1}
-                  </span>
-                  <span className="steps__text">
-                    <span className="steps__label">{t(`project.step.${key}`)}</span>
-                    <span className="steps__status">
-                      {info.done && <span className="visually-hidden">{t("project.step.done")}: </span>}
-                      {t(info.status.key, info.status.params)}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-
-          <section className="next-step" aria-live="polite">
-            <div>
-              <h2 className="next-step__title">{t("project.next.title")}</h2>
-              <p className="next-step__text">{t(workflow.next.text.key, workflow.next.text.params)}</p>
-            </div>
-            {workflow.next.actions.length > 0 && (
-              <div className="next-step__actions">
-                {workflow.next.actions.map((action, index) => (
-                  <button
-                    key={action}
-                    type="button"
-                    className={`button ${index === 0 ? "button--primary" : ""}`}
-                    onClick={runAction[action]}
-                  >
-                    {t(`project.next.${action}`)}
-                  </button>
-                ))}
-              </div>
+      <div className="page shoot">
+        <GuidedTour id="project" steps={PROJECT_TOUR} ready={project.isSuccess} />
+        <header className="page__header">
+          <div>
+            {project.data && (
+              <p className="muted shoot__kind">
+                {t(shootTypeKey(project.data.type))}
+                {project.data.eventDate && ` · ${formatFullDate(project.data.eventDate, language)}`}
+              </p>
             )}
-          </section>
-
-          <div id="step-panel" role="tabpanel" aria-labelledby={`step-${step}`}>
-            {step === "photos" && (
-              <>
-                <PhotoUploader
-                  upload={upload}
-                  inputRef={inputRef}
-                  useAi={useAi}
-                  onUseAiChange={setUseAi}
-                  photoCount={uploadedCount}
-                  photoLimit={photoLimit}
-                />
-                <FailedAnalysisNotice projectId={projectId} failedCount={failedAnalysis} />
-                <PhotoBrowser
-                  photos={photos.data ?? []}
-                  analyses={analyses.data ?? []}
-                  clientPicked={clientPicked}
-                  view={photoView}
-                  onViewChange={setPhotoView}
-                />
-              </>
-            )}
-            {/* Hidden rather than unmounted: a freshly created link is shown only once, and a
-            half-filled form should still be there after a look at another step. */}
-            <div hidden={step !== "selection"}>
-              <SelectionPanel projectId={projectId} contact={contact} albumFormat={albumSize.format} />
-            </div>
-            <div hidden={step !== "album"}>
-              <AlbumPanel projectId={projectId} size={albumSize} analysed={analysed} />
-            </div>
-            <div className="shoot__delivery" hidden={step !== "delivery"}>
-              {/* Mounted only on this step: unlike the link forms it holds no state, and its
-              export lists would otherwise load and poll on every visit to the shoot. */}
-              {step === "delivery" && <PrintPdfPanel projectId={projectId} />}
-              <DeliveryPanel
-                projectId={projectId}
-                contact={contact}
-                canSendDownloadLinks={canSendDownloadLinks}
-                canStyleGalleries={studio.data?.subscription.whiteLabel ?? false}
-              />
-              <SlideshowPanel projectId={projectId} contact={contact} canSendSlideshows={canSendSlideshows} />
-            </div>
+            <h1>
+              {project.data?.name ?? (
+                <>
+                  <span className="visually-hidden">{t("common.loading")}</span>
+                  <Skeleton width="min(320px, 70vw)" height="1.4em" />
+                </>
+              )}
+            </h1>
+            <p className="muted">{t("project.stats", { uploaded: uploadedCount, analysed, albumWorthy })}</p>
           </div>
-        </div>
-        <ShootSidebar
-          projectId={projectId}
-          contact={contact}
-          picks={pickSessions.data ?? []}
-          downloads={downloadSessions.data ?? []}
-          linksState={
-            pickSessions.isLoading || downloadSessions.isLoading
-              ? "loading"
-              : pickSessions.isError || downloadSessions.isError
-                ? "error"
-                : "ready"
-          }
+          <div className="page__header-actions">
+            <button type="button" className="button" onClick={openFilePicker}>
+              {t("project.next.addPhotos")}
+            </button>
+          </div>
+        </header>
+
+        {/* Mounted on every step, so "Add photos" works from wherever the photographer is. */}
+        <input
+          id="photo-input"
+          ref={inputRef}
+          type="file"
+          multiple
+          accept="image/jpeg,image/png,image/tiff,image/webp"
+          hidden
+          onChange={(event) => upload.handleFiles(event.target.files)}
         />
-      </div>
 
-      <section className="danger-zone">
-        <div>
-          <h2>{t("project.danger.title")}</h2>
-          <p className="muted">{t("project.danger.body")}</p>
-        </div>
-        <button
-          type="button"
-          className="button button--danger"
-          onClick={() => {
-            removeProject.reset();
-            setConfirmingDelete(true);
-          }}
-          {...tip(t("tip.deleteShoot"))}
-        >
-          {t("project.deleteShoot")}
-        </button>
-      </section>
+        <div className="shoot__layout">
+          <div className="shoot__main">
+            <nav className="steps" role="tablist" aria-label={t("project.steps.label")}>
+              {SHOOT_STEPS.map((key, index) => {
+                const info = workflow.steps[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    id={`step-${key}`}
+                    aria-selected={step === key}
+                    aria-controls="step-panel"
+                    data-tour={STEP_TOUR_TARGETS[key]}
+                    className={`steps__tab ${step === key ? "steps__tab--on" : ""} ${info.done ? "steps__tab--done" : ""}`}
+                    onClick={() => goTo(key)}
+                  >
+                    <span className="steps__number" aria-hidden="true">
+                      {info.done ? "✓" : index + 1}
+                    </span>
+                    <span className="steps__text">
+                      <span className="steps__label">{t(`project.step.${key}`)}</span>
+                      <span className="steps__status">
+                        {info.done && <span className="visually-hidden">{t("project.step.done")}: </span>}
+                        {t(info.status.key, info.status.params)}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
 
-      {upload.batch && <UploadProgress batch={upload.batch} onCancel={upload.cancel} />}
+            <section className="next-step" aria-live="polite">
+              <div>
+                <h2 className="next-step__title">{t("project.next.title")}</h2>
+                <p className="next-step__text">{t(workflow.next.text.key, workflow.next.text.params)}</p>
+              </div>
+              {workflow.next.actions.length > 0 && (
+                <div className="next-step__actions">
+                  {workflow.next.actions.map((action, index) => (
+                    <button
+                      key={action}
+                      type="button"
+                      className={`button ${index === 0 ? "button--primary" : ""}`}
+                      onClick={runAction[action]}
+                    >
+                      {t(`project.next.${action}`)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
 
-      {confirmingDelete && (
-        <div
-          className="modal-overlay"
-          role="presentation"
-          onClick={() => !removeProject.isPending && setConfirmingDelete(false)}
-        >
-          <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-project-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 id="delete-project-title">{t("project.deleteShoot.title")}</h2>
-            <p>{t("project.deleteShoot.body", { name: project.data?.name ?? "" })}</p>
-            {removeProject.isError && <p className="error">{(removeProject.error as Error).message}</p>}
-            <div className="modal__actions">
-              <button
-                type="button"
-                className="button"
-                disabled={removeProject.isPending}
-                onClick={() => setConfirmingDelete(false)}
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                className="button button--danger"
-                disabled={removeProject.isPending}
-                onClick={() => removeProject.mutate()}
-              >
-                {removeProject.isPending ? t("project.deleteShoot.deleting") : t("project.deleteShoot.confirm")}
-              </button>
+            <div id="step-panel" role="tabpanel" aria-labelledby={`step-${step}`}>
+              {step === "photos" && (
+                <>
+                  <PhotoUploader
+                    upload={upload}
+                    inputRef={inputRef}
+                    useAi={useAi}
+                    onUseAiChange={setUseAi}
+                    photoCount={uploadedCount}
+                    photoLimit={photoLimit}
+                  />
+                  <FailedAnalysisNotice projectId={projectId} failedCount={failedAnalysis} />
+                  <PhotoBrowser
+                    photos={photos.data ?? []}
+                    analyses={analyses.data ?? []}
+                    clientPicked={clientPicked}
+                    view={photoView}
+                    onViewChange={setPhotoView}
+                  />
+                </>
+              )}
+              {/* Hidden rather than unmounted: a freshly created link is shown only once, and a
+            half-filled form should still be there after a look at another step. */}
+              <div hidden={step !== "selection"}>
+                <SelectionPanel projectId={projectId} contact={contact} albumFormat={albumSize.format} />
+              </div>
+              <div hidden={step !== "album"}>
+                <AlbumPanel projectId={projectId} size={albumSize} analysed={analysed} />
+              </div>
+              <div className="shoot__delivery" hidden={step !== "delivery"}>
+                {/* Mounted only on this step: unlike the link forms it holds no state, and its
+              export lists would otherwise load and poll on every visit to the shoot. */}
+                {step === "delivery" && <PrintPdfPanel projectId={projectId} />}
+                <DeliveryPanel
+                  projectId={projectId}
+                  contact={contact}
+                  canSendDownloadLinks={canSendDownloadLinks}
+                  canStyleGalleries={studio.data?.subscription.whiteLabel ?? false}
+                />
+                <SlideshowPanel projectId={projectId} contact={contact} canSendSlideshows={canSendSlideshows} />
+              </div>
             </div>
           </div>
+          <ShootSidebar
+            projectId={projectId}
+            contact={contact}
+            picks={pickSessions.data ?? []}
+            downloads={downloadSessions.data ?? []}
+            linksState={
+              pickSessions.isLoading || downloadSessions.isLoading
+                ? "loading"
+                : pickSessions.isError || downloadSessions.isError
+                  ? "error"
+                  : "ready"
+            }
+          />
         </div>
-      )}
-    </div>
+
+        <section className="danger-zone">
+          <div>
+            <h2>{t("project.danger.title")}</h2>
+            <p className="muted">{t("project.danger.body")}</p>
+          </div>
+          <button
+            type="button"
+            className="button button--danger"
+            onClick={() => {
+              removeProject.reset();
+              setConfirmingDelete(true);
+            }}
+            {...tip(t("tip.deleteShoot"))}
+          >
+            {t("project.deleteShoot")}
+          </button>
+        </section>
+
+        {upload.batch && <UploadProgress batch={upload.batch} onCancel={upload.cancel} />}
+
+        {confirmingDelete && (
+          <div
+            className="modal-overlay"
+            role="presentation"
+            onClick={() => !removeProject.isPending && setConfirmingDelete(false)}
+          >
+            <div
+              className="modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-project-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h2 id="delete-project-title">{t("project.deleteShoot.title")}</h2>
+              <p>{t("project.deleteShoot.body", { name: project.data?.name ?? "" })}</p>
+              {removeProject.isError && <p className="error">{(removeProject.error as Error).message}</p>}
+              <div className="modal__actions">
+                <button
+                  type="button"
+                  className="button"
+                  disabled={removeProject.isPending}
+                  onClick={() => setConfirmingDelete(false)}
+                >
+                  {t("common.cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="button button--danger"
+                  disabled={removeProject.isPending}
+                  onClick={() => removeProject.mutate()}
+                >
+                  {removeProject.isPending ? t("project.deleteShoot.deleting") : t("project.deleteShoot.confirm")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

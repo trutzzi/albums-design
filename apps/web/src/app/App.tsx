@@ -20,6 +20,8 @@ import { VerifyEmailPage } from "@/features/auth/VerifyEmailPage";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { RequireAuth } from "./RequireAuth";
 import { LanguageProvider } from "@/shared/i18n/LanguageContext";
+import { HowItWorksHost } from "@/shared/ui/HowItWorks";
+import { LaunchOfferHost } from "@/shared/ui/LaunchOffer";
 
 const AUTH_PAGES = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
 
@@ -33,11 +35,21 @@ function Shell({ children }: { children: React.ReactNode }) {
     location.pathname.startsWith("/download/") ||
     location.pathname.startsWith("/slideshow/");
   const isAuthPage = AUTH_PAGES.includes(location.pathname);
+  // Inside a shoot, the editor and admin, the page draws its own bar (a breadcrumb, or
+  // admin's dark one), as on their boards.
+  const ownBar = /^\/(projects|albums)\/|^\/admin\/?$/.test(location.pathname);
+  const studio = !isReview && !isAuthPage;
 
   return (
     <div className="app-shell">
-      {!isReview && !isAuthPage && <AppHeader />}
+      {studio && !ownBar && <AppHeader />}
       {children}
+      {studio && (
+        <>
+          <HowItWorksHost />
+          <LaunchOfferHost />
+        </>
+      )}
     </div>
   );
 }

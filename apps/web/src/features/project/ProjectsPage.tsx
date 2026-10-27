@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { ProjectSummaryDTO, ProjectType } from "@albumflow/contracts";
 import { createProject, listProjects } from "@/shared/api";
 import { analysisProgress, shootsRefreshInterval } from "@/features/project/lib/shoot-progress";
@@ -43,11 +43,8 @@ const SHOOTS_TOUR: TourStep[] = [
     titleKey: "tour.shoots.feedback.title",
     bodyKey: "tour.shoots.feedback.body",
   },
-  { target: '[data-tour="nav-guide"]', titleKey: "tour.shoots.guide.title", bodyKey: "tour.shoots.guide.body" },
+  { target: '[data-tour="nav-account"]', titleKey: "tour.shoots.guide.title", bodyKey: "tour.shoots.guide.body" },
 ];
-
-/** A search box only earns its place once the list is long enough to scan. */
-const SEARCHABLE_FROM = 6;
 
 export function ProjectsPage() {
   const { studioId, name } = useAuth();
@@ -64,7 +61,8 @@ export function ProjectsPage() {
     clientEmail: string;
   }>({ name: "", type: "WEDDING", eventDate: "", clientName: "", clientEmail: "" });
   const [adding, setAdding] = useState(false);
-  const [search, setSearch] = useState("");
+  // Typed into the header's search box, which keeps it in the address.
+  const search = useSearchParams()[0].get("q") ?? "";
   const [filter, setFilter] = useState<ShootFilter>("all");
   const [onboardingHidden, setOnboardingHidden] = useState(onboardingDismissed);
 
@@ -233,16 +231,6 @@ export function ProjectsPage() {
           </p>
         </div>
         <div className="page__header-actions">
-          {all.length >= SEARCHABLE_FROM && (
-            <input
-              type="search"
-              className="shoot-search"
-              value={search}
-              placeholder={t("projects.search")}
-              aria-label={t("projects.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          )}
           <button
             type="button"
             className="button button--primary"

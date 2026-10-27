@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getAdminMe,
@@ -48,55 +48,85 @@ export function AdminPage() {
   const tab = (params.get("tab") as Tab | null) ?? "business";
   const me = useQuery({ queryKey: ["admin-me-page"], queryFn: getAdminMe, retry: false });
 
-  if (me.isLoading) return <LoadingState page />;
+  if (me.isLoading) {
+    return (
+      <>
+        <AdminBar />
+        <LoadingState page />
+      </>
+    );
+  }
   if (!me.data?.admin) {
     return (
-      <div className="page">
-        <h1>Not available</h1>
-        <p className="muted">This page is only for the people who run AlbumFlow.</p>
-      </div>
+      <>
+        <AdminBar />
+        <div className="page">
+          <h1>Not available</h1>
+          <p className="muted">This page is only for the people who run AlbumFlow.</p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="page admin">
-      <header className="page__header">
-        <div>
-          <h1>Admin</h1>
-          <p className="muted">
-            How AlbumFlow is doing, who is on which plan, what photographers are saying, how the server is holding up,
-            and what has failed.
-          </p>
+    <>
+      <AdminBar>
+        <div className="admin-bar__tabs" role="tablist" aria-label="Admin">
+          {(
+            [
+              ["business", "Business"],
+              ["studios", "Studios"],
+              ["feedback", "Feedback"],
+              ["server", "Server"],
+              ["errors", "Errors"],
+            ] as [Tab, string][]
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              className="admin-bar__tab"
+              onClick={() => setParams({ tab: key })}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-      </header>
-      <div className="admin__tabs" role="tablist">
-        {(
-          [
-            ["business", "Business"],
-            ["studios", "Studios"],
-            ["feedback", "Feedback"],
-            ["server", "Server"],
-            ["errors", "Errors"],
-          ] as [Tab, string][]
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={tab === key}
-            className={`sidebar__tab ${tab === key ? "sidebar__tab--on" : ""}`}
-            onClick={() => setParams({ tab: key })}
-          >
-            {label}
-          </button>
-        ))}
+      </AdminBar>
+      <div className="page admin">
+        <header className="page__header">
+          <div>
+            <h1>Admin</h1>
+            <p className="muted">
+              How AlbumFlow is doing, who is on which plan, what photographers are saying, how the server is holding up,
+              and what has failed.
+            </p>
+          </div>
+        </header>
+        {tab === "business" && <BusinessTab />}
+        {tab === "studios" && <StudiosTab />}
+        {tab === "feedback" && <FeedbackTab />}
+        {tab === "server" && <ServerTab />}
+        {tab === "errors" && <ErrorsTab initialSearch={params.get("q") ?? ""} />}
       </div>
-      {tab === "business" && <BusinessTab />}
-      {tab === "studios" && <StudiosTab />}
-      {tab === "feedback" && <FeedbackTab />}
-      {tab === "server" && <ServerTab />}
-      {tab === "errors" && <ErrorsTab initialSearch={params.get("q") ?? ""} />}
-    </div>
+    </>
+  );
+}
+
+/** The dark bar of the Admin board: its own name, the tabs, and the way back to the studio. */
+function AdminBar({ children }: { children?: ReactNode }) {
+  return (
+    <header className="admin-bar">
+      <span className="admin-bar__mark">
+        <img src="/logo-icon.png" alt="" className="app-header__logo" />
+        AlbumFlow · Admin
+      </span>
+      {children}
+      <Link to="/" className="admin-bar__back">
+        Back to the studio
+      </Link>
+    </header>
   );
 }
 

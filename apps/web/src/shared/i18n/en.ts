@@ -9,10 +9,6 @@ export const en: Record<string, string> = {
   "nav.login": "Log in",
   "nav.signup": "Sign up",
   "nav.logout": "Log out",
-  "greeting.morning": "Good morning",
-  "greeting.afternoon": "Good afternoon",
-  "greeting.evening": "Good evening",
-  "greeting.night": "Burning the midnight oil",
 
   // --- Common -----------------------------------------------------------
   "common.cancel": "Cancel",
@@ -173,7 +169,6 @@ export const en: Record<string, string> = {
   "projects.all.empty": "No shoots yet — create one above to start uploading.",
 
   // --- Project (single shoot) ------------------------------------------
-  "project.back": "← All shoots",
   "project.stats": "{uploaded} uploaded · {analysed} analysed · {albumWorthy} album-worthy",
   "project.deleteShoot": "Delete shoot",
   "project.deleteShoot.title": "Delete this shoot?",
@@ -724,6 +719,16 @@ export const en: Record<string, string> = {
   "spread.closeTools": "Close",
   "nav.menu.open": "Menu",
   "nav.menu.close": "Close menu",
+  "nav.main": "Main",
+  "nav.home": "AlbumFlow home",
+  "nav.breadcrumb": "You are here",
+  "nav.account": "Account",
+  "nav.prefs": "Language and theme",
+  "nav.search.placeholder": "Search shoots or clients",
+  "theme.title": "Theme",
+  "theme.light": "Light",
+  "theme.dark": "Dark",
+  "language.switchTo": "Switch to {language}",
   "changelog.item.responsive": "Works on phones and tablets",
   "changelog.item.responsive.desc":
     "The whole app now fits smaller screens. On a phone the top bar folds into a menu button, pages no longer scroll sideways, and buttons and panels wrap neatly instead of running off the edge — including the album editor. Client links (selection, review and download) already worked well on phones and still do.",
@@ -880,7 +885,6 @@ export const en: Record<string, string> = {
   "contact.error.generic": "Something went wrong sending your message. Please try again, or email {email}.",
 
   // --- Album editor (toolbar) ------------------------------------------
-  "album.back": "← Back to shoot",
   "album.status.DRAFT": "Draft",
   "album.status.IN_REVIEW": "With the client",
   "album.status.CHANGES_REQUESTED": "Changes requested",
@@ -1288,7 +1292,7 @@ export const en: Record<string, string> = {
   "tour.shoots.feedback.body": "An idea, a problem or a question — it goes straight to the people who build AlbumFlow.",
   "tour.shoots.guide.title": "See this again",
   "tour.shoots.guide.body":
-    "Every main page has a short guide like this one. Open it here whenever you need a reminder.",
+    "Replay this page's guide, open the overview, get in touch or log out — all from your account menu.",
   "tour.project.upload.title": "1. Upload your selects",
   "tour.project.upload.body":
     "Drag the photos you culled onto this area, or click it to choose files. Each one is scored for sharpness, exposure and composition as it arrives.",
