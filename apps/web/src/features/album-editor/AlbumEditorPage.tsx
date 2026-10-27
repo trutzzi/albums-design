@@ -570,6 +570,22 @@ export function AlbumEditorPage() {
         )}
 
         <div className={`editor__layout ${tray.prefs.wide ? "editor__layout--wide" : ""}`}>
+          {/* First in the layout: the left rail on a wide screen, the bottom strip on a phone. */}
+          <PageStrip
+            spreads={current.spreads}
+            templateById={templateById}
+            thumbnailUrlFor={thumbnailUrlFor}
+            albumStyle={current.style ?? DEFAULT_STYLE}
+            aspectRatio={aspectRatio}
+            currentIndex={currentSpread}
+            locked={locked}
+            openCommentsBySpread={commentsBySpread}
+            issuesBySpread={issueCounts}
+            chapters={chapters}
+            onJump={jumpToSpread}
+            onReorder={reorderSpread}
+            onDropPhoto={addPhotoDrop}
+          />
           <main className="spreads">
             <FocusBar
               view={view}
@@ -745,22 +761,6 @@ export function AlbumEditorPage() {
             <ExportPanel albumId={albumId} hidden={sidebarTab !== "export"} />
           </aside>
         </div>
-
-        <PageStrip
-          spreads={current.spreads}
-          templateById={templateById}
-          thumbnailUrlFor={thumbnailUrlFor}
-          albumStyle={current.style ?? DEFAULT_STYLE}
-          aspectRatio={aspectRatio}
-          currentIndex={currentSpread}
-          locked={locked}
-          openCommentsBySpread={commentsBySpread}
-          issuesBySpread={issueCounts}
-          chapters={chapters}
-          onJump={jumpToSpread}
-          onReorder={reorderSpread}
-          onDropPhoto={addPhotoDrop}
-        />
 
         {checkOpen && (
           <AlbumCheckPanel

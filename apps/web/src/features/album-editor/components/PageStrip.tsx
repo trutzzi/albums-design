@@ -24,7 +24,8 @@ export interface PageStripProps {
 }
 
 /**
- * Every spread as a small thumbnail, pinned to the bottom of the editor: click to jump,
+ * Every spread as a small thumbnail — a rail down the editor's left on a wide screen, a
+ * strip pinned to the bottom on a phone (the CSS decides): click to jump,
  * drag one onto another to reorder, drop a tray photo onto one to add it there. The dots
  * say where the album check found something and where the client left notes.
  */

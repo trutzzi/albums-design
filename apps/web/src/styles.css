@@ -6895,3 +6895,69 @@ body.is-previewing {
   margin-left: auto;
   color: #e8a179;
 }
+
+/* ---- album editor, full screen as on its board: spreads rail · spread · tools ----
+   From 901px the editor drops the page's width cap and becomes three panes, edge to
+   edge: the page strip turns into a rail down the left, the spreads take the middle,
+   the tools sit flush right. Both side panes stay pinned under the editor bar. On a
+   phone everything stays stacked, with the strip along the bottom as before. */
+@media (min-width: 901px) {
+  .page.editor {
+    max-width: none;
+    padding: 0;
+  }
+  .page.editor > .notice,
+  .page.editor > .error {
+    margin: 12px 24px;
+  }
+  .editor .editor__layout {
+    grid-template-columns: 190px minmax(0, 1fr) 320px;
+    gap: 0;
+  }
+  .editor .editor__layout--wide {
+    grid-template-columns: 190px minmax(0, 1fr) 460px;
+  }
+  .editor .spreads {
+    min-height: calc(100vh - var(--editor-header-h, 0px));
+    padding: 24px 32px 48px;
+    border-radius: 0;
+  }
+  .editor .page-strip {
+    position: sticky;
+    top: var(--editor-header-h, 0px);
+    bottom: auto;
+    z-index: 3;
+    height: calc(100vh - var(--editor-header-h, 0px));
+    overflow-y: auto;
+    border-top: 0;
+    border-right: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: none;
+    backdrop-filter: none;
+    scrollbar-width: thin;
+  }
+  /* A rail has the height to spare; hiding it would only leave a gap. */
+  .editor .page-strip__toggle {
+    display: none;
+  }
+  .editor .page-strip__list {
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    overflow: visible;
+  }
+  .editor .page-strip__item {
+    width: 100%;
+  }
+  .editor--with-strip {
+    padding-bottom: 0;
+  }
+  .editor .sidebar,
+  .editor--with-strip .sidebar {
+    top: var(--editor-header-h, 0px);
+    height: calc(100vh - var(--editor-header-h, 0px));
+    padding: 12px 16px 16px;
+    border-left: 1px solid var(--line);
+    background: var(--surface);
+  }
+}
