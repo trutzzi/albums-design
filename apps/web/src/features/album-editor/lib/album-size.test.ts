@@ -70,6 +70,31 @@ describe("sharpnessAt", () => {
     assert.deepEqual(now, { soft: 0, pixelated: 0 });
     assert.deepEqual(then, { soft: 1, pixelated: 0 });
   });
+
+  it("counts placed photos it could not measure, instead of calling them sharp", () => {
+    const { unchecked } = sharpnessAt(
+      {
+        album: {
+          format: { pageWidthMm: 250, pageHeightMm: 250, bleedMm: 3 },
+          style: DEFAULT_STYLE,
+          cover: null,
+          spreads: [
+            {
+              templateId: "panorama",
+              placements: [
+                { slotId: "band", photoId: "fresh", crop: { x: 0, y: 0, width: 1, height: 1 }, treatment: "COLOR" },
+              ],
+            },
+          ],
+        },
+        templates: new Map([["panorama", panorama]]),
+        analyses: new Map(),
+        existingPhotoIds: new Set(["fresh"]),
+      },
+      { pageWidthMm: 300, pageHeightMm: 300 },
+    );
+    assert.equal(unchecked, 1);
+  });
 });
 
 describe("sharpnessVerdict", () => {
@@ -79,6 +104,7 @@ describe("sharpnessVerdict", () => {
     assert.equal(sharpnessVerdict({ now: none, then: { soft: 3, pixelated: 0 } }), "softer");
     assert.equal(sharpnessVerdict({ now: { soft: 3, pixelated: 0 }, then: { soft: 3, pixelated: 0 } }), "alreadySoft");
     assert.equal(sharpnessVerdict({ now: none, then: none }), "sharp");
+    assert.equal(sharpnessVerdict({ now: none, then: none, unchecked: 2 }), "unchecked");
   });
 });
 

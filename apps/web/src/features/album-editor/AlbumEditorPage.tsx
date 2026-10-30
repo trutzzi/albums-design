@@ -838,15 +838,21 @@ export function AlbumEditorPage() {
           <InsertSpreadModal templates={templateList} onPick={insertSpread} onClose={() => setInsertAt(null)} />
         )}
         {guides.modalOpen && <PrintGuidesModal guides={guides} />}
-        {sizeOpen && photos.data && (
+        {sizeOpen && (
           <AlbumSizeDialog
             album={current}
-            check={{
-              album: { ...current, style: current.style ?? DEFAULT_STYLE },
-              templates: templateById,
-              analyses: analysisByPhoto,
-              existingPhotoIds: new Set(photos.data.map((photo) => photo.id)),
-            }}
+            // The dialog opens straight away; the sharpness preview waits for what it measures.
+            check={
+              photos.data && analyses.isSuccess
+                ? {
+                    album: { ...current, style: current.style ?? DEFAULT_STYLE },
+                    templates: templateById,
+                    analyses: analysisByPhoto,
+                    existingPhotoIds: new Set(photos.data.map((photo) => photo.id)),
+                  }
+                : null
+            }
+            checkFailed={photos.isError || analyses.isError}
             onResized={(resized) => {
               queryClient.setQueryData(["album", albumId], resized);
               // The shoot's Delivery step reads the size from the list, for its old-PDF note.

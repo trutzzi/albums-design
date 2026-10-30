@@ -16,8 +16,12 @@ import {
 
 interface AlbumSizeDialogProps {
   album: AlbumDTO;
-  /** What the editor's album check runs on, so the preview matches the Check panel. */
-  check: CheckInput;
+  /**
+   * What the editor's album check runs on, so the preview matches the Check panel; null
+   * while the shoot's photos or analyses are loading, or if they could not be loaded.
+   */
+  check: CheckInput | null;
+  checkFailed: boolean;
   onResized: (album: AlbumDTO) => void;
   onCopied: (album: AlbumDTO) => void;
   onClose: () => void;
@@ -28,14 +32,14 @@ interface AlbumSizeDialogProps {
  * (the parents' smaller books). Before either, it says what the size does to print
  * sharpness, since a bigger page spreads the same pixels further.
  */
-export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: AlbumSizeDialogProps) {
+export function AlbumSizeDialog({ album, check, checkFailed, onResized, onCopied, onClose }: AlbumSizeDialogProps) {
   const { t } = useLanguage();
   const options = useMemo(() => sizeOptions(album.format), [album.format]);
   const [chosen, setChosen] = useState<SizeOption | null>(options[0] ?? null);
   const [customCm, setCustomCm] = useState("");
   const custom = customSize(customCm, album.format);
   const size = custom === "empty" ? chosen : custom === "outOfRange" ? null : custom;
-  const sharpness = useMemo(() => (size ? sharpnessAt(check, size) : null), [check, size]);
+  const sharpness = useMemo(() => (size && check ? sharpnessAt(check, size) : null), [check, size]);
   const verdict = sharpness ? sharpnessVerdict(sharpness) : null;
   const locked = album.status === "APPROVED";
   const unchanged =
@@ -126,7 +130,14 @@ export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: 
                 ? t("albumSize.sharpness.soft", { count: sharpness.then.soft })
                 : verdict === "alreadySoft"
                   ? t("albumSize.sharpness.same", { count: sharpness.then.soft })
-                  : t("albumSize.sharpness.fine")}
+                  : verdict === "unchecked"
+                    ? t("albumSize.sharpness.unchecked", { count: sharpness.unchecked })
+                    : t("albumSize.sharpness.fine")}
+          </p>
+        )}
+        {size && !check && (
+          <p className={checkFailed ? "error" : "muted"} role="status">
+            {checkFailed ? t("albumSize.sharpness.failed") : t("albumSize.sharpness.loading")}
           </p>
         )}
         {locked && <p className="muted">{t("albumSize.locked")}</p>}

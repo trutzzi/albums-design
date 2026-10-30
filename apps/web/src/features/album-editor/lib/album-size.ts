@@ -36,20 +36,44 @@ function sharpnessOf(input: CheckInput): Sharpness {
  * What a new size does to print quality, from the same check the editor runs: a bigger
  * page spreads the same pixels further, so photos that were fine can turn soft.
  */
-export function sharpnessAt(input: CheckInput, size: SizeOption): { now: Sharpness; then: Sharpness } {
+export function sharpnessAt(
+  input: CheckInput,
+  size: SizeOption,
+): { now: Sharpness; then: Sharpness; unchecked: number } {
   return {
     now: sharpnessOf(input),
     then: sharpnessOf({ ...input, album: { ...input.album, format: { ...input.album.format, ...size } } }),
+    unchecked: uncheckedPhotos(input),
   };
 }
 
-/** What the preview says, and how it looks: one state, so the words and the colour agree. */
-export type SharpnessVerdict = "pixelated" | "softer" | "alreadySoft" | "sharp";
+/** Placed photos the check cannot judge: no analysis yet, so no pixel size to measure. */
+function uncheckedPhotos({ album, analyses, existingPhotoIds }: CheckInput): number {
+  const placed = new Set(
+    album.spreads.flatMap((spread) =>
+      spread.placements.map((placement) => placement.photoId).filter((id) => id && existingPhotoIds.has(id)),
+    ),
+  );
+  return [...placed].filter((id) => !analyses.has(id)).length;
+}
 
-export function sharpnessVerdict({ now, then }: { now: Sharpness; then: Sharpness }): SharpnessVerdict {
+/** What the preview says, and how it looks: one state, so the words and the colour agree. */
+export type SharpnessVerdict = "pixelated" | "softer" | "alreadySoft" | "unchecked" | "sharp";
+
+export function sharpnessVerdict({
+  now,
+  then,
+  unchecked = 0,
+}: {
+  now: Sharpness;
+  then: Sharpness;
+  unchecked?: number;
+}): SharpnessVerdict {
   if (then.pixelated > 0) return "pixelated";
   if (then.soft > now.soft) return "softer";
   if (then.soft > 0) return "alreadySoft";
+  // "Every photo stays sharp" only when every photo was actually measured.
+  if (unchecked > 0) return "unchecked";
   return "sharp";
 }
 

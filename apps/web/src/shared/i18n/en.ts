@@ -272,6 +272,11 @@ export const en: Record<string, string> = {
   "albumSize.custom.result": "{size} cm",
   "albumSize.custom.range": "Each side has to be between 5 and 100 cm.",
   "albumSize.sharpness.same": "No photo gets softer at this size. Already slightly soft at the current size: {count}.",
+  "albumSize.sharpness.unchecked":
+    "No measured photo gets softer at this size. Still being analysed, so not checked yet: {count}.",
+  "albumSize.sharpness.loading": "Checking print sharpness…",
+  "albumSize.sharpness.failed":
+    "Print sharpness could not be checked right now. The size can still be changed; run the album check afterwards.",
   "albumSize.sharpness.fine": "Every photo stays sharp in print at this size.",
   "albumSize.sharpness.soft":
     "Photos that would print slightly soft (under 200 dpi) at this size: {count}. The album check lists them.",
