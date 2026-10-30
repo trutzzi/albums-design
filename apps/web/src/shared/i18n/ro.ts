@@ -278,6 +278,11 @@ export const ro: Record<string, string> = {
   "albumSize.custom.range": "Fiecare latură trebuie să fie între 5 și 100 cm.",
   "albumSize.sharpness.same":
     "Nicio fotografie nu devine mai neclară la această dimensiune. Deja puțin neclare la dimensiunea actuală: {count}.",
+  "albumSize.sharpness.unchecked":
+    "Nicio fotografie verificată nu devine mai neclară la această dimensiune. Încă în analiză, deci neverificate: {count}.",
+  "albumSize.sharpness.loading": "Se verifică claritatea la tipar…",
+  "albumSize.sharpness.failed":
+    "Claritatea la tipar nu a putut fi verificată acum. Poți schimba totuși dimensiunea; rulează apoi verificarea albumului.",
   "albumSize.sharpness.fine": "Toate fotografiile rămân clare la tipar la această dimensiune.",
   "albumSize.sharpness.soft":
     "Fotografii care s-ar tipări puțin neclar (sub 200 dpi) la această dimensiune: {count}. Verificarea albumului le arată.",
