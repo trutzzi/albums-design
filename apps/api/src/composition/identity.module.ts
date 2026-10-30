@@ -6,6 +6,7 @@ import { PasswordResetUseCase } from "../modules/identity/application/use-cases/
 import { BillingUseCase } from "../modules/identity/application/use-cases/billing.use-case";
 import { EmailConfirmationMailer } from "../modules/identity/application/services/email-confirmation.mailer";
 import { PasswordResetMailer } from "../modules/identity/application/services/password-reset.mailer";
+import { SignupLog } from "../modules/identity/application/services/signup-log";
 import { SubscriptionQuotaPolicy } from "../modules/identity/application/subscription-quota-policy";
 import { SharpLogoProcessor } from "../modules/identity/infrastructure/branding/sharp-logo-processor";
 import { SubscriptionStudioBrandingDirectory } from "../modules/identity/infrastructure/branding/subscription-branding-directory";
@@ -18,7 +19,10 @@ export function buildIdentityModule(
   repos: Repositories,
 ) {
   const { studios, subscriptions, members, projects } = repos;
+  const signupLog = new SignupLog(repos.signupAttempts, repos.signupBlocks, logger.child({ component: "signups" }));
   return {
+    /** Every sign-up attempt (kept 90 days) and the admin's sign-up block list. */
+    signupLog,
     administration: new StudioAdministrationUseCase(studios, subscriptions, members, new SharpLogoProcessor()),
     register: new RegisterUseCase(
       studios,
@@ -27,6 +31,9 @@ export function buildIdentityModule(
       env.JWT_SECRET,
       new EmailConfirmationMailer(emailSender),
       env.WEB_ORIGIN,
+      undefined,
+      undefined,
+      signupLog,
     ),
     login: new LoginUseCase(members, env.JWT_SECRET),
     passwordReset: new PasswordResetUseCase(

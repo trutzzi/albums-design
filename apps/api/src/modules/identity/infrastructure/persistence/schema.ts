@@ -58,3 +58,42 @@ export const studioMembers = pgTable(
   // Deleting a studio checks this column; without an index that check reads the whole table.
   (table) => [index("studio_members_studio_id_idx").on(table.studioId)],
 );
+
+export const signupOutcomeEnum = pgEnum("signup_outcome", [
+  "CONFIRMATION_SENT",
+  "TRAPPED",
+  "HUMAN_CHECK_FAILED",
+  "RATE_LIMITED",
+  "BLOCKED",
+  "ALREADY_REGISTERED",
+  "INVALID",
+]);
+
+/** Every sign-up attempt, kept 90 days: outlives the 48-hour purge of unconfirmed accounts. */
+export const signupAttempts = pgTable(
+  "signup_attempts",
+  {
+    id: uuid("id").primaryKey(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    email: varchar("email", { length: 320 }).notNull(),
+    ip: varchar("ip", { length: 64 }),
+    userAgent: varchar("user_agent", { length: 512 }),
+    language: varchar("language", { length: 128 }),
+    referer: varchar("referer", { length: 512 }),
+    outcome: signupOutcomeEnum("outcome").notNull(),
+    memberId: uuid("member_id"),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  },
+  (table) => [index("signup_attempts_at_idx").on(table.at), index("signup_attempts_member_id_idx").on(table.memberId)],
+);
+
+export const signupBlockKindEnum = pgEnum("signup_block_kind", ["IP", "NETWORK", "EMAIL_DOMAIN"]);
+
+/** The admin's block list for sign-ups. */
+export const signupBlocks = pgTable("signup_blocks", {
+  id: uuid("id").primaryKey(),
+  kind: signupBlockKindEnum("kind").notNull(),
+  value: varchar("value", { length: 255 }).notNull(),
+  note: varchar("note", { length: 500 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+});

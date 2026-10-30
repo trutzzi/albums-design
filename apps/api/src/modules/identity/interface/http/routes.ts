@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { sendApplicationError } from "#src/interface/error-translator";
 import { clientStyleSchema, loginInputSchema, registerInputSchema, studioBrandingSchema } from "@albumflow/contracts";
@@ -9,6 +9,7 @@ import type { LoginUseCase } from "../../application/use-cases/login.use-case";
 import type { PasswordResetUseCase } from "../../application/use-cases/password-reset.use-case";
 import type { BillingUseCase } from "../../application/use-cases/billing.use-case";
 import type { HumanCheck } from "#src/shared-kernel/human-check";
+import type { SignupContext } from "../../domain/signup-log";
 import "#src/interface/request-context";
 
 const studioParams = z.object({ studioId: z.string().uuid() });
@@ -46,15 +47,20 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
 
   app.post("/auth/register", async (request, reply) => {
     const { website, captchaToken, ...body } = registerInputSchema.parse(request.body);
+    const context = signupContext(request);
     // The hidden field was filled in: a bot. Answer exactly as for a person, create nothing.
-    if (website) return reply.code(201).send({ status: "CONFIRMATION_SENT", email: body.email.trim().toLowerCase() });
+    if (website) {
+      await deps.register.trapped(body.email, context);
+      return reply.code(201).send({ status: "CONFIRMATION_SENT", email: body.email.trim().toLowerCase() });
+    }
     if (deps.humanCheck && !(await deps.humanCheck.verify(captchaToken, request.ip))) {
+      await deps.register.failedHumanCheck(body.email, context);
       return reply.code(400).send({
         code: "HUMAN_CHECK_FAILED",
         message: "Please complete the check that you are not a robot, then try again.",
       });
     }
-    const result = await deps.register.execute({ ...body, ip: request.ip });
+    const result = await deps.register.execute({ ...body, ip: request.ip, context });
     if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(201).send(result.getValue());
   });
@@ -175,5 +181,19 @@ function toPlanDto(plan: (typeof PLANS)[keyof typeof PLANS]) {
     albumsPerPeriod: Number.isFinite(plan.albumsPerPeriod) ? plan.albumsPerPeriod : null,
     seats: Number.isFinite(plan.seats) ? plan.seats : null,
     maxPhotosPerShoot: Number.isFinite(plan.maxPhotosPerShoot) ? plan.maxPhotosPerShoot : null,
+  };
+}
+
+/** What the request says about where a sign-up came from, for the sign-up log. */
+function signupContext(request: FastifyRequest): SignupContext {
+  const header = (name: string) => {
+    const value = request.headers[name];
+    return Array.isArray(value) ? value[0] : value;
+  };
+  return {
+    ip: request.ip,
+    userAgent: header("user-agent"),
+    language: header("accept-language"),
+    referer: header("referer") ?? header("origin"),
   };
 }

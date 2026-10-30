@@ -49,6 +49,7 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     billing: identity.billing,
     /** Cloudflare Turnstile on signup when TURNSTILE_SECRET_KEY is set; a pass-through otherwise. */
     humanCheck: identity.humanCheck,
+    signupLog: identity.signupLog,
     mediaIngestion: ingestion.http,
     generateDerivatives: ingestion.generateDerivatives,
     promoteSelected: ingestion.promoteSelected,

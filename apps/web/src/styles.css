@@ -7043,3 +7043,46 @@ body.is-previewing {
 .album-size__hint:empty {
   display: none;
 }
+
+/* ---- admin: sign-ups ---- */
+.admin__table-scroll {
+  overflow-x: auto;
+}
+.signup-chip {
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font: inherit;
+}
+.signup-chip--on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.signups-table td {
+  vertical-align: top;
+}
+.signups-table__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  white-space: nowrap;
+}
+.signup-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.signup-blocks li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.signup-blocks li .button {
+  margin-left: auto;
+}
+.signups-table__ip {
+  white-space: nowrap;
+}

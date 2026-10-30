@@ -155,6 +155,13 @@
       "when": 1793379408042,
       "tag": "0021_export_page_size",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793381410073,
+      "tag": "0022_signup_log",
+      "breakpoints": true
     }
   ]
 }

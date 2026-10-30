@@ -1,11 +1,11 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import { AttemptLimiter } from "#src/shared-kernel/attempt-limiter";
 import {
+  ApplicationError,
   ConflictError,
   TooManyAttemptsError,
   UnauthorizedError,
   ValidationError,
-  type ApplicationError,
 } from "#src/shared-kernel/errors";
 import { hashPassword } from "#src/shared-kernel/password-hasher";
 import { signJwt, verifyJwt } from "#src/shared-kernel/jwt";
@@ -16,6 +16,8 @@ import { Subscription } from "../../domain/subscription";
 import type { EmailConfirmationMailer } from "../services/email-confirmation.mailer";
 import type { ResetLanguage } from "../services/password-reset.mailer";
 import { issueSession } from "./login.use-case";
+import type { SignupLog } from "../services/signup-log";
+import type { SignupContext, SignupOutcome } from "../../domain/signup-log";
 
 const MIN_PASSWORD_LENGTH = 8;
 const CONFIRM_TTL_SECONDS = 60 * 60 * 48; // 48 hours
@@ -46,7 +48,18 @@ export class RegisterUseCase {
     private readonly perIp: AttemptLimiter = new AttemptLimiter(5, 60 * 60 * 1000),
     /** Confirmation emails per inbox per hour, so the form cannot flood someone. */
     private readonly perEmail: AttemptLimiter = new AttemptLimiter(4, 60 * 60 * 1000),
+    /** Records every attempt and holds the admin's block list; absent, nothing is logged or blocked. */
+    private readonly signups?: SignupLog,
   ) {}
+
+  /** The hidden field was filled in. Nothing is made; the attempt is still worth knowing about. */
+  async trapped(email: string, context: SignupContext): Promise<void> {
+    await this.signups?.record(email, context, "TRAPPED");
+  }
+
+  async failedHumanCheck(email: string, context: SignupContext): Promise<void> {
+    await this.signups?.record(email, context, "HUMAN_CHECK_FAILED");
+  }
 
   async execute(params: {
     name: string;
@@ -54,20 +67,37 @@ export class RegisterUseCase {
     password: string;
     language?: ResetLanguage | undefined;
     ip?: string | undefined;
+    /** Where the attempt came from, for the sign-up log; `ip` alone is enough to rate-limit. */
+    context?: SignupContext | undefined;
   }): Promise<Result<SignUpOutcome, ApplicationError>> {
     const email = params.email.trim().toLowerCase();
+    const context: SignupContext = { ...params.context, ip: params.context?.ip ?? params.ip };
+    const refuse = async (outcome: SignupOutcome, error: ApplicationError) => {
+      await this.signups?.record(email, context, outcome);
+      return Result.failure<SignUpOutcome, ApplicationError>(error);
+    };
     if (params.password.length < MIN_PASSWORD_LENGTH) {
-      return Result.failure(new ValidationError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`));
+      return refuse("INVALID", new ValidationError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`));
     }
 
-    const ipKey = params.ip ? `signup-ip:${params.ip}` : undefined;
+    if (await this.signups?.blockFor(email, context)) {
+      return refuse(
+        "BLOCKED",
+        new ApplicationError(
+          "Sign-ups from this address or email domain are not accepted. If that is a mistake, write to us from the contact page.",
+          "SIGNUP_BLOCKED",
+        ),
+      );
+    }
+
+    const ipKey = context.ip ? `signup-ip:${context.ip}` : undefined;
     const locked = ipKey ? this.perIp.lockedFor(ipKey) : 0;
-    if (locked > 0) return Result.failure(new TooManyAttemptsError(locked));
+    if (locked > 0) return refuse("RATE_LIMITED", new TooManyAttemptsError(locked));
     if (ipKey) this.perIp.recordFailure(ipKey);
 
     const existing = await this.members.findByEmail(email);
     if (existing?.emailVerified || (existing && !existing.passwordHash)) {
-      return Result.failure(new ConflictError(`${email} is already registered.`));
+      return refuse("ALREADY_REGISTERED", new ConflictError(`${email} is already registered.`));
     }
 
     const passwordHash = await hashPassword(params.password);
@@ -85,6 +115,7 @@ export class RegisterUseCase {
     }
     await this.members.save(member);
     await this.sendConfirmation(member, params.language ?? "en");
+    await this.signups?.record(email, context, "CONFIRMATION_SENT", member.id.toString());
     return Result.success({ status: "CONFIRMATION_SENT", email });
   }
 
@@ -96,6 +127,7 @@ export class RegisterUseCase {
     if (!member) return Result.failure(new UnauthorizedError(INVALID_LINK));
     member.markEmailVerified();
     await this.members.save(member);
+    await this.signups?.confirmed(member.id.toString());
     this.perEmail.reset(`confirm:${member.email}`);
     return Result.success(issueSession(member, this.jwtSecret));
   }
