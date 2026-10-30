@@ -79,8 +79,9 @@ export class SignupLog {
 
   async record(email: string, context: SignupContext, outcome: SignupOutcome, memberId?: string): Promise<void> {
     // A link actually sent is always kept (sign-up limits those already); refusals are capped.
-    if (outcome !== "CONFIRMATION_SENT" && context.ip) {
-      const key = `refused:${networkOf(context.ip)}`;
+    if (outcome !== "CONFIRMATION_SENT") {
+      // No address at all (a proxy that dropped it) shares one budget rather than none.
+      const key = `refused:${context.ip ? networkOf(context.ip) : "unknown"}`;
       if (this.refusedPerIp.lockedFor(key) > 0) return;
       this.refusedPerIp.record(key);
     }
@@ -168,15 +169,17 @@ export class SignupLog {
     }
     const existing = (await this.blocks.list()).find((block) => block.kind === kind && block.value === normalised);
     if (existing) return Result.success({ ...existing, createdAt: existing.createdAt.toISOString() });
-    const block: SignupBlock = {
+    await this.blocks.add({
       id: randomUUID(),
       kind,
       value: normalised,
       note: note?.trim() || null,
       createdAt: this.now(),
-    };
-    await this.blocks.add(block);
-    return Result.success({ ...block, createdAt: block.createdAt.toISOString() });
+    });
+    // Read back what was stored: if another admin added the same block a moment earlier,
+    // theirs is the one that exists, and its id is the one that can be unblocked.
+    const stored = (await this.blocks.list()).find((block) => block.kind === kind && block.value === normalised)!;
+    return Result.success({ ...stored, createdAt: stored.createdAt.toISOString() });
   }
 
   async unblock(id: string): Promise<Result<void, ApplicationError>> {

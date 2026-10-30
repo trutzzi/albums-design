@@ -138,7 +138,8 @@ describe("the sign-up log", () => {
     for (let i = 0; i < 40; i++) await log.record(`bot${i}@b.ro`, { ip: `203.0.113.${i}` }, "TRAPPED");
     await log.record("person@b.ro", { ip: "203.0.113.200" }, "CONFIRMATION_SENT", "m1");
     await log.record("elsewhere@b.ro", { ip: "198.51.100.1" }, "TRAPPED");
-    assert.equal(attempts.items.filter((item) => item.outcome === "TRAPPED").length, 31);
+    for (let i = 0; i < 40; i++) await log.record(`noip${i}@b.ro`, {}, "TRAPPED");
+    assert.equal(attempts.items.filter((item) => item.outcome === "TRAPPED").length, 61);
     assert.ok(attempts.items.some((item) => item.email === "person@b.ro"));
   });
 
@@ -187,6 +188,16 @@ describe("the sign-up log", () => {
     const added = await log.block("NETWORK", "203.0.113.50", "bot farm");
     assert.equal(added.getValue().value, "203.0.113.0/24");
     assert.equal((await log.block("NETWORK", "203.0.113.9")).getValue().id, added.getValue().id);
+    // A racing duplicate is dropped by the store; the answer is still the block that exists.
+    const raced = await new SignupLog(
+      { ...new InMemorySignupAttemptRepository() },
+      Object.assign(new InMemorySignupBlockRepository(), {
+        list: async () => [{ ...(await log.listBlocks())[0]!, createdAt: new Date() }],
+        add: async () => {},
+      }),
+      new RecordingLogger(),
+    ).block("NETWORK", "203.0.113.1");
+    assert.equal(raced.getValue().id, added.getValue().id);
     assert.match((await log.block("EMAIL_DOMAIN", "localhost")).getError().message, /expected a domain/);
     assert.match((await log.block("NETWORK", "10.0.0.0/8")).getError().message, /\/24 \(IPv4\)/);
     assert.match((await log.block("EMAIL_DOMAIN", "@Gmail.com")).getError().message, /too many real people/);

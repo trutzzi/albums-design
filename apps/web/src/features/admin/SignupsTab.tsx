@@ -156,7 +156,12 @@ export function SignupsTab() {
         ) : (attempts.data?.items.length ?? 0) === 0 ? (
           <p className="muted">No sign-up attempts match.</p>
         ) : (
-          <div className="admin__table-scroll">
+          // While a new filter loads, the old rows stay but go quiet: no blocking a row that
+          // no longer matches what was asked for.
+          <div
+            className={`admin__table-scroll ${attempts.isPlaceholderData ? "is-stale" : ""}`}
+            aria-busy={attempts.isPlaceholderData}
+          >
             <table className="admin__table signups-table">
               <thead>
                 <tr>
@@ -209,6 +214,7 @@ export function SignupsTab() {
                               type="button"
                               className="link-button"
                               aria-label={`Block IP ${attempt.ip}`}
+                              disabled={attempts.isPlaceholderData}
                               onClick={() => confirmBlock("IP", attempt.ip!)}
                             >
                               Block IP
@@ -218,6 +224,7 @@ export function SignupsTab() {
                               className="link-button"
                               title={attempt.network ?? undefined}
                               aria-label={`Block network ${attempt.network ?? attempt.ip}`}
+                              disabled={attempts.isPlaceholderData}
                               onClick={() => confirmBlock("NETWORK", attempt.ip!)}
                             >
                               Block network
@@ -228,7 +235,8 @@ export function SignupsTab() {
                           <button
                             type="button"
                             className="link-button"
-                            aria-label={`Block every address at ${domainOf(attempt.email)}`}
+                            aria-label={`Block @${domainOf(attempt.email)}, every address there`}
+                            disabled={attempts.isPlaceholderData}
                             onClick={() => confirmBlock("EMAIL_DOMAIN", domainOf(attempt.email))}
                           >
                             Block @{domainOf(attempt.email)}
