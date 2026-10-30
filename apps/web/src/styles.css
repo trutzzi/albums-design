@@ -7024,3 +7024,15 @@ body.is-previewing {
   color: var(--warn);
   font-size: 0.82rem;
 }
+
+/* ---- admin: the test email under the server's configuration ---- */
+.admin__test-email {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+}
+.admin__test-email p {
+  margin: 0;
+}

@@ -1,5 +1,7 @@
 import { AggregateRoot, UniqueEntityId } from "@albumflow/domain-kernel";
 import {
+  PAGE_SIDE_MAX_MM,
+  PAGE_SIDE_MIN_MM,
   sameAlbumShape,
   spacedSlotRect,
   type AlbumCoverDTO,
@@ -94,17 +96,29 @@ export class AlbumLockedError extends Error {
   }
 }
 
+/** "25×25 cm": how labs, and photographers, name a book's size. */
+export function sizeInCm(size: { pageWidthMm: number; pageHeightMm: number }): string {
+  const cm = (mm: number) => Math.round(mm) / 10;
+  return `${cm(size.pageWidthMm)}×${cm(size.pageHeightMm)} cm`;
+}
+
 export class AlbumShapeError extends Error {
   constructor(from: AlbumFormat, to: { pageWidthMm: number; pageHeightMm: number }) {
     super(
-      `A ${cm(from.pageWidthMm)}×${cm(from.pageHeightMm)} cm album can only change to a size of the same shape; ` +
-        `${cm(to.pageWidthMm)}×${cm(to.pageHeightMm)} cm would stretch every layout.`,
+      `A ${sizeInCm(from)} album can only change to a size of the same shape; ${sizeInCm(to)} would stretch every layout.`,
     );
     this.name = "AlbumShapeError";
   }
 }
 
-const cm = (mm: number) => Math.round(mm) / 10;
+export class AlbumSizeRangeError extends Error {
+  constructor(size: { pageWidthMm: number; pageHeightMm: number }) {
+    super(
+      `${sizeInCm(size)} is outside what a lab prints: each side between ${PAGE_SIDE_MIN_MM / 10} and ${PAGE_SIDE_MAX_MM / 10} cm.`,
+    );
+    this.name = "AlbumSizeRangeError";
+  }
+}
 
 export class SpreadNotFoundError extends Error {
   constructor(index: number) {
@@ -224,11 +238,15 @@ export class Album extends AggregateRoot<AlbumProps> {
   private formatAt(size: { pageWidthMm: number; pageHeightMm: number }): AlbumFormat {
     if (!sameAlbumShape(this.props.format, size)) throw new AlbumShapeError(this.props.format, size);
     const ratio = this.props.format.pageHeightMm / this.props.format.pageWidthMm;
-    return {
+    const format = {
       ...this.props.format,
       pageWidthMm: size.pageWidthMm,
       pageHeightMm: Math.round(size.pageWidthMm * ratio * 100) / 100,
     };
+    // The request was range-checked; the height derived from it can sit just outside.
+    const sides = [format.pageWidthMm, format.pageHeightMm];
+    if (sides.some((side) => side < PAGE_SIDE_MIN_MM || side > PAGE_SIDE_MAX_MM)) throw new AlbumSizeRangeError(format);
+    return format;
   }
 
   /**

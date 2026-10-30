@@ -4,7 +4,13 @@ import { describe, it } from "node:test";
 import Fastify from "fastify";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { sameAlbumShape } from "@albumflow/contracts";
-import { Album, AlbumLockedError, AlbumShapeError, FULL_CROP } from "../src/modules/album-composition/domain/album";
+import {
+  Album,
+  AlbumLockedError,
+  AlbumShapeError,
+  AlbumSizeRangeError,
+  FULL_CROP,
+} from "../src/modules/album-composition/domain/album";
 import { ResizeAlbumUseCase } from "../src/modules/album-composition/application/use-cases/resize-album/resize-album.use-case";
 import { CopyAlbumAtSizeUseCase } from "../src/modules/album-composition/application/use-cases/copy-album/copy-album.use-case";
 import { registerAlbumCompositionRoutes } from "../src/modules/album-composition/interface/http/routes";
@@ -80,6 +86,17 @@ describe("resizing an album", () => {
       album.resize({ pageWidthMm: width, pageHeightMm: width * 0.7 * 1.009 });
     assert.equal(album.format.pageWidthMm, 600);
     assert.equal(album.format.pageHeightMm, 420);
+  });
+
+  it("keeps the derived side inside what a lab prints", () => {
+    const tall = Album.create({
+      projectId: UniqueEntityId.create(),
+      title: "Tall",
+      format: { pageWidthMm: 200, pageHeightMm: 300, bleedMm: 3 },
+      spreads: [],
+    });
+    // 700 wide makes 1050 tall: the request passed the schema's 1000 mm cap only for its width.
+    assert.throws(() => tall.resize({ pageWidthMm: 700, pageHeightMm: 1050 }), AlbumSizeRangeError);
   });
 
   it("refuses another shape, and an approved album", () => {

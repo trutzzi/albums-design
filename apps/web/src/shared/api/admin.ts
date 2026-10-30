@@ -120,6 +120,11 @@ export interface SystemStats {
   };
 }
 
+/** Sends one email to the admin asking; fails with the mail server's own answer. */
+export function sendTestEmail(): Promise<{ sentTo: string; from: string | null }> {
+  return request("/admin/test-email", { method: "POST" });
+}
+
 export function getSystemStats(): Promise<SystemStats> {
   return request("/admin/stats/system");
 }

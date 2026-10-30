@@ -1,6 +1,6 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
-import { Album, AlbumShapeError } from "#src/modules/album-composition/domain/album";
+import { Album, AlbumShapeError, AlbumSizeRangeError, sizeInCm } from "#src/modules/album-composition/domain/album";
 import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
 import type { AlbumQuotaPolicy, ProjectDirectory } from "../../ports/directories";
 
@@ -10,8 +10,6 @@ export interface CopyAlbumCommand {
   pageHeightMm: number;
   title?: string | undefined;
 }
-
-const cm = (mm: number) => Math.round(mm) / 10;
 
 /**
  * A second album with the same design at another size — the 20×20 copies for the
@@ -37,12 +35,10 @@ export class CopyAlbumAtSizeUseCase {
     const size = { pageWidthMm: command.pageWidthMm, pageHeightMm: command.pageHeightMm };
     let copy: Album;
     try {
-      copy = original.copyAt(
-        size,
-        command.title ?? `${original.title} — ${cm(size.pageWidthMm)}×${cm(size.pageHeightMm)} cm`,
-      );
+      copy = original.copyAt(size, command.title ?? `${original.title} — ${sizeInCm(size)}`);
     } catch (error) {
-      if (error instanceof AlbumShapeError) return Result.failure(new ValidationError(error.message));
+      if (error instanceof AlbumShapeError || error instanceof AlbumSizeRangeError)
+        return Result.failure(new ValidationError(error.message));
       throw error;
     }
 

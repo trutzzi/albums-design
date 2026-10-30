@@ -270,6 +270,8 @@ export const en: Record<string, string> = {
   "albumSize.custom": "Other size",
   "albumSize.custom.placeholder": "width, cm",
   "albumSize.custom.result": "{size} cm",
+  "albumSize.custom.range": "Each side has to be between 5 and 100 cm.",
+  "albumSize.sharpness.same": "No photo gets softer at this size. Already slightly soft at the current size: {count}.",
   "albumSize.sharpness.fine": "Every photo stays sharp in print at this size.",
   "albumSize.sharpness.soft":
     "Photos that would print slightly soft (under 200 dpi) at this size: {count}. The album check lists them.",

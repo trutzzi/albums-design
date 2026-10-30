@@ -42,6 +42,7 @@ export type AppSettings = Pick<
   | "OLLAMA_MODEL"
   | "ADMIN_EMAILS"
   | "CONTACT_EMAIL"
+  | "MAIL_FROM"
   | "ERROR_LOG_RETENTION_DAYS"
 >;
 

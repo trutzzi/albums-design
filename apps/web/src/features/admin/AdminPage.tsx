@@ -5,6 +5,7 @@ import {
   getAdminMe,
   getBusinessStats,
   getSystemStats,
+  sendTestEmail,
   listAdminFeedback,
   deleteAdminStudio,
   listAdminStudios,
@@ -556,6 +557,33 @@ function FeedbackCard({ item }: { item: AdminFeedback }) {
   );
 }
 
+/**
+ * Proves the mail server takes a message from this deploy, or shows its exact refusal.
+ * Accepted is all it proves: Gmail or Yahoo can still delay or junk it (SPF, DKIM, DMARC).
+ */
+function TestEmail() {
+  const send = useMutation({ mutationFn: sendTestEmail });
+  return (
+    <div className="admin__test-email">
+      <button type="button" className="button button--small" disabled={send.isPending} onClick={() => send.mutate()}>
+        {send.isPending ? "Sending…" : "Send a test email to me"}
+      </button>
+      {send.isSuccess && (
+        <p className="muted" role="status">
+          The mail server accepted it for {send.data.sentTo}
+          {send.data.from ? `, from ${send.data.from}` : ""}. Not in the inbox within a few minutes? Look in spam, and
+          check the domain's SPF, DKIM and DMARC records.
+        </p>
+      )}
+      {send.isError && (
+        <p className="error" role="alert">
+          {(send.error as Error).message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ServerTab() {
   const [, setParams] = useSearchParams();
   const stats = useQuery({ queryKey: ["admin-system"], queryFn: getSystemStats, refetchInterval: 15_000 });
@@ -726,6 +754,7 @@ function ServerTab() {
               </span>
             ))}
           </div>
+          <TestEmail />
         </section>
       </div>
 

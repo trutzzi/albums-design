@@ -1,11 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import type { AlbumDTO } from "@albumflow/contracts";
 import { copyAlbumAtSize, resizeAlbum } from "@/shared/api";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { sizeLabel } from "@/shared/lib/print-size";
+import { useDialogFocus } from "@/shared/ui/useDialogFocus";
 import type { CheckInput } from "@/features/album-editor/lib/album-check";
-import { sharpnessAt, sizeOptions, type SizeOption } from "@/features/album-editor/lib/album-size";
+import {
+  customSize,
+  sharpnessAt,
+  sharpnessVerdict,
+  sizeOptions,
+  type SizeOption,
+} from "@/features/album-editor/lib/album-size";
 
 interface AlbumSizeDialogProps {
   album: AlbumDTO;
@@ -24,31 +31,28 @@ interface AlbumSizeDialogProps {
 export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: AlbumSizeDialogProps) {
   const { t } = useLanguage();
   const options = useMemo(() => sizeOptions(album.format), [album.format]);
-  const ratio = album.format.pageHeightMm / album.format.pageWidthMm;
   const [chosen, setChosen] = useState<SizeOption | null>(options[0] ?? null);
   const [customCm, setCustomCm] = useState("");
-  const custom: SizeOption | null =
-    Number(customCm) >= 5 && Number(customCm) <= 100
-      ? { pageWidthMm: Math.round(Number(customCm) * 10), pageHeightMm: Math.round(Number(customCm) * 10 * ratio) }
-      : null;
-  const size = customCm ? custom : chosen;
+  const custom = customSize(customCm, album.format);
+  const size = custom === "empty" ? chosen : custom === "outOfRange" ? null : custom;
   const sharpness = useMemo(() => (size ? sharpnessAt(check, size) : null), [check, size]);
+  const verdict = sharpness ? sharpnessVerdict(sharpness) : null;
   const locked = album.status === "APPROVED";
   const unchanged =
     size !== null && size.pageWidthMm === album.format.pageWidthMm && size.pageHeightMm === album.format.pageHeightMm;
   const dialogRef = useRef<HTMLDivElement>(null);
-
-  // Opened from the size chip: focus moves into the dialog (so Escape and Tab work there)
-  // and goes back to the chip when it closes.
-  useEffect(() => {
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dialogRef.current?.querySelector<HTMLInputElement>("input")?.focus();
-    return () => opener?.focus();
-  }, []);
+  // Focus moves in, Tab stays inside, and it returns to the size chip on close.
+  useDialogFocus(dialogRef);
 
   const resize = useMutation({ mutationFn: (to: SizeOption) => resizeAlbum(album.id, to), onSuccess: onResized });
   const copy = useMutation({ mutationFn: (to: SizeOption) => copyAlbumAtSize(album.id, to), onSuccess: onCopied });
   const busy = resize.isPending || copy.isPending;
+  // A new choice is a new attempt: the last one's error no longer applies.
+  const choose = (next: () => void) => {
+    resize.reset();
+    copy.reset();
+    next();
+  };
   const failed = (resize.error ?? copy.error) as Error | null;
 
   return (
@@ -73,10 +77,12 @@ export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: 
                 type="radio"
                 name="album-size"
                 checked={!customCm && chosen === option}
-                onChange={() => {
-                  setChosen(option);
-                  setCustomCm("");
-                }}
+                onChange={() =>
+                  choose(() => {
+                    setChosen(option);
+                    setCustomCm("");
+                  })
+                }
               />
               {t("dimension.chip", { width: option.pageWidthMm / 10, height: option.pageHeightMm / 10 })}
             </label>
@@ -91,22 +97,32 @@ export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: 
               step={0.5}
               value={customCm}
               placeholder={t("albumSize.custom.placeholder")}
-              onChange={(event) => setCustomCm(event.target.value)}
+              aria-invalid={custom === "outOfRange"}
+              aria-describedby="album-size-custom-hint"
+              onChange={(event) => {
+                const value = event.target.value;
+                choose(() => setCustomCm(value));
+              }}
             />
-            {custom && <span className="muted">{t("albumSize.custom.result", { size: sizeLabel(custom) })}</span>}
+            <span id="album-size-custom-hint" className={custom === "outOfRange" ? "error" : "muted"}>
+              {custom === "outOfRange"
+                ? t("albumSize.custom.range")
+                : custom !== "empty"
+                  ? t("albumSize.custom.result", { size: sizeLabel(custom) })
+                  : ""}
+            </span>
           </label>
         </fieldset>
 
-        {sharpness && (
-          <p
-            className={`notice ${sharpness.then.soft + sharpness.then.pixelated > 0 ? "" : "notice--good"}`}
-            role="status"
-          >
-            {sharpness.then.pixelated > 0
+        {sharpness && verdict && (
+          <p className={`notice ${verdict === "sharp" ? "notice--good" : ""}`} role="status">
+            {verdict === "pixelated"
               ? t("albumSize.sharpness.pixelated", { count: sharpness.then.pixelated, soft: sharpness.then.soft })
-              : sharpness.then.soft > sharpness.now.soft
+              : verdict === "softer"
                 ? t("albumSize.sharpness.soft", { count: sharpness.then.soft })
-                : t("albumSize.sharpness.fine")}
+                : verdict === "alreadySoft"
+                  ? t("albumSize.sharpness.same", { count: sharpness.then.soft })
+                  : t("albumSize.sharpness.fine")}
           </p>
         )}
         {locked && <p className="muted">{t("albumSize.locked")}</p>}

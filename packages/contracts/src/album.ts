@@ -150,7 +150,9 @@ export const generateAlbumSchema = z.object({
 export type GenerateAlbumInput = z.infer<typeof generateAlbumSchema>;
 
 /** A printable page: 5 cm to 1 m a side covers every book a lab makes. */
-const pageSideMm = z.number().min(50).max(1000);
+export const PAGE_SIDE_MIN_MM = 50;
+export const PAGE_SIDE_MAX_MM = 1000;
+const pageSideMm = z.number().min(PAGE_SIDE_MIN_MM).max(PAGE_SIDE_MAX_MM);
 
 /** A new page size for an album: the bleed stays what it was. */
 export const resizeAlbumSchema = z.object({ pageWidthMm: pageSideMm, pageHeightMm: pageSideMm });

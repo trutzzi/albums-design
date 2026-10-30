@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_STYLE, type LayoutTemplateDTO, type PhotoAnalysisDTO } from "@albumflow/contracts";
-import { sharpnessAt, sizeOptions } from "./album-size";
+import { customSize, sharpnessAt, sharpnessVerdict, sizeOptions } from "./album-size";
 
 const panorama: LayoutTemplateDTO = {
   id: "panorama",
@@ -69,5 +69,27 @@ describe("sharpnessAt", () => {
     );
     assert.deepEqual(now, { soft: 0, pixelated: 0 });
     assert.deepEqual(then, { soft: 1, pixelated: 0 });
+  });
+});
+
+describe("sharpnessVerdict", () => {
+  it("names what the size changes, so the words and the colour agree", () => {
+    const none = { soft: 0, pixelated: 0 };
+    assert.equal(sharpnessVerdict({ now: none, then: { soft: 0, pixelated: 2 } }), "pixelated");
+    assert.equal(sharpnessVerdict({ now: none, then: { soft: 3, pixelated: 0 } }), "softer");
+    assert.equal(sharpnessVerdict({ now: { soft: 3, pixelated: 0 }, then: { soft: 3, pixelated: 0 } }), "alreadySoft");
+    assert.equal(sharpnessVerdict({ now: none, then: none }), "sharp");
+  });
+});
+
+describe("customSize", () => {
+  it("makes the height follow the shape, and says when a side is out of a lab's range", () => {
+    const landscape = { pageWidthMm: 300, pageHeightMm: 210 };
+    assert.deepEqual(customSize("40", landscape), { pageWidthMm: 400, pageHeightMm: 280 });
+    assert.equal(customSize("", landscape), "empty");
+    assert.equal(customSize("4", landscape), "outOfRange");
+    assert.equal(customSize("abc", landscape), "outOfRange");
+    // 95 cm wide is fine; the 133 cm height it makes on a portrait book is not.
+    assert.equal(customSize("95", { pageWidthMm: 210, pageHeightMm: 300 }), "outOfRange");
   });
 });

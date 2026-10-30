@@ -1,4 +1,4 @@
-import { sameAlbumShape, type AlbumFormatDTO } from "@albumflow/contracts";
+import { PAGE_SIDE_MAX_MM, PAGE_SIDE_MIN_MM, sameAlbumShape, type AlbumFormatDTO } from "@albumflow/contracts";
 import { ALBUM_DIMENSIONS } from "@/features/project/lib/album-dimensions";
 import { checkAlbum, type CheckInput } from "./album-check";
 
@@ -41,4 +41,29 @@ export function sharpnessAt(input: CheckInput, size: SizeOption): { now: Sharpne
     now: sharpnessOf(input),
     then: sharpnessOf({ ...input, album: { ...input.album, format: { ...input.album.format, ...size } } }),
   };
+}
+
+/** What the preview says, and how it looks: one state, so the words and the colour agree. */
+export type SharpnessVerdict = "pixelated" | "softer" | "alreadySoft" | "sharp";
+
+export function sharpnessVerdict({ now, then }: { now: Sharpness; then: Sharpness }): SharpnessVerdict {
+  if (then.pixelated > 0) return "pixelated";
+  if (then.soft > now.soft) return "softer";
+  if (then.soft > 0) return "alreadySoft";
+  return "sharp";
+}
+
+/**
+ * The size a typed width makes: the height follows the album's shape. "empty" while
+ * nothing is typed, "outOfRange" when either side would be past what a lab prints.
+ */
+export function customSize(
+  widthCm: string,
+  format: Pick<AlbumFormatDTO, "pageWidthMm" | "pageHeightMm">,
+): SizeOption | "empty" | "outOfRange" {
+  if (widthCm.trim() === "") return "empty";
+  const pageWidthMm = Math.round(Number(widthCm) * 10);
+  const pageHeightMm = Math.round((pageWidthMm * format.pageHeightMm) / format.pageWidthMm);
+  const inRange = (side: number) => Number.isFinite(side) && side >= PAGE_SIDE_MIN_MM && side <= PAGE_SIDE_MAX_MM;
+  return inRange(pageWidthMm) && inRange(pageHeightMm) ? { pageWidthMm, pageHeightMm } : "outOfRange";
 }

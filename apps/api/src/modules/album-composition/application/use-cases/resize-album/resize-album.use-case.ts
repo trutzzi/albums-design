@@ -1,6 +1,11 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
-import { Album, AlbumLockedError, AlbumShapeError } from "#src/modules/album-composition/domain/album";
+import {
+  Album,
+  AlbumLockedError,
+  AlbumShapeError,
+  AlbumSizeRangeError,
+} from "#src/modules/album-composition/domain/album";
 import type { AlbumRepository } from "#src/modules/album-composition/domain/album-repository";
 
 export interface ResizeAlbumCommand {
@@ -25,7 +30,8 @@ export class ResizeAlbumUseCase {
       album.resize({ pageWidthMm: command.pageWidthMm, pageHeightMm: command.pageHeightMm });
     } catch (error) {
       if (error instanceof AlbumLockedError) return Result.failure(new ConflictError(error.message));
-      if (error instanceof AlbumShapeError) return Result.failure(new ValidationError(error.message));
+      if (error instanceof AlbumShapeError || error instanceof AlbumSizeRangeError)
+        return Result.failure(new ValidationError(error.message));
       throw error;
     }
 

@@ -34,6 +34,7 @@ export function registerApplicationRoutes(app: FastifyInstance, application: App
     plans: application.studioPlans,
     deleteStudio: application.deleteStudio,
     errors: application.errorInbox,
+    testEmail: application.testEmail,
   });
   registerMediaIngestionRoutes(app, application.mediaIngestion);
   registerPhotoIntelligenceRoutes(app, {
