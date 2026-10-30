@@ -44,12 +44,25 @@ describe("the admin's test email", () => {
     const { useCase, memberId, logger } = await setUp({
       id: "smtp",
       send: async () => {
-        throw new Error("535 5.7.8 Authentication failed");
+        throw Object.assign(new Error("535 5.7.8 Authentication failed"), { responseCode: 535 });
       },
     });
     const result = await useCase.send(memberId);
-    assert.match(result.getError().message, /535 5\.7\.8 Authentication failed/);
+    assert.match(result.getError().message, /^The mail server refused: 535 5\.7\.8 Authentication failed/);
     assert.equal(logger.entries.find((entry) => entry.level === "error")?.message, "test email not sent");
+  });
+
+  it("tells a server that was never reached apart from one that said no", async () => {
+    const { useCase, memberId } = await setUp({
+      id: "smtp",
+      send: async () => {
+        throw Object.assign(new Error("Connection timeout"), { code: "ETIMEDOUT" });
+      },
+    });
+    assert.match(
+      (await useCase.send(memberId)).getError().message,
+      /^Could not reach the mail server: Connection timeout/,
+    );
   });
 
   it("refuses an unknown member", async () => {

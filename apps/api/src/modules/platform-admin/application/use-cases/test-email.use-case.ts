@@ -50,7 +50,21 @@ export class TestEmailUseCase {
     } catch (error) {
       this.logger.error("test email not sent", { memberId, err: error });
       const reason = error instanceof Error ? error.message : String(error);
-      return Result.failure(new ApplicationError(`The mail server refused: ${reason}`, "MESSAGE_NOT_SENT"));
+      return Result.failure(
+        new ApplicationError(
+          answered(error) ? `The mail server refused: ${reason}` : `Could not reach the mail server: ${reason}`,
+          "MESSAGE_NOT_SENT",
+        ),
+      );
     }
   }
+}
+
+/**
+ * Whether the mail server itself said no. An SMTP reply carries its status code
+ * (`responseCode`, 535 for a wrong password); a timeout, a refused connection or a
+ * host that does not resolve never got that far — a different fix for the admin.
+ */
+function answered(error: unknown): boolean {
+  return typeof (error as { responseCode?: unknown } | null)?.responseCode === "number";
 }
