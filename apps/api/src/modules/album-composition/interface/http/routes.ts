@@ -2,7 +2,13 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { sendApplicationError } from "#src/interface/error-translator";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import { albumEditSchema, generateAlbumSchema, suggestLayoutsSchema } from "@albumflow/contracts";
+import {
+  albumEditSchema,
+  copyAlbumSchema,
+  generateAlbumSchema,
+  resizeAlbumSchema,
+  suggestLayoutsSchema,
+} from "@albumflow/contracts";
 import { NotFoundError } from "#src/shared-kernel/errors";
 import type { Album } from "../../domain/album";
 import type { AlbumRepository } from "../../domain/album-repository";
@@ -11,6 +17,8 @@ import type { GenerateAlbumUseCase } from "../../application/use-cases/generate-
 import type { EditAlbumUseCase } from "../../application/use-cases/edit-album/edit-album.use-case";
 import type { SuggestLayoutsUseCase } from "../../application/use-cases/suggest-layouts/suggest-layouts.use-case";
 import type { DeleteAlbumUseCase } from "../../application/use-cases/delete-album/delete-album.use-case";
+import type { ResizeAlbumUseCase } from "../../application/use-cases/resize-album/resize-album.use-case";
+import type { CopyAlbumAtSizeUseCase } from "../../application/use-cases/copy-album/copy-album.use-case";
 
 const projectParams = z.object({ projectId: z.string().uuid() });
 const albumParams = z.object({ albumId: z.string().uuid() });
@@ -20,6 +28,8 @@ export interface AlbumCompositionDependencies {
   generateAlbum: GenerateAlbumUseCase;
   editAlbum: EditAlbumUseCase;
   deleteAlbum: DeleteAlbumUseCase;
+  resizeAlbum: ResizeAlbumUseCase;
+  copyAlbum: CopyAlbumAtSizeUseCase;
   albums: AlbumRepository;
 }
 
@@ -69,6 +79,22 @@ export function registerAlbumCompositionRoutes(app: FastifyInstance, deps: Album
     const result = await deps.editAlbum.execute(albumId, command);
     if (result.isFailure) return sendApplicationError(reply, result.getError());
     return toDto(result.getValue());
+  });
+
+  app.put("/albums/:albumId/format", async (request, reply) => {
+    const { albumId } = albumParams.parse(request.params);
+    const size = resizeAlbumSchema.parse(request.body);
+    const result = await deps.resizeAlbum.execute({ albumId, ...size });
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return toDto(result.getValue());
+  });
+
+  app.post("/albums/:albumId/copies", async (request, reply) => {
+    const { albumId } = albumParams.parse(request.params);
+    const body = copyAlbumSchema.parse(request.body);
+    const result = await deps.copyAlbum.execute({ albumId, ...body });
+    if (result.isFailure) return sendApplicationError(reply, result.getError());
+    return reply.code(201).send(toDto(result.getValue()));
   });
 
   app.delete("/albums/:albumId", async (request, reply) => {

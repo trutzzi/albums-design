@@ -268,6 +268,25 @@ export const ro: Record<string, string> = {
 
   // --- Album print-size picker ------------------------------------------
   "dimension.chip": "{width}×{height} cm",
+  "albumSize.open": "Schimbă dimensiunea de tipar a albumului",
+  "albumSize.title": "Dimensiunea albumului",
+  "albumSize.intro":
+    "Acum {size} cm. Fiecare pagină rămâne exact cum este: ramele, textul și spațiile cresc odată cu pagina. Sunt oferite doar dimensiuni de aceeași formă, ca nimic să nu se deformeze.",
+  "albumSize.custom": "Altă dimensiune",
+  "albumSize.custom.placeholder": "lățime, cm",
+  "albumSize.custom.result": "{size} cm",
+  "albumSize.sharpness.fine": "Toate fotografiile rămân clare la tipar la această dimensiune.",
+  "albumSize.sharpness.soft":
+    "Fotografii care s-ar tipări puțin neclar (sub 200 dpi) la această dimensiune: {count}. Verificarea albumului le arată.",
+  "albumSize.sharpness.pixelated":
+    "La această dimensiune, fotografii care s-ar vedea pixelate (sub 150 dpi): {count}; puțin neclare: {soft}. Înlocuiește-le sau micșorează-le, ori alege o dimensiune mai mică.",
+  "albumSize.locked":
+    "Clientul a aprobat albumul la dimensiunea actuală. Redeschide-l ca să o schimbi sau fă o copie la noua dimensiune.",
+  "albumSize.copy": "Fă o copie la această dimensiune",
+  "albumSize.copying": "Se copiază…",
+  "albumSize.change": "Schimbă acest album",
+  "albumSize.changing": "Se schimbă…",
+  "album.export.otherSize": "Făcut la {size} cm — exportă din nou",
   "dimension.modal.title": "Alege o dimensiune de tipar",
   "dimension.modal.body":
     "Alege dimensiunea finală a paginii pentru acest album, în centimetri — toate dimensiunile populare de fotocarte sunt aici, sau setează-ți propria dimensiune.",

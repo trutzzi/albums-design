@@ -1,5 +1,6 @@
 import { AggregateRoot, UniqueEntityId } from "@albumflow/domain-kernel";
 import {
+  sameAlbumShape,
   spacedSlotRect,
   type AlbumCoverDTO,
   type AlbumStyleDTO,
@@ -92,6 +93,18 @@ export class AlbumLockedError extends Error {
     this.name = "AlbumLockedError";
   }
 }
+
+export class AlbumShapeError extends Error {
+  constructor(from: AlbumFormat, to: { pageWidthMm: number; pageHeightMm: number }) {
+    super(
+      `A ${cm(from.pageWidthMm)}×${cm(from.pageHeightMm)} cm album can only change to a size of the same shape; ` +
+        `${cm(to.pageWidthMm)}×${cm(to.pageHeightMm)} cm would stretch every layout.`,
+    );
+    this.name = "AlbumShapeError";
+  }
+}
+
+const cm = (mm: number) => Math.round(mm) / 10;
 
 export class SpreadNotFoundError extends Error {
   constructor(index: number) {
@@ -190,6 +203,42 @@ export class Album extends AggregateRoot<AlbumProps> {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  /**
+   * The same book at another print size. Frames, text and gaps are fractions of the
+   * spread, so nothing moves; only the shape is guarded. The bleed is a lab setting,
+   * not part of the design, and stays as it was.
+   */
+  resize(size: { pageWidthMm: number; pageHeightMm: number }): void {
+    this.assertEditable();
+    if (!sameAlbumShape(this.props.format, size)) throw new AlbumShapeError(this.props.format, size);
+    this.props.format = { ...this.props.format, pageWidthMm: size.pageWidthMm, pageHeightMm: size.pageHeightMm };
+    this.touch();
+  }
+
+  /**
+   * A new draft with this album's design at another size — spreads, text, cover and
+   * style copied, nothing shared, so editing one never touches the other. Allowed from
+   * an approved album too: that is exactly when the parents' copies get made.
+   */
+  copyAt(size: { pageWidthMm: number; pageHeightMm: number }, title: string): Album {
+    if (!sameAlbumShape(this.props.format, size)) throw new AlbumShapeError(this.props.format, size);
+    const now = new Date();
+    return new Album(
+      {
+        projectId: this.props.projectId,
+        title,
+        status: "DRAFT",
+        format: { ...this.props.format, pageWidthMm: size.pageWidthMm, pageHeightMm: size.pageHeightMm },
+        spreads: structuredClone(this.props.spreads),
+        style: structuredClone(this.props.style),
+        cover: structuredClone(this.props.cover),
+        createdAt: now,
+        updatedAt: now,
+      },
+      UniqueEntityId.create(),
+    );
   }
 
   rename(title: string): void {

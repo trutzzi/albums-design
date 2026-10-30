@@ -66,6 +66,8 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     generateAlbum: composition.generateAlbum,
     editAlbum: composition.editAlbum,
     deleteAlbum: composition.deleteAlbum,
+    resizeAlbum: composition.resizeAlbum,
+    copyAlbum: composition.copyAlbum,
     reviewSessions: repos.reviewSessions,
     openReviewSession: review.openReviewSession,
     reviewPortal: review.reviewPortal,

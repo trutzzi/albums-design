@@ -149,6 +149,33 @@ export const generateAlbumSchema = z.object({
 });
 export type GenerateAlbumInput = z.infer<typeof generateAlbumSchema>;
 
+/** A printable page: 5 cm to 1 m a side covers every book a lab makes. */
+const pageSideMm = z.number().min(50).max(1000);
+
+/** A new page size for an album: the bleed stays what it was. */
+export const resizeAlbumSchema = z.object({ pageWidthMm: pageSideMm, pageHeightMm: pageSideMm });
+export type ResizeAlbumInput = z.infer<typeof resizeAlbumSchema>;
+
+/** A second album with the same design at another size — the parents' copy of the main book. */
+export const copyAlbumSchema = resizeAlbumSchema.extend({ title: z.string().min(1).max(255).optional() });
+export type CopyAlbumInput = z.infer<typeof copyAlbumSchema>;
+
+/**
+ * How far two page shapes may differ and still count as the same. Every frame, text
+ * block and gap is stored as a fraction of the spread, so a book of the same shape at
+ * another size keeps its design exactly; another shape would stretch every layout.
+ */
+export const ALBUM_SHAPE_TOLERANCE = 0.01;
+
+export function sameAlbumShape(
+  a: { pageWidthMm: number; pageHeightMm: number },
+  b: { pageWidthMm: number; pageHeightMm: number },
+): boolean {
+  const ratioA = a.pageWidthMm / a.pageHeightMm;
+  const ratioB = b.pageWidthMm / b.pageHeightMm;
+  return Math.abs(ratioA - ratioB) / ratioA <= ALBUM_SHAPE_TOLERANCE;
+}
+
 /** Declared ahead of the edit schema, which needs it; MAX_PHOTOS_PER_SPREAD below is the same number. */
 const MAX_PHOTOS_PER_SPREAD_LIMIT = 9;
 

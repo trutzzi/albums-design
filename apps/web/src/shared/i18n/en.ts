@@ -263,6 +263,25 @@ export const en: Record<string, string> = {
 
   // --- Album print-size picker ------------------------------------------
   "dimension.chip": "{width}×{height} cm",
+  "albumSize.open": "Change the album's print size",
+  "albumSize.title": "Album size",
+  "albumSize.intro":
+    "Now {size} cm. Every layout stays exactly as it is: frames, text and gaps grow with the page. Only sizes of the same shape are offered, so nothing is stretched.",
+  "albumSize.custom": "Other size",
+  "albumSize.custom.placeholder": "width, cm",
+  "albumSize.custom.result": "{size} cm",
+  "albumSize.sharpness.fine": "Every photo stays sharp in print at this size.",
+  "albumSize.sharpness.soft":
+    "Photos that would print slightly soft (under 200 dpi) at this size: {count}. The album check lists them.",
+  "albumSize.sharpness.pixelated":
+    "At this size, photos that would look pixelated (under 150 dpi): {count}; slightly soft: {soft}. Swap or shrink them, or pick a smaller size.",
+  "albumSize.locked":
+    "The client approved this album at its current size. Reopen it to change it, or make a copy at the new size.",
+  "albumSize.copy": "Make a copy at this size",
+  "albumSize.copying": "Copying…",
+  "albumSize.change": "Change this album",
+  "albumSize.changing": "Changing…",
+  "album.export.otherSize": "Made at {size} cm — export again",
   "dimension.modal.title": "Choose a print size",
   "dimension.modal.body":
     "Pick the finished page size for this album, in centimetres — every popular photobook size is here, or set your own.",

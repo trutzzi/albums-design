@@ -75,7 +75,7 @@ describe("deleting a project", () => {
     await albums.save(album);
 
     const job = ExportJob.request({ albumId: album.id, printProfileId: "client-proof-150" });
-    job.markReady({ storageKey: "exports/a.pdf", byteSize: 1024, pageCount: 1 });
+    job.markReady({ storageKey: "exports/a.pdf", byteSize: 1024, pageCount: 1, pageWidthMm: 300, pageHeightMm: 300 });
     await exportJobs.save(job);
     storage.upload("exports/a.pdf", new Uint8Array([9]));
 

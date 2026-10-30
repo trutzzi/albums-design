@@ -44,6 +44,7 @@ import { ReviewPanel } from "@/features/album-editor/components/ReviewPanel";
 import { FeedbackPanel } from "@/features/album-editor/components/FeedbackPanel";
 import { ExportPanel } from "@/shared/ui/ExportPanel";
 import { PrintGuidesModal } from "@/features/album-editor/components/PrintGuidesModal";
+import { AlbumSizeDialog } from "@/features/album-editor/components/AlbumSizeDialog";
 import { InsertSpreadModal } from "@/features/album-editor/components/InsertSpreadModal";
 import { LoadingState, Skeleton } from "@/shared/ui/Loading";
 import { CrumbBar } from "@/app/layout/CrumbBar";
@@ -115,6 +116,7 @@ export function AlbumEditorPage() {
   const [checkOpen, setCheckOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [sizeOpen, setSizeOpen] = useState(false);
   const saving = useIsMutating() > 0;
   const guides = usePrintGuides();
 
@@ -526,12 +528,18 @@ export function AlbumEditorPage() {
         current={
           <>
             <span className="crumb-bar__title">{current.title}</span>
-            <span className="dimension-badge">
+            <button
+              type="button"
+              className="dimension-badge dimension-badge--button"
+              title={t("albumSize.open")}
+              aria-haspopup="dialog"
+              onClick={() => setSizeOpen(true)}
+            >
               {t("dimension.chip", {
                 width: current.format.pageWidthMm / 10,
                 height: current.format.pageHeightMm / 10,
               })}
-            </span>
+            </button>
             <span className="crumb-bar__meta">
               {t("album.stats", { spreads: current.spreadCount, pages: current.pageCount, photos: current.photoCount })}
             </span>
@@ -742,7 +750,7 @@ export function AlbumEditorPage() {
               onJumpTo={jumpToComment}
               photoNumber={feedbackPhotoNumber}
             />
-            <ExportPanel albumId={albumId} hidden={sidebarTab !== "export"} />
+            <ExportPanel albumId={albumId} albumFormat={current.format} hidden={sidebarTab !== "export"} />
           </aside>
           {/* After the spreads and tools in the page order, so keyboard and screen-reader users reach
               the spread first; on a wide screen the grid draws it as the left rail. */}
@@ -830,6 +838,27 @@ export function AlbumEditorPage() {
           <InsertSpreadModal templates={templateList} onPick={insertSpread} onClose={() => setInsertAt(null)} />
         )}
         {guides.modalOpen && <PrintGuidesModal guides={guides} />}
+        {sizeOpen && photos.data && (
+          <AlbumSizeDialog
+            album={current}
+            check={{
+              album: { ...current, style: current.style ?? DEFAULT_STYLE },
+              templates: templateById,
+              analyses: analysisByPhoto,
+              existingPhotoIds: new Set(photos.data.map((photo) => photo.id)),
+            }}
+            onResized={(resized) => {
+              queryClient.setQueryData(["album", albumId], resized);
+              setSizeOpen(false);
+            }}
+            onCopied={(copy) => {
+              void queryClient.invalidateQueries({ queryKey: ["albums", projectId] });
+              setSizeOpen(false);
+              navigate(`/albums/${copy.id}`);
+            }}
+            onClose={() => setSizeOpen(false)}
+          />
+        )}
       </div>
     </>
   );
