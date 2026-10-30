@@ -137,7 +137,9 @@ export function AlbumSizeDialog({ album, check, checkFailed, onResized, onCopied
         )}
         {/* The verdict above can be about soft photos; the ones not measured yet still count. */}
         {sharpness && verdict !== "unchecked" && sharpness.unchecked > 0 && (
-          <p className="muted">{t("albumSize.sharpness.uncheckedNote", { count: sharpness.unchecked })}</p>
+          <p className="muted" role="status">
+            {t("albumSize.sharpness.uncheckedNote", { count: sharpness.unchecked })}
+          </p>
         )}
         {size && !check && (
           <p className={checkFailed ? "error" : "muted"} role="status">
