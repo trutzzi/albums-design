@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addSignupBlock,
   listSignupBlocks,
@@ -70,6 +70,8 @@ export function SignupsTab() {
     queryKey: ["admin-signups", outcome, search, page],
     queryFn: () => listSignups({ ...(outcome ? { outcome } : {}), ...(search ? { search } : {}), page }),
     refetchInterval: 60_000,
+    // Changing the filter or page keeps the last results (and the counts) until the new ones land.
+    placeholderData: keepPreviousData,
   });
   const blocks = useQuery({ queryKey: ["admin-signup-blocks"], queryFn: listSignupBlocks });
   const refreshBlocks = () => queryClient.invalidateQueries({ queryKey: ["admin-signup-blocks"] });
@@ -206,6 +208,7 @@ export function SignupsTab() {
                             <button
                               type="button"
                               className="link-button"
+                              aria-label={`Block IP ${attempt.ip}`}
                               onClick={() => confirmBlock("IP", attempt.ip!)}
                             >
                               Block IP
@@ -214,6 +217,7 @@ export function SignupsTab() {
                               type="button"
                               className="link-button"
                               title={attempt.network ?? undefined}
+                              aria-label={`Block network ${attempt.network ?? attempt.ip}`}
                               onClick={() => confirmBlock("NETWORK", attempt.ip!)}
                             >
                               Block network
@@ -224,6 +228,7 @@ export function SignupsTab() {
                           <button
                             type="button"
                             className="link-button"
+                            aria-label={`Block every address at ${domainOf(attempt.email)}`}
                             onClick={() => confirmBlock("EMAIL_DOMAIN", domainOf(attempt.email))}
                           >
                             Block @{domainOf(attempt.email)}

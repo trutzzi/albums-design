@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "signup_blocks_kind_value_idx" ON "signup_blocks" USING btree ("kind","value");

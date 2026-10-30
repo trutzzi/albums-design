@@ -50,11 +50,11 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityDepen
     const context = signupContext(request);
     // The hidden field was filled in: a bot. Answer exactly as for a person, create nothing.
     if (website) {
-      await deps.register.trapped(body.email, context);
+      deps.register.trapped(body.email, context);
       return reply.code(201).send({ status: "CONFIRMATION_SENT", email: body.email.trim().toLowerCase() });
     }
     if (deps.humanCheck && !(await deps.humanCheck.verify(captchaToken, request.ip))) {
-      await deps.register.failedHumanCheck(body.email, context);
+      deps.register.failedHumanCheck(body.email, context);
       return reply.code(400).send({
         code: "HUMAN_CHECK_FAILED",
         message: "Please complete the check that you are not a robot, then try again.",

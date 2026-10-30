@@ -47,9 +47,7 @@ function world(now = () => new Date("2026-10-30T12:00:00Z")) {
     SECRET,
     new EmailConfirmationMailer(sender),
     "https://app.test/",
-    new AttemptLimiter(2, 60 * 60 * 1000),
-    undefined,
-    log,
+    { perIp: new AttemptLimiter(2, 60 * 60 * 1000), signups: log },
   );
   const linkIn = (message: EmailMessage | undefined) =>
     decodeURIComponent(/verify-email\?token=([^\s"]+)/.exec(message?.text ?? "")?.[1] ?? "");
@@ -59,7 +57,7 @@ function world(now = () => new Date("2026-10-30T12:00:00Z")) {
 const block = (kind: SignupBlock["kind"], value: string): SignupBlock => ({
   id: crypto.randomUUID(),
   kind,
-  value: normaliseBlock(kind, value),
+  value: normaliseBlock(kind, value)!,
   note: null,
   createdAt: new Date(),
 });
@@ -71,6 +69,16 @@ describe("sign-up block matching", () => {
     assert.equal(networkOf("2001:db8:1:2:aaaa::1"), "2001:db8:1:2::/64");
     assert.equal(normaliseBlock("NETWORK", "203.0.113.99/24"), "203.0.113.0/24");
     assert.equal(normaliseBlock("EMAIL_DOMAIN", " @Spam.Example "), "spam.example");
+  });
+
+  it("refuses what could never match, instead of saving a block that does nothing", () => {
+    assert.equal(normaliseBlock("IP", "not an ip"), null);
+    assert.equal(normaliseBlock("IP", "203.0.113.7/32"), null);
+    assert.equal(normaliseBlock("NETWORK", "203.0.113.0/16"), null);
+    assert.equal(normaliseBlock("NETWORK", "2001:db8:1:2::/48"), null);
+    assert.equal(normaliseBlock("NETWORK", "2001:db8:1:2::/64"), "2001:db8:1:2::/64");
+    assert.equal(normaliseBlock("EMAIL_DOMAIN", "localhost"), null);
+    assert.equal(normaliseBlock("EMAIL_DOMAIN", "spam example.com"), null);
   });
 
   it("matches an address, its network, and a domain with its subdomains", () => {
@@ -125,6 +133,15 @@ describe("the sign-up log", () => {
     );
   });
 
+  it("keeps at most 30 refused attempts per network an hour, but every link actually sent", async () => {
+    const { attempts, log } = world();
+    for (let i = 0; i < 40; i++) await log.record(`bot${i}@b.ro`, { ip: `203.0.113.${i}` }, "TRAPPED");
+    await log.record("person@b.ro", { ip: "203.0.113.200" }, "CONFIRMATION_SENT", "m1");
+    await log.record("elsewhere@b.ro", { ip: "198.51.100.1" }, "TRAPPED");
+    assert.equal(attempts.items.filter((item) => item.outcome === "TRAPPED").length, 31);
+    assert.ok(attempts.items.some((item) => item.email === "person@b.ro"));
+  });
+
   it("never fails a sign-up because its log entry could not be written", async () => {
     const { attempts, register, logger } = world();
     attempts.record = async () => {
@@ -170,7 +187,8 @@ describe("the sign-up log", () => {
     const added = await log.block("NETWORK", "203.0.113.50", "bot farm");
     assert.equal(added.getValue().value, "203.0.113.0/24");
     assert.equal((await log.block("NETWORK", "203.0.113.9")).getValue().id, added.getValue().id);
-    assert.equal((await log.block("EMAIL_DOMAIN", "localhost")).getError().code, "VALIDATION_ERROR");
+    assert.match((await log.block("EMAIL_DOMAIN", "localhost")).getError().message, /expected a domain/);
+    assert.match((await log.block("NETWORK", "10.0.0.0/8")).getError().message, /\/24 \(IPv4\)/);
     assert.match((await log.block("EMAIL_DOMAIN", "@Gmail.com")).getError().message, /too many real people/);
     assert.equal((await log.listBlocks()).length, 1);
     assert.ok((await log.unblock(added.getValue().id)).isSuccess);

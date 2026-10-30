@@ -71,7 +71,7 @@ export class DrizzleSignupBlockRepository implements SignupBlockRepository {
   }
 
   async add(block: SignupBlock): Promise<void> {
-    await this.db.insert(signupBlocks).values(block);
+    await this.db.insert(signupBlocks).values(block).onConflictDoNothing();
   }
 
   async remove(id: string): Promise<void> {
@@ -122,6 +122,7 @@ export class InMemorySignupBlockRepository implements SignupBlockRepository {
   }
 
   async add(block: SignupBlock): Promise<void> {
+    if (this.items.some((item) => item.kind === block.kind && item.value === block.value)) return;
     this.items.push({ ...block });
   }
 

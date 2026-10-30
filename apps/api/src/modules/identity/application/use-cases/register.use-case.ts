@@ -44,21 +44,33 @@ export class RegisterUseCase {
     private readonly jwtSecret: string,
     private readonly mailer: EmailConfirmationMailer,
     private readonly webOrigin: string,
-    /** Signups per address per hour: a person makes one or two, a script makes hundreds. */
-    private readonly perIp: AttemptLimiter = new AttemptLimiter(5, 60 * 60 * 1000),
-    /** Confirmation emails per inbox per hour, so the form cannot flood someone. */
-    private readonly perEmail: AttemptLimiter = new AttemptLimiter(4, 60 * 60 * 1000),
-    /** Records every attempt and holds the admin's block list; absent, nothing is logged or blocked. */
-    private readonly signups?: SignupLog,
-  ) {}
-
-  /** The hidden field was filled in. Nothing is made; the attempt is still worth knowing about. */
-  async trapped(email: string, context: SignupContext): Promise<void> {
-    await this.signups?.record(email, context, "TRAPPED");
+    options: {
+      /** Signups per address per hour: a person makes one or two, a script makes hundreds. */
+      perIp?: AttemptLimiter;
+      /** Confirmation emails per inbox per hour, so the form cannot flood someone. */
+      perEmail?: AttemptLimiter;
+      /** Records every attempt and holds the admin's block list; absent, nothing is logged or blocked. */
+      signups?: SignupLog;
+    } = {},
+  ) {
+    this.perIp = options.perIp ?? new AttemptLimiter(5, 60 * 60 * 1000);
+    this.perEmail = options.perEmail ?? new AttemptLimiter(4, 60 * 60 * 1000);
+    this.signups = options.signups;
   }
 
-  async failedHumanCheck(email: string, context: SignupContext): Promise<void> {
-    await this.signups?.record(email, context, "HUMAN_CHECK_FAILED");
+  private readonly perIp: AttemptLimiter;
+  private readonly perEmail: AttemptLimiter;
+  private readonly signups: SignupLog | undefined;
+
+  /** The hidden field was filled in. Nothing is made; the attempt is still worth knowing about. */
+  // Refusals are logged without waiting: a bot hammering the form gets its answer no slower,
+  // and the log caps how many of its rows it keeps (SignupLog).
+  trapped(email: string, context: SignupContext): void {
+    void this.signups?.record(email, context, "TRAPPED");
+  }
+
+  failedHumanCheck(email: string, context: SignupContext): void {
+    void this.signups?.record(email, context, "HUMAN_CHECK_FAILED");
   }
 
   async execute(params: {
@@ -72,8 +84,8 @@ export class RegisterUseCase {
   }): Promise<Result<SignUpOutcome, ApplicationError>> {
     const email = params.email.trim().toLowerCase();
     const context: SignupContext = { ...params.context, ip: params.context?.ip ?? params.ip };
-    const refuse = async (outcome: SignupOutcome, error: ApplicationError) => {
-      await this.signups?.record(email, context, outcome);
+    const refuse = (outcome: SignupOutcome, error: ApplicationError) => {
+      void this.signups?.record(email, context, outcome);
       return Result.failure<SignUpOutcome, ApplicationError>(error);
     };
     if (params.password.length < MIN_PASSWORD_LENGTH) {

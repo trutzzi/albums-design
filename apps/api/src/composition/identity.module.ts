@@ -31,9 +31,7 @@ export function buildIdentityModule(
       env.JWT_SECRET,
       new EmailConfirmationMailer(emailSender),
       env.WEB_ORIGIN,
-      undefined,
-      undefined,
-      signupLog,
+      { signups: signupLog },
     ),
     login: new LoginUseCase(members, env.JWT_SECRET),
     passwordReset: new PasswordResetUseCase(
