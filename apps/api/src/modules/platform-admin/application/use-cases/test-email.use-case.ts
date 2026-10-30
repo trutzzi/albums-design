@@ -14,9 +14,12 @@ export class TestEmailUseCase {
   constructor(
     private readonly email: EmailSender,
     private readonly members: StudioMemberRepository,
-    /** False when the sender only writes to the log (no mail server configured). */
-    private readonly delivers: boolean,
-    private readonly mailFrom: string | undefined,
+    private readonly mail: {
+      /** False when the sender only writes to the log (no mail server configured). */
+      delivers: boolean;
+      /** The From address (MAIL_FROM), shown to the admin with the result. */
+      from: string | undefined;
+    },
     private readonly logger: Logger,
   ) {}
 
@@ -24,7 +27,7 @@ export class TestEmailUseCase {
     const member = await this.members.findById(UniqueEntityId.create(memberId));
     if (!member) return Result.failure(new NotFoundError("Member", memberId));
 
-    if (!this.delivers) {
+    if (!this.mail.delivers) {
       return Result.failure(
         new ApplicationError(
           "No mail server is configured on this server (EMAIL_PROVIDER is not smtp), so no email is sent at all.",
@@ -43,7 +46,7 @@ export class TestEmailUseCase {
           "and check the domain's SPF, DKIM and DMARC records.",
         ].join("\n"),
       });
-      return Result.success({ sentTo: member.email, from: this.mailFrom ?? null });
+      return Result.success({ sentTo: member.email, from: this.mail.from ?? null });
     } catch (error) {
       this.logger.error("test email not sent", { memberId, err: error });
       const reason = error instanceof Error ? error.message : String(error);

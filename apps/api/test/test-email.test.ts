@@ -20,7 +20,7 @@ async function setUp(sender: EmailSender, delivers = true) {
   return {
     memberId: me.id.toString(),
     logger,
-    useCase: new TestEmailUseCase(sender, members, delivers, "app@example.com", logger),
+    useCase: new TestEmailUseCase(sender, members, { delivers, from: "app@example.com" }, logger),
   };
 }
 

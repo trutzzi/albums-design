@@ -48,8 +48,7 @@ export function buildPlatformAdminModule(
     testEmail: new TestEmailUseCase(
       emailSender,
       members,
-      emailSender.id !== LOGGING_SENDER_ID,
-      env.MAIL_FROM,
+      { delivers: emailSender.id !== LOGGING_SENDER_ID, from: env.MAIL_FROM },
       logger.child({ component: "test-email" }),
     ),
     feedback: new FeedbackUseCase(
