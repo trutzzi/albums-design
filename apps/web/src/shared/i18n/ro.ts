@@ -280,6 +280,7 @@ export const ro: Record<string, string> = {
     "Nicio fotografie nu devine mai neclară la această dimensiune. Deja puțin neclare la dimensiunea actuală: {count}.",
   "albumSize.sharpness.unchecked":
     "Nicio fotografie verificată nu devine mai neclară la această dimensiune. Încă în analiză, deci neverificate: {count}.",
+  "albumSize.sharpness.uncheckedNote": "Încă neverificate, sunt în analiză: {count}.",
   "albumSize.sharpness.loading": "Se verifică claritatea la tipar…",
   "albumSize.sharpness.failed":
     "Claritatea la tipar nu a putut fi verificată acum. Poți schimba totuși dimensiunea; rulează apoi verificarea albumului.",

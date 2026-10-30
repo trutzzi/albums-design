@@ -274,6 +274,7 @@ export const en: Record<string, string> = {
   "albumSize.sharpness.same": "No photo gets softer at this size. Already slightly soft at the current size: {count}.",
   "albumSize.sharpness.unchecked":
     "No measured photo gets softer at this size. Still being analysed, so not checked yet: {count}.",
+  "albumSize.sharpness.uncheckedNote": "Not checked yet, still being analysed: {count}.",
   "albumSize.sharpness.loading": "Checking print sharpness…",
   "albumSize.sharpness.failed":
     "Print sharpness could not be checked right now. The size can still be changed; run the album check afterwards.",
