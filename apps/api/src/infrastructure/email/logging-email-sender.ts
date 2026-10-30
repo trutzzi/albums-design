@@ -9,10 +9,13 @@ export const LOGGING_SENDER_ID = "log";
  *
  * Outside a demo the body must stay out: it carries password-reset and confirmation links and
  * client link passwords, and the address and subject name people. Production only learns that a
- * message was dropped — at warn, because someone is now waiting for an email that never comes.
+ * message was dropped: the first time at error, so it reaches the admin Errors tab and Sentry
+ * (a studio waiting for client notifications that never come is a broken deploy, not a quirk),
+ * and at warn after that, so one missing setting does not bury the inbox.
  */
 export class LoggingEmailSender implements EmailSender {
   readonly id = LOGGING_SENDER_ID;
+  private reported = false;
   constructor(
     private readonly logger: Logger = consoleLogger,
     /** Off unless a caller that is certainly not production asks: forgetting it must not leak. */
@@ -21,7 +24,13 @@ export class LoggingEmailSender implements EmailSender {
 
   async send(message: EmailMessage): Promise<void> {
     if (!this.options.includeContent) {
-      this.logger.warn("email not sent: no SMTP configured", { recipients: message.to.length });
+      const context = { recipients: message.to.length };
+      if (this.reported) {
+        this.logger.warn("email not sent: no SMTP configured", context);
+      } else {
+        this.reported = true;
+        this.logger.error("email not sent: no mail server is configured (EMAIL_PROVIDER)", context);
+      }
       return;
     }
     this.logger.info("email not sent: no SMTP configured", {

@@ -11,6 +11,7 @@ import type {
 import type { DeleteStudioUseCase } from "../../application/use-cases/studio-deletion.use-cases";
 import type { ContactMessageUseCase } from "../../application/use-cases/contact-message.use-case";
 import type { ErrorInboxUseCase } from "../../application/use-cases/error-inbox.use-case";
+import type { TestEmailUseCase } from "../../application/use-cases/test-email.use-case";
 import "#src/interface/request-context";
 
 const kinds = z.enum(["IDEA", "PROBLEM", "QUESTION", "PRAISE"]);
@@ -54,6 +55,7 @@ export interface PlatformAdminDependencies {
   deleteStudio?: DeleteStudioUseCase | undefined;
   /** The error log; absent where nothing records one. */
   errors?: ErrorInboxUseCase | undefined;
+  testEmail?: TestEmailUseCase | undefined;
 }
 
 export function registerPlatformAdminRoutes(app: FastifyInstance, deps: PlatformAdminDependencies): void {
@@ -103,6 +105,15 @@ export function registerPlatformAdminRoutes(app: FastifyInstance, deps: Platform
 
     admin.get("/admin/stats/business", async () => deps.dashboard.business());
     admin.get("/admin/stats/system", async () => deps.dashboard.system());
+
+    // Sends one email to the admin asking, to prove the mail server takes mail from here.
+    admin.post("/admin/test-email", async (request, reply) => {
+      if (!deps.testEmail || !request.memberId)
+        return reply.code(404).send({ code: "NOT_FOUND", message: "Not found." });
+      const result = await deps.testEmail.send(request.memberId);
+      if (result.isFailure) return sendApplicationError(reply, result.getError());
+      return result.getValue();
+    });
 
     admin.get("/admin/studios", async (request) => deps.plans.list(studioListSchema.parse(request.query)));
 
