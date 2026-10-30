@@ -1,5 +1,5 @@
 {
-  "id": "2a47b142-675f-47c1-ac3a-029bdcc8ee80",
+  "id": "00b610f6-8320-4218-8b23-54fd229e18e9",
   "prevId": "0ea07814-c551-4a58-ac52-33fb75c92554",
   "version": "7",
   "dialect": "postgresql",
@@ -1472,13 +1472,13 @@
         },
         "page_width_mm": {
           "name": "page_width_mm",
-          "type": "real",
+          "type": "double precision",
           "primaryKey": false,
           "notNull": false
         },
         "page_height_mm": {
           "name": "page_height_mm",
-          "type": "real",
+          "type": "double precision",
           "primaryKey": false,
           "notNull": false
         },

@@ -12,7 +12,10 @@ import {
   FULL_CROP,
 } from "../src/modules/album-composition/domain/album";
 import { ResizeAlbumUseCase } from "../src/modules/album-composition/application/use-cases/resize-album/resize-album.use-case";
-import { CopyAlbumAtSizeUseCase } from "../src/modules/album-composition/application/use-cases/copy-album/copy-album.use-case";
+import {
+  CopyAlbumAtSizeUseCase,
+  titleAtSize,
+} from "../src/modules/album-composition/application/use-cases/copy-album/copy-album.use-case";
 import { registerAlbumCompositionRoutes } from "../src/modules/album-composition/interface/http/routes";
 import type { AlbumQuotaPolicy } from "../src/modules/album-composition/application/ports/directories";
 import { InMemoryAlbumRepository } from "./support/in-memory";
@@ -154,6 +157,13 @@ describe("copying an album at another size", () => {
     made.setTreatment(0, "hero", "BLACK_WHITE");
     assert.equal(original.spreads[0]!.placements[0]!.treatment, "COLOR");
     assert.equal((await albums.findByProjectId(original.projectId)).length, 2);
+  });
+
+  it("keeps a long album's copy title inside the 255 characters a title holds", () => {
+    const title = titleAtSize("A".repeat(300), "20×20 cm");
+    assert.equal(title.length, 255);
+    assert.ok(title.endsWith(" — 20×20 cm"));
+    assert.equal(titleAtSize("Luiza & Adrian", "20×20 cm"), "Luiza & Adrian — 20×20 cm");
   });
 
   it("takes a given title, and refuses another shape, a full plan and a missing album", async () => {

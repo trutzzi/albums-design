@@ -54,9 +54,13 @@ export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: 
     next();
   };
   const failed = (resize.error ?? copy.error) as Error | null;
+  // Closing mid-request would let it land with no dialog (or jump to the copy) unannounced.
+  const close = () => {
+    if (!busy) onClose();
+  };
 
   return (
-    <div className="modal-overlay" role="presentation" onClick={onClose}>
+    <div className="modal-overlay" role="presentation" onClick={close}>
       <div
         ref={dialogRef}
         className="modal album-size"
@@ -64,7 +68,7 @@ export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: 
         aria-modal="true"
         aria-labelledby="album-size-title"
         onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => event.key === "Escape" && onClose()}
+        onKeyDown={(event) => event.key === "Escape" && close()}
       >
         <h2 id="album-size-title">{t("albumSize.title")}</h2>
         <p className="muted">{t("albumSize.intro", { size: sizeLabel(album.format) })}</p>
@@ -104,14 +108,14 @@ export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: 
                 choose(() => setCustomCm(value));
               }}
             />
-            <span id="album-size-custom-hint" className={custom === "outOfRange" ? "error" : "muted"}>
-              {custom === "outOfRange"
-                ? t("albumSize.custom.range")
-                : custom !== "empty"
-                  ? t("albumSize.custom.result", { size: sizeLabel(custom) })
-                  : ""}
-            </span>
+            {custom !== "empty" && custom !== "outOfRange" && (
+              <span className="muted">{t("albumSize.custom.result", { size: sizeLabel(custom) })}</span>
+            )}
           </label>
+          {/* Outside the label, and an alert, so a screen reader says why the actions went off. */}
+          <p id="album-size-custom-hint" className="error album-size__hint" role="alert">
+            {custom === "outOfRange" ? t("albumSize.custom.range") : ""}
+          </p>
         </fieldset>
 
         {sharpness && verdict && (
@@ -129,7 +133,7 @@ export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: 
         {failed && <p className="error">{failed.message}</p>}
 
         <div className="modal__actions">
-          <button type="button" className="button" onClick={onClose}>
+          <button type="button" className="button" disabled={busy} onClick={close}>
             {t("common.cancel")}
           </button>
           <button

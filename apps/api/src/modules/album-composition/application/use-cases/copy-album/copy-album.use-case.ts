@@ -35,7 +35,7 @@ export class CopyAlbumAtSizeUseCase {
     const size = { pageWidthMm: command.pageWidthMm, pageHeightMm: command.pageHeightMm };
     let copy: Album;
     try {
-      copy = original.copyAt(size, command.title ?? `${original.title} — ${sizeInCm(size)}`);
+      copy = original.copyAt(size, command.title ?? titleAtSize(original.title, sizeInCm(size)));
     } catch (error) {
       if (error instanceof AlbumShapeError || error instanceof AlbumSizeRangeError)
         return Result.failure(new ValidationError(error.message));
@@ -46,4 +46,12 @@ export class CopyAlbumAtSizeUseCase {
     await this.quota.recordAlbumCreated(project.studioId);
     return Result.success(copy);
   }
+}
+
+/** Titles are stored in 255 characters; a long one gives up its end, never the size. */
+const TITLE_MAX = 255;
+
+export function titleAtSize(title: string, size: string): string {
+  const suffix = ` — ${size}`;
+  return `${title.slice(0, TITLE_MAX - suffix.length).trimEnd()}${suffix}`;
 }

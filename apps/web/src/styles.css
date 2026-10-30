@@ -7036,3 +7036,10 @@ body.is-previewing {
 .admin__test-email p {
   margin: 0;
 }
+.album-size__hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+.album-size__hint:empty {
+  display: none;
+}
