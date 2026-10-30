@@ -68,6 +68,20 @@ describe("resizing an album", () => {
     assert.deepEqual(album.spreads, before);
   });
 
+  it("keeps the shape exact, so many small resizes can never stretch it", () => {
+    const album = Album.create({
+      projectId: UniqueEntityId.create(),
+      title: "Landscape",
+      format: { pageWidthMm: 300, pageHeightMm: 210, bleedMm: 3 },
+      spreads: [],
+    });
+    // Each step asks for a height 0.9% too tall: inside the tolerance, every time.
+    for (let width = 310; width <= 600; width += 10)
+      album.resize({ pageWidthMm: width, pageHeightMm: width * 0.7 * 1.009 });
+    assert.equal(album.format.pageWidthMm, 600);
+    assert.equal(album.format.pageHeightMm, 420);
+  });
+
   it("refuses another shape, and an approved album", () => {
     const album = makeAlbum();
     assert.throws(() => album.resize({ pageWidthMm: 300, pageHeightMm: 210 }), AlbumShapeError);

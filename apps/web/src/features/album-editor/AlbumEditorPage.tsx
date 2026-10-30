@@ -849,6 +849,8 @@ export function AlbumEditorPage() {
             }}
             onResized={(resized) => {
               queryClient.setQueryData(["album", albumId], resized);
+              // The shoot's Delivery step reads the size from the list, for its old-PDF note.
+              void queryClient.invalidateQueries({ queryKey: ["albums", projectId] });
               setSizeOpen(false);
             }}
             onCopied={(copy) => {

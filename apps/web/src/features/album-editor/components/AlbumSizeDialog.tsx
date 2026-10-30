@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import type { AlbumDTO } from "@albumflow/contracts";
 import { copyAlbumAtSize, resizeAlbum } from "@/shared/api";
@@ -34,6 +34,17 @@ export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: 
   const size = customCm ? custom : chosen;
   const sharpness = useMemo(() => (size ? sharpnessAt(check, size) : null), [check, size]);
   const locked = album.status === "APPROVED";
+  const unchanged =
+    size !== null && size.pageWidthMm === album.format.pageWidthMm && size.pageHeightMm === album.format.pageHeightMm;
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Opened from the size chip: focus moves into the dialog (so Escape and Tab work there)
+  // and goes back to the chip when it closes.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialogRef.current?.querySelector<HTMLInputElement>("input")?.focus();
+    return () => opener?.focus();
+  }, []);
 
   const resize = useMutation({ mutationFn: (to: SizeOption) => resizeAlbum(album.id, to), onSuccess: onResized });
   const copy = useMutation({ mutationFn: (to: SizeOption) => copyAlbumAtSize(album.id, to), onSuccess: onCopied });
@@ -43,6 +54,7 @@ export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: 
   return (
     <div className="modal-overlay" role="presentation" onClick={onClose}>
       <div
+        ref={dialogRef}
         className="modal album-size"
         role="dialog"
         aria-modal="true"
@@ -104,13 +116,18 @@ export function AlbumSizeDialog({ album, check, onResized, onCopied, onClose }: 
           <button type="button" className="button" onClick={onClose}>
             {t("common.cancel")}
           </button>
-          <button type="button" className="button" disabled={!size || busy} onClick={() => size && copy.mutate(size)}>
+          <button
+            type="button"
+            className="button"
+            disabled={!size || unchanged || busy}
+            onClick={() => size && copy.mutate(size)}
+          >
             {copy.isPending ? t("albumSize.copying") : t("albumSize.copy")}
           </button>
           <button
             type="button"
             className="button button--primary"
-            disabled={!size || busy || locked}
+            disabled={!size || unchanged || busy || locked}
             onClick={() => size && resize.mutate(size)}
           >
             {resize.isPending ? t("albumSize.changing") : t("albumSize.change")}

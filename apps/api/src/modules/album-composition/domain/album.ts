@@ -212,9 +212,23 @@ export class Album extends AggregateRoot<AlbumProps> {
    */
   resize(size: { pageWidthMm: number; pageHeightMm: number }): void {
     this.assertEditable();
-    if (!sameAlbumShape(this.props.format, size)) throw new AlbumShapeError(this.props.format, size);
-    this.props.format = { ...this.props.format, pageWidthMm: size.pageWidthMm, pageHeightMm: size.pageHeightMm };
+    this.props.format = this.formatAt(size);
     this.touch();
+  }
+
+  /**
+   * The format at a new width. The requested height only has to be close (a lab size or
+   * a rounded custom one); the stored height is derived from the current shape, so the
+   * shape never creeps, however many times the album is resized.
+   */
+  private formatAt(size: { pageWidthMm: number; pageHeightMm: number }): AlbumFormat {
+    if (!sameAlbumShape(this.props.format, size)) throw new AlbumShapeError(this.props.format, size);
+    const ratio = this.props.format.pageHeightMm / this.props.format.pageWidthMm;
+    return {
+      ...this.props.format,
+      pageWidthMm: size.pageWidthMm,
+      pageHeightMm: Math.round(size.pageWidthMm * ratio * 100) / 100,
+    };
   }
 
   /**
@@ -223,14 +237,14 @@ export class Album extends AggregateRoot<AlbumProps> {
    * an approved album too: that is exactly when the parents' copies get made.
    */
   copyAt(size: { pageWidthMm: number; pageHeightMm: number }, title: string): Album {
-    if (!sameAlbumShape(this.props.format, size)) throw new AlbumShapeError(this.props.format, size);
+    const format = this.formatAt(size);
     const now = new Date();
     return new Album(
       {
         projectId: this.props.projectId,
         title,
         status: "DRAFT",
-        format: { ...this.props.format, pageWidthMm: size.pageWidthMm, pageHeightMm: size.pageHeightMm },
+        format,
         spreads: structuredClone(this.props.spreads),
         style: structuredClone(this.props.style),
         cover: structuredClone(this.props.cover),
