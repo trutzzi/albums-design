@@ -13,10 +13,11 @@ export function browserLabel(userAgent: string | null): string {
     ["node-fetch", "Node"],
     ["axios", "Node"],
     ["headlesschrome", "Headless Chrome"],
-    ["bot", "Bot"],
-    ["spider", "Bot"],
   ].find(([needle]) => ua.includes(needle!));
   if (tool) return tool[1]!;
+  // Crawlers name themselves "Googlebot/2.1", "AhrefsBot/7.0": "bot" right before a version.
+  // A bare "bot" would also catch real phones, like the Cubot ones.
+  if (/bot\/|crawler|spider/.test(ua)) return "Bot";
 
   const browser = ua.includes("edg/")
     ? "Edge"

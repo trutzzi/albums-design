@@ -1,4 +1,4 @@
-import { isIPv6 } from "node:net";
+import { isIP, isIPv6 } from "node:net";
 import { addressKey } from "#src/shared-kernel/address-key";
 
 /**
@@ -114,12 +114,22 @@ export const PUBLIC_MAIL_DOMAINS = new Set([
   "zoho.com",
 ]);
 
-/** What the admin typed, in the form the matching compares. */
-export function normaliseBlock(kind: SignupBlockKind, value: string): string {
+/**
+ * What the admin typed, in the form the matching compares — or null when it could never
+ * match: not an address, or a network size other than the one networks are matched at
+ * (/24 for IPv4, /64 for IPv6), which would silently block more or less than it says.
+ */
+export function normaliseBlock(kind: SignupBlockKind, value: string): string | null {
   const trimmed = value.trim().toLowerCase();
-  if (kind === "EMAIL_DOMAIN") return trimmed.replace(/^@/, "");
-  if (kind === "NETWORK") return networkOf(trimmed.replace(/\/\d+$/, ""));
-  return addressKey(trimmed);
+  if (kind === "EMAIL_DOMAIN") {
+    const domain = trimmed.replace(/^@/, "");
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(domain) ? domain : null;
+  }
+  const [address = "", prefix] = trimmed.split("/");
+  if (!isIP(address)) return null;
+  if (kind === "IP") return prefix === undefined ? addressKey(address) : null;
+  const expected = isIPv6(address) && !address.startsWith("::ffff:") ? "64" : "24";
+  return prefix === undefined || prefix === expected ? networkOf(address) : null;
 }
 
 /** The block an attempt falls under, if any. A subdomain of a blocked domain is blocked too. */

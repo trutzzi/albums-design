@@ -1,4 +1,15 @@
-import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 
 export const studios = pgTable("studios", {
   id: uuid("id").primaryKey(),
@@ -90,10 +101,15 @@ export const signupAttempts = pgTable(
 export const signupBlockKindEnum = pgEnum("signup_block_kind", ["IP", "NETWORK", "EMAIL_DOMAIN"]);
 
 /** The admin's block list for sign-ups. */
-export const signupBlocks = pgTable("signup_blocks", {
-  id: uuid("id").primaryKey(),
-  kind: signupBlockKindEnum("kind").notNull(),
-  value: varchar("value", { length: 255 }).notNull(),
-  note: varchar("note", { length: 500 }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
-});
+export const signupBlocks = pgTable(
+  "signup_blocks",
+  {
+    id: uuid("id").primaryKey(),
+    kind: signupBlockKindEnum("kind").notNull(),
+    value: varchar("value", { length: 255 }).notNull(),
+    note: varchar("note", { length: 500 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  },
+  // Two admins blocking the same thing at once make one entry, not two.
+  (table) => [uniqueIndex("signup_blocks_kind_value_idx").on(table.kind, table.value)],
+);

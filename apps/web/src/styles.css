@@ -7086,3 +7086,7 @@ body.is-previewing {
 .signups-table__ip {
   white-space: nowrap;
 }
+.admin__table-scroll.is-stale {
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}

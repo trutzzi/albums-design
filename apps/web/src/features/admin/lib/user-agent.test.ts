@@ -27,6 +27,13 @@ describe("browserLabel", () => {
     assert.equal(browserLabel("curl/8.4.0"), "curl");
     assert.equal(browserLabel("python-requests/2.32"), "Python");
     assert.equal(browserLabel("Mozilla/5.0 HeadlessChrome/120.0"), "Headless Chrome");
+    assert.equal(browserLabel("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"), "Bot");
+    assert.equal(
+      browserLabel(
+        "Mozilla/5.0 (Linux; Android 13; CUBOT KINGKONG 9) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36",
+      ),
+      "Chrome · Android",
+    );
     assert.equal(browserLabel(null), "No browser named");
     assert.equal(browserLabel("Something"), "Other browser");
   });

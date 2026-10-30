@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Result } from "@albumflow/domain-kernel";
+import { AttemptLimiter } from "#src/shared-kernel/attempt-limiter";
 import { NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import type { Logger } from "#src/shared-kernel/logger";
 import {
@@ -21,6 +22,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const SIGNUP_LOG_RETENTION_DAYS = 90;
 /** An emailed link not opened in this long never will be (it expires then, too). */
 const CONFIRM_WINDOW_MS = 2 * DAY_MS;
+/**
+ * Refused attempts kept per network (an IP's /24 or /64) per hour. Past this a bot's
+ * hammering is already plain from what was kept, and the table must not grow as fast
+ * as it can post — or as fast as it can rotate through its neighbours' addresses.
+ */
+export const REFUSED_ROWS_PER_IP_PER_HOUR = 30;
 
 export interface SignupAttemptView {
   id: string;
@@ -57,6 +64,7 @@ export class SignupLog {
     private readonly blocks: SignupBlockRepository,
     private readonly logger: Logger,
     private readonly now: () => Date = () => new Date(),
+    private readonly refusedPerIp = new AttemptLimiter(REFUSED_ROWS_PER_IP_PER_HOUR, 60 * 60 * 1000),
   ) {}
 
   /** The block this attempt falls under, if any. Never throws: an unreadable list blocks nobody. */
@@ -70,6 +78,13 @@ export class SignupLog {
   }
 
   async record(email: string, context: SignupContext, outcome: SignupOutcome, memberId?: string): Promise<void> {
+    // A link actually sent is always kept (sign-up limits those already); refusals are capped.
+    if (outcome !== "CONFIRMATION_SENT") {
+      // No address at all (a proxy that dropped it) shares one budget rather than none.
+      const key = `refused:${context.ip ? networkOf(context.ip) : "unknown"}`;
+      if (this.refusedPerIp.lockedFor(key) > 0) return;
+      this.refusedPerIp.record(key);
+    }
     try {
       await this.attempts.record({
         id: randomUUID(),
@@ -138,8 +153,14 @@ export class SignupLog {
 
   async block(kind: SignupBlockKind, value: string, note?: string): Promise<Result<SignupBlockView, ApplicationError>> {
     const normalised = normaliseBlock(kind, value);
-    if (!normalised || (kind === "EMAIL_DOMAIN" && !normalised.includes("."))) {
-      return Result.failure(new ValidationError(`"${value}" is not something that can be blocked as ${kind}.`));
+    if (!normalised) {
+      const expected =
+        kind === "EMAIL_DOMAIN"
+          ? "a domain like spam.example"
+          : kind === "IP"
+            ? "one IP address"
+            : "an IP address, or its /24 (IPv4) or /64 (IPv6)";
+      return Result.failure(new ValidationError(`"${value}" can't be blocked as ${kind}: expected ${expected}.`));
     }
     if (kind === "EMAIL_DOMAIN" && PUBLIC_MAIL_DOMAINS.has(normalised)) {
       return Result.failure(
@@ -148,15 +169,17 @@ export class SignupLog {
     }
     const existing = (await this.blocks.list()).find((block) => block.kind === kind && block.value === normalised);
     if (existing) return Result.success({ ...existing, createdAt: existing.createdAt.toISOString() });
-    const block: SignupBlock = {
+    await this.blocks.add({
       id: randomUUID(),
       kind,
       value: normalised,
       note: note?.trim() || null,
       createdAt: this.now(),
-    };
-    await this.blocks.add(block);
-    return Result.success({ ...block, createdAt: block.createdAt.toISOString() });
+    });
+    // Read back what was stored: if another admin added the same block a moment earlier,
+    // theirs is the one that exists, and its id is the one that can be unblocked.
+    const stored = (await this.blocks.list()).find((block) => block.kind === kind && block.value === normalised)!;
+    return Result.success({ ...stored, createdAt: stored.createdAt.toISOString() });
   }
 
   async unblock(id: string): Promise<Result<void, ApplicationError>> {
