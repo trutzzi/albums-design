@@ -15,6 +15,10 @@ import { DrizzleDownloadSessionRepository } from "../modules/review-collaboratio
 import { DrizzleSlideshowSessionRepository } from "../modules/review-collaboration/infrastructure/persistence/drizzle-slideshow-session-repository";
 import { DrizzleExportJobRepository } from "../modules/export-print/infrastructure/persistence/drizzle-export-job-repository";
 import { DrizzleFeedbackRepository } from "../modules/platform-admin/infrastructure/feedback-repositories";
+import {
+  DrizzleSignupAttemptRepository,
+  DrizzleSignupBlockRepository,
+} from "../modules/identity/infrastructure/persistence/signup-log-repositories";
 
 /**
  * Every aggregate's repository, built once and shared: several contexts read the same
@@ -36,6 +40,8 @@ export function buildRepositories(db: Database) {
     slideshowSessions: new DrizzleSlideshowSessionRepository(db),
     exportJobs: new DrizzleExportJobRepository(db),
     feedback: new DrizzleFeedbackRepository(db),
+    signupAttempts: new DrizzleSignupAttemptRepository(db),
+    signupBlocks: new DrizzleSignupBlockRepository(db),
   } satisfies Repositories;
 }
 

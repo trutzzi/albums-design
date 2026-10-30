@@ -199,6 +199,8 @@ function maintenanceJobs(root: CompositionRoot): Record<string, JobHandler> {
     "purge-unconfirmed": handle(async () => ({ ...(await root.purgeUnconfirmedSignups.execute()) })),
     // Admin error log occurrences past ERROR_LOG_RETENTION_DAYS; the grouped issues stay.
     "purge-error-log": handle(async () => ({ ...(await root.errorInbox.purgeExpired()) })),
+    // Sign-up attempts past SIGNUP_LOG_RETENTION_DAYS (90): the log is for spotting spam, not a record.
+    "purge-signup-log": handle(async () => ({ ...(await root.signupLog.purgeExpired()) })),
   };
 }
 
@@ -278,6 +280,11 @@ async function main() {
     { name: "purge-unconfirmed", data: {} },
   );
   await maintenanceQueue.add("purge-unconfirmed", {}, { removeOnComplete: 20, removeOnFail: 20 });
+  await maintenanceQueue.upsertJobScheduler(
+    "purge-signup-log",
+    { pattern: "50 4 * * *" },
+    { name: "purge-signup-log", data: {} },
+  );
   await maintenanceQueue.upsertJobScheduler(
     "purge-error-log",
     { pattern: "40 4 * * *" },

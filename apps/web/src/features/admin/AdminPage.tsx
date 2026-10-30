@@ -21,10 +21,11 @@ import {
 } from "@/shared/api";
 import { BarList, ColumnChart, StatTile } from "./charts";
 import { ErrorsTab } from "./ErrorsTab";
+import { SignupsTab } from "./SignupsTab";
 import { LoadingState, SkeletonList } from "@/shared/ui/Loading";
 import { usePlans } from "@/shared/ui/usePlans";
 
-type Tab = "business" | "studios" | "feedback" | "server" | "errors";
+type Tab = "business" | "studios" | "signups" | "feedback" | "server" | "errors";
 
 const FUNNEL_LABELS: Record<FunnelStep, string> = {
   signedUp: "Signed up",
@@ -77,6 +78,7 @@ export function AdminPage() {
             [
               ["business", "Business"],
               ["studios", "Studios"],
+              ["signups", "Sign-ups"],
               ["feedback", "Feedback"],
               ["server", "Server"],
               ["errors", "Errors"],
@@ -107,6 +109,7 @@ export function AdminPage() {
         </header>
         {tab === "business" && <BusinessTab />}
         {tab === "studios" && <StudiosTab />}
+        {tab === "signups" && <SignupsTab />}
         {tab === "feedback" && <FeedbackTab />}
         {tab === "server" && <ServerTab />}
         {tab === "errors" && <ErrorsTab initialSearch={params.get("q") ?? ""} />}

@@ -12,6 +12,7 @@ import type { DeleteStudioUseCase } from "../../application/use-cases/studio-del
 import type { ContactMessageUseCase } from "../../application/use-cases/contact-message.use-case";
 import type { ErrorInboxUseCase } from "../../application/use-cases/error-inbox.use-case";
 import type { TestEmailUseCase } from "../../application/use-cases/test-email.use-case";
+import type { SignupLog } from "#src/modules/identity/application/services/signup-log";
 import "#src/interface/request-context";
 
 const kinds = z.enum(["IDEA", "PROBLEM", "QUESTION", "PRAISE"]);
@@ -44,6 +45,26 @@ const errorListSchema = z.object({
   search: z.string().trim().max(200).optional(),
 });
 const errorParams = z.object({ issueId: z.string().uuid() });
+const signupOutcomes = z.enum([
+  "CONFIRMATION_SENT",
+  "TRAPPED",
+  "HUMAN_CHECK_FAILED",
+  "RATE_LIMITED",
+  "BLOCKED",
+  "ALREADY_REGISTERED",
+  "INVALID",
+]);
+const signupListSchema = z.object({
+  outcome: signupOutcomes.optional(),
+  search: z.string().trim().max(200).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(10).max(200).default(50),
+});
+const signupBlockSchema = z.object({
+  kind: z.enum(["IP", "NETWORK", "EMAIL_DOMAIN"]),
+  value: z.string().trim().min(1).max(255),
+  note: z.string().trim().max(500).optional(),
+});
 
 export interface PlatformAdminDependencies {
   access: AdminAccess;
@@ -56,6 +77,8 @@ export interface PlatformAdminDependencies {
   /** The error log; absent where nothing records one. */
   errors?: ErrorInboxUseCase | undefined;
   testEmail?: TestEmailUseCase | undefined;
+  /** Sign-up attempts and the sign-up block list; absent where sign-up is not served. */
+  signups?: SignupLog | undefined;
 }
 
 export function registerPlatformAdminRoutes(app: FastifyInstance, deps: PlatformAdminDependencies): void {
@@ -114,6 +137,25 @@ export function registerPlatformAdminRoutes(app: FastifyInstance, deps: Platform
       if (result.isFailure) return sendApplicationError(reply, result.getError());
       return result.getValue();
     });
+
+    // Every sign-up attempt for 90 days, and the block list that refuses some of them.
+    if (deps.signups) {
+      const signups = deps.signups;
+      admin.get("/admin/signups", async (request) => signups.list(signupListSchema.parse(request.query)));
+      admin.get("/admin/signup-blocks", async () => signups.listBlocks());
+      admin.post("/admin/signup-blocks", async (request, reply) => {
+        const { kind, value, note } = signupBlockSchema.parse(request.body);
+        const result = await signups.block(kind, value, note);
+        if (result.isFailure) return sendApplicationError(reply, result.getError());
+        return reply.code(201).send(result.getValue());
+      });
+      admin.delete("/admin/signup-blocks/:blockId", async (request, reply) => {
+        const { blockId } = z.object({ blockId: z.string().uuid() }).parse(request.params);
+        const result = await signups.unblock(blockId);
+        if (result.isFailure) return sendApplicationError(reply, result.getError());
+        return reply.code(204).send();
+      });
+    }
 
     admin.get("/admin/studios", async (request) => deps.plans.list(studioListSchema.parse(request.query)));
 

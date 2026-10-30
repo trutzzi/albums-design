@@ -217,3 +217,61 @@ export function getAdminError(id: string): Promise<{ issue: AdminErrorIssue; occ
 export function setAdminErrorStatus(id: string, status: ErrorIssueStatus): Promise<AdminErrorIssue> {
   return request(`/admin/errors/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
 }
+
+// --- Sign-ups -----------------------------------------------------------------
+
+export type SignupOutcome =
+  | "CONFIRMATION_SENT"
+  | "TRAPPED"
+  | "HUMAN_CHECK_FAILED"
+  | "RATE_LIMITED"
+  | "BLOCKED"
+  | "ALREADY_REGISTERED"
+  | "INVALID";
+
+export interface SignupAttempt {
+  id: string;
+  at: string;
+  email: string;
+  ip: string | null;
+  network: string | null;
+  userAgent: string | null;
+  language: string | null;
+  referer: string | null;
+  outcome: SignupOutcome;
+  confirmation: "CONFIRMED" | "WAITING" | "NEVER" | null;
+}
+
+export type SignupBlockKind = "IP" | "NETWORK" | "EMAIL_DOMAIN";
+
+export interface SignupBlock {
+  id: string;
+  kind: SignupBlockKind;
+  value: string;
+  note: string | null;
+  createdAt: string;
+}
+
+export function listSignups(params: {
+  outcome?: SignupOutcome;
+  search?: string;
+  page?: number;
+}): Promise<{ items: SignupAttempt[]; total: number; last30Days: Partial<Record<SignupOutcome, number>> }> {
+  const query = new URLSearchParams();
+  if (params.outcome) query.set("outcome", params.outcome);
+  if (params.search) query.set("search", params.search);
+  if (params.page) query.set("page", String(params.page));
+  return request(`/admin/signups?${query.toString()}`);
+}
+
+export function listSignupBlocks(): Promise<SignupBlock[]> {
+  return request("/admin/signup-blocks");
+}
+
+export function addSignupBlock(input: { kind: SignupBlockKind; value: string; note?: string }): Promise<SignupBlock> {
+  return request("/admin/signup-blocks", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function removeSignupBlock(blockId: string): Promise<void> {
+  return request(`/admin/signup-blocks/${blockId}`, { method: "DELETE" });
+}

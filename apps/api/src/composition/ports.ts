@@ -11,6 +11,7 @@ import type { BillingGateway } from "../modules/identity/application/ports/billi
 import type { DependencyProbe, StatsSource } from "../modules/platform-admin/application/ports/stats-source";
 import type { SystemStats } from "../modules/platform-admin/application/use-cases/admin.use-cases";
 import type { ErrorLogRepository } from "../modules/platform-admin/domain/error-log";
+import type { SignupAttemptRepository, SignupBlockRepository } from "../modules/identity/domain/signup-log";
 import type { FeedbackRepository } from "../modules/platform-admin/domain/feedback";
 import type {
   StudioMemberRepository,
@@ -88,4 +89,6 @@ export interface Repositories {
   slideshowSessions: SlideshowSessionRepository;
   exportJobs: ExportJobRepository;
   feedback: FeedbackRepository;
+  signupAttempts: SignupAttemptRepository;
+  signupBlocks: SignupBlockRepository;
 }

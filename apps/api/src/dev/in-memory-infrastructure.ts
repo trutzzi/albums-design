@@ -11,6 +11,10 @@ import { MediaUrlSigner } from "../infrastructure/storage/media-url-signer";
 import { DigiStorageProvider } from "../infrastructure/storage/digistorage-storage-provider";
 import { NoBillingGateway } from "../modules/identity/application/ports/billing-gateway";
 import { InMemoryErrorLogRepository } from "../modules/platform-admin/infrastructure/error-log-repositories";
+import {
+  InMemorySignupAttemptRepository,
+  InMemorySignupBlockRepository,
+} from "../modules/identity/infrastructure/persistence/signup-log-repositories";
 import { InMemoryFeedbackRepository } from "../modules/platform-admin/infrastructure/feedback-repositories";
 import { InMemoryStatsSource } from "../modules/platform-admin/infrastructure/stats-sources";
 import { InProcessDependencyProbe } from "../modules/platform-admin/infrastructure/dependency-probes";
@@ -108,6 +112,8 @@ export function buildInMemoryAdapters({ settings, baseUrl, storageProvider, sour
     slideshowSessions: new InMemorySlideshowSessionRepository(),
     exportJobs: new InMemoryExportJobRepository(),
     feedback: new InMemoryFeedbackRepository(),
+    signupAttempts: new InMemorySignupAttemptRepository(),
+    signupBlocks: new InMemorySignupBlockRepository(),
   } satisfies Repositories;
 
   // One blob store stands in for S3 as staging storage, the byte source and the export store.

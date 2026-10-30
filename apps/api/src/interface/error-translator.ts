@@ -13,6 +13,8 @@ const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   PASSWORD_REQUIRED: 401,
   INVALID_PASSWORD: 401,
   FORBIDDEN: 403,
+  // On the admin's sign-up block list.
+  SIGNUP_BLOCKED: 403,
   EMAIL_NOT_VERIFIED: 403,
   TOO_MANY_ATTEMPTS: 429,
   // The job queue is down: not the client's mistake, and worth retrying shortly.
