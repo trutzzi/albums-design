@@ -93,6 +93,7 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     deleteStudio: admin.deleteStudio,
     /** The admin error log: grouped error-level entries from the API and the worker. */
     errorInbox: admin.errorInbox,
+    testEmail: admin.testEmail,
     /** The hourly sweep of signups nobody confirmed (run by the worker, or a timer in the demo). */
     purgeUnconfirmedSignups: admin.purgeUnconfirmedSignups,
   };

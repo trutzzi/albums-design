@@ -829,6 +829,17 @@ describe("email settings", () => {
     assert.deepEqual(logger.problems[0]?.context, { recipients: 1 });
   });
 
+  it("reports the missing mail server once as an error, then quietly", async () => {
+    const logger = new RecordingLogger();
+    const sender = buildEmailSender(loadEnv({ ...base, NODE_ENV: "production" }), logger);
+    await sender.send(message);
+    await sender.send(message);
+    assert.deepEqual(
+      logger.entries.map((entry) => entry.level),
+      ["error", "warn"],
+    );
+  });
+
   it("keeps the content out when nobody chose otherwise", async () => {
     const logger = new RecordingLogger();
     await new LoggingEmailSender(logger).send(message);
