@@ -1,12 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteExport, getExportDownload, listExports, requestExport } from "@/shared/api";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
+import { madeAtOtherSize } from "@/shared/lib/print-size";
 
 /**
  * Print-ready PDF exports: start one, follow it while it renders, download or delete it.
  * Shared by the editor's Export tab and the shoot's Delivery step (`title` names the album there).
  */
-export function ExportPanel({ albumId, hidden = false, title }: { albumId: string; hidden?: boolean; title?: string }) {
+export function ExportPanel({
+  albumId,
+  albumFormat,
+  hidden = false,
+  title,
+}: {
+  albumId: string;
+  /** The album's size now, to flag PDFs made before it changed. */
+  albumFormat?: { pageWidthMm: number; pageHeightMm: number } | undefined;
+  hidden?: boolean;
+  title?: string;
+}) {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const exports = useQuery({
@@ -33,6 +45,7 @@ export function ExportPanel({ albumId, hidden = false, title }: { albumId: strin
       <ul className="export-list">
         {(exports.data ?? []).map((job) => {
           const inProgress = job.status === "QUEUED" || job.status === "RENDERING";
+          const otherSize = job.status === "READY" && albumFormat ? madeAtOtherSize(job, albumFormat) : null;
           return (
             <li key={job.id}>
               <span className={`chip chip--${job.status.toLowerCase()}`}>{job.status}</span>
@@ -49,6 +62,9 @@ export function ExportPanel({ albumId, hidden = false, title }: { albumId: strin
                 </button>
               ) : (
                 <span className="muted">{job.failureReason ?? `${job.printProfileId}`}</span>
+              )}
+              {otherSize && (
+                <span className="export-list__stale">{t("album.export.otherSize", { size: otherSize })}</span>
               )}
               <button
                 type="button"

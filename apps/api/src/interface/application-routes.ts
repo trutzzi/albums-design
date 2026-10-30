@@ -46,6 +46,8 @@ export function registerApplicationRoutes(app: FastifyInstance, application: App
     generateAlbum: application.generateAlbum,
     editAlbum: application.editAlbum,
     deleteAlbum: application.deleteAlbum,
+    resizeAlbum: application.resizeAlbum,
+    copyAlbum: application.copyAlbum,
     albums: application.albums,
   });
   registerReviewRoutes(app, {

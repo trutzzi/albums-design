@@ -2,6 +2,8 @@ import { GenerateAlbumUseCase } from "../modules/album-composition/application/u
 import { SuggestLayoutsUseCase } from "../modules/album-composition/application/use-cases/suggest-layouts/suggest-layouts.use-case";
 import { EditAlbumUseCase } from "../modules/album-composition/application/use-cases/edit-album/edit-album.use-case";
 import { DeleteAlbumUseCase } from "../modules/album-composition/application/use-cases/delete-album/delete-album.use-case";
+import { ResizeAlbumUseCase } from "../modules/album-composition/application/use-cases/resize-album/resize-album.use-case";
+import { CopyAlbumAtSizeUseCase } from "../modules/album-composition/application/use-cases/copy-album/copy-album.use-case";
 import {
   MediaIngestionProjectDirectory,
   PhotoIntelligenceDirectory,
@@ -25,6 +27,8 @@ export function buildAlbumCompositionModule(
     editAlbum: new EditAlbumUseCase(albums),
     suggestLayouts: new SuggestLayoutsUseCase(new PhotoIntelligenceDirectory(analyses)),
     deleteAlbum: new DeleteAlbumUseCase(albums, exportJobs, exportStorage, reviewSessions),
+    resizeAlbum: new ResizeAlbumUseCase(albums),
+    copyAlbum: new CopyAlbumAtSizeUseCase(albums, new MediaIngestionProjectDirectory(projects), quotaPolicy),
   };
 }
 

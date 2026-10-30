@@ -293,6 +293,8 @@ describe("upload → analysis → album → review → export", () => {
     const finished = ran.getValue();
     assert.equal(finished.status, "READY", `export failed: ${finished.failureReason}`);
     assert.ok((finished.byteSize ?? 0) > 1000, "PDF looks suspiciously small");
+    // Remembered, so the editor can tell a PDF made before the album changed size.
+    assert.ok((finished.pageWidthMm ?? 0) > 0 && (finished.pageHeightMm ?? 0) > 0);
 
     // --- the artifact itself ---
     const pdfBytes = await world.storage.read(finished.storageKey ?? "");

@@ -9,6 +9,9 @@ export interface ExportJobProps {
   storageKey: string | undefined;
   byteSize: number | undefined;
   pageCount: number | undefined;
+  /** The page size the PDF was rendered at; unknown for exports made before sizes could change. */
+  pageWidthMm?: number | undefined;
+  pageHeightMm?: number | undefined;
   failureReason: string | undefined;
   requestedAt: Date;
   completedAt: Date | undefined;
@@ -64,6 +67,14 @@ export class ExportJob extends AggregateRoot<ExportJobProps> {
     return this.props.pageCount;
   }
 
+  get pageWidthMm(): number | undefined {
+    return this.props.pageWidthMm;
+  }
+
+  get pageHeightMm(): number | undefined {
+    return this.props.pageHeightMm;
+  }
+
   get failureReason(): string | undefined {
     return this.props.failureReason;
   }
@@ -80,8 +91,16 @@ export class ExportJob extends AggregateRoot<ExportJobProps> {
     this.props.status = "RENDERING";
   }
 
-  markReady(params: { storageKey: string; byteSize: number; pageCount: number }): void {
+  markReady(params: {
+    storageKey: string;
+    byteSize: number;
+    pageCount: number;
+    pageWidthMm: number;
+    pageHeightMm: number;
+  }): void {
     this.props.status = "READY";
+    this.props.pageWidthMm = params.pageWidthMm;
+    this.props.pageHeightMm = params.pageHeightMm;
     this.props.storageKey = params.storageKey;
     this.props.byteSize = params.byteSize;
     this.props.pageCount = params.pageCount;

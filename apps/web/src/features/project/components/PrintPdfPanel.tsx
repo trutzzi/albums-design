@@ -39,6 +39,7 @@ export function PrintPdfPanel({ projectId }: { projectId: string }) {
         <ExportPanel
           key={album.id}
           albumId={album.id}
+          albumFormat={album.format}
           title={albums.data.length > 1 ? `${t("project.pdf.title")} · ${album.title}` : t("project.pdf.title")}
         />
       ))}

@@ -9,6 +9,9 @@ export interface ExportJobDTO {
   status: "QUEUED" | "RENDERING" | "READY" | "FAILED";
   byteSize: number | null;
   pageCount: number | null;
+  /** The page size the PDF was made at; null for PDFs made before this was recorded. */
+  pageWidthMm: number | null;
+  pageHeightMm: number | null;
   failureReason: string | null;
   requestedAt: string;
   completedAt: string | null;

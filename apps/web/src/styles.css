@@ -6981,6 +6981,50 @@ body.is-previewing {
   }
 }
 
+/* ---- album size: the size chip opens it; same-shape sizes and the sharpness preview ---- */
+.dimension-badge--button {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.dimension-badge--button:hover,
+.dimension-badge--button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.album-size {
+  width: min(480px, 100%);
+}
+.album-size__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+.album-size__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.album-size__option:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.album-size__custom input {
+  width: 7em;
+}
+.export-list__stale {
+  color: var(--warn);
+  font-size: 0.82rem;
+}
+
 /* ---- admin: the test email under the server's configuration ---- */
 .admin__test-email {
   display: flex;
@@ -6991,4 +7035,11 @@ body.is-previewing {
 }
 .admin__test-email p {
   margin: 0;
+}
+.album-size__hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+.album-size__hint:empty {
+  display: none;
 }

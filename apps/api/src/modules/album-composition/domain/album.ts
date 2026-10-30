@@ -1,5 +1,8 @@
 import { AggregateRoot, UniqueEntityId } from "@albumflow/domain-kernel";
 import {
+  PAGE_SIDE_MAX_MM,
+  PAGE_SIDE_MIN_MM,
+  sameAlbumShape,
   spacedSlotRect,
   type AlbumCoverDTO,
   type AlbumStyleDTO,
@@ -90,6 +93,30 @@ export class AlbumLockedError extends Error {
   constructor(status: AlbumStatus) {
     super(`An album in ${status} cannot be edited. Reopen it first.`);
     this.name = "AlbumLockedError";
+  }
+}
+
+/** "25×25 cm": how labs, and photographers, name a book's size. */
+export function sizeInCm(size: { pageWidthMm: number; pageHeightMm: number }): string {
+  const cm = (mm: number) => Math.round(mm) / 10;
+  return `${cm(size.pageWidthMm)}×${cm(size.pageHeightMm)} cm`;
+}
+
+export class AlbumShapeError extends Error {
+  constructor(from: AlbumFormat, to: { pageWidthMm: number; pageHeightMm: number }) {
+    super(
+      `A ${sizeInCm(from)} album can only change to a size of the same shape; ${sizeInCm(to)} would stretch every layout.`,
+    );
+    this.name = "AlbumShapeError";
+  }
+}
+
+export class AlbumSizeRangeError extends Error {
+  constructor(size: { pageWidthMm: number; pageHeightMm: number }) {
+    super(
+      `${sizeInCm(size)} is outside what a lab prints: each side between ${PAGE_SIDE_MIN_MM / 10} and ${PAGE_SIDE_MAX_MM / 10} cm.`,
+    );
+    this.name = "AlbumSizeRangeError";
   }
 }
 
@@ -190,6 +217,60 @@ export class Album extends AggregateRoot<AlbumProps> {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  /**
+   * The same book at another print size. Frames, text and gaps are fractions of the
+   * spread, so nothing moves; only the shape is guarded. The bleed is a lab setting,
+   * not part of the design, and stays as it was.
+   */
+  resize(size: { pageWidthMm: number; pageHeightMm: number }): void {
+    this.assertEditable();
+    this.props.format = this.formatAt(size);
+    this.touch();
+  }
+
+  /**
+   * The format at a new width. The requested height only has to be close (a lab size or
+   * a rounded custom one); the stored height is derived from the current shape, so the
+   * shape never creeps, however many times the album is resized.
+   */
+  private formatAt(size: { pageWidthMm: number; pageHeightMm: number }): AlbumFormat {
+    if (!sameAlbumShape(this.props.format, size)) throw new AlbumShapeError(this.props.format, size);
+    const ratio = this.props.format.pageHeightMm / this.props.format.pageWidthMm;
+    const format = {
+      ...this.props.format,
+      pageWidthMm: size.pageWidthMm,
+      pageHeightMm: Math.round(size.pageWidthMm * ratio * 100) / 100,
+    };
+    // The request was range-checked; the height derived from it can sit just outside.
+    const sides = [format.pageWidthMm, format.pageHeightMm];
+    if (sides.some((side) => side < PAGE_SIDE_MIN_MM || side > PAGE_SIDE_MAX_MM)) throw new AlbumSizeRangeError(format);
+    return format;
+  }
+
+  /**
+   * A new draft with this album's design at another size — spreads, text, cover and
+   * style copied, nothing shared, so editing one never touches the other. Allowed from
+   * an approved album too: that is exactly when the parents' copies get made.
+   */
+  copyAt(size: { pageWidthMm: number; pageHeightMm: number }, title: string): Album {
+    const format = this.formatAt(size);
+    const now = new Date();
+    return new Album(
+      {
+        projectId: this.props.projectId,
+        title,
+        status: "DRAFT",
+        format,
+        spreads: structuredClone(this.props.spreads),
+        style: structuredClone(this.props.style),
+        cover: structuredClone(this.props.cover),
+        createdAt: now,
+        updatedAt: now,
+      },
+      UniqueEntityId.create(),
+    );
   }
 
   rename(title: string): void {

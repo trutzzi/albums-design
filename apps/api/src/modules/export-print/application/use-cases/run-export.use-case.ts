@@ -36,6 +36,9 @@ export class RunExportUseCase {
         storageKey: key,
         byteSize: rendered.bytes.byteLength,
         pageCount: rendered.pageCount,
+        // The album can change size later; this PDF stays the size it was made at.
+        pageWidthMm: album.format.pageWidthMm,
+        pageHeightMm: album.format.pageHeightMm,
       });
       await this.jobs.save(job);
       await this.albums.markExported(album.id);

@@ -70,6 +70,8 @@ function toDto(job: ExportJob) {
     status: job.status,
     byteSize: job.byteSize ?? null,
     pageCount: job.pageCount ?? null,
+    pageWidthMm: job.pageWidthMm ?? null,
+    pageHeightMm: job.pageHeightMm ?? null,
     failureReason: job.failureReason ?? null,
     requestedAt: job.requestedAt.toISOString(),
     completedAt: job.completedAt?.toISOString() ?? null,

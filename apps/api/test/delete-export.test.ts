@@ -12,7 +12,7 @@ describe("deleting an export", () => {
     const jobs = new InMemoryExportJobRepository();
     const storage = new InMemoryObjectStorage();
     const job = ExportJob.request({ albumId: ALBUM, printProfileId: "client-proof-150" });
-    job.markReady({ storageKey: "exports/a.pdf", byteSize: 1024, pageCount: 3 });
+    job.markReady({ storageKey: "exports/a.pdf", byteSize: 1024, pageCount: 3, pageWidthMm: 300, pageHeightMm: 300 });
     await jobs.save(job);
     storage.upload("exports/a.pdf", new Uint8Array([1, 2, 3]));
 
