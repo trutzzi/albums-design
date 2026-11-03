@@ -146,6 +146,23 @@ describe("DigiStorageProvider over a real WebDAV server", () => {
     assert.equal((await provider.head(key))?.size, 2);
   });
 
+  it("gets an upload through when the server hangs up on the first try", async () => {
+    let dropped = 0;
+    server.beforeRequest((context, next) => {
+      // Like DigiStorage under load: the first PUT is cut off without an answer.
+      if (context.request.method === "PUT" && dropped === 0) {
+        dropped++;
+        context.request.socket.destroy();
+        return;
+      }
+      next();
+    });
+    const key = "studios/s1/projects/p1/originals/dropped-once.jpg";
+    await provider.upload(key, Buffer.from("a photo that got through"), { contentType: "image/jpeg" });
+    assert.equal(dropped, 1);
+    assert.equal((await provider.head(key))?.size, Buffer.byteLength("a photo that got through"));
+  });
+
   it("refuses keys that could escape the root", async () => {
     for (const key of ["../x", "a/../../x", "/abs", "a//b", "", "a\\b"]) {
       await assert.rejects(

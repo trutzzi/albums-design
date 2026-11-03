@@ -293,7 +293,21 @@ function isNotFound(error: unknown): boolean {
   return hasStatus(error, 404);
 }
 
-/** Worth trying again shortly: a locked folder, a rate limit, or the server having a moment. */
+/**
+ * Worth trying again shortly: a locked folder, a rate limit, the server having a moment —
+ * or it dropping the connection mid-request ("socket hang up", a reset, a broken pipe),
+ * which DigiStorage does under load and which a second attempt usually gets through.
+ */
 function isTransient(error: unknown): boolean {
-  return [423, 429, 500, 502, 503, 504].some((status) => hasStatus(error, status));
+  return [423, 429, 500, 502, 503, 504].some((status) => hasStatus(error, status)) || isDroppedConnection(error);
+}
+
+const DROPPED_CONNECTION_CODES = new Set(["ECONNRESET", "EPIPE", "ETIMEDOUT", "ECONNREFUSED", "EAI_AGAIN"]);
+
+export function isDroppedConnection(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const { code, message, cause } = error as { code?: unknown; message?: unknown; cause?: unknown };
+  if (typeof code === "string" && DROPPED_CONNECTION_CODES.has(code)) return true;
+  if (typeof message === "string" && /socket hang up/i.test(message)) return true;
+  return cause !== undefined && cause !== error && isDroppedConnection(cause);
 }

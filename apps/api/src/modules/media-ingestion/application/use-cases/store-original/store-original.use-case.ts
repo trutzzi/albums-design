@@ -27,7 +27,21 @@ export class StoreOriginalUseCase {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  async execute(command: { photoId: string }): Promise<Result<StoreOutcome, ApplicationError>> {
+  private readonly inFlight = new Map<string, Promise<Result<StoreOutcome, ApplicationError>>>();
+
+  /**
+   * The upload fast path and the sweep can reach the same photo at the same moment; the
+   * second caller waits for the first copy instead of uploading the same file alongside it.
+   */
+  execute(command: { photoId: string }): Promise<Result<StoreOutcome, ApplicationError>> {
+    const running = this.inFlight.get(command.photoId);
+    if (running) return running;
+    const copy = this.copy(command).finally(() => this.inFlight.delete(command.photoId));
+    this.inFlight.set(command.photoId, copy);
+    return copy;
+  }
+
+  private async copy(command: { photoId: string }): Promise<Result<StoreOutcome, ApplicationError>> {
     const photo = await this.photos.findById(UniqueEntityId.create(command.photoId));
     // Deleted, or the upload never finished: there is no original to copy, and retrying will not create one.
     if (!photo || photo.status === "PENDING_UPLOAD") return Result.success("skipped");
