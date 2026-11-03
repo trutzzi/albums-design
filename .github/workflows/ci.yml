@@ -387,6 +387,22 @@ jobs:
             $COMPOSE up -d postgres redis minio minio-init api worker db-backup caddy
             docker image prune -f
 
+            # The cache cleaner. Every build adds layers to Docker's build cache and nothing
+            # removed them: on this 77 GB disk that grew past 8 GB, and with the photos it
+            # filled the disk until MinIO refused uploads (507). Only what is older than three
+            # days goes, so the next build still reuses this one's layers. Volumes (photos,
+            # database, backups) are never touched here.
+            docker builder prune -af --filter "until=72h" >/dev/null
+            docker image prune -af --filter "until=72h" --filter "label=com.docker.compose.project=albumflow" >/dev/null
+
+            # How full the disk is after the deploy, in the job's log; past 85% the run gets a
+            # warning, so a filling disk is seen long before uploads start failing.
+            echo "Disk after deploy: $(df -h / | tail -1)"
+            DISK_USED=$(df --output=pcent / | tail -1 | tr -dc '0-9')
+            if [ "$DISK_USED" -ge 85 ]; then
+              echo "::warning::The server disk is ${DISK_USED}% full. Uploads fail when it is full: check 'docker system df' and the MinIO volume."
+            fi
+
             # A wrong value in a secret (a port that is not a number, say) makes the API refuse
             # to start. When this deploy changed the server's .env, confirm the API really came
             # up; if it did not, put the previous .env back so the site is not left down over
