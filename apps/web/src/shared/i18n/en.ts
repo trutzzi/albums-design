@@ -1151,7 +1151,7 @@ export const en: Record<string, string> = {
     "JPG files: one full-quality image per spread and one for the cover, at print resolution with bleed — for labs that take images instead of a PDF.",
   "album.export.format.PDF": "PDF",
   "album.export.format.JPG_ZIP": "JPGs (ZIP)",
-  "album.export.download": "Download {format} · {size}",
+  "album.export.download": "Download · {size}",
   "album.export.queueing": "Queueing…",
   "album.export.inProgress.title": "This export is still in progress",
   "album.export.delete.title": "Delete this export",

@@ -1166,7 +1166,7 @@ export const ro: Record<string, string> = {
     "Fișiere JPG: câte o imagine la calitate maximă pentru fiecare pagină dublă și una pentru copertă, la rezoluția de tipar, cu bleed — pentru laboratoarele care primesc imagini în loc de PDF.",
   "album.export.format.PDF": "PDF",
   "album.export.format.JPG_ZIP": "JPG-uri (ZIP)",
-  "album.export.download": "Descarcă {format} · {size}",
+  "album.export.download": "Descarcă · {size}",
   "album.export.queueing": "Se pune în coadă…",
   "album.export.inProgress.title": "Acest export este încă în curs",
   "album.export.delete.title": "Șterge acest export",

@@ -78,10 +78,7 @@ export function ExportPanel({
                     window.open(url, "_blank", "noopener");
                   }}
                 >
-                  {t("album.export.download", {
-                    format: t(`album.export.format.${job.format}`),
-                    size: formatFileSize(job.byteSize ?? 0, localeOf(language)),
-                  })}
+                  {t("album.export.download", { size: formatFileSize(job.byteSize ?? 0, localeOf(language)) })}
                 </button>
               ) : (
                 <span className="muted">{job.failureReason ?? `${job.printProfileId}`}</span>
