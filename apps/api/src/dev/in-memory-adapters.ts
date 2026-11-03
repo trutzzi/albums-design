@@ -1,3 +1,4 @@
+import { readFile as readFileFromDisk } from "node:fs/promises";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import { Photo } from "../modules/media-ingestion/domain/photo";
 import type { PhotoRepository, ShootPhotoCounts } from "../modules/media-ingestion/domain/photo-repository";
@@ -188,6 +189,9 @@ export class InMemoryObjectStorage implements ObjectStorageWithBody, PhotoByteSo
   }
   async put(key: string, bytes: Uint8Array): Promise<void> {
     this.objects.set(key, bytes);
+  }
+  async putFile(key: string, path: string): Promise<void> {
+    this.objects.set(key, new Uint8Array(await readFileFromDisk(path)));
   }
   async presignGet(key: string): Promise<string> {
     return `memory://${key}`;

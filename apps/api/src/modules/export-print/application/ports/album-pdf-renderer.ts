@@ -54,6 +54,11 @@ export interface AlbumPdfRenderer {
   render(album: RenderableAlbum, profile: PrintProfile): Promise<RenderResult>;
 }
 
+/** The album as one JPG per spread (and the cover), written as a ZIP to `outputPath`. */
+export interface AlbumJpegRenderer {
+  renderZip(album: RenderableAlbum, profile: PrintProfile, outputPath: string): Promise<{ fileCount: number }>;
+}
+
 /** Resolves a photo id to the bytes of its stored original. */
 export interface PhotoResolver {
   resolve(photoId: string): Promise<Uint8Array | undefined>;
@@ -61,6 +66,8 @@ export interface PhotoResolver {
 
 export interface ExportStorage {
   put(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
+  /** For files too big to hold in memory, such as a ZIP of full-resolution spreads. */
+  putFile(key: string, path: string, contentType: string): Promise<void>;
   presignGet(key: string, expiresInSeconds: number): Promise<string>;
   /** Idempotent: deleting a key that's already gone must not throw. */
   delete(key: string): Promise<void>;

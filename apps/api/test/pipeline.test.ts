@@ -30,6 +30,7 @@ import {
   StoredPhotoResolver,
 } from "../src/modules/export-print/infrastructure/gateways/album-gateway";
 import { PdfAlbumRenderer } from "../src/modules/export-print/infrastructure/rendering/pdf-album-renderer";
+import { JpegAlbumRenderer } from "../src/modules/export-print/infrastructure/rendering/jpeg-album-renderer";
 import { Studio } from "../src/modules/identity/domain/studio";
 import { Subscription } from "../src/modules/identity/domain/subscription";
 import { SubscriptionQuotaPolicy } from "../src/modules/identity/application/subscription-quota-policy";
@@ -129,6 +130,7 @@ function buildWorld() {
       exportGateway,
       new PdfAlbumRenderer(new StoredPhotoResolver(photos, storage)),
       storage,
+      new JpegAlbumRenderer(new StoredPhotoResolver(photos, storage)),
     ),
   };
 }

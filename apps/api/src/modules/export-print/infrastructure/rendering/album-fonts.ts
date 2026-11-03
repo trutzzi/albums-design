@@ -29,13 +29,17 @@ export function isStrong(size: TextSize): boolean {
 
 const bytesCache = new Map<string, Promise<Buffer>>();
 
-function fontBytes(specifier: string): Promise<Buffer> {
+export function fontBytes(specifier: string): Promise<Buffer> {
   let cached = bytesCache.get(specifier);
   if (!cached) {
     cached = readFile(require.resolve(specifier));
     bytesCache.set(specifier, cached);
   }
   return cached;
+}
+
+export function fontSpecifier(font: AlbumFont, size: TextSize): string {
+  return FILES[font][isStrong(size) ? "strong" : "regular"];
 }
 
 /** Embeds each face at most once per document, and only the glyphs actually used. */
@@ -47,7 +51,7 @@ export class AlbumFonts {
   }
 
   get(font: AlbumFont, size: TextSize): Promise<PDFFont> {
-    const specifier = FILES[font][isStrong(size) ? "strong" : "regular"];
+    const specifier = fontSpecifier(font, size);
     let cached = this.embedded.get(specifier);
     if (!cached) {
       cached = fontBytes(specifier).then((bytes) => this.pdf.embedFont(bytes, { subset: true }));
@@ -57,28 +61,49 @@ export class AlbumFonts {
   }
 }
 
+interface FontkitGlyph {
+  advanceWidth: number;
+  path: { toSVG(): string };
+}
+interface FontkitFont {
+  unitsPerEm: number;
+  ascent: number;
+  descent: number;
+  layout(text: string): { glyphs: FontkitGlyph[] };
+}
+
 /**
- * Greedy word wrap to `maxWidth`, keeping the line breaks the photographer typed. A single
- * word wider than the box is left on its own line rather than broken mid-word.
+ * The same IBM Plex face for the JPG export, where words are drawn as outlines. Widths are
+ * each glyph's advance in turn, exactly as pdf-lib measures and sets them, so a line wraps
+ * and sits identically in the PDF and the JPG.
  */
-export function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
-  const lines: string[] = [];
-  for (const paragraph of text.split("\n")) {
-    const words = paragraph.split(/\s+/).filter(Boolean);
-    if (words.length === 0) {
-      lines.push("");
-      continue;
-    }
-    let line = words[0]!;
-    for (const word of words.slice(1)) {
-      const candidate = `${line} ${word}`;
-      if (font.widthOfTextAtSize(candidate, size) <= maxWidth) line = candidate;
-      else {
-        lines.push(line);
-        line = word;
-      }
-    }
-    lines.push(line);
+export class RasterFont {
+  private constructor(private readonly font: FontkitFont) {}
+
+  static async load(font: AlbumFont, size: TextSize): Promise<RasterFont> {
+    return new RasterFont(fontkit.create(await fontBytes(fontSpecifier(font, size))) as unknown as FontkitFont);
   }
-  return lines;
+
+  widthOfTextAtSize(text: string, size: number): number {
+    const advance = this.font.layout(text).glyphs.reduce((sum, glyph) => sum + glyph.advanceWidth, 0);
+    return (advance * size) / this.font.unitsPerEm;
+  }
+
+  heightAtSize(size: number): number {
+    return ((this.font.ascent - this.font.descent) * size) / this.font.unitsPerEm;
+  }
+
+  /** SVG path elements for `text` with its baseline starting at (x, baseline), in the page's units. */
+  outline(text: string, x: number, baseline: number, size: number): string {
+    const scale = size / this.font.unitsPerEm;
+    let cursor = x;
+    const paths: string[] = [];
+    for (const glyph of this.font.layout(text).glyphs) {
+      const d = glyph.path.toSVG();
+      // Font units point up; the page's point down.
+      if (d) paths.push(`<path transform="translate(${cursor} ${baseline}) scale(${scale} ${-scale})" d="${d}"/>`);
+      cursor += glyph.advanceWidth * scale;
+    }
+    return paths.join("");
+  }
 }

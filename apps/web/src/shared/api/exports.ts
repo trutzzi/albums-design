@@ -2,10 +2,14 @@ import { request } from "./http";
 
 // --- Export ----------------------------------------------------------------
 
+/** A print PDF, or one JPG per spread in a ZIP for labs that only take images. */
+export type ExportFormat = "PDF" | "JPG_ZIP";
+
 export interface ExportJobDTO {
   id: string;
   albumId: string;
   printProfileId: string;
+  format: ExportFormat;
   status: "QUEUED" | "RENDERING" | "READY" | "FAILED";
   byteSize: number | null;
   pageCount: number | null;
@@ -31,11 +35,11 @@ export function listPrintProfiles(): Promise<PrintProfileDTO[]> {
   return request("/print-profiles");
 }
 
-export function requestExport(albumId: string, printProfileId?: string): Promise<ExportJobDTO> {
-  return request(`/albums/${albumId}/exports`, {
-    method: "POST",
-    body: JSON.stringify(printProfileId ? { printProfileId } : {}),
-  });
+export function requestExport(
+  albumId: string,
+  options: { printProfileId?: string; format?: ExportFormat } = {},
+): Promise<ExportJobDTO> {
+  return request(`/albums/${albumId}/exports`, { method: "POST", body: JSON.stringify(options) });
 }
 
 export function listExports(albumId: string): Promise<ExportJobDTO[]> {

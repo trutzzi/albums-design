@@ -7090,3 +7090,14 @@ body.is-previewing {
   opacity: 0.5;
   transition: opacity 0.15s;
 }
+
+/* ---- export: PDF or JPG files, chosen per export ---- */
+.export-panel__start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.export-panel__hint {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+}

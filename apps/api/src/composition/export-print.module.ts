@@ -7,6 +7,7 @@ import {
   StoredPhotoResolver,
 } from "../modules/export-print/infrastructure/gateways/album-gateway";
 import { PdfAlbumRenderer } from "../modules/export-print/infrastructure/rendering/pdf-album-renderer";
+import { JpegAlbumRenderer } from "../modules/export-print/infrastructure/rendering/jpeg-album-renderer";
 import type { ModuleInfrastructure, Repositories } from "./ports";
 import type { IdentityModule } from "./identity.module";
 import type { PhotoIntelligenceModule } from "./photo-intelligence.module";
@@ -18,6 +19,11 @@ export function buildExportPrintModule(
   { planFeatures, photoFocus }: Pick<IdentityModule, "planFeatures"> & Pick<PhotoIntelligenceModule, "photoFocus">,
 ) {
   const albumGateway = new AlbumCompositionExportGateway(albums, planFeatures, photoFocus);
+  const originals = new StoredPhotoResolver(
+    photos,
+    // After retention, an original may live only on long-term storage.
+    permanentStorage ? new TieredPhotoByteSource(byteSource, permanentStorage) : byteSource,
+  );
   return {
     exportStorage,
     requestExport: new RequestExportUseCase(exportJobs, albumGateway, jobQueue),
@@ -25,14 +31,9 @@ export function buildExportPrintModule(
     runExport: new RunExportUseCase(
       exportJobs,
       albumGateway,
-      new PdfAlbumRenderer(
-        new StoredPhotoResolver(
-          photos,
-          // After retention, an original may live only on long-term storage.
-          permanentStorage ? new TieredPhotoByteSource(byteSource, permanentStorage) : byteSource,
-        ),
-      ),
+      new PdfAlbumRenderer(originals),
       exportStorage,
+      new JpegAlbumRenderer(originals),
     ),
   };
 }

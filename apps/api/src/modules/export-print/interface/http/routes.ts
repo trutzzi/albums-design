@@ -12,7 +12,10 @@ import type { DeleteExportUseCase } from "../../application/use-cases/delete-exp
 
 const albumParams = z.object({ albumId: z.string().uuid() });
 const jobParams = z.object({ exportJobId: z.string().uuid() });
-const requestSchema = z.object({ printProfileId: z.string().optional() });
+const requestSchema = z.object({
+  printProfileId: z.string().optional(),
+  format: z.enum(["PDF", "JPG_ZIP"]).optional(),
+});
 
 const DOWNLOAD_TTL_SECONDS = 15 * 60;
 
@@ -32,6 +35,7 @@ export function registerExportRoutes(app: FastifyInstance, deps: ExportDependenc
     const result = await deps.requestExport.execute({
       albumId,
       ...(body.printProfileId ? { printProfileId: body.printProfileId } : {}),
+      ...(body.format ? { format: body.format } : {}),
     });
     if (result.isFailure) return sendApplicationError(reply, result.getError());
     return reply.code(202).send(toDto(result.getValue()));
@@ -67,6 +71,7 @@ function toDto(job: ExportJob) {
     id: job.id.toString(),
     albumId: job.albumId.toString(),
     printProfileId: job.printProfileId,
+    format: job.format,
     status: job.status,
     byteSize: job.byteSize ?? null,
     pageCount: job.pageCount ?? null,
