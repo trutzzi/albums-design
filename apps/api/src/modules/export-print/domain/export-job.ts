@@ -119,8 +119,14 @@ export class ExportJob extends AggregateRoot<ExportJobProps> {
     this.props.completedAt = new Date();
   }
 
+  /** A failed export has no file: anything recorded for one on the way (then removed) goes too. */
   markFailed(reason: string): void {
     this.props.status = "FAILED";
+    this.props.storageKey = undefined;
+    this.props.byteSize = undefined;
+    this.props.pageCount = undefined;
+    this.props.pageWidthMm = undefined;
+    this.props.pageHeightMm = undefined;
     this.props.failureReason = reason;
     this.props.completedAt = new Date();
   }

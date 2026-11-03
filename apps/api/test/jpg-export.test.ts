@@ -15,6 +15,8 @@ import { ExportJob } from "../src/modules/export-print/domain/export-job";
 import { RunExportUseCase, downloadName } from "../src/modules/export-print/application/use-cases/run-export.use-case";
 import type { RenderableAlbum } from "../src/modules/export-print/application/ports/album-pdf-renderer";
 import { InMemoryExportJobRepository, InMemoryObjectStorage } from "../src/dev/in-memory-adapters";
+import { RecordingLogger } from "./support/recording-logger";
+import { silentLogger } from "../src/shared-kernel/logger";
 
 const PROFILE = findPrintProfile("lab-standard-300")!;
 const FULL = { x: 0, y: 0, width: 1, height: 1 };
@@ -171,6 +173,7 @@ describe("the JPG export", () => {
       new PdfAlbumRenderer(photos),
       storage,
       new JpegAlbumRenderer(photos),
+      silentLogger,
     );
 
     const jpg = ExportJob.request({
@@ -203,12 +206,14 @@ describe("the JPG export", () => {
     };
     const jobs = new InMemoryExportJobRepository();
     const storage = new InMemoryObjectStorage();
+    const logger = new RecordingLogger();
     const run = new RunExportUseCase(
       jobs,
       { load: async () => album, markExported: async () => {} },
       new PdfAlbumRenderer(broken),
       storage,
       new JpegAlbumRenderer(broken),
+      logger,
     );
     const job = ExportJob.request({
       albumId: UniqueEntityId.create(album.id),
@@ -220,6 +225,54 @@ describe("the JPG export", () => {
     assert.equal(done.status, "FAILED");
     assert.equal(done.failureReason, "storage unreachable");
     assert.equal(done.storageKey, undefined);
+    const logged = logger.entries.find((entry) => entry.level === "error");
+    assert.equal(logged?.message, "album export failed");
+    assert.equal(logged?.context?.["exportJobId"], job.id.toString());
+    assert.equal(logged?.context?.["format"], "JPG_ZIP");
+  });
+
+  it("removes a stored file whose job could not be saved, and keeps a finished export when only the album's status fails", async () => {
+    const { photos, album } = await world();
+    const jobs = new InMemoryExportJobRepository();
+    const storage = new InMemoryObjectStorage();
+    const logger = new RecordingLogger();
+    let refuseSave = false;
+    const save = jobs.save.bind(jobs);
+    jobs.save = async (job) => {
+      if (refuseSave && job.status === "READY") throw new Error("database down");
+      await save(job);
+    };
+    let markExportedFails = false;
+    const run = new RunExportUseCase(
+      jobs,
+      {
+        load: async () => album,
+        markExported: async () => {
+          if (markExportedFails) throw new Error("album table locked");
+        },
+      },
+      new PdfAlbumRenderer(photos),
+      storage,
+      new JpegAlbumRenderer(photos),
+      logger,
+    );
+
+    refuseSave = true;
+    const lost = ExportJob.request({ albumId: UniqueEntityId.create(album.id), printProfileId: PROFILE.id });
+    await jobs.save(lost);
+    const failed = (await run.execute(lost.id.toString())).getValue();
+    assert.equal(failed.status, "FAILED");
+    await assert.rejects(storage.read(`exports/${album.id}/${lost.id.toString()}.pdf`));
+    // Nothing on the failed job still points at the removed file.
+    assert.deepEqual([failed.storageKey, failed.byteSize, failed.pageCount], [undefined, undefined, undefined]);
+
+    refuseSave = false;
+    markExportedFails = true;
+    const kept = ExportJob.request({ albumId: UniqueEntityId.create(album.id), printProfileId: PROFILE.id });
+    await jobs.save(kept);
+    const ready = (await run.execute(kept.id.toString())).getValue();
+    assert.equal(ready.status, "READY");
+    assert.ok(logger.entries.some((entry) => entry.message === "album not marked as exported"));
   });
 
   it("ends with the file system's error, instead of hanging or crashing, when the ZIP cannot be written", async () => {
