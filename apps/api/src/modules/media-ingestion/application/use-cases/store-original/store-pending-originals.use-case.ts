@@ -9,6 +9,8 @@ export interface StorePendingSummary {
   failed: number;
   /** True when the time budget ran out before every waiting photo was tried. */
   stoppedEarly: boolean;
+  /** True when another sweep was already running, so this one did nothing. */
+  alreadyRunning?: boolean;
 }
 
 /**
@@ -29,7 +31,25 @@ export class StorePendingOriginalsUseCase {
     private readonly logger: Logger = consoleLogger,
   ) {}
 
+  private running = false;
+
+  /**
+   * One sweep at a time. The scheduled run and a backfill used to start together and
+   * upload the very same photos side by side; DigiStorage dropped one of each pair.
+   */
   async execute(options: { budgetMs?: number; batchSize?: number } = {}): Promise<StorePendingSummary> {
+    if (this.running) {
+      return { stored: 0, alreadyStored: 0, skipped: 0, failed: 0, stoppedEarly: false, alreadyRunning: true };
+    }
+    this.running = true;
+    try {
+      return await this.sweep(options);
+    } finally {
+      this.running = false;
+    }
+  }
+
+  private async sweep(options: { budgetMs?: number; batchSize?: number }): Promise<StorePendingSummary> {
     const budgetMs = options.budgetMs ?? 4 * 60 * 1000;
     const batchSize = options.batchSize ?? 25;
     const deadline = this.now() + budgetMs;

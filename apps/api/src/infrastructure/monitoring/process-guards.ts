@@ -13,7 +13,23 @@ export function installProcessGuards(logger: Logger): void {
     logger.error("unhandled promise rejection", { err: reason });
   });
   process.on("uncaughtException", (error, origin) => {
+    if (isClosedConnectionWrite(error)) {
+      logger.error("write to a connection the other side had closed; carrying on", { err: error, origin });
+      return;
+    }
     logger.error("uncaught exception; exiting", { err: error, origin });
     void flushErrorReports().finally(() => process.exit(1));
   });
+}
+
+/**
+ * A write to a socket the far end already closed (DigiStorage dropping an upload, a
+ * client leaving mid-download) whose request had already failed or finished, so no one
+ * was left listening. Nothing in this process depends on that socket any more, so it is
+ * not the unknown state an uncaught exception otherwise means. Exiting for it put the
+ * worker in a crash loop that stopped every upload reaching long-term storage.
+ */
+export function isClosedConnectionWrite(error: unknown): boolean {
+  const { code, syscall } = (error ?? {}) as { code?: unknown; syscall?: unknown };
+  return syscall === "write" && (code === "EPIPE" || code === "ECONNRESET");
 }

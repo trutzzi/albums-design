@@ -351,3 +351,48 @@ describe("the LONG_TERM_ORIGINALS setting", () => {
     assert.throws(() => loadEnv({ ...base, LONG_TERM_ORIGINALS: "some" }));
   });
 });
+
+describe("long-term copies never overlap", () => {
+  it("uploads a photo once when the fast path and the sweep reach it together", async () => {
+    const w = await world();
+    const { photo } = await w.addPhoto("together.jpg");
+    const upload = w.permanent.upload.bind(w.permanent);
+    w.permanent.upload = async (key, body, options) => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      return upload(key, body, options);
+    };
+    const [first, second] = await Promise.all([
+      w.store.execute({ photoId: photo.id.toString() }),
+      w.store.execute({ photoId: photo.id.toString() }),
+    ]);
+    assert.equal(first.getValue(), "stored");
+    assert.equal(second.getValue(), "stored");
+    assert.equal(w.permanent.uploads, 1);
+    // Done with: the next request copies (or finds) it afresh.
+    assert.equal((await w.store.execute({ photoId: photo.id.toString() })).getValue(), "already-stored");
+  });
+
+  it("runs one sweep at a time: a second one started meanwhile does nothing", async () => {
+    const w = await world();
+    for (let i = 0; i < 3; i++) await w.addPhoto(`sweep-${i}.jpg`);
+    const upload = w.permanent.upload.bind(w.permanent);
+    w.permanent.upload = async (key, body, options) => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return upload(key, body, options);
+    };
+    const sweep = new StorePendingOriginalsUseCase(w.photos, w.store, Date.now, silentLogger);
+    const [first, second] = await Promise.all([sweep.execute(), sweep.execute()]);
+    assert.equal(first.stored, 3);
+    assert.deepEqual(second, {
+      stored: 0,
+      alreadyStored: 0,
+      skipped: 0,
+      failed: 0,
+      stoppedEarly: false,
+      alreadyRunning: true,
+    });
+    assert.equal(w.permanent.uploads, 3);
+    // Finished, so the next scheduled run goes ahead.
+    assert.equal((await sweep.execute()).alreadyRunning, undefined);
+  });
+});
