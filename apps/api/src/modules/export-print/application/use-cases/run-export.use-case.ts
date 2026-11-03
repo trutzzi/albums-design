@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import { NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
+import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
 import type { ExportJob } from "../../domain/export-job";
 import type { ExportJobRepository } from "../../domain/export-job-repository";
 import { findPrintProfile } from "../../domain/print-profile";
@@ -17,6 +18,7 @@ export class RunExportUseCase {
     private readonly renderer: AlbumPdfRenderer,
     private readonly storage: ExportStorage,
     private readonly jpegRenderer: AlbumJpegRenderer,
+    private readonly logger: Logger = consoleLogger,
   ) {}
 
   async execute(exportJobId: string): Promise<Result<ExportJob, ApplicationError>> {
@@ -32,25 +34,44 @@ export class RunExportUseCase {
     job.markRendering();
     await this.jobs.save(job);
 
+    const context = { exportJobId, albumId: album.id, format: job.format, printProfileId: job.printProfileId };
+    let uploadedKey: string | undefined;
     try {
       const rendered =
         job.format === "JPG_ZIP"
           ? await this.renderJpegs(album, profile, job.id.toString())
           : await this.renderPdf(album, profile, job.id.toString());
+      uploadedKey = rendered.key;
 
       job.markReady({
         storageKey: rendered.key,
         byteSize: rendered.byteSize,
         pageCount: rendered.pageCount,
-        // The album can change size later; this PDF stays the size it was made at.
+        // The album can change size later; this file stays the size it was made at.
         pageWidthMm: album.format.pageWidthMm,
         pageHeightMm: album.format.pageHeightMm,
       });
       await this.jobs.save(job);
-      await this.albums.markExported(album.id);
     } catch (error) {
+      // A photographer waiting on a file for their lab: worth an error, not just a status.
+      this.logger.error("album export failed", { ...context, err: error });
+      // A file stored for a job that never became READY would be unreachable forever.
+      if (uploadedKey) {
+        await this.storage.delete(uploadedKey).catch((cleanup: unknown) => {
+          this.logger.error("failed export's file not removed", { ...context, storageKey: uploadedKey, err: cleanup });
+        });
+      }
       job.markFailed(error instanceof Error ? error.message : "Rendering failed.");
       await this.jobs.save(job);
+      return Result.success(job);
+    }
+
+    // The album's status is a side effect: if it cannot be updated, the finished file
+    // is still the photographer's to download, so the job stays READY.
+    try {
+      await this.albums.markExported(album.id);
+    } catch (error) {
+      this.logger.error("album not marked as exported", { ...context, err: error });
     }
 
     return Result.success(job);

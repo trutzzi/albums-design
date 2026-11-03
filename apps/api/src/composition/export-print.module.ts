@@ -14,7 +14,7 @@ import type { PhotoIntelligenceModule } from "./photo-intelligence.module";
 
 /** Export & print: queued PDF rendering of an approved album, and the stored files. */
 export function buildExportPrintModule(
-  { jobQueue, permanentStorage, byteSource, exportStorage }: ModuleInfrastructure,
+  { jobQueue, permanentStorage, byteSource, exportStorage, logger }: ModuleInfrastructure,
   { exportJobs, albums, photos }: Repositories,
   { planFeatures, photoFocus }: Pick<IdentityModule, "planFeatures"> & Pick<PhotoIntelligenceModule, "photoFocus">,
 ) {
@@ -34,6 +34,7 @@ export function buildExportPrintModule(
       new PdfAlbumRenderer(originals),
       exportStorage,
       new JpegAlbumRenderer(originals),
+      logger.child({ component: "export" }),
     ),
   };
 }
