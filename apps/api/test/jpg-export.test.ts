@@ -261,6 +261,8 @@ describe("the JPG export", () => {
     const failed = (await run.execute(lost.id.toString())).getValue();
     assert.equal(failed.status, "FAILED");
     await assert.rejects(storage.read(`exports/${album.id}/${lost.id.toString()}.pdf`));
+    // Nothing on the failed job still points at the removed file.
+    assert.deepEqual([failed.storageKey, failed.byteSize, failed.pageCount], [undefined, undefined, undefined]);
 
     refuseSave = false;
     markExportedFails = true;
