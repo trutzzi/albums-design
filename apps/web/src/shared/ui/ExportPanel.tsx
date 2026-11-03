@@ -6,7 +6,8 @@ import { formatFileSize } from "@/shared/lib/file-size";
 import { localeOf } from "@/shared/i18n/locale";
 
 /**
- * Print-ready PDF exports: start one, follow it while it renders, download or delete it.
+ * Print exports, as a PDF or as one JPG per spread in a ZIP (for labs that take only
+ * images): start one, follow it while it renders, download or delete it.
  * Shared by the editor's Export tab and the shoot's Delivery step (`title` names the album there).
  */
 export function ExportPanel({
@@ -50,6 +51,7 @@ export function ExportPanel({
             type="button"
             className="button"
             disabled={startExport.isPending}
+            {...(format === "JPG_ZIP" ? { "aria-describedby": `export-jpg-hint-${albumId}` } : {})}
             onClick={() => startExport.mutate(format)}
           >
             {startExport.isPending && startExport.variables === format
@@ -58,7 +60,9 @@ export function ExportPanel({
           </button>
         ))}
       </div>
-      <p className="muted export-panel__hint">{t("album.export.jpgHint")}</p>
+      <p id={`export-jpg-hint-${albumId}`} className="muted export-panel__hint">
+        {t("album.export.jpgHint")}
+      </p>
       {startExport.isError && <p className="error">{(startExport.error as Error).message}</p>}
       {removeExport.isError && <p className="error">{(removeExport.error as Error).message}</p>}
       <ul className="export-list">

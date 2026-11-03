@@ -33,18 +33,29 @@ export class JpegAlbumRenderer implements AlbumJpegRenderer {
     archive.pipe(output);
 
     const digits = Math.max(2, String(pages.length).length);
-    for (const page of pages) {
-      const jpeg = await this.paint(page, profile.dpi);
-      const name =
-        page.name === "cover" ? `${"0".repeat(digits)}_cover.jpg` : `${String(page.name).padStart(digits, "0")}.jpg`;
-      archive.append(jpeg, { name });
-      // Wait for the archive to take this page before rendering the next one.
-      await once(archive, "entry");
+    try {
+      for (const page of pages) {
+        const jpeg = await this.paint(page, profile.dpi);
+        const name =
+          page.name === "cover" ? `${"0".repeat(digits)}_cover.jpg` : `${String(page.name).padStart(digits, "0")}.jpg`;
+        archive.append(jpeg, { name });
+        // Wait for the archive to take this page before rendering the next one.
+        await once(archive, "entry");
+        if (failure) throw failure;
+      }
+      await archive.finalize();
+      if (!output.writableFinished) await once(output, "finish");
       if (failure) throw failure;
+    } catch (error) {
+      // A page that failed must not leave the archive and its file open: the worker
+      // runs export after export, and every leaked descriptor stays until it restarts.
+      archive.unpipe(output);
+      archive.abort();
+      // A write already on its way may still land after the close; it no longer matters.
+      output.on("error", () => {});
+      output.destroy();
+      throw error;
     }
-    await archive.finalize();
-    if (!output.writableFinished) await once(output, "finish");
-    if (failure) throw failure;
     return { fileCount: pages.length };
   }
 

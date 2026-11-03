@@ -194,6 +194,34 @@ describe("the JPG export", () => {
     assert.match(pdfDone.storageKey ?? "", /\.pdf$/);
   });
 
+  it("fails the export cleanly when a page cannot be rendered, leaving nothing half-written", async () => {
+    const { album } = await world();
+    const broken = {
+      resolve: async (): Promise<Uint8Array | undefined> => {
+        throw new Error("storage unreachable");
+      },
+    };
+    const jobs = new InMemoryExportJobRepository();
+    const storage = new InMemoryObjectStorage();
+    const run = new RunExportUseCase(
+      jobs,
+      { load: async () => album, markExported: async () => {} },
+      new PdfAlbumRenderer(broken),
+      storage,
+      new JpegAlbumRenderer(broken),
+    );
+    const job = ExportJob.request({
+      albumId: UniqueEntityId.create(album.id),
+      printProfileId: PROFILE.id,
+      format: "JPG_ZIP",
+    });
+    await jobs.save(job);
+    const done = (await run.execute(job.id.toString())).getValue();
+    assert.equal(done.status, "FAILED");
+    assert.equal(done.failureReason, "storage unreachable");
+    assert.equal(done.storageKey, undefined);
+  });
+
   it("names the download after the album, in letters any lab's system accepts", () => {
     assert.equal(downloadName("Luiza & Adrian — Album"), "luiza-adrian-album");
     assert.equal(downloadName("Nuntă Ștefan și Ioana"), "nunta-stefan-si-ioana");

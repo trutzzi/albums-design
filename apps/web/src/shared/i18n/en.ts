@@ -1148,7 +1148,7 @@ export const en: Record<string, string> = {
   "album.export.start.PDF": "Export print PDF",
   "album.export.start.JPG_ZIP": "Export JPG files (ZIP)",
   "album.export.jpgHint":
-    "JPG files: one full-quality image per spread and one for the cover, at print resolution with bleed — for labs that take images instead of a PDF.",
+    "JPG files: one full-quality image per spread, plus the cover, for labs that take images instead of a PDF.",
   "album.export.format.PDF": "PDF",
   "album.export.format.JPG_ZIP": "JPGs (ZIP)",
   "album.export.download": "Download · {size}",

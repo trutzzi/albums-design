@@ -1163,7 +1163,7 @@ export const ro: Record<string, string> = {
   "album.export.start.PDF": "Exportă PDF de tipar",
   "album.export.start.JPG_ZIP": "Exportă fișiere JPG (ZIP)",
   "album.export.jpgHint":
-    "Fișiere JPG: câte o imagine la calitate maximă pentru fiecare pagină dublă și una pentru copertă, la rezoluția de tipar, cu bleed — pentru laboratoarele care primesc imagini în loc de PDF.",
+    "Fișiere JPG: câte o imagine la calitate maximă pe pagină dublă, plus coperta, pentru laboratoarele care cer imagini, nu PDF.",
   "album.export.format.PDF": "PDF",
   "album.export.format.JPG_ZIP": "JPG-uri (ZIP)",
   "album.export.download": "Descarcă · {size}",
