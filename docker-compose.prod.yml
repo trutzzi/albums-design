@@ -22,22 +22,35 @@
 #     internet. Caddy is the only process this box exposes publicly.
 name: albumflow
 
+# Docker keeps each container's log forever by default; with no cap they slowly fill the
+# disk. Three files of 20 MB per container keep the recent history `docker compose logs`
+# shows, and no more.
+x-logging: &capped-logs
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
 services:
   postgres:
+    logging: *capped-logs
     ports: !reset []
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
   redis:
+    logging: *capped-logs
     ports: !reset []
 
   minio:
+    logging: *capped-logs
     ports: !reset []
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
 
   minio-init:
+    logging: *capped-logs
     # Private: every read the app makes is a presigned URL, so anonymous access only
     # ever served people who were not meant to have the photos. Runs on every deploy,
     # so it also closes a bucket an older release left public.
@@ -49,6 +62,7 @@ services:
       "
 
   api:
+    logging: *capped-logs
     ports: !reset []
     environment:
       DATABASE_URL: postgres://albumflow:${POSTGRES_PASSWORD}@postgres:5432/albumflow
@@ -72,6 +86,7 @@ services:
     restart: unless-stopped
 
   worker:
+    logging: *capped-logs
     environment:
       DATABASE_URL: postgres://albumflow:${POSTGRES_PASSWORD}@postgres:5432/albumflow
       REDIS_URL: redis://redis:6379
@@ -97,6 +112,7 @@ services:
   # docs/backups.md for restoring. Same image as the database, so pg_dump always
   # matches the server version.
   db-backup:
+    logging: *capped-logs
     image: postgres:16-alpine
     entrypoint: ["/bin/sh", "/usr/local/bin/db-backup.sh"]
     environment:
@@ -115,6 +131,7 @@ services:
   # starts the `web` service; the deploy job never lists it.
 
   caddy:
+    logging: *capped-logs
     image: caddy:2.11-alpine
     restart: unless-stopped
     ports:
