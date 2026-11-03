@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import { NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
-import { consoleLogger, type Logger } from "#src/shared-kernel/logger";
+import type { Logger } from "#src/shared-kernel/logger";
 import type { ExportJob } from "../../domain/export-job";
 import type { ExportJobRepository } from "../../domain/export-job-repository";
 import { findPrintProfile } from "../../domain/print-profile";
@@ -18,7 +18,8 @@ export class RunExportUseCase {
     private readonly renderer: AlbumPdfRenderer,
     private readonly storage: ExportStorage,
     private readonly jpegRenderer: AlbumJpegRenderer,
-    private readonly logger: Logger = consoleLogger,
+    /** Required: a failed export must reach the admin Errors tab and Sentry, not just a console. */
+    private readonly logger: Logger,
   ) {}
 
   async execute(exportJobId: string): Promise<Result<ExportJob, ApplicationError>> {

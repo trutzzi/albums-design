@@ -16,6 +16,7 @@ import { RunExportUseCase, downloadName } from "../src/modules/export-print/appl
 import type { RenderableAlbum } from "../src/modules/export-print/application/ports/album-pdf-renderer";
 import { InMemoryExportJobRepository, InMemoryObjectStorage } from "../src/dev/in-memory-adapters";
 import { RecordingLogger } from "./support/recording-logger";
+import { silentLogger } from "../src/shared-kernel/logger";
 
 const PROFILE = findPrintProfile("lab-standard-300")!;
 const FULL = { x: 0, y: 0, width: 1, height: 1 };
@@ -172,6 +173,7 @@ describe("the JPG export", () => {
       new PdfAlbumRenderer(photos),
       storage,
       new JpegAlbumRenderer(photos),
+      silentLogger,
     );
 
     const jpg = ExportJob.request({

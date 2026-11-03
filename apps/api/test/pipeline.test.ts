@@ -131,6 +131,7 @@ function buildWorld() {
       new PdfAlbumRenderer(new StoredPhotoResolver(photos, storage)),
       storage,
       new JpegAlbumRenderer(new StoredPhotoResolver(photos, storage)),
+      silentLogger,
     ),
   };
 }
