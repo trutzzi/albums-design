@@ -2,6 +2,7 @@ import { doublePrecision, index, integer, pgEnum, pgTable, text, timestamp, uuid
 import { albums } from "../../../album-composition/infrastructure/persistence/schema";
 
 export const exportStatusEnum = pgEnum("export_status", ["QUEUED", "RENDERING", "READY", "FAILED"]);
+export const exportFormatEnum = pgEnum("export_format", ["PDF", "JPG_ZIP"]);
 
 export const exportJobs = pgTable(
   "export_jobs",
@@ -11,6 +12,8 @@ export const exportJobs = pgTable(
       .notNull()
       .references(() => albums.id),
     printProfileId: varchar("print_profile_id", { length: 64 }).notNull(),
+    // Every export before this was a PDF.
+    format: exportFormatEnum("format").notNull().default("PDF"),
     status: exportStatusEnum("status").notNull(),
     storageKey: varchar("storage_key", { length: 512 }),
     byteSize: integer("byte_size"),

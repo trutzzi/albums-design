@@ -1,7 +1,7 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import { NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
 import { QUEUES, type JobQueue } from "#src/shared-kernel/job-queue";
-import { ExportJob } from "../../domain/export-job";
+import { ExportJob, type ExportFormat } from "../../domain/export-job";
 import type { ExportJobRepository } from "../../domain/export-job-repository";
 import { DEFAULT_PRINT_PROFILE_ID, findPrintProfile } from "../../domain/print-profile";
 import type { RenderableAlbum } from "../ports/album-pdf-renderer";
@@ -14,6 +14,7 @@ export interface ExportAlbumGateway {
 export interface RequestExportCommand {
   albumId: string;
   printProfileId?: string;
+  format?: ExportFormat;
 }
 
 export class RequestExportUseCase {
@@ -40,6 +41,7 @@ export class RequestExportUseCase {
     const job = ExportJob.request({
       albumId: UniqueEntityId.create(command.albumId),
       printProfileId: profileId,
+      format: command.format ?? "PDF",
     });
     await this.jobs.save(job);
 

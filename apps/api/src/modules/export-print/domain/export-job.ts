@@ -1,10 +1,14 @@
 import { AggregateRoot, UniqueEntityId } from "@albumflow/domain-kernel";
 
 export type ExportStatus = "QUEUED" | "RENDERING" | "READY" | "FAILED";
+/** A print PDF, or one JPG per spread in a ZIP for labs that only take images. */
+export type ExportFormat = "PDF" | "JPG_ZIP";
 
 export interface ExportJobProps {
   albumId: UniqueEntityId;
   printProfileId: string;
+  /** Absent on exports made before formats existed: those are PDFs. */
+  format?: ExportFormat | undefined;
   status: ExportStatus;
   storageKey: string | undefined;
   byteSize: number | undefined;
@@ -22,11 +26,15 @@ export class ExportJob extends AggregateRoot<ExportJobProps> {
     super(props, id);
   }
 
-  static request(params: { albumId: UniqueEntityId; printProfileId: string }, id?: UniqueEntityId): ExportJob {
+  static request(
+    params: { albumId: UniqueEntityId; printProfileId: string; format?: ExportFormat | undefined },
+    id?: UniqueEntityId,
+  ): ExportJob {
     return new ExportJob(
       {
         albumId: params.albumId,
         printProfileId: params.printProfileId,
+        format: params.format ?? "PDF",
         status: "QUEUED",
         storageKey: undefined,
         byteSize: undefined,
@@ -49,6 +57,10 @@ export class ExportJob extends AggregateRoot<ExportJobProps> {
 
   get printProfileId(): string {
     return this.props.printProfileId;
+  }
+
+  get format(): ExportFormat {
+    return this.props.format ?? "PDF";
   }
 
   get status(): ExportStatus {

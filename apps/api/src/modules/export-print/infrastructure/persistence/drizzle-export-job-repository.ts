@@ -13,6 +13,7 @@ export class DrizzleExportJobRepository implements ExportJobRepository {
       id: job.id.toString(),
       albumId: job.albumId.toString(),
       printProfileId: job.printProfileId,
+      format: job.format,
       status: job.status,
       storageKey: job.storageKey ?? null,
       byteSize: job.byteSize ?? null,
@@ -73,6 +74,7 @@ function toDomain(row: typeof exportJobs.$inferSelect): ExportJob {
     {
       albumId: UniqueEntityId.create(row.albumId),
       printProfileId: row.printProfileId,
+      format: row.format,
       status: row.status,
       storageKey: row.storageKey ?? undefined,
       byteSize: row.byteSize ?? undefined,

@@ -1,3 +1,4 @@
+import { readFile as readFileFromDisk } from "node:fs/promises";
 import type {
   ObjectHead,
   ObjectStorageWithBody,
@@ -47,6 +48,10 @@ export class LocalBlobStore implements ObjectStorageWithBody, PhotoByteSource, E
 
   async put(key: string, bytes: Uint8Array, contentType: string): Promise<void> {
     this.blobs.set(key, { bytes, contentType });
+  }
+
+  async putFile(key: string, path: string, contentType: string): Promise<void> {
+    await this.put(key, new Uint8Array(await readFileFromDisk(path)), contentType);
   }
 
   async delete(key: string): Promise<void> {
