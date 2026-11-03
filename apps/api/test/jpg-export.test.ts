@@ -222,6 +222,12 @@ describe("the JPG export", () => {
     assert.equal(done.storageKey, undefined);
   });
 
+  it("ends with the file system's error, instead of hanging or crashing, when the ZIP cannot be written", async () => {
+    const { photos, album } = await world();
+    const unwritable = join(tmpdir(), `no-such-folder-${Date.now()}`, "album.zip");
+    await assert.rejects(new JpegAlbumRenderer(photos).renderZip(album, PROFILE, unwritable), { code: "ENOENT" });
+  });
+
   it("names the download after the album, in letters any lab's system accepts", () => {
     assert.equal(downloadName("Luiza & Adrian — Album"), "luiza-adrian-album");
     assert.equal(downloadName("Nuntă Ștefan și Ioana"), "nunta-stefan-si-ioana");

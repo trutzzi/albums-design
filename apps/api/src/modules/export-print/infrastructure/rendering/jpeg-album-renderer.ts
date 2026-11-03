@@ -28,31 +28,35 @@ export class JpegAlbumRenderer implements AlbumJpegRenderer {
     const output = createWriteStream(outputPath);
     // JPGs are already compressed: storing them saves the CPU of a 1% gain.
     const archive = new ZipArchive({ store: true });
-    let failure: Error | undefined;
-    archive.on("error", (error) => (failure = error));
+    // Either stream failing (a full disk, say) ends the export at once: every wait below
+    // races this, so a job can never hang in "rendering", and both streams always have an
+    // error listener, so a write error can never take the worker down.
+    const failed = new Promise<never>((_, reject) => {
+      archive.on("error", reject);
+      output.on("error", reject);
+    });
+    failed.catch(() => {});
     archive.pipe(output);
 
     const digits = Math.max(2, String(pages.length).length);
     try {
       for (const page of pages) {
-        const jpeg = await this.paint(page, profile.dpi);
+        const jpeg = await Promise.race([this.paint(page, profile.dpi), failed]);
         const name =
           page.name === "cover" ? `${"0".repeat(digits)}_cover.jpg` : `${String(page.name).padStart(digits, "0")}.jpg`;
-        archive.append(jpeg, { name });
         // Wait for the archive to take this page before rendering the next one.
-        await once(archive, "entry");
-        if (failure) throw failure;
+        const taken = once(archive, "entry");
+        archive.append(jpeg, { name });
+        await Promise.race([taken, failed]);
       }
-      await archive.finalize();
-      if (!output.writableFinished) await once(output, "finish");
-      if (failure) throw failure;
+      const finished = output.writableFinished ? Promise.resolve() : once(output, "finish");
+      await Promise.race([archive.finalize(), failed]);
+      await Promise.race([finished, failed]);
     } catch (error) {
-      // A page that failed must not leave the archive and its file open: the worker
-      // runs export after export, and every leaked descriptor stays until it restarts.
+      // A failed export must not leave the archive and its file open: the worker runs
+      // export after export, and every leaked descriptor stays until it restarts.
       archive.unpipe(output);
       archive.abort();
-      // A write already on its way may still land after the close; it no longer matters.
-      output.on("error", () => {});
       output.destroy();
       throw error;
     }
