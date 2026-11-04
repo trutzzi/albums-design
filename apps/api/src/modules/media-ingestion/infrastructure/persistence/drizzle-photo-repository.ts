@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, lte, ne, sql } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "#src/db/client";
 import type { PhotoRepository, ShootPhotoCounts } from "../../domain/photo-repository";
@@ -84,6 +84,27 @@ export class DrizzlePhotoRepository implements PhotoRepository {
 
   async markStagedOriginalPurged(id: UniqueEntityId, at: Date): Promise<void> {
     await this.db.update(photos).set({ stagedOriginalPurgedAt: at }).where(eq(photos.id, id.toString()));
+  }
+
+  async markFullResMissing(id: UniqueEntityId): Promise<void> {
+    await this.db.update(photos).set({ fullResStoredAt: null }).where(eq(photos.id, id.toString()));
+  }
+
+  async findStagedOriginalsStoredBefore(storedBefore: Date, limit: number): Promise<Photo[]> {
+    const rows = await this.db
+      .select()
+      .from(photos)
+      .where(
+        and(
+          eq(photos.status, "ANALYSED"),
+          eq(photos.hasDerivatives, true),
+          lte(photos.fullResStoredAt, storedBefore),
+          isNull(photos.stagedOriginalPurgedAt),
+        ),
+      )
+      .orderBy(asc(photos.fullResStoredAt))
+      .limit(limit);
+    return rows.map((row) => this.toDomain(row));
   }
 
   async findAwaitingLongTermStorage(limit: number): Promise<Photo[]> {

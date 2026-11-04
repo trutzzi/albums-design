@@ -7,6 +7,7 @@ import { ListProjectPhotosUseCase } from "../modules/media-ingestion/application
 import { DeleteProjectUseCase } from "../modules/media-ingestion/application/use-cases/delete-project/delete-project.use-case";
 import { GenerateDerivativesUseCase } from "../modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
 import { StoreOriginalUseCase } from "../modules/media-ingestion/application/use-cases/store-original/store-original.use-case";
+import { ReleaseStagedOriginalsUseCase } from "../modules/media-ingestion/application/use-cases/release-staged-originals/release-staged-originals.use-case";
 import { StorePendingOriginalsUseCase } from "../modules/media-ingestion/application/use-cases/store-original/store-pending-originals.use-case";
 import { PromoteSelectedPhotosUseCase } from "../modules/media-ingestion/application/use-cases/promote-selected/promote-selected.use-case";
 import { PurgeExpiredOriginalsUseCase } from "../modules/media-ingestion/application/use-cases/purge-expired-originals/purge-expired-originals.use-case";
@@ -70,6 +71,12 @@ export function buildMediaIngestionModule(
     storeEverything && storeOriginal
       ? new StorePendingOriginalsUseCase(photos, storeOriginal, Date.now, storageLog)
       : undefined;
+  // With every original kept long-term, the server copy is only a staging step: it is deleted
+  // a few days after the original is confirmed there, not after the album is exported.
+  const releaseStaged =
+    storeEverything && permanentStorage
+      ? new ReleaseStagedOriginalsUseCase(photos, storage, permanentStorage, env.STAGED_ORIGINAL_DAYS, storageLog)
+      : undefined;
   const purgeExpiredOriginals = promoteSelected
     ? new PurgeExpiredOriginalsUseCase(
         projects,
@@ -119,6 +126,7 @@ export function buildMediaIngestionModule(
     promoteSelected,
     storeOriginal,
     storePending,
+    releaseStaged,
     purgeExpiredOriginals,
   };
 }

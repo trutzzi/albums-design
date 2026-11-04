@@ -29,6 +29,7 @@
         "LONG_TERM_ORIGINALS",
         "WORKER_CONCURRENCY",
         "ORIGINAL_RETENTION_DAYS",
+        "STAGED_ORIGINAL_DAYS",
         "PREVIEW_LONG_EDGE",
         "VITE_*",
         "TRUST_PROXY",
