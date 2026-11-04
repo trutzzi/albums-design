@@ -153,6 +153,23 @@ export class InMemoryPhotoRepository implements PhotoRepository {
     }
     return covers;
   }
+  async markFullResMissing(id: UniqueEntityId) {
+    await this.mutate(id, (photo) => photo.markFullResMissing());
+  }
+  async findStagedOriginalsStoredBefore(storedBefore: Date, limit: number) {
+    return [...this.items.values()]
+      .filter(
+        (photo) =>
+          photo.status === "ANALYSED" &&
+          photo.hasDerivatives &&
+          photo.fullResStoredAt !== undefined &&
+          photo.fullResStoredAt <= storedBefore &&
+          !photo.stagedOriginalPurgedAt,
+      )
+      .sort((a, b) => a.fullResStoredAt!.getTime() - b.fullResStoredAt!.getTime())
+      .slice(0, limit)
+      .map(clonePhoto);
+  }
   async findAwaitingLongTermStorage(limit: number) {
     return [...this.items.values()]
       .filter((photo) => photo.status !== "PENDING_UPLOAD" && !photo.fullResStoredAt && !photo.stagedOriginalPurgedAt)

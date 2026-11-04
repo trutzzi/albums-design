@@ -142,6 +142,12 @@ const envSchema = z.object({
   BACKUP_KEEP: z.coerce.number().int().min(1).default(30),
   /** Days after an album's latest export completes before staged full-res originals are deleted. */
   ORIGINAL_RETENTION_DAYS: z.coerce.number().int().min(1).default(30),
+  /**
+   * With every original on long-term storage (LONG_TERM_ORIGINALS=all): days after a photo's
+   * original is confirmed there before its server copy is deleted. The server keeps only the
+   * display copies; exports and downloads read the original from long-term storage.
+   */
+  STAGED_ORIGINAL_DAYS: z.coerce.number().int().min(0).default(2),
   /** Longest edge, in pixels, of the previews written to long-term storage. */
   PREVIEW_LONG_EDGE: z.coerce.number().int().min(800).max(4000).default(1800),
 });
@@ -164,6 +170,7 @@ const appSettingsSchema = envSchema.pick({
   TURNSTILE_SECRET_KEY: true,
   LONG_TERM_ORIGINALS: true,
   ORIGINAL_RETENTION_DAYS: true,
+  STAGED_ORIGINAL_DAYS: true,
   PREVIEW_LONG_EDGE: true,
   VISION_PROVIDER: true,
   ANTHROPIC_API_KEY: true,

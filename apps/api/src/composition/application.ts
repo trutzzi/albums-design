@@ -57,6 +57,8 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     storeOriginal: ingestion.storeOriginal,
     /** The sweep that stores every original not yet stored. Present only with LONG_TERM_ORIGINALS=all. */
     storePending: ingestion.storePending,
+    /** Deletes server copies of originals verified long-term. Present only with LONG_TERM_ORIGINALS=all. */
+    releaseStaged: ingestion.releaseStaged,
     purgeExpiredOriginals: ingestion.purgeExpiredOriginals,
     analyses: repos.analyses,
     analyzePhoto: intelligence.analyzePhoto,

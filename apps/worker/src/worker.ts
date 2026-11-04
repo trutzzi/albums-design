@@ -155,7 +155,7 @@ function exportJobs(root: CompositionRoot): Record<string, JobHandler> {
 /** Only the jobs whose use case exists under this configuration are registered. */
 function storageJobs(root: CompositionRoot): Record<string, JobHandler> {
   const jobs: Record<string, JobHandler> = {};
-  const { storeOriginal, storePending, promoteSelected, purgeExpiredOriginals, offsiteBackups } = root;
+  const { storeOriginal, storePending, releaseStaged, promoteSelected, purgeExpiredOriginals, offsiteBackups } = root;
   if (storeOriginal) {
     // The fast path: one photo's original, queued the moment its upload was confirmed.
     jobs["store-original"] = handle<StoreOriginalJob>(async (data) => ({
@@ -170,6 +170,10 @@ function storageJobs(root: CompositionRoot): Record<string, JobHandler> {
       // The next run continues where a time-limited one stopped.
       return { ...summary };
     });
+  }
+  if (releaseStaged) {
+    // Deletes server copies of originals verified on long-term storage, so the disk holds only display copies.
+    jobs["release-staged"] = handle(async () => ({ ...(await releaseStaged.execute()) }));
   }
   if (promoteSelected) {
     jobs["promote-picked"] = handle<PromotePickedJob>(async (data) => ({
@@ -270,6 +274,18 @@ async function main() {
       { name: "store-pending", data: {} },
     );
     await storageQueue.add("store-pending", {}, { removeOnComplete: 50, removeOnFail: 50 });
+  }
+
+  // Every original kept long-term: each hour, and once at startup, delete the server copies of
+  // originals confirmed there more than STAGED_ORIGINAL_DAYS ago. Without this the server kept
+  // every original until 30 days after an export, and filled its disk.
+  if (storageQueue && root.releaseStaged) {
+    await storageQueue.upsertJobScheduler(
+      "release-staged-originals",
+      { pattern: "30 * * * *" },
+      { name: "release-staged", data: {} },
+    );
+    await storageQueue.add("release-staged", {}, { removeOnComplete: 50, removeOnFail: 50 });
   }
 
   const maintenanceWorker = serve(QUEUES.maintenance, maintenanceJobs(root), 1);

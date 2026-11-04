@@ -123,6 +123,11 @@ export class Photo extends AggregateRoot<PhotoProps> {
     this.props.fullResStoredAt = at;
   }
 
+  /** Long-term storage turned out not to hold this original after all; it must be copied again. */
+  markFullResMissing(): void {
+    this.props.fullResStoredAt = undefined;
+  }
+
   markStagedOriginalPurged(at: Date): void {
     this.props.stagedOriginalPurgedAt = at;
   }

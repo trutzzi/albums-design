@@ -41,6 +41,14 @@ export interface PhotoRepository {
   markSelected(ids: UniqueEntityId[], at: Date): Promise<void>;
   markFullResStored(id: UniqueEntityId, at: Date): Promise<void>;
   markStagedOriginalPurged(id: UniqueEntityId, at: Date): Promise<void>;
+  /** Forgets a long-term copy that is not really there, so the store sweep copies the photo again. */
+  markFullResMissing(id: UniqueEntityId): Promise<void>;
+  /**
+   * Analysed photos with display copies whose original was confirmed on long-term storage at
+   * or before `storedBefore` and is still staged, longest-stored first. These are the staged
+   * originals nothing on the server needs any more.
+   */
+  findStagedOriginalsStoredBefore(storedBefore: Date, limit: number): Promise<Photo[]>;
   /**
    * Uploaded photos whose original is not yet confirmed on long-term storage and is still
    * in staging (so it can be copied), oldest first. Photos whose upload never finished, and
