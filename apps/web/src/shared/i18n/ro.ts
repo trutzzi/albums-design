@@ -820,6 +820,9 @@ export const ro: Record<string, string> = {
   "project.upload.title": "Se încarcă fotografiile",
   "project.upload.progress": "{done} din {total} încărcate",
   "project.upload.failed": "{count} eșuate",
+  "project.upload.skipped": "{count} deja în ședință",
+  "project.upload.skippedNotice":
+    "Am sărit {count} deja existente în această ședință (același nume și aceeași mărime), ca să nu se dubleze.",
   "project.upload.keepOpen": "Ține această pagină deschisă până se termină.",
   "project.upload.cancelling": "Se oprește…",
   "project.upload.cancelledFile": "Anulată",

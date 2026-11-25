@@ -9,6 +9,8 @@ import { type ApplicationError, NotFoundError, TooManyAttemptsError } from "../s
 const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   NOT_FOUND: 404,
   CONFLICT: 409,
+  // The same file is already in the shoot; the uploader counts it as skipped, not failed.
+  ALREADY_UPLOADED: 409,
   UNAUTHORIZED: 401,
   PASSWORD_REQUIRED: 401,
   INVALID_PASSWORD: 401,

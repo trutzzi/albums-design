@@ -170,6 +170,16 @@ export class InMemoryPhotoRepository implements PhotoRepository {
       .slice(0, limit)
       .map(clonePhoto);
   }
+  async findUploadedDuplicate(projectId: UniqueEntityId, fileName: string, byteSize: number) {
+    const found = [...this.items.values()].find(
+      (photo) =>
+        photo.projectId.toString() === projectId.toString() &&
+        photo.fileName === fileName &&
+        photo.byteSize === byteSize &&
+        photo.status !== "PENDING_UPLOAD",
+    );
+    return found ? clonePhoto(found) : undefined;
+  }
   async findAwaitingLongTermStorage(limit: number) {
     return [...this.items.values()]
       .filter((photo) => photo.status !== "PENDING_UPLOAD" && !photo.fullResStoredAt && !photo.stagedOriginalPurgedAt)

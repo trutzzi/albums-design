@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { SUPPORTED_MIME_TYPES } from "@albumflow/contracts";
 import { abandonUpload, confirmUpload, putFileToStorage, requestUpload } from "@/shared/api";
+import { ApiError } from "@/shared/api/http";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { runWithLimit, sortFilesByName } from "@/features/project/lib/upload-queue";
 
@@ -14,7 +15,8 @@ const UPLOAD_PARALLELISM = 6;
 export interface Transfer {
   key: string;
   fileName: string;
-  state: "uploading" | "confirming" | "done" | "error";
+  /** "skipped": the very same file is already in the shoot, so it was not uploaded again. */
+  state: "uploading" | "confirming" | "done" | "error" | "skipped";
   message?: string;
 }
 
@@ -22,6 +24,7 @@ export interface UploadBatch {
   total: number;
   done: number;
   failed: number;
+  skipped: number;
   cancelling: boolean;
 }
 
@@ -80,6 +83,11 @@ export function usePhotoUpload(options: {
         updateTransfer(key, { state: "done" });
         setBatch((current) => (current ? { ...current, done: current.done + 1 } : current));
       } catch (error) {
+        if (error instanceof ApiError && error.code === "ALREADY_UPLOADED") {
+          updateTransfer(key, { state: "skipped" });
+          setBatch((current) => (current ? { ...current, skipped: current.skipped + 1 } : current));
+          return;
+        }
         const cancelled = signal?.aborted === true;
         updateTransfer(key, {
           state: "error",
@@ -113,7 +121,9 @@ export function usePhotoUpload(options: {
       const controller = new AbortController();
       abort.current = controller;
       unconfirmed.current = new Set();
-      setBatch({ total: files.length, done: 0, failed: 0, cancelling: false });
+      setBatch({ total: files.length, done: 0, failed: 0, skipped: 0, cancelling: false });
+      // A new batch reports only its own skipped files.
+      setTransfers((prev) => prev.filter((transfer) => transfer.state !== "skipped"));
 
       void runWithLimit(files, UPLOAD_PARALLELISM, (file) => uploadOne(file, controller.signal), controller.signal)
         .then(async () => {
@@ -154,6 +164,7 @@ export function usePhotoUpload(options: {
     limitNotice,
     inFlight: transfers.filter((transfer) => transfer.state === "uploading" || transfer.state === "confirming"),
     failed: transfers.filter((transfer) => transfer.state === "error"),
+    skipped: transfers.filter((transfer) => transfer.state === "skipped"),
     handleFiles,
     cancel,
   };

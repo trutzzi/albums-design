@@ -1,5 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { ConflictError, NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
+import { ApplicationError, ConflictError, NotFoundError } from "#src/shared-kernel/errors";
 import type { PlanFeatureDirectory } from "#src/shared-kernel/plan-features";
 import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
 import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
@@ -55,6 +55,14 @@ export class RequestUploadUseCase {
           ),
         );
       }
+    }
+
+    // The same file dropped twice (a folder uploaded again, a second tab) would make a second
+    // copy of every photo, each analysed, stored and offered to the client. Same name and
+    // same size in the same shoot is the same file for any camera export.
+    const duplicate = await this.photos.findUploadedDuplicate(projectId, command.fileName, command.byteSize);
+    if (duplicate) {
+      return Result.failure(new ApplicationError(`${command.fileName} is already in this shoot.`, "ALREADY_UPLOADED"));
     }
 
     const photo = Photo.requestUpload({

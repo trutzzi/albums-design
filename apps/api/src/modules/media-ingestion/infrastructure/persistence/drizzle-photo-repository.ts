@@ -107,6 +107,27 @@ export class DrizzlePhotoRepository implements PhotoRepository {
     return rows.map((row) => this.toDomain(row));
   }
 
+  async findUploadedDuplicate(
+    projectId: UniqueEntityId,
+    fileName: string,
+    byteSize: number,
+  ): Promise<Photo | undefined> {
+    // Served by photos_project_id_file_name_idx.
+    const [row] = await this.db
+      .select()
+      .from(photos)
+      .where(
+        and(
+          eq(photos.projectId, projectId.toString()),
+          eq(photos.fileName, fileName),
+          eq(photos.byteSize, byteSize),
+          ne(photos.status, "PENDING_UPLOAD"),
+        ),
+      )
+      .limit(1);
+    return row ? this.toDomain(row) : undefined;
+  }
+
   async findAwaitingLongTermStorage(limit: number): Promise<Photo[]> {
     const rows = await this.db
       .select()
