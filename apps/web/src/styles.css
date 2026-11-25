@@ -7101,3 +7101,18 @@ body.is-previewing {
   margin: 8px 0 0;
   font-size: 0.82rem;
 }
+
+/* Whose picks are shown, when more than one client has sent a selection. */
+.client-picks-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+}
+.client-picks-select select {
+  max-width: 220px;
+}
+.tray-tools__clients {
+  margin: 4px 0;
+}

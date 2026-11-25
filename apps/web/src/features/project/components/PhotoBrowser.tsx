@@ -3,6 +3,8 @@ import type { PhotoAnalysisDTO, PhotoDTO } from "@albumflow/contracts";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 import { PhotoGallery } from "@/shared/ui/PhotoGallery";
 import { PhotoLightbox } from "@/shared/ui/PhotoLightbox";
+import { ClientPicksSelect } from "@/shared/ui/ClientPicksSelect";
+import type { ClientSelection } from "@/shared/lib/client-picks";
 
 const PHOTO_FILTERS = ["all", "worthy", "picked", "processing", "failed"] as const;
 type PhotoFilter = (typeof PHOTO_FILTERS)[number];
@@ -23,6 +25,9 @@ export function PhotoBrowser({
   photos,
   analyses,
   clientPicked,
+  clientSelections = [],
+  picksBy = "all",
+  onPicksByChange,
   view,
   onViewChange,
 }: {
@@ -30,6 +35,10 @@ export function PhotoBrowser({
   analyses: PhotoAnalysisDTO[];
   /** Photos a client has sent as their picks, marked with a heart. */
   clientPicked: Set<string>;
+  /** Each client's sent selection; with more than one, the photographer picks whose to show. */
+  clientSelections?: readonly ClientSelection[];
+  picksBy?: string;
+  onPicksByChange?: (sessionId: string) => void;
   view: PhotoView;
   onViewChange: (view: PhotoView) => void;
 }) {
@@ -112,6 +121,9 @@ export function PhotoBrowser({
                 </button>
               ))}
             </div>
+            {onPicksByChange && (
+              <ClientPicksSelect selections={clientSelections} value={picksBy} onChange={onPicksByChange} />
+            )}
             <label className="photo-toolbar__sort">
               {t("project.photos.sort")}{" "}
               <select
