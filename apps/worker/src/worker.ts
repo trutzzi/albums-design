@@ -109,15 +109,18 @@ function serveQueue(
 
 function analysisJobs(root: CompositionRoot): Record<string, JobHandler> {
   return {
-    "analyze-photo": handle<AnalyzePhotoJob>(async (data) => {
-      const analysis = valueOf(await root.analyzePhoto.execute(data));
-      return {
-        photoId: analysis.photoId.toString(),
-        score: analysis.score.overall,
-        category: analysis.category,
-        orientation: analysis.orientation,
-      };
-    }),
+    "analyze-photo": handle<AnalyzePhotoJob>((data) =>
+      // A photo deleted with its shoot while this waited has nothing to analyse; not an error.
+      root.deletedPhotoGuard.run(data.photoId, async () => {
+        const analysis = valueOf(await root.analyzePhoto.execute(data));
+        return {
+          photoId: analysis.photoId.toString(),
+          score: analysis.score.overall,
+          category: analysis.category,
+          orientation: analysis.orientation,
+        };
+      }),
+    ),
   };
 }
 
@@ -131,10 +134,12 @@ function analysisGaveUp(root: CompositionRoot) {
 
 function derivativeJobs(root: CompositionRoot): Record<string, JobHandler> {
   return {
-    "generate-derivatives": handle<GenerateDerivativesJob>(async (data) => {
-      const { photoId, written } = valueOf(await root.generateDerivatives.execute(data));
-      return { photoId, thumbKb: Math.round(written.thumb / 1024), previewKb: Math.round(written.preview / 1024) };
-    }),
+    "generate-derivatives": handle<GenerateDerivativesJob>((data) =>
+      root.deletedPhotoGuard.run(data.photoId, async () => {
+        const { photoId, written } = valueOf(await root.generateDerivatives.execute(data));
+        return { photoId, thumbKb: Math.round(written.thumb / 1024), previewKb: Math.round(written.preview / 1024) };
+      }),
+    ),
   };
 }
 
