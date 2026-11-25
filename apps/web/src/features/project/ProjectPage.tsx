@@ -31,10 +31,10 @@ import { SlideshowPanel } from "@/features/project/components/SlideshowPanel";
 import { PrintPdfPanel } from "@/features/project/components/PrintPdfPanel";
 import { ShootSidebar } from "@/features/project/components/ShootSidebar";
 import { Skeleton } from "@/shared/ui/Loading";
+import { ALL_CLIENTS, picksOf, submittedSelections } from "@/shared/lib/client-picks";
 import { usePlans } from "@/shared/ui/usePlans";
 import { formatFullDate } from "@/shared/i18n/locale";
 import { shootTypeKey } from "@/features/project/lib/shoot-types";
-import { ALL_CLIENTS, picksOf, submittedSelections } from "@/shared/lib/client-picks";
 
 /** The guided tour points at the step tabs, since only the open step's content is on the page. */
 const STEP_TOUR_TARGETS: Record<ShootStep, string | undefined> = {
