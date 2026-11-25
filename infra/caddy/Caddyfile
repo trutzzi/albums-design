@@ -15,3 +15,10 @@ api.valentintruta.ro {
 storage.valentintruta.ro {
 	reverse_proxy minio:9000
 }
+
+# Other apps on this server (fap, glowi, edudesk, …) keep their own site blocks in
+# /opt/caddy-sites/*.caddy on the host, mounted below. That folder is outside this repo's
+# copy on the server, so an albumflow deploy (which overwrites /opt/albumflow) never wipes
+# them. No matching files is fine.
+import /etc/caddy/sites/*.caddy
+

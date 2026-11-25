@@ -145,6 +145,8 @@ services:
       - "443:443"
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Site blocks of the other apps on this server (see the end of the Caddyfile).
+      - /opt/caddy-sites:/etc/caddy/sites:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
