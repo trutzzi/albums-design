@@ -28,9 +28,17 @@ export class MediaUrlSigner {
     this.secret = `${baseSecret}:media-url`;
   }
 
-  /** A URL valid for at least `expiresInSeconds`, identical for the same key within one window. */
+  /**
+   * A URL valid for at least `expiresInSeconds`. Links meant to last a window or more (every
+   * preview and thumbnail) are identical for the same key within one window, at the cost of
+   * living up to one window longer than asked. A shorter link is signed exactly as asked.
+   */
   sign(key: string, expiresInSeconds: number): string {
-    const windowStart = Math.floor(this.nowSeconds() / MEDIA_URL_WINDOW_SECONDS) * MEDIA_URL_WINDOW_SECONDS;
+    const now = this.nowSeconds();
+    if (expiresInSeconds < MEDIA_URL_WINDOW_SECONDS) {
+      return this.url(signJwt({ sub: key, aud: AUDIENCE }, this.secret, expiresInSeconds, now));
+    }
+    const windowStart = Math.floor(now / MEDIA_URL_WINDOW_SECONDS) * MEDIA_URL_WINDOW_SECONDS;
     // Issued at the window's start, so it must last one window longer to still give the
     // caller its full lifetime from now.
     const token = signJwt(
@@ -39,6 +47,10 @@ export class MediaUrlSigner {
       expiresInSeconds + MEDIA_URL_WINDOW_SECONDS,
       windowStart,
     );
+    return this.url(token);
+  }
+
+  private url(token: string): string {
     return `${this.publicBaseUrl.replace(/\/+$/, "")}/media/${token}`;
   }
 

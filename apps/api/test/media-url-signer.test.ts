@@ -34,6 +34,12 @@ describe("MediaUrlSigner: links the browser can cache", () => {
     assert.ok((granted?.secondsLeft ?? 0) >= 3600, `${granted?.secondsLeft}`);
   });
 
+  it("signs a short link exactly as asked, with no extra lifetime", () => {
+    const signer = new MediaUrlSigner(SECRET, "https://api.example.test");
+    const left = signer.inspect(tokenOf(signer.sign("k.jpg", 300)))?.secondsLeft ?? 0;
+    assert.ok(left <= 300 && left >= 299, `${left}`);
+  });
+
   it("refuses a tampered link or one signed with another secret", () => {
     const signer = new MediaUrlSigner(SECRET, "https://api.example.test");
     const token = tokenOf(signer.sign("k.jpg", 3600));

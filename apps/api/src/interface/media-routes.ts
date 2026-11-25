@@ -38,9 +38,10 @@ export function registerMediaRoutes(app: FastifyInstance, deps: MediaRouteDepend
       return (
         reply
           .header("Content-Type", CONTENT_TYPES[extension] ?? "application/octet-stream")
-          // The same link comes back for a whole window, so the browser may keep the image for
-          // as long as the link is valid. Not `immutable`: a replaced photo keeps its key.
-          .header("Cache-Control", `private, max-age=${Math.min(secondsLeft, 6 * 60 * 60)}`)
+          // The same link comes back for a whole window, so the browser may reuse the image while
+          // the link is valid, for an hour at most: a replaced photo keeps its key, so it must not
+          // be cached for long, and is never `immutable`.
+          .header("Cache-Control", `private, max-age=${Math.min(secondsLeft, 60 * 60)}`)
           .send(stream)
       );
     } catch (error) {
