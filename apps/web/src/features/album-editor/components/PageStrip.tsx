@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { spacedSlotRect, type AlbumDTO, type AlbumStyleDTO, type LayoutTemplateDTO } from "@albumflow/contracts";
+import { turnedImageStyle } from "@/shared/album/crop-geometry";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 type Spread = AlbumDTO["spreads"][number];
@@ -125,6 +126,9 @@ export const PageStrip = memo(function PageStrip({
                   const placement = spread.placements.find((candidate) => candidate.slotId === slot.id);
                   const rect = placement?.frame ?? spacedSlotRect(slot, template, albumStyle.spacing);
                   const url = placement?.photoId ? thumbnailUrlFor(placement.photoId) : null;
+                  const rotation = placement?.rotation;
+                  // A turned photo is drawn on an inner layer with the slot's sides swapped, then spun.
+                  const slotAspect = (rect.width * aspectRatio) / rect.height;
                   return (
                     <span
                       key={slot.id}
@@ -136,9 +140,16 @@ export const PageStrip = memo(function PageStrip({
                         top: `${rect.y * 100}%`,
                         width: `${rect.width * 100}%`,
                         height: `${rect.height * 100}%`,
-                        backgroundImage: url ? `url("${url}")` : undefined,
+                        backgroundImage: url && !rotation ? `url("${url}")` : undefined,
                       }}
-                    />
+                    >
+                      {url && rotation ? (
+                        <span
+                          className="page-strip__turned"
+                          style={{ ...turnedImageStyle(rotation, slotAspect), backgroundImage: `url("${url}")` }}
+                        />
+                      ) : null}
+                    </span>
                   );
                 })}
               </button>

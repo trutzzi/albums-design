@@ -1,12 +1,14 @@
 import {
   focusedBaseCrop,
   isUntouchedCrop,
+  rotatedFocus,
   spacedSlotRect,
   type AlbumDTO,
   type LayoutTemplateDTO,
   type NormalisedRect,
   type PhotoAnalysisDTO,
 } from "@albumflow/contracts";
+import { fitCropToSlot } from "@/shared/album/crop-geometry";
 
 /**
  * Everything worth a second look before the album goes to the client or the lab —
@@ -92,8 +94,16 @@ export function checkAlbum({ album, templates, analyses, existingPhotoIds }: Che
       }
       placed.push({ spreadIndex, slotId: placement.slotId, photoId: placement.photoId });
 
-      const analysis = analyses.get(placement.photoId);
-      if (!analysis || !analysis.width || !analysis.height) continue;
+      const stored = analyses.get(placement.photoId);
+      if (!stored || !stored.width || !stored.height) continue;
+      // The crop is in the turned photo's coordinates, so measure the photo turned too.
+      const quarter = placement.rotation === 90 || placement.rotation === 270;
+      const analysis = {
+        ...stored,
+        width: quarter ? stored.height : stored.width,
+        height: quarter ? stored.width : stored.height,
+        focus: rotatedFocus(stored.focus, placement.rotation) ?? null,
+      };
       const rect = placement.frame ?? spacedSlotRect(slot, template, album.style.spacing);
       const crop = effectiveCrop(placement.crop, analysis, rect, spreadWidthMm / spreadHeightMm);
 
@@ -172,8 +182,11 @@ function effectiveCrop(
   rect: NormalisedRect,
   spreadAspect: number,
 ): NormalisedRect {
-  if (!isUntouchedCrop(crop)) return crop;
-  return focusedBaseCrop(analysis.width / analysis.height, (rect.width * spreadAspect) / rect.height, analysis.focus);
+  const imageAspect = analysis.width / analysis.height;
+  const slotAspect = (rect.width * spreadAspect) / rect.height;
+  // A crop saved before its slot was resized prints only its slot-shaped middle.
+  if (!isUntouchedCrop(crop)) return fitCropToSlot(crop, imageAspect, slotAspect);
+  return focusedBaseCrop(imageAspect, slotAspect, analysis.focus);
 }
 
 /** Pixels per inch on paper along the tighter axis — what a lab's "300 dpi" refers to. */

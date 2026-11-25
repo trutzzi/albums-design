@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { focusedBaseCrop, isUntouchedCrop, type PhotoFocus } from "@albumflow/contracts";
+import { focusedBaseCrop, isUntouchedCrop, rotatedFocus, type PhotoFocus } from "@albumflow/contracts";
 import type { PhotoResolver, RenderableCrop, RenderablePlacement } from "../../application/ports/album-pdf-renderer";
 
 export function cropRegion(
@@ -50,18 +50,24 @@ export async function rasterisePhoto(
   const source = await photos.resolve(placement.photoId);
   if (!source) return undefined;
 
-  const image = sharp(Buffer.from(source), { failOn: "none" }).rotate();
+  // Upright from the camera's orientation tag first, then the photographer's own turn, in one
+  // decode. The crop is cut after both, so it is measured on the photo as it is shown.
+  const image = sharp(Buffer.from(source), { failOn: "none" }).autoOrient();
+  if (placement.rotation) image.rotate(placement.rotation);
   const metadata = await image.metadata();
-  const sourceWidth = metadata.width ?? 0;
-  const sourceHeight = metadata.height ?? 0;
-  if (sourceWidth === 0 || sourceHeight === 0) return undefined;
+  // `autoOrient` holds the upright size; the file's own width and height may be sideways.
+  const upright = metadata.autoOrient ?? { width: metadata.width ?? 0, height: metadata.height ?? 0 };
+  const quarter = placement.rotation === 90 || placement.rotation === 270;
+  const sourceWidth = quarter ? upright.height : upright.width;
+  const sourceHeight = quarter ? upright.width : upright.height;
+  if (!sourceWidth || !sourceHeight) return undefined;
 
   const width = Math.max(1, size.width);
   const height = Math.max(1, size.height);
   // A crop nobody framed by hand centres on the photo's subject — the very rect the
   // editor and the client proof draw for it, so print matches what was approved.
   const crop = isUntouchedCrop(placement.crop)
-    ? focusedBaseCrop(sourceWidth / sourceHeight, width / height, focus)
+    ? focusedBaseCrop(sourceWidth / sourceHeight, width / height, rotatedFocus(focus, placement.rotation) ?? undefined)
     : placement.crop;
 
   const pipeline = image

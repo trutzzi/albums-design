@@ -22,6 +22,8 @@ export interface ReviewableAlbum {
       crop: { x: number; y: number; width: number; height: number };
       treatment: "COLOR" | "BLACK_WHITE";
       frame?: { x: number; y: number; width: number; height: number } | undefined;
+      /** Quarter turns clockwise; the crop is in the turned photo's coordinates. */
+      rotation?: 0 | 90 | 180 | 270 | undefined;
       /** Where the subject sits, so an untouched crop frames it like the editor does. */
       focus?: PhotoFocus | null;
     }[];

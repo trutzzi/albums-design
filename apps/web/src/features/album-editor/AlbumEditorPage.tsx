@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import type { PhotoTreatment } from "@albumflow/contracts";
+import type { PhotoRotation, PhotoTreatment } from "@albumflow/contracts";
 import {
   DEFAULT_STYLE,
   MAX_PHOTOS_PER_SPREAD,
@@ -313,6 +313,11 @@ export function AlbumEditorPage() {
   const setSlotTreatment = useCallback(
     (spreadIndex: number, slotId: string, treatment: PhotoTreatment) =>
       runEdit({ type: "SET_TREATMENT", spreadIndex, slotId, treatment }),
+    [runEdit],
+  );
+  const setSlotRotation = useCallback(
+    (spreadIndex: number, slotId: string, rotation: PhotoRotation) =>
+      runEdit({ type: "SET_ROTATION", spreadIndex, slotId, rotation }),
     [runEdit],
   );
   const reorderPlacement = useCallback(
@@ -640,6 +645,7 @@ export function AlbumEditorPage() {
                     onSlotDrop={dropPhotoInSlot}
                     onCropChange={draft.changeCrop}
                     onTreatmentChange={setSlotTreatment}
+                    onRotationChange={setSlotRotation}
                     onFrameChange={draft.changeFrame}
                     onFramesChange={draft.changeFrames}
                     onMirror={mirrorSpread}

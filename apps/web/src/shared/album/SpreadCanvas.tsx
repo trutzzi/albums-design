@@ -1,20 +1,33 @@
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   DEFAULT_STYLE,
   focusedBaseCrop,
   isUntouchedCrop,
+  nextRotation,
+  rotatedAspect,
+  rotatedFocus,
   spacedSlotRect,
   type AlbumStyleDTO,
   type Crop,
   type LayoutTemplateDTO,
   type PhotoFocus,
+  type PhotoRotation,
   type PhotoTreatment,
   type SlotFrame,
   type TextBlockDTO,
 } from "@albumflow/contracts";
 import { SpreadTexts } from "./SpreadTexts";
-import { MAX_ZOOM, MIN_ZOOM, cropToStyle, pannedCrop, withZoom, zoomOf } from "./crop-geometry";
+import {
+  MAX_ZOOM,
+  MIN_ZOOM,
+  cropToStyle,
+  fitCropToSlot,
+  pannedCrop,
+  turnedImageStyle,
+  withZoom,
+  zoomOf,
+} from "./crop-geometry";
 import {
   RESIZE_CORNERS,
   collectPrintGuideTargets,
@@ -39,6 +52,7 @@ export interface SpreadPlacement {
   crop?: Crop | undefined;
   treatment?: PhotoTreatment | undefined;
   frame?: SlotFrame | undefined;
+  rotation?: PhotoRotation | undefined;
 }
 
 export interface SpreadCanvasProps {
@@ -67,6 +81,8 @@ export interface SpreadCanvasProps {
   /** Fires continuously while dragging; `commit` marks the gesture as finished. */
   onCropChange?: ((slotId: string, crop: Crop, commit: boolean) => void) | undefined;
   onTreatmentChange?: ((slotId: string, treatment: PhotoTreatment) => void) | undefined;
+  /** Turns the selected photo a quarter clockwise. */
+  onRotationChange?: ((slotId: string, rotation: PhotoRotation) => void) | undefined;
   /** Live while dragging a corner; `commit` marks the gesture finished. */
   onFrameChange?: ((slotId: string, frame: SlotFrame, commit: boolean) => void) | undefined;
   /** Live while dragging the line between photos, which resizes both sides at once. */
@@ -152,6 +168,7 @@ export const SpreadCanvas = memo(function SpreadCanvas({
   onSlotDrop,
   onCropChange,
   onTreatmentChange,
+  onRotationChange,
   onFrameChange,
   onFramesChange,
   onReorderPlacement,
@@ -201,6 +218,20 @@ export const SpreadCanvas = memo(function SpreadCanvas({
     if (!width || !height) return;
     setAspects((prev) => (prev[photoId] === width / height ? prev : { ...prev, [photoId]: width / height }));
   }, []);
+
+  // React registers wheel listeners as passive, so a slot's onWheel cannot stop the page
+  // from scrolling while it zooms the photo. This one is not passive: over the photo being
+  // framed, the wheel zooms and the page stays put.
+  useEffect(() => {
+    const spread = spreadRef.current;
+    if (!spread || !onCropChange) return;
+    const keepPageStill = (event: WheelEvent) => {
+      if (event.target instanceof Element && event.target.closest(".slot--editable")) event.preventDefault();
+    };
+    spread.addEventListener("wheel", keepPageStill, { passive: false });
+    return () => spread.removeEventListener("wheel", keepPageStill);
+    // The spread element only exists once its template is known.
+  }, [onCropChange, template]);
 
   // Every slot's current on-screen rectangle — a hand-resized frame if it has
   // one, the template's own otherwise — recomputed only when the shapes that
@@ -306,15 +337,21 @@ export const SpreadCanvas = memo(function SpreadCanvas({
 
           const rect = placement?.frame ?? spacedSlotRect(slot, template, albumStyle.spacing);
           const slotAspect = (rect.width * aspectRatio) / rect.height;
-          const imageAspect = placement ? aspects[placement.photoId] : undefined;
+          const rotation = placement?.rotation;
+          const naturalAspect = placement ? aspects[placement.photoId] : undefined;
+          // Crops live in the turned photo's coordinates, so all the maths uses its turned shape.
+          const imageAspect = naturalAspect !== undefined ? rotatedAspect(naturalAspect, rotation) : undefined;
           const storedCrop = placement?.crop ?? DEFAULT_CROP;
-          const focus = placement ? focusFor?.(placement.photoId) : undefined;
-          // An untouched placement is drawn exactly as the PDF will print it: the slot-shaped
-          // crop centred on the photo's subject (see focusedBaseCrop in contracts).
+          const focus = placement ? rotatedFocus(focusFor?.(placement.photoId), rotation) : undefined;
+          // Drawn exactly as the PDF will print it: an untouched placement is the slot-shaped
+          // crop centred on the photo's subject (see focusedBaseCrop in contracts), and a framed
+          // one is fitted to the slot's current shape, which matters once the slot was resized.
           const crop =
-            imageAspect !== undefined && isUntouchedCrop(storedCrop)
-              ? focusedBaseCrop(imageAspect, slotAspect, focus)
-              : storedCrop;
+            imageAspect === undefined
+              ? storedCrop
+              : isUntouchedCrop(storedCrop)
+                ? focusedBaseCrop(imageAspect, slotAspect, focus)
+                : fitCropToSlot(storedCrop, imageAspect, slotAspect);
           const treatment = placement?.treatment ?? "COLOR";
 
           const style = imageAspect !== undefined ? cropToStyle(crop, imageAspect, slotAspect) : undefined;
@@ -460,22 +497,13 @@ export const SpreadCanvas = memo(function SpreadCanvas({
               }
             >
               {url ? (
-                <img
-                  src={url}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  draggable={false}
-                  className={treatment === "BLACK_WHITE" ? "is-monochrome" : undefined}
-                  style={style}
-                  onLoad={(event) =>
-                    placement &&
-                    rememberAspect(
-                      placement.photoId,
-                      event.currentTarget.naturalWidth,
-                      event.currentTarget.naturalHeight,
-                    )
-                  }
+                <SlotPhoto
+                  url={url}
+                  monochrome={treatment === "BLACK_WHITE"}
+                  cropStyle={style}
+                  rotation={rotation}
+                  turnedAspect={imageAspect}
+                  onNaturalSize={(width, height) => placement && rememberAspect(placement.photoId, width, height)}
                 />
               ) : (
                 <span className="slot__empty">{t(`spread.slot.${slot.prefers.toLowerCase()}`)}</span>
@@ -649,6 +677,16 @@ export const SpreadCanvas = memo(function SpreadCanvas({
                   >
                     {t("spread.fit")}
                   </button>
+                  {onRotationChange && (
+                    <button
+                      type="button"
+                      className="button button--small"
+                      title={t("spread.rotate.title")}
+                      onClick={() => onRotationChange(slot.id, nextRotation(rotation))}
+                    >
+                      {t("spread.rotate")}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={`button button--small ${treatment === "BLACK_WHITE" ? "button--primary" : ""}`}
@@ -783,3 +821,42 @@ export const SpreadCanvas = memo(function SpreadCanvas({
     </div>
   );
 });
+
+/**
+ * One placed photo. A turned photo is drawn inside a box that takes the turned photo's
+ * place, with the image as stored spun to fill it.
+ */
+function SlotPhoto({
+  url,
+  monochrome,
+  cropStyle,
+  rotation,
+  turnedAspect,
+  onNaturalSize,
+}: {
+  url: string;
+  monochrome: boolean;
+  cropStyle: React.CSSProperties | undefined;
+  rotation: PhotoRotation | undefined;
+  turnedAspect: number | undefined;
+  onNaturalSize: (width: number, height: number) => void;
+}) {
+  const image = (style: React.CSSProperties | undefined) => (
+    <img
+      src={url}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+      className={monochrome ? "is-monochrome" : undefined}
+      style={style}
+      onLoad={(event) => onNaturalSize(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)}
+    />
+  );
+  if (!rotation || !cropStyle || turnedAspect === undefined) return image(cropStyle);
+  return (
+    <span className="slot__turned" style={cropStyle}>
+      {image(turnedImageStyle(rotation, turnedAspect))}
+    </span>
+  );
+}

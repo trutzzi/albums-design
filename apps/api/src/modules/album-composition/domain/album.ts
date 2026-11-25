@@ -6,6 +6,7 @@ import {
   spacedSlotRect,
   type AlbumCoverDTO,
   type AlbumStyleDTO,
+  type PhotoRotation,
   type TextBlockDTO,
   NEW_ALBUM_STYLE,
 } from "@albumflow/contracts";
@@ -45,6 +46,8 @@ export interface Placement {
   crop: Crop;
   treatment: PhotoTreatment;
   frame?: SlotFrame;
+  /** Quarter turns clockwise; absent means upright. The crop is in the turned photo's coordinates. */
+  rotation?: PhotoRotation;
 }
 
 export type TextBlock = TextBlockDTO;
@@ -294,9 +297,10 @@ export class Album extends AggregateRoot<AlbumProps> {
     const placement = spread.placements.find((candidate) => candidate.slotId === slotId);
     if (!placement) throw new SlotNotFoundError(slotId, spread.templateId);
     placement.photoId = photoId;
-    // The crop belonged to the old photo, but the treatment is a decision about how
-    // this spread should look, so it survives the swap.
+    // The crop and the turn belonged to the old photo, but the treatment is a decision
+    // about how this spread should look, so it survives the swap.
     placement.crop = { ...FULL_CROP };
+    delete placement.rotation;
     this.touch();
   }
 
@@ -306,6 +310,22 @@ export class Album extends AggregateRoot<AlbumProps> {
     const placement = spread.placements.find((candidate) => candidate.slotId === slotId);
     if (!placement) throw new SlotNotFoundError(slotId, spread.templateId);
     placement.treatment = treatment;
+    this.touch();
+  }
+
+  /**
+   * Turns the photo in its slot. The old crop was cut from the photo the other way up,
+   * so it is dropped: the turned photo starts centred on its subject, like a new one.
+   */
+  setRotation(spreadIndex: number, slotId: string, rotation: PhotoRotation): void {
+    this.assertEditable();
+    const spread = this.spreadAt(spreadIndex);
+    const placement = spread.placements.find((candidate) => candidate.slotId === slotId);
+    if (!placement) throw new SlotNotFoundError(slotId, spread.templateId);
+    if ((placement.rotation ?? 0) === rotation) return;
+    if (rotation === 0) delete placement.rotation;
+    else placement.rotation = rotation;
+    placement.crop = { ...FULL_CROP };
     this.touch();
   }
 
@@ -327,13 +347,15 @@ export class Album extends AggregateRoot<AlbumProps> {
     if (!a) throw new SlotNotFoundError(slotIdA, spread.templateId);
     if (!b) throw new SlotNotFoundError(slotIdB, spread.templateId);
 
-    const carried = { photoId: a.photoId, crop: a.crop, treatment: a.treatment };
+    const carried = { photoId: a.photoId, crop: a.crop, treatment: a.treatment, rotation: a.rotation };
     a.photoId = b.photoId;
     a.crop = b.crop;
     a.treatment = b.treatment;
+    setOptionalRotation(a, b.rotation);
     b.photoId = carried.photoId;
     b.crop = carried.crop;
     b.treatment = carried.treatment;
+    setOptionalRotation(b, carried.rotation);
     this.touch();
   }
 
@@ -358,13 +380,15 @@ export class Album extends AggregateRoot<AlbumProps> {
     if (!a) throw new SlotNotFoundError(fromSlotId, fromSpread.templateId);
     if (!b) throw new SlotNotFoundError(toSlotId, toSpread.templateId);
 
-    const carried = { photoId: a.photoId, crop: a.crop, treatment: a.treatment };
+    const carried = { photoId: a.photoId, crop: a.crop, treatment: a.treatment, rotation: a.rotation };
     a.photoId = b.photoId;
     a.crop = b.crop;
     a.treatment = b.treatment;
+    setOptionalRotation(a, b.rotation);
     b.photoId = carried.photoId;
     b.crop = carried.crop;
     b.treatment = carried.treatment;
+    setOptionalRotation(b, carried.rotation);
     this.touch();
   }
 
@@ -388,6 +412,7 @@ export class Album extends AggregateRoot<AlbumProps> {
       photoId: placement.photoId,
       crop: placement.crop,
       treatment: placement.treatment,
+      rotation: placement.rotation,
     }));
     const moved = cargo[fromIndex]!;
     if (fromIndex < toIndex) {
@@ -402,6 +427,7 @@ export class Album extends AggregateRoot<AlbumProps> {
       placement.photoId = item.photoId;
       placement.crop = item.crop;
       placement.treatment = item.treatment;
+      setOptionalRotation(placement, item.rotation);
     });
     this.touch();
   }
@@ -493,6 +519,7 @@ export class Album extends AggregateRoot<AlbumProps> {
     if (!template) throw new Error(`Unknown layout template ${templateId}.`);
 
     const treatmentOf = new Map(spread.placements.map((placement) => [placement.photoId, placement.treatment]));
+    const rotationOf = new Map(spread.placements.map((placement) => [placement.photoId, placement.rotation]));
     const carried = (photoOrder ?? spread.placements.map((placement) => placement.photoId)).map((photoId) => ({
       photoId,
       treatment: treatmentOf.get(photoId) ?? "COLOR",
@@ -500,12 +527,18 @@ export class Album extends AggregateRoot<AlbumProps> {
     const last = carried[carried.length - 1];
     spread.templateId = templateId;
     // Frames are deliberately not carried: they described the old template's slots.
-    spread.placements = template.slots.map((slot, index) => ({
-      slotId: slot.id,
-      photoId: carried[index]?.photoId ?? last?.photoId ?? "",
-      crop: { ...FULL_CROP },
-      treatment: carried[index]?.treatment ?? last?.treatment ?? "COLOR",
-    }));
+    spread.placements = template.slots.map((slot, index) => {
+      const photoId = carried[index]?.photoId ?? last?.photoId ?? "";
+      const placement: Placement = {
+        slotId: slot.id,
+        photoId,
+        crop: { ...FULL_CROP },
+        treatment: carried[index]?.treatment ?? last?.treatment ?? "COLOR",
+      };
+      // A turn is part of the photo, not of the old layout, so it comes along.
+      setOptionalRotation(placement, rotationOf.get(photoId));
+      return placement;
+    });
     this.touch();
   }
 
@@ -650,4 +683,10 @@ function normaliseCrop(crop: Crop): Crop {
     x: Math.min(1 - width, Math.max(0, crop.x)),
     y: Math.min(1 - height, Math.max(0, crop.y)),
   };
+}
+
+/** Upright is stored as no field at all, so albums saved before rotation existed are unchanged. */
+function setOptionalRotation(placement: Placement, rotation: PhotoRotation | undefined): void {
+  if (rotation) placement.rotation = rotation;
+  else delete placement.rotation;
 }

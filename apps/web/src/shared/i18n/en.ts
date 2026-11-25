@@ -1056,6 +1056,8 @@ export const en: Record<string, string> = {
   "spread.unknownLayout": "Unknown layout",
   "spread.zoom": "Zoom",
   "spread.bwToggle.title": "Black and white",
+  "spread.rotate": "Rotate",
+  "spread.rotate.title": "Turn the photo a quarter clockwise",
   "spread.resetFraming.title": "Reset framing",
   "spread.resetFraming": "Reset",
   "spread.removePhoto": "Remove",

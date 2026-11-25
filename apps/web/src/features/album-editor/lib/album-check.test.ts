@@ -49,7 +49,10 @@ function analysis(photoId: string, extra: Partial<PhotoAnalysisDTO> = {}): Photo
 }
 
 function run(
-  spreads: { templateId: string; placements: { slotId: string; photoId: string }[] }[],
+  spreads: {
+    templateId: string;
+    placements: { slotId: string; photoId: string; rotation?: 90 | 180 | 270 | undefined }[];
+  }[],
   analyses: PhotoAnalysisDTO[],
 ) {
   return checkAlbum({
@@ -101,6 +104,23 @@ describe("checkAlbum", () => {
     const low = issues.find((issue) => issue.kind === "lowResolution");
     assert.equal(low?.severity, "error");
     assert.ok(low && "dpi" in low && low.dpi < 150);
+  });
+
+  it("measures a turned photo the way it prints: turned", () => {
+    // A portrait photo in the wide panorama band: upright only its 2000 px width spans the
+    // band; turned a quarter, its 3000 px height does — half as sharp again.
+    const portrait = analysis("tall", { width: 2000, height: 3000 });
+    const dpiOf = (rotation?: 90) => {
+      const issue = run(
+        [{ templateId: "panorama", placements: [{ slotId: "band", photoId: "tall", rotation }] }],
+        [portrait],
+      ).find((entry) => entry.kind === "lowResolution");
+      assert.ok(issue && "dpi" in issue);
+      return issue.dpi;
+    };
+    const upright = dpiOf();
+    const turned = dpiOf(90);
+    assert.ok(Math.abs(turned / upright - 1.5) < 0.02, `${turned} vs ${upright}`);
   });
 
   it("flags empty slots and a photo used twice", () => {

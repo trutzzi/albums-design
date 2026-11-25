@@ -1,4 +1,4 @@
-import type { Crop } from "@albumflow/contracts";
+import type { Crop, PhotoRotation } from "@albumflow/contracts";
 
 /**
  * The crop rect is expressed in the source photo's own normalised coordinates, and
@@ -39,6 +39,26 @@ export function withZoom(crop: Crop, zoom: number, imageAspect: number, slotAspe
   const centreX = crop.x + crop.width / 2;
   const centreY = crop.y + crop.height / 2;
   return clampCrop({ x: centreX - width / 2, y: centreY - height / 2, width, height });
+}
+
+/**
+ * The part of a stored crop that actually prints in this slot. A crop is saved in the
+ * slot's shape at the time; once the slot is resized or the layout changes, the export
+ * cuts that rect and cover-fits it, so it prints the largest slot-shaped rect centred
+ * inside it. Drawing the same rect here keeps the screen identical to the print, and a
+ * drag or zoom from it saves a crop in the slot's new shape.
+ */
+export function fitCropToSlot(crop: Crop, imageAspect: number, slotAspect: number): Crop {
+  const cropAspect = (crop.width * imageAspect) / crop.height;
+  if (Math.abs(cropAspect - slotAspect) / slotAspect < 1e-6) return crop;
+  const width = cropAspect > slotAspect ? (crop.height * slotAspect) / imageAspect : crop.width;
+  const height = cropAspect > slotAspect ? crop.height : (crop.width * imageAspect) / slotAspect;
+  return clampCrop({
+    x: crop.x + (crop.width - width) / 2,
+    y: crop.y + (crop.height - height) / 2,
+    width,
+    height,
+  });
 }
 
 /** `dx`/`dy` are drag distances as a fraction of the slot's own width and height. */
@@ -91,4 +111,22 @@ export function cropToStyle(crop: Crop, imageAspect: number, slotAspect: number)
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * Inside a box shaped like the turned photo (width ÷ height `turnedAspect`), the image as
+ * stored: for a quarter turn its width and height swap, then it spins about the box's centre.
+ */
+export function turnedImageStyle(
+  rotation: PhotoRotation,
+  turnedAspect: number,
+): { left: string; top: string; width: string; height: string; transform: string } {
+  const quarter = rotation === 90 || rotation === 270;
+  return {
+    left: "50%",
+    top: "50%",
+    width: quarter ? `${100 / turnedAspect}%` : "100%",
+    height: quarter ? `${100 * turnedAspect}%` : "100%",
+    transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+  };
 }

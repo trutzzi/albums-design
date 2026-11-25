@@ -11,6 +11,13 @@ export type Crop = z.infer<typeof cropSchema>;
 export const photoTreatmentSchema = z.enum(["COLOR", "BLACK_WHITE"]);
 export type PhotoTreatment = z.infer<typeof photoTreatmentSchema>;
 
+/**
+ * Quarter turns clockwise. The crop is expressed in the turned photo's own coordinates,
+ * so every renderer turns the photo first and then cuts the crop from it.
+ */
+export const photoRotationSchema = z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]);
+export type PhotoRotation = z.infer<typeof photoRotationSchema>;
+
 export const slotFrameSchema = z.object({
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
@@ -26,6 +33,8 @@ export const placementSchema = z.object({
   treatment: photoTreatmentSchema.default("COLOR"),
   /** Absent means the template's own slot rectangle. */
   frame: slotFrameSchema.optional(),
+  /** Absent means upright, as the photo was shot. */
+  rotation: photoRotationSchema.optional(),
 });
 export type PlacementDTO = z.infer<typeof placementSchema>;
 
@@ -212,6 +221,12 @@ export const albumEditSchema = z.discriminatedUnion("type", [
     atIndex: z.number().int().min(0),
     templateId: z.string(),
     photoIds: z.array(z.string().uuid()),
+  }),
+  z.object({
+    type: z.literal("SET_ROTATION"),
+    spreadIndex: z.number().int().min(0),
+    slotId: z.string(),
+    rotation: photoRotationSchema,
   }),
   z.object({
     type: z.literal("SET_TREATMENT"),
@@ -562,6 +577,27 @@ export function focusedBaseCrop(imageAspect: number, slotAspect: number, focus?:
   const height = imageAspect / slotAspect;
   const y = Math.min(1 - height, Math.max(0, centre.y - height / 2));
   return { x: 0, y, width: 1, height };
+}
+
+/** A photo's width ÷ height once turned: a quarter turn swaps the two. */
+export function rotatedAspect(aspect: number, rotation: PhotoRotation | undefined): number {
+  return rotation === 90 || rotation === 270 ? 1 / aspect : aspect;
+}
+
+/** Where the subject sits once the photo is turned clockwise by `rotation`. */
+export function rotatedFocus(
+  focus: PhotoFocus | null | undefined,
+  rotation: PhotoRotation | undefined,
+): PhotoFocus | null | undefined {
+  if (!focus || !rotation) return focus;
+  if (rotation === 90) return { x: 1 - focus.y, y: focus.x };
+  if (rotation === 180) return { x: 1 - focus.x, y: 1 - focus.y };
+  return { x: focus.y, y: 1 - focus.x };
+}
+
+/** The next quarter turn clockwise. */
+export function nextRotation(rotation: PhotoRotation | undefined): PhotoRotation {
+  return (((rotation ?? 0) + 90) % 360) as PhotoRotation;
 }
 
 /** Type size as a fraction of the page height — so a 20 cm and a 30 cm album look alike. */

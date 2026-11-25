@@ -37,6 +37,7 @@ export class AlbumCompositionExportGateway implements ExportAlbumGateway {
           crop: placement.crop,
           treatment: placement.treatment ?? "COLOR",
           frame: placement.frame,
+          rotation: placement.rotation,
         })),
         texts: spread.texts,
       })),

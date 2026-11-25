@@ -1,6 +1,6 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
 import { ConflictError, NotFoundError, ValidationError, type ApplicationError } from "#src/shared-kernel/errors";
-import type { AlbumCoverDTO, AlbumStyleDTO, SpreadDTO, TextBlockDTO } from "@albumflow/contracts";
+import type { AlbumCoverDTO, AlbumStyleDTO, PhotoRotation, SpreadDTO, TextBlockDTO } from "@albumflow/contracts";
 import {
   Album,
   AlbumLockedError,
@@ -33,6 +33,7 @@ export type AlbumEditCommand =
   | { type: "SET_SPREAD_LOCK"; spreadIndex: number; locked: boolean }
   | { type: "RESTORE_SPREADS"; spreads: SpreadDTO[] }
   | { type: "SET_TREATMENT"; spreadIndex: number; slotId: string; treatment: PhotoTreatment }
+  | { type: "SET_ROTATION"; spreadIndex: number; slotId: string; rotation: PhotoRotation }
   | { type: "SET_SPREAD_TREATMENT"; spreadIndex: number; treatment: PhotoTreatment }
   | { type: "CHANGE_TEMPLATE"; spreadIndex: number; templateId: string; photoIds?: string[] | undefined }
   | { type: "ADD_SPREAD"; atIndex: number; templateId: string; photoIds: string[] }
@@ -111,6 +112,9 @@ function apply(album: Album, command: AlbumEditCommand): void {
     case "SET_SPREAD_LOCK":
       album.setSpreadLocked(command.spreadIndex, command.locked);
       return;
+    case "SET_ROTATION":
+      album.setRotation(command.spreadIndex, command.slotId, command.rotation);
+      return;
     case "SET_TREATMENT":
       album.setTreatment(command.spreadIndex, command.slotId, command.treatment);
       return;
@@ -142,6 +146,8 @@ function apply(album: Album, command: AlbumEditCommand): void {
             crop: placement.crop,
             treatment: placement.treatment,
             ...(placement.frame ? { frame: placement.frame } : {}),
+            // Undo and redo restore the turn too: the crop was cut from the turned photo.
+            ...(placement.rotation ? { rotation: placement.rotation } : {}),
           })),
           ...(spread.texts ? { texts: spread.texts.map(withoutUndefinedFont) } : {}),
           ...(spread.locked ? { locked: true } : {}),
