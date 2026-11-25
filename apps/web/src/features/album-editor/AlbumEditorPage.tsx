@@ -50,6 +50,7 @@ import { LoadingState, Skeleton } from "@/shared/ui/Loading";
 import { CrumbBar } from "@/app/layout/CrumbBar";
 import { FocusBar } from "@/features/album-editor/components/FocusBar";
 import { loadEditorView, saveEditorView, type EditorView } from "@/features/album-editor/lib/editor-view";
+import { ALL_CLIENTS, picksOf, submittedSelections } from "@/shared/lib/client-picks";
 
 const EDITOR_TOUR: TourStep[] = [
   { target: '[data-tour="editor-cover"]', titleKey: "tour.editor.cover.title", bodyKey: "tour.editor.cover.body" },
@@ -210,15 +211,10 @@ export function AlbumEditorPage() {
       new Set((current?.spreads ?? []).flatMap((spread) => spread.placements.map((placement) => placement.photoId))),
     [current],
   );
-  const clientPickedIds = useMemo(
-    () =>
-      new Set(
-        (pickSessions.data ?? [])
-          .filter((session) => session.status === "SUBMITTED")
-          .flatMap((session) => session.pickedPhotoIds),
-      ),
-    [pickSessions.data],
-  );
+  // Each client's selection kept apart: the tray's picks are one client's, or everyone's.
+  const clientSelections = useMemo(() => submittedSelections(pickSessions.data), [pickSessions.data]);
+  const [picksBy, setPicksBy] = useState<string>(ALL_CLIENTS);
+  const clientPickedIds = useMemo(() => picksOf(clientSelections, picksBy), [clientSelections, picksBy]);
   const tray = usePhotoTray({
     photos: photos.data,
     analyses: analyses.data,
@@ -747,6 +743,9 @@ export function AlbumEditorPage() {
               rankedCount={analyses.data?.length ?? 0}
               usedPhotoIds={usedPhotoIds}
               clientPickedIds={clientPickedIds}
+              clientSelections={clientSelections}
+              picksBy={picksBy}
+              onPicksByChange={setPicksBy}
             />
             <ReviewPanel albumId={albumId} hidden={sidebarTab !== "review"} />
             <FeedbackPanel

@@ -4,6 +4,8 @@ import type { TrayDensity } from "@/features/album-editor/lib/tray-grid";
 import type { TrayShow } from "@/features/album-editor/lib/tray-filter";
 import type { PhotoTrayState, TraySort } from "@/features/album-editor/hooks/usePhotoTray";
 import { PhotoTray } from "./PhotoTray";
+import { ClientPicksSelect } from "@/shared/ui/ClientPicksSelect";
+import type { ClientSelection } from "@/shared/lib/client-picks";
 
 /** The sidebar's photo tab: sort, filters and view size above the tray, and the set being built into a spread. */
 export function TrayPanel(props: {
@@ -24,6 +26,10 @@ export function TrayPanel(props: {
   rankedCount: number;
   usedPhotoIds: Set<string>;
   clientPickedIds: Set<string>;
+  /** Each client's sent selection; with more than one, whose picks the ♥ chip shows. */
+  clientSelections: readonly ClientSelection[];
+  picksBy: string;
+  onPicksByChange: (sessionId: string) => void;
 }) {
   const { t, language } = useLanguage();
   const { tray, picked } = props;
@@ -80,6 +86,16 @@ export function TrayPanel(props: {
             </button>
           ))}
         </div>
+        <ClientPicksSelect
+          className="tray-tools__clients"
+          selections={props.clientSelections}
+          value={props.picksBy}
+          onChange={(sessionId) => {
+            props.onPicksByChange(sessionId);
+            // Choosing a client means "show me their picks".
+            tray.setShow("picks");
+          }}
+        />
         <div className="tray-tools__row">
           <select
             aria-label={t("album.photoTray.filter.type")}

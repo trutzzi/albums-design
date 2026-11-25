@@ -31,6 +31,7 @@ import { SlideshowPanel } from "@/features/project/components/SlideshowPanel";
 import { PrintPdfPanel } from "@/features/project/components/PrintPdfPanel";
 import { ShootSidebar } from "@/features/project/components/ShootSidebar";
 import { Skeleton } from "@/shared/ui/Loading";
+import { ALL_CLIENTS, picksOf, submittedSelections } from "@/shared/lib/client-picks";
 import { usePlans } from "@/shared/ui/usePlans";
 import { formatFullDate } from "@/shared/i18n/locale";
 import { shootTypeKey } from "@/features/project/lib/shoot-types";
@@ -163,16 +164,10 @@ export function ProjectPage() {
     },
   });
 
-  // Photos any client has sent as their picks, for the heart on the gallery.
-  const clientPicked = useMemo(
-    () =>
-      new Set(
-        (pickSessions.data ?? [])
-          .filter((session) => session.status === "SUBMITTED")
-          .flatMap((session) => session.pickedPhotoIds),
-      ),
-    [pickSessions.data],
-  );
+  // What each client sent, kept apart; the gallery hearts one client's picks or everyone's.
+  const clientSelections = useMemo(() => submittedSelections(pickSessions.data), [pickSessions.data]);
+  const [picksBy, setPicksBy] = useState<string>(ALL_CLIENTS);
+  const clientPicked = useMemo(() => picksOf(clientSelections, picksBy), [clientSelections, picksBy]);
 
   const workflow = shootWorkflow({
     uploaded: uploadedCount,
@@ -305,6 +300,9 @@ export function ProjectPage() {
                     photos={photos.data ?? []}
                     analyses={analyses.data ?? []}
                     clientPicked={clientPicked}
+                    clientSelections={clientSelections}
+                    picksBy={picksBy}
+                    onPicksByChange={setPicksBy}
                     view={photoView}
                     onViewChange={setPhotoView}
                   />
