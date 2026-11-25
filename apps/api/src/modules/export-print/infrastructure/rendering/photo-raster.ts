@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { focusedBaseCrop, isUntouchedCrop, type PhotoFocus } from "@albumflow/contracts";
+import { focusedBaseCrop, isUntouchedCrop, rotatedFocus, type PhotoFocus } from "@albumflow/contracts";
 import type { PhotoResolver, RenderableCrop, RenderablePlacement } from "../../application/ports/album-pdf-renderer";
 
 export function cropRegion(
@@ -50,10 +50,21 @@ export async function rasterisePhoto(
   const source = await photos.resolve(placement.photoId);
   if (!source) return undefined;
 
-  const image = sharp(Buffer.from(source), { failOn: "none" }).rotate();
-  const metadata = await image.metadata();
-  const sourceWidth = metadata.width ?? 0;
-  const sourceHeight = metadata.height ?? 0;
+  // Upright from the camera's orientation tag first, then the photographer's own turn. A
+  // sharp pipeline takes a single rotation, so a turned photo is made upright in a pass of its own.
+  const upright = sharp(Buffer.from(source), { failOn: "none" }).rotate();
+  const image = placement.rotation
+    ? sharp(await upright.toBuffer(), { failOn: "none" }).rotate(placement.rotation)
+    : upright;
+  const metadata = await sharp(Buffer.from(source), { failOn: "none" }).metadata();
+  // Metadata describes the stored file: swap for the camera's sideways tags and for a quarter turn.
+  const sideways = (metadata.orientation ?? 1) >= 5;
+  const quarter = placement.rotation === 90 || placement.rotation === 270;
+  const storedWidth = metadata.width ?? 0;
+  const storedHeight = metadata.height ?? 0;
+  const turned = sideways !== quarter;
+  const sourceWidth = turned ? storedHeight : storedWidth;
+  const sourceHeight = turned ? storedWidth : storedHeight;
   if (sourceWidth === 0 || sourceHeight === 0) return undefined;
 
   const width = Math.max(1, size.width);
@@ -61,7 +72,7 @@ export async function rasterisePhoto(
   // A crop nobody framed by hand centres on the photo's subject — the very rect the
   // editor and the client proof draw for it, so print matches what was approved.
   const crop = isUntouchedCrop(placement.crop)
-    ? focusedBaseCrop(sourceWidth / sourceHeight, width / height, focus)
+    ? focusedBaseCrop(sourceWidth / sourceHeight, width / height, rotatedFocus(focus, placement.rotation) ?? undefined)
     : placement.crop;
 
   const pipeline = image

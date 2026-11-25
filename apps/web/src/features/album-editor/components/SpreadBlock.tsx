@@ -5,6 +5,7 @@ import type {
   Crop,
   LayoutTemplateDTO,
   PhotoFocus,
+  PhotoRotation,
   PhotoTreatment,
   SlotFrame,
   TextBlockDTO,
@@ -53,6 +54,7 @@ export interface SpreadBlockProps {
   onSlotDrop: (spreadIndex: number, slotId: string, photoId: string) => void;
   onCropChange: (spreadIndex: number, slotId: string, crop: Crop, commit: boolean) => void;
   onTreatmentChange: (spreadIndex: number, slotId: string, treatment: PhotoTreatment) => void;
+  onRotationChange: (spreadIndex: number, slotId: string, rotation: PhotoRotation) => void;
   onFrameChange: (spreadIndex: number, slotId: string, frame: SlotFrame, commit: boolean) => void;
   onFramesChange: (spreadIndex: number, frames: { slotId: string; frame: SlotFrame }[], commit: boolean) => void;
   onMirror: (spreadIndex: number) => void;
@@ -127,6 +129,7 @@ export const SpreadBlock = memo(function SpreadBlock({
   onSlotDrop,
   onCropChange,
   onTreatmentChange,
+  onRotationChange,
   onFrameChange,
   onFramesChange,
   onMirror,
@@ -163,6 +166,10 @@ export const SpreadBlock = memo(function SpreadBlock({
   const treatmentChange = useCallback(
     (slotId: string, treatment: PhotoTreatment) => onTreatmentChange(spreadIndex, slotId, treatment),
     [onTreatmentChange, spreadIndex],
+  );
+  const rotationChange = useCallback(
+    (slotId: string, rotation: PhotoRotation) => onRotationChange(spreadIndex, slotId, rotation),
+    [onRotationChange, spreadIndex],
   );
   const frameChange = useCallback(
     (slotId: string, frame: SlotFrame, commit: boolean) => onFrameChange(spreadIndex, slotId, frame, commit),
@@ -398,6 +405,7 @@ export const SpreadBlock = memo(function SpreadBlock({
           onSlotDrop={locked ? undefined : slotDrop}
           onCropChange={locked ? undefined : cropChange}
           onTreatmentChange={locked ? undefined : treatmentChange}
+          onRotationChange={locked ? undefined : rotationChange}
           onFrameChange={layoutLocked ? undefined : frameChange}
           onFramesChange={layoutLocked ? undefined : framesChange}
           onReorderPlacement={locked ? undefined : reorderPlacement}

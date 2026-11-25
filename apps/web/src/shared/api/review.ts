@@ -4,6 +4,7 @@ import type {
   ClientBrandingDTO,
   Crop,
   PhotoFocus,
+  PhotoRotation,
   PhotoTreatment,
   SlotFrame,
   TextBlockDTO,
@@ -61,6 +62,7 @@ export interface ReviewView {
         crop?: Crop;
         treatment?: PhotoTreatment;
         frame?: SlotFrame;
+        rotation?: PhotoRotation;
         focus?: PhotoFocus | null;
       }[];
     }[];

@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { MAX_ZOOM, baseCrop, clampCrop, cropToStyle, pannedCrop, withZoom, zoomOf } from "./crop-geometry";
+import {
+  MAX_ZOOM,
+  baseCrop,
+  clampCrop,
+  cropToStyle,
+  fitCropToSlot,
+  pannedCrop,
+  withZoom,
+  zoomOf,
+} from "./crop-geometry";
 
 const FULL = { x: 0, y: 0, width: 1, height: 1 };
 
@@ -119,5 +128,47 @@ describe("clampCrop", () => {
     assert.ok(clamped.x + clamped.width <= 1 + 1e-9);
     assert.equal(clamped.y, 0);
     assert.ok(clamped.height >= 0.05);
+  });
+});
+
+describe("fitCropToSlot: a crop saved for another slot shape", () => {
+  const imageAspect = 1.5;
+
+  it("leaves a crop already in the slot's shape alone", () => {
+    const crop = withZoom(baseCrop(imageAspect, 1), 2, imageAspect, 1);
+    assert.deepEqual(fitCropToSlot(crop, imageAspect, 1), crop);
+  });
+
+  it("prints the centred slot-shaped part of a crop when the slot got wider, as the export does", () => {
+    // Zoomed 2x in a square slot, then the slot is stretched to 2:1.
+    const crop = withZoom(baseCrop(imageAspect, 1), 2, imageAspect, 1);
+    const fitted = fitCropToSlot(crop, imageAspect, 2);
+    assert.ok(Math.abs((fitted.width * imageAspect) / fitted.height - 2) < 1e-9);
+    assert.ok(Math.abs(fitted.width - crop.width) < 1e-9);
+    assert.ok(fitted.height < crop.height);
+    // Same centre: the subject stays where the photographer put it.
+    assert.ok(Math.abs(fitted.y + fitted.height / 2 - (crop.y + crop.height / 2)) < 1e-9);
+    assert.ok(Math.abs(fitted.x + fitted.width / 2 - (crop.x + crop.width / 2)) < 1e-9);
+  });
+
+  it("does the same when the slot got taller", () => {
+    const crop = withZoom(baseCrop(imageAspect, 1), 1.5, imageAspect, 1);
+    const fitted = fitCropToSlot(crop, imageAspect, 0.5);
+    assert.ok(Math.abs((fitted.width * imageAspect) / fitted.height - 0.5) < 1e-9);
+    assert.ok(Math.abs(fitted.height - crop.height) < 1e-9);
+    assert.ok(fitted.width < crop.width);
+  });
+
+  it("draws a reshaped crop with the photo covering the whole slot", () => {
+    const crop = withZoom(baseCrop(imageAspect, 1), 3, imageAspect, 1);
+    for (const slotAspect of [0.4, 0.8, 2.5]) {
+      const style = cropToStyle(fitCropToSlot(crop, imageAspect, slotAspect), imageAspect, slotAspect);
+      const [left, top, width, height] = [style.left, style.top, style.width, style.height].map(parseFloat);
+      assert.ok(left! <= 1e-6 && top! <= 1e-6, `slot ${slotAspect}: starts inside`);
+      assert.ok(
+        left! + width! >= 100 - 1e-6 && top! + height! >= 100 - 1e-6,
+        `slot ${slotAspect}: reaches the far edges`,
+      );
+    }
   });
 });

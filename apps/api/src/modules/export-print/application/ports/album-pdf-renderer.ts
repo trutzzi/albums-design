@@ -22,6 +22,8 @@ export interface RenderablePlacement {
   treatment: "COLOR" | "BLACK_WHITE";
   /** Overrides the template slot rectangle when the photographer resized it. */
   frame?: RenderableFrame | undefined;
+  /** Quarter turns clockwise; the crop is in the turned photo's coordinates. */
+  rotation?: 0 | 90 | 180 | 270 | undefined;
 }
 
 export interface RenderableSpread {

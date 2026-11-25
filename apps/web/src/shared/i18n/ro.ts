@@ -1070,6 +1070,8 @@ export const ro: Record<string, string> = {
   "spread.unknownLayout": "Aspect necunoscut",
   "spread.zoom": "Zoom",
   "spread.bwToggle.title": "Alb-negru",
+  "spread.rotate": "Rotește",
+  "spread.rotate.title": "Rotește fotografia un sfert de tură spre dreapta",
   "spread.resetFraming.title": "Resetează încadrarea",
   "spread.resetFraming": "Resetează",
   "spread.removePhoto": "Șterge",

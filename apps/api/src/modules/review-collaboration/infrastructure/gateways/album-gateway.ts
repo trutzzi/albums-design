@@ -60,6 +60,7 @@ export class AlbumCompositionGateway implements AlbumGateway {
           crop: placement.crop,
           treatment: placement.treatment ?? "COLOR",
           frame: placement.frame,
+          rotation: placement.rotation,
           focus: focus?.get(placement.photoId) ?? null,
           previewUrl: previewOf(placement.photoId),
         })),
