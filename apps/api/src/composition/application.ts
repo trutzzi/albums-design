@@ -5,6 +5,7 @@ import { buildExportPrintModule } from "./export-print.module";
 import { buildAlbumCompositionModule } from "./album-composition.module";
 import { buildMediaIngestionModule } from "./media-ingestion.module";
 import { buildReviewCollaborationModule } from "./review-collaboration.module";
+import { DeletedPhotoGuard } from "../modules/media-ingestion/application/services/deleted-photo-guard";
 import { buildPlatformAdminModule } from "./platform-admin.module";
 
 /**
@@ -42,6 +43,8 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     resourceOwnership: infra.resourceOwnership,
     projects: repos.projects,
     photos: repos.photos,
+    /** Lets a photo job finish quietly when its photo was deleted meanwhile. */
+    deletedPhotoGuard: new DeletedPhotoGuard(repos.photos),
     administration: identity.administration,
     register: identity.register,
     login: identity.login,
