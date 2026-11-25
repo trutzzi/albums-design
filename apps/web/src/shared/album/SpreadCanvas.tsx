@@ -18,7 +18,16 @@ import {
   type TextBlockDTO,
 } from "@albumflow/contracts";
 import { SpreadTexts } from "./SpreadTexts";
-import { MAX_ZOOM, MIN_ZOOM, cropToStyle, fitCropToSlot, pannedCrop, withZoom, zoomOf } from "./crop-geometry";
+import {
+  MAX_ZOOM,
+  MIN_ZOOM,
+  cropToStyle,
+  fitCropToSlot,
+  pannedCrop,
+  turnedImageStyle,
+  withZoom,
+  zoomOf,
+} from "./crop-geometry";
 import {
   RESIZE_CORNERS,
   collectPrintGuideTargets,
@@ -488,35 +497,14 @@ export const SpreadCanvas = memo(function SpreadCanvas({
               }
             >
               {url ? (
-                (() => {
-                  const image = (imageStyle: React.CSSProperties | undefined) => (
-                    <img
-                      src={url}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      draggable={false}
-                      className={treatment === "BLACK_WHITE" ? "is-monochrome" : undefined}
-                      style={imageStyle}
-                      onLoad={(event) =>
-                        placement &&
-                        rememberAspect(
-                          placement.photoId,
-                          event.currentTarget.naturalWidth,
-                          event.currentTarget.naturalHeight,
-                        )
-                      }
-                    />
-                  );
-                  // A turned photo: the box takes the turned photo's place, and the image
-                  // inside it is drawn the other way round and spun to fill it.
-                  if (!rotation || !style || imageAspect === undefined) return image(style);
-                  return (
-                    <span className="slot__turned" style={style}>
-                      {image(turnedImageStyle(rotation, imageAspect))}
-                    </span>
-                  );
-                })()
+                <SlotPhoto
+                  url={url}
+                  monochrome={treatment === "BLACK_WHITE"}
+                  cropStyle={style}
+                  rotation={rotation}
+                  turnedAspect={imageAspect}
+                  onNaturalSize={(width, height) => placement && rememberAspect(placement.photoId, width, height)}
+                />
               ) : (
                 <span className="slot__empty">{t(`spread.slot.${slot.prefers.toLowerCase()}`)}</span>
               )}
@@ -835,16 +823,40 @@ export const SpreadCanvas = memo(function SpreadCanvas({
 });
 
 /**
- * Inside a box shaped like the turned photo (aspect `turnedAspect`), the image as stored:
- * for a quarter turn its width and height swap, then it is spun about the box's centre.
+ * One placed photo. A turned photo is drawn inside a box that takes the turned photo's
+ * place, with the image as stored spun to fill it.
  */
-export function turnedImageStyle(rotation: PhotoRotation, turnedAspect: number): React.CSSProperties {
-  const quarter = rotation === 90 || rotation === 270;
-  return {
-    left: "50%",
-    top: "50%",
-    width: quarter ? `${100 / turnedAspect}%` : "100%",
-    height: quarter ? `${100 * turnedAspect}%` : "100%",
-    transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
-  };
+function SlotPhoto({
+  url,
+  monochrome,
+  cropStyle,
+  rotation,
+  turnedAspect,
+  onNaturalSize,
+}: {
+  url: string;
+  monochrome: boolean;
+  cropStyle: React.CSSProperties | undefined;
+  rotation: PhotoRotation | undefined;
+  turnedAspect: number | undefined;
+  onNaturalSize: (width: number, height: number) => void;
+}) {
+  const image = (style: React.CSSProperties | undefined) => (
+    <img
+      src={url}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+      className={monochrome ? "is-monochrome" : undefined}
+      style={style}
+      onLoad={(event) => onNaturalSize(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)}
+    />
+  );
+  if (!rotation || !cropStyle || turnedAspect === undefined) return image(cropStyle);
+  return (
+    <span className="slot__turned" style={cropStyle}>
+      {image(turnedImageStyle(rotation, turnedAspect))}
+    </span>
+  );
 }

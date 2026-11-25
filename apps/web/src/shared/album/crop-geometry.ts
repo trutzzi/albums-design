@@ -1,4 +1,4 @@
-import type { Crop } from "@albumflow/contracts";
+import type { Crop, PhotoRotation } from "@albumflow/contracts";
 
 /**
  * The crop rect is expressed in the source photo's own normalised coordinates, and
@@ -111,4 +111,22 @@ export function cropToStyle(crop: Crop, imageAspect: number, slotAspect: number)
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * Inside a box shaped like the turned photo (width ÷ height `turnedAspect`), the image as
+ * stored: for a quarter turn its width and height swap, then it spins about the box's centre.
+ */
+export function turnedImageStyle(
+  rotation: PhotoRotation,
+  turnedAspect: number,
+): { left: string; top: string; width: string; height: string; transform: string } {
+  const quarter = rotation === 90 || rotation === 270;
+  return {
+    left: "50%",
+    top: "50%",
+    width: quarter ? `${100 / turnedAspect}%` : "100%",
+    height: quarter ? `${100 * turnedAspect}%` : "100%",
+    transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+  };
 }

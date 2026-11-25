@@ -50,22 +50,17 @@ export async function rasterisePhoto(
   const source = await photos.resolve(placement.photoId);
   if (!source) return undefined;
 
-  // Upright from the camera's orientation tag first, then the photographer's own turn. A
-  // sharp pipeline takes a single rotation, so a turned photo is made upright in a pass of its own.
-  const upright = sharp(Buffer.from(source), { failOn: "none" }).rotate();
-  const image = placement.rotation
-    ? sharp(await upright.toBuffer(), { failOn: "none" }).rotate(placement.rotation)
-    : upright;
-  const metadata = await sharp(Buffer.from(source), { failOn: "none" }).metadata();
-  // Metadata describes the stored file: swap for the camera's sideways tags and for a quarter turn.
-  const sideways = (metadata.orientation ?? 1) >= 5;
+  // Upright from the camera's orientation tag first, then the photographer's own turn, in one
+  // decode. The crop is cut after both, so it is measured on the photo as it is shown.
+  const image = sharp(Buffer.from(source), { failOn: "none" }).autoOrient();
+  if (placement.rotation) image.rotate(placement.rotation);
+  const metadata = await image.metadata();
+  // `autoOrient` holds the upright size; the file's own width and height may be sideways.
+  const upright = metadata.autoOrient ?? { width: metadata.width ?? 0, height: metadata.height ?? 0 };
   const quarter = placement.rotation === 90 || placement.rotation === 270;
-  const storedWidth = metadata.width ?? 0;
-  const storedHeight = metadata.height ?? 0;
-  const turned = sideways !== quarter;
-  const sourceWidth = turned ? storedHeight : storedWidth;
-  const sourceHeight = turned ? storedWidth : storedHeight;
-  if (sourceWidth === 0 || sourceHeight === 0) return undefined;
+  const sourceWidth = quarter ? upright.height : upright.width;
+  const sourceHeight = quarter ? upright.width : upright.height;
+  if (!sourceWidth || !sourceHeight) return undefined;
 
   const width = Math.max(1, size.width);
   const height = Math.max(1, size.height);

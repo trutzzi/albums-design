@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import sharp from "sharp";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
-import { nextRotation, rotatedAspect, rotatedFocus } from "@albumflow/contracts";
+import { albumEditSchema, nextRotation, rotatedAspect, rotatedFocus } from "@albumflow/contracts";
 import { Album } from "../src/modules/album-composition/domain/album";
 import { rasterisePhoto } from "../src/modules/export-print/infrastructure/rendering/photo-raster";
+import { EditAlbumUseCase } from "../src/modules/album-composition/application/use-cases/edit-album/edit-album.use-case";
+import { InMemoryAlbumRepository } from "./support/in-memory";
 
 const FULL = { x: 0, y: 0, width: 1, height: 1 };
 const ZOOMED = { x: 0.2, y: 0.1, width: 0.5, height: 0.5 };
@@ -117,6 +119,36 @@ describe("Album.setRotation", () => {
     a.setRotation(0, "left", 90);
     a.swapPhoto(0, "left", "photo-c");
     assert.equal("rotation" in placementOf(a, "left"), false);
+  });
+});
+
+describe("rotating through the edit use case", () => {
+  it("turns a photo, and undo brings back both the turn and the crop cut from the turned photo", async () => {
+    const albums = new InMemoryAlbumRepository();
+    const subject = album();
+    await albums.save(subject);
+    const edit = new EditAlbumUseCase(albums);
+    const id = subject.id.toString();
+    const run = async (command: unknown) =>
+      assert.ok((await edit.execute(id, albumEditSchema.parse(command))).isSuccess);
+
+    await run({ type: "SET_ROTATION", spreadIndex: 0, slotId: "left", rotation: 90 });
+    await run({ type: "SET_CROP", spreadIndex: 0, slotId: "left", crop: ZOOMED });
+    const snapshot = structuredClone([...(await albums.findById(subject.id))!.spreads]);
+
+    await run({ type: "SET_ROTATION", spreadIndex: 0, slotId: "left", rotation: 180 });
+    await run({ type: "RESTORE_SPREADS", spreads: snapshot });
+
+    const restored = placementOf((await albums.findById(subject.id))!, "left");
+    assert.equal(restored.rotation, 90);
+    assert.deepEqual(restored.crop, ZOOMED);
+  });
+
+  it("refuses anything but a quarter turn", () => {
+    assert.equal(
+      albumEditSchema.safeParse({ type: "SET_ROTATION", spreadIndex: 0, slotId: "left", rotation: 45 }).success,
+      false,
+    );
   });
 });
 

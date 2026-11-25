@@ -146,6 +146,8 @@ function apply(album: Album, command: AlbumEditCommand): void {
             crop: placement.crop,
             treatment: placement.treatment,
             ...(placement.frame ? { frame: placement.frame } : {}),
+            // Undo and redo restore the turn too: the crop was cut from the turned photo.
+            ...(placement.rotation ? { rotation: placement.rotation } : {}),
           })),
           ...(spread.texts ? { texts: spread.texts.map(withoutUndefinedFont) } : {}),
           ...(spread.locked ? { locked: true } : {}),

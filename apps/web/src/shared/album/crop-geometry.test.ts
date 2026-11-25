@@ -7,6 +7,7 @@ import {
   cropToStyle,
   fitCropToSlot,
   pannedCrop,
+  turnedImageStyle,
   withZoom,
   zoomOf,
 } from "./crop-geometry";
@@ -170,5 +171,21 @@ describe("fitCropToSlot: a crop saved for another slot shape", () => {
         `slot ${slotAspect}: reaches the far edges`,
       );
     }
+  });
+});
+
+describe("turnedImageStyle: the stored image inside a turned photo's box", () => {
+  it("swaps the sides for a quarter turn, so the spun image exactly fills the box", () => {
+    // Box 2:3 (a landscape photo turned upright): the stored image is 3:2 inside it.
+    const style = turnedImageStyle(90, 2 / 3);
+    assert.equal(pct(style.width), 150);
+    assert.ok(Math.abs(pct(style.height) - 200 / 3) < 1e-9);
+    assert.equal(style.transform, "translate(-50%, -50%) rotate(90deg)");
+  });
+
+  it("keeps the sides for a half turn", () => {
+    const style = turnedImageStyle(180, 1.5);
+    assert.deepEqual([style.width, style.height], ["100%", "100%"]);
+    assert.match(style.transform, /rotate\(180deg\)/);
   });
 });

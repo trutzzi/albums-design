@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { spacedSlotRect, type AlbumDTO, type AlbumStyleDTO, type LayoutTemplateDTO } from "@albumflow/contracts";
+import { turnedImageStyle } from "@/shared/album/crop-geometry";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
 
 type Spread = AlbumDTO["spreads"][number];
@@ -128,7 +129,6 @@ export const PageStrip = memo(function PageStrip({
                   const rotation = placement?.rotation;
                   // A turned photo is drawn on an inner layer with the slot's sides swapped, then spun.
                   const slotAspect = (rect.width * aspectRatio) / rect.height;
-                  const quarter = rotation === 90 || rotation === 270;
                   return (
                     <span
                       key={slot.id}
@@ -146,12 +146,7 @@ export const PageStrip = memo(function PageStrip({
                       {url && rotation ? (
                         <span
                           className="page-strip__turned"
-                          style={{
-                            width: quarter ? `${100 / slotAspect}%` : "100%",
-                            height: quarter ? `${100 * slotAspect}%` : "100%",
-                            transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
-                            backgroundImage: `url("${url}")`,
-                          }}
+                          style={{ ...turnedImageStyle(rotation, slotAspect), backgroundImage: `url("${url}")` }}
                         />
                       ) : null}
                     </span>
