@@ -105,17 +105,40 @@ describe("RequeueUnfinishedPhotosUseCase: photos stuck in processing", () => {
     assert.equal(w.jobs.jobs.length, 0);
   });
 
-  it("gives up on a photo after three tries, and says so once as an error", async () => {
+  it("gives up on a photo after three tries: marks it failed so the photographer sees it, says so once", async () => {
     const w = world();
-    await w.add("broken.jpg");
+    const broken = await w.add("broken.jpg");
     for (let run = 0; run < 3; run++) assert.equal((await w.requeue.execute()).requeued, 1);
 
     const fourth = await w.requeue.execute();
     const fifth = await w.requeue.execute();
 
-    assert.deepEqual([fourth.requeued, fourth.givenUp, fifth.givenUp], [0, 1, 1]);
+    assert.deepEqual([fourth.requeued, fourth.givenUp, fifth.requeued, fifth.givenUp], [0, 1, 0, 0]);
+    // Failed is stored, so a restart does not start the cycle again.
+    assert.equal((await w.photos.findById(broken.id))?.status, "FAILED");
     const errors = w.logger.entries.filter((entry) => entry.level === "error");
     assert.equal(errors.length, 1);
     assert.deepEqual(errors[0]?.context, { count: 1, photos: ["broken.jpg"] });
+  });
+
+  it("never lets given-up photos crowd newer stuck ones out of a run", async () => {
+    const w = world();
+    await w.add("analysed-but-no-previews.jpg", { status: "ANALYSED", ageHours: 10 });
+    for (let run = 0; run < 4; run++) await w.requeue.execute({ limit: 1 });
+    const fresh = await w.add("fresh-stuck.jpg", { ageHours: 1 });
+    w.jobs.jobs.length = 0;
+
+    const summary = await w.requeue.execute({ limit: 1 });
+
+    assert.equal(summary.requeued, 1);
+    assert.deepEqual(w.queued(QUEUES.mediaIngestion), [fresh.id.toString()]);
+  });
+
+  it("says how many were analysed with the built-in analysis", async () => {
+    const w = world();
+    await w.add("a.jpg");
+    await w.add("b.jpg", { status: "ANALYSED" });
+    await w.requeue.execute();
+    assert.deepEqual(w.logger.problems[0]?.context, { count: 2, analysedWithBuiltIn: 1 });
   });
 });

@@ -8,7 +8,7 @@ export interface RequeueSummary {
   requeued: number;
   /** True when the queues still held jobs, so nothing was judged lost. */
   queuesBusy: boolean;
-  /** Photos re-queued too often already; reported, not queued again. */
+  /** Photos re-queued too often, given up on in this run: marked failed and reported once. */
   givenUp: number;
 }
 
@@ -26,6 +26,7 @@ const MAX_REQUEUES = 3;
  */
 export class RequeueUnfinishedPhotosUseCase {
   private readonly requeues = new Map<string, number>();
+  private readonly givenUp = new Set<string>();
 
   constructor(
     private readonly photos: PhotoRepository,
@@ -42,25 +43,34 @@ export class RequeueUnfinishedPhotosUseCase {
     if (pending > 0) return { requeued: 0, queuesBusy: true, givenUp: 0 };
 
     const cutoff = new Date(this.now().getTime() - this.graceMs);
-    const unfinished = await this.photos.findUnfinishedProcessing(cutoff, options.limit ?? 1000);
+    const limit = options.limit ?? 1000;
+    // Asks for enough extra to look past photos already given up on, so they never crowd out newer ones.
+    const unfinished = (await this.photos.findUnfinishedProcessing(cutoff, limit + this.givenUp.size))
+      .filter((photo) => !this.givenUp.has(photo.id.toString()))
+      .slice(0, limit);
     const summary: RequeueSummary = { requeued: 0, queuesBusy: false, givenUp: 0 };
-    const givenUp: string[] = [];
+    const givenUpNow: string[] = [];
+    let builtInAnalysis = 0;
 
     for (const photo of unfinished) {
       const id = photo.id.toString();
+      const needsAnalysis = photo.status === "UPLOADED" || photo.status === "ANALYSIS_QUEUED";
       const tries = this.requeues.get(id) ?? 0;
       if (tries >= MAX_REQUEUES) {
+        // Marked failed, the photo shows as such with the shoot's "retry" button, and the mark
+        // survives a restart, where a count kept here would not. A photo missing only its
+        // display copies has no failed state of its own; it is left out for this process's life.
+        if (needsAnalysis) await this.photos.updateStatusIf(photo.id, ["UPLOADED", "ANALYSIS_QUEUED"], "FAILED");
+        this.givenUp.add(id);
+        givenUpNow.push(photo.fileName);
         summary.givenUp++;
-        // Reported once, not on every run after.
-        if (tries === MAX_REQUEUES) givenUp.push(photo.fileName);
-        this.requeues.set(id, MAX_REQUEUES + 1);
         continue;
       }
       this.requeues.set(id, tries + 1);
       if (!photo.hasDerivatives) {
         await this.jobs.enqueue(QUEUES.mediaIngestion, "generate-derivatives", { photoId: id });
       }
-      if (photo.status === "UPLOADED" || photo.status === "ANALYSIS_QUEUED") {
+      if (needsAnalysis) {
         // Whether AI was chosen at upload is not stored; the built-in analysis always works.
         await this.jobs.enqueue(QUEUES.photoIntelligence, "analyze-photo", {
           photoId: id,
@@ -69,18 +79,23 @@ export class RequeueUnfinishedPhotosUseCase {
           mimeType: photo.mimeType,
           useAi: false,
         });
+        builtInAnalysis++;
       }
       summary.requeued++;
     }
 
     if (summary.requeued > 0) {
-      this.logger.warn("photos had lost their processing jobs; queued them again", { count: summary.requeued });
+      this.logger.warn("photos had lost their processing jobs; queued them again", {
+        count: summary.requeued,
+        // Said plainly, since a photo uploaded with AI analysis gets the built-in one this time.
+        analysedWithBuiltIn: builtInAnalysis,
+      });
     }
-    if (givenUp.length > 0) {
+    if (givenUpNow.length > 0) {
       // Queued several times and still not finished: something about these photos needs a look.
-      this.logger.error("photos never finish processing, even after being queued again", {
-        count: givenUp.length,
-        photos: givenUp.slice(0, 20),
+      this.logger.error("photos never finish processing, even after being queued again; marked failed", {
+        count: givenUpNow.length,
+        photos: givenUpNow.slice(0, 20),
       });
     }
     return summary;
