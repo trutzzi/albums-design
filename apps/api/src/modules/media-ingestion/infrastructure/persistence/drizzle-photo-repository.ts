@@ -107,6 +107,18 @@ export class DrizzlePhotoRepository implements PhotoRepository {
     return rows.map((row) => this.toDomain(row));
   }
 
+  async findAwaitingLongTermStorage(limit: number): Promise<Photo[]> {
+    const rows = await this.db
+      .select()
+      .from(photos)
+      .where(
+        and(ne(photos.status, "PENDING_UPLOAD"), isNull(photos.fullResStoredAt), isNull(photos.stagedOriginalPurgedAt)),
+      )
+      .orderBy(asc(photos.createdAt))
+      .limit(limit);
+    return rows.map((row) => this.toDomain(row));
+  }
+
   async findUploadedDuplicate(
     projectId: UniqueEntityId,
     fileName: string,
@@ -126,18 +138,6 @@ export class DrizzlePhotoRepository implements PhotoRepository {
       )
       .limit(1);
     return row ? this.toDomain(row) : undefined;
-  }
-
-  async findAwaitingLongTermStorage(limit: number): Promise<Photo[]> {
-    const rows = await this.db
-      .select()
-      .from(photos)
-      .where(
-        and(ne(photos.status, "PENDING_UPLOAD"), isNull(photos.fullResStoredAt), isNull(photos.stagedOriginalPurgedAt)),
-      )
-      .orderBy(asc(photos.createdAt))
-      .limit(limit);
-    return rows.map((row) => this.toDomain(row));
   }
 
   async countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, ShootPhotoCounts>> {

@@ -130,6 +130,16 @@ export class InMemoryPhotoRepository implements PhotoRepository {
   async markStagedOriginalPurged(id: UniqueEntityId, at: Date) {
     await this.mutate(id, (photo) => photo.markStagedOriginalPurged(at));
   }
+  async findUploadedDuplicate(projectId: UniqueEntityId, fileName: string, byteSize: number) {
+    const found = [...this.items.values()].find(
+      (photo) =>
+        photo.projectId.toString() === projectId.toString() &&
+        photo.fileName === fileName &&
+        photo.byteSize === byteSize &&
+        photo.status !== "PENDING_UPLOAD",
+    );
+    return found ? clonePhoto(found) : undefined;
+  }
   async countByProjectIds(projectIds: UniqueEntityId[]) {
     const wanted = new Set(projectIds.map((id) => id.toString()));
     const counts: Record<string, ShootPhotoCounts> = {};
@@ -169,16 +179,6 @@ export class InMemoryPhotoRepository implements PhotoRepository {
       .sort((a, b) => a.fullResStoredAt!.getTime() - b.fullResStoredAt!.getTime())
       .slice(0, limit)
       .map(clonePhoto);
-  }
-  async findUploadedDuplicate(projectId: UniqueEntityId, fileName: string, byteSize: number) {
-    const found = [...this.items.values()].find(
-      (photo) =>
-        photo.projectId.toString() === projectId.toString() &&
-        photo.fileName === fileName &&
-        photo.byteSize === byteSize &&
-        photo.status !== "PENDING_UPLOAD",
-    );
-    return found ? clonePhoto(found) : undefined;
   }
   async findAwaitingLongTermStorage(limit: number) {
     return [...this.items.values()]
