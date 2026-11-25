@@ -1,8 +1,9 @@
 import { Queue } from "bullmq";
 import type { ConnectionOptions } from "bullmq";
 import type { JobQueue } from "../../application/ports/job-queue";
+import type { QueueBacklog } from "#src/shared-kernel/job-queue";
 
-export class BullMqJobQueue implements JobQueue {
+export class BullMqJobQueue implements JobQueue, QueueBacklog {
   private readonly queues = new Map<string, Queue>();
 
   constructor(private readonly connection: ConnectionOptions) {}
@@ -27,6 +28,11 @@ export class BullMqJobQueue implements JobQueue {
       removeOnComplete: 500,
       removeOnFail: 1000,
     });
+  }
+
+  async pending(name: string): Promise<number> {
+    const counts = await this.queueFor(name).getJobCounts("waiting", "active", "delayed", "prioritized", "paused");
+    return Object.values(counts).reduce((sum, value) => sum + (value ?? 0), 0);
   }
 
   /** Jobs per state for each named queue — the admin dashboard's backlog view. */

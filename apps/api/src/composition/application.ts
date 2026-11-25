@@ -59,6 +59,8 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     storePending: ingestion.storePending,
     /** Deletes server copies of originals verified long-term. Present only with LONG_TERM_ORIGINALS=all. */
     releaseStaged: ingestion.releaseStaged,
+    /** Queues again the jobs of photos stuck in processing. Present wherever jobs go through Redis. */
+    requeueUnfinished: ingestion.requeueUnfinished,
     purgeExpiredOriginals: ingestion.purgeExpiredOriginals,
     analyses: repos.analyses,
     analyzePhoto: intelligence.analyzePhoto,

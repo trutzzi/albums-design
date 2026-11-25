@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, isNull, lte, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, lte, ne, notInArray, or, sql } from "drizzle-orm";
 import { UniqueEntityId } from "@albumflow/domain-kernel";
 import type { Database } from "#src/db/client";
 import type { PhotoRepository, ShootPhotoCounts } from "../../domain/photo-repository";
@@ -103,6 +103,23 @@ export class DrizzlePhotoRepository implements PhotoRepository {
         ),
       )
       .orderBy(asc(photos.fullResStoredAt))
+      .limit(limit);
+    return rows.map((row) => this.toDomain(row));
+  }
+
+  async findUnfinishedProcessing(uploadedBefore: Date, limit: number): Promise<Photo[]> {
+    const rows = await this.db
+      .select()
+      .from(photos)
+      .where(
+        and(
+          notInArray(photos.status, ["PENDING_UPLOAD", "FAILED"]),
+          isNull(photos.stagedOriginalPurgedAt),
+          lte(photos.createdAt, uploadedBefore),
+          or(inArray(photos.status, ["UPLOADED", "ANALYSIS_QUEUED"]), eq(photos.hasDerivatives, false)),
+        ),
+      )
+      .orderBy(asc(photos.createdAt))
       .limit(limit);
     return rows.map((row) => this.toDomain(row));
   }

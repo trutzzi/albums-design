@@ -83,6 +83,7 @@ export function buildInfrastructure(env: Env, service: "api" | "worker") {
     storage,
     redisConnection,
     jobQueue,
+    queueBacklog: jobQueue,
     errorLog,
     permanentStorage,
     mediaUrlSigner,

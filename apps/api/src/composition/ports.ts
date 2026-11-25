@@ -1,7 +1,7 @@
 import type { Env } from "../shared-kernel/env";
 import type { Logger } from "../shared-kernel/logger";
 import type { EmailSender } from "../shared-kernel/email";
-import type { JobQueue } from "../shared-kernel/job-queue";
+import type { JobQueue, QueueBacklog } from "../shared-kernel/job-queue";
 import type { StorageProvider } from "../shared-kernel/storage-provider";
 import type { ResourceOwnership } from "../interface/tenancy";
 import type { ObjectStorageWithBody } from "../modules/media-ingestion/application/ports/object-storage";
@@ -60,6 +60,8 @@ export interface ModuleInfrastructure {
   /** Staging storage for uploads and display copies. */
   storage: ObjectStorageWithBody;
   jobQueue: JobQueue;
+  /** What the queues still hold; absent where jobs run inline (the demo), so nothing can be lost. */
+  queueBacklog?: QueueBacklog | undefined;
   /** Long-term tier; `undefined` unless a provider is configured. */
   permanentStorage: StorageProvider | undefined;
   /** Reads originals from staging storage (analysis, PDF rendering). */

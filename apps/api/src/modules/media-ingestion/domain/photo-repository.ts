@@ -56,6 +56,12 @@ export interface PhotoRepository {
    */
   findAwaitingLongTermStorage(limit: number): Promise<Photo[]>;
   /**
+   * Uploaded at or before `uploadedBefore` and still not fully processed (no display copies,
+   * or analysis not finished), with the original still staged, oldest first. Failed photos are
+   * left out: they have their own retry.
+   */
+  findUnfinishedProcessing(uploadedBefore: Date, limit: number): Promise<Photo[]>;
+  /**
    * How many photos each shoot has, and how many of those are still being processed, in one
    * query — the shoots list must not load every row to count. Shoots with no photos are absent.
    */
