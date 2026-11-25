@@ -45,6 +45,47 @@ describe("DeletedPhotoGuard: jobs for photos of a deleted shoot", () => {
     assert.deepEqual(result, { photoId: w.id, skipped: "photo deleted" });
   });
 
+  it("removes display copies a job wrote after its photo was deleted", async () => {
+    const photos = new InMemoryPhotoRepository();
+    const photo = Photo.requestUpload({
+      projectId: UniqueEntityId.create(),
+      studioId: UniqueEntityId.create(),
+      fileName: "late.jpg",
+      mimeType: "image/jpeg",
+      byteSize: 100,
+    });
+    await photos.save(photo);
+    const removed: string[] = [];
+    const guard = new DeletedPhotoGuard(photos, async (gone) => void removed.push(gone.id.toString()));
+
+    const result = await guard.run(photo.id.toString(), async () => {
+      // The shoot is deleted while the previews are being written.
+      await photos.delete(photo.id);
+      return { thumbKb: 20 };
+    });
+
+    assert.deepEqual(result, { photoId: photo.id.toString(), skipped: "photo deleted" });
+    assert.deepEqual(removed, [photo.id.toString()]);
+  });
+
+  it("keeps the job's own error when the photo cannot be looked up", async () => {
+    const w = await world();
+    let lookups = 0;
+    const flaky = new DeletedPhotoGuard({
+      findById: async (id: UniqueEntityId) => {
+        lookups++;
+        if (lookups > 1) throw new Error("database is down");
+        return w.photos.findById(id);
+      },
+    } as never);
+    await assert.rejects(
+      flaky.run(w.id, async () => {
+        throw new Error("sharp: corrupt JPEG");
+      }),
+      /corrupt JPEG/,
+    );
+  });
+
   it("still fails the job when the photo exists: a real problem stays an error", async () => {
     const w = await world();
     await assert.rejects(

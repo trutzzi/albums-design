@@ -44,7 +44,11 @@ export function buildApplication(infra: ModuleInfrastructure, repos: Repositorie
     projects: repos.projects,
     photos: repos.photos,
     /** Lets a photo job finish quietly when its photo was deleted meanwhile. */
-    deletedPhotoGuard: new DeletedPhotoGuard(repos.photos),
+    deletedPhotoGuard: new DeletedPhotoGuard(repos.photos, async (photo) => {
+      // Display copies a job wrote after its shoot was deleted, wherever this setup keeps them.
+      const keys = (["thumb", "preview"] as const).map((variant) => photo.storageKey.derivative(variant).toString());
+      await Promise.all(keys.flatMap((key) => [infra.storage.delete(key), infra.permanentStorage?.delete(key)]));
+    }),
     administration: identity.administration,
     register: identity.register,
     login: identity.login,
