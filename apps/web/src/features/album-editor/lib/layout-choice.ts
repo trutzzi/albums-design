@@ -1,7 +1,7 @@
 import type { LayoutSuggestionDTO } from "@albumflow/contracts";
 
 /** How far below the best fit an alternative may score and still be chosen for variety. */
-export const VARIETY_TOLERANCE = 0.15;
+const VARIETY_TOLERANCE = 0.15;
 
 /**
  * The layout for a new or changed spread. The ranking depends only on the photos, so the

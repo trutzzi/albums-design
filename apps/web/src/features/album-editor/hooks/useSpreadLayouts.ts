@@ -49,8 +49,14 @@ export function useSpreadLayouts(options: {
   );
 
   /** The best layout for a photo set on one spread that its neighbours do not already use. */
-  const fitBest = async (spreadIndex: number, photoIds: string[]) => {
-    const neighbours = [album?.spreads[spreadIndex - 1]?.templateId, album?.spreads[spreadIndex + 1]?.templateId];
+  const fitBest = async (
+    spreadIndex: number,
+    photoIds: string[],
+    /** Layouts already decided in the same gesture, by spread index, which the album does not show yet. */
+    planned: ReadonlyMap<number, string> = new Map(),
+  ) => {
+    const templateAt = (index: number) => planned.get(index) ?? album?.spreads[index]?.templateId;
+    const neighbours = [templateAt(spreadIndex - 1), templateAt(spreadIndex + 1)];
     const best = chooseLayout(await suggestionsFor(photoIds), neighbours);
     if (!best) throw new Error(`No layout holds ${photoIds.length} photos.`);
     return { type: "CHANGE_TEMPLATE" as const, spreadIndex, templateId: best.templateId, photoIds: best.photoIds };
@@ -163,7 +169,8 @@ export function useSpreadLayouts(options: {
       // Both rankings load together; fitBest then reads them from the cache.
       await Promise.all([suggestionsFor(remaining), suggestionsFor(grown)]);
       const shrunkEdit = await fitBest(fromSpreadIndex, remaining);
-      const grownEdit = await fitBest(toSpreadIndex, grown);
+      // Next to each other, the second choice must see the first one's new layout.
+      const grownEdit = await fitBest(toSpreadIndex, grown, new Map([[fromSpreadIndex, shrunkEdit.templateId]]));
       // Sequential, not parallel: both edits land on the same album, and the
       // second must build on the first's persisted state, not race it.
       await editAlbum(albumId, shrunkEdit);
