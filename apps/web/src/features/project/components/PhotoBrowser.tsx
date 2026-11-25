@@ -25,8 +25,8 @@ export function PhotoBrowser({
   photos,
   analyses,
   clientPicked,
-  clientSelections = [],
-  picksBy = "all",
+  clientSelections,
+  picksBy,
   onPicksByChange,
   view,
   onViewChange,
@@ -36,9 +36,9 @@ export function PhotoBrowser({
   /** Photos a client has sent as their picks, marked with a heart. */
   clientPicked: Set<string>;
   /** Each client's sent selection; with more than one, the photographer picks whose to show. */
-  clientSelections?: readonly ClientSelection[];
-  picksBy?: string;
-  onPicksByChange?: (sessionId: string) => void;
+  clientSelections: readonly ClientSelection[];
+  picksBy: string;
+  onPicksByChange: (sessionId: string) => void;
   view: PhotoView;
   onViewChange: (view: PhotoView) => void;
 }) {
@@ -121,9 +121,15 @@ export function PhotoBrowser({
                 </button>
               ))}
             </div>
-            {onPicksByChange && (
-              <ClientPicksSelect selections={clientSelections} value={picksBy} onChange={onPicksByChange} />
-            )}
+            <ClientPicksSelect
+              selections={clientSelections}
+              value={picksBy}
+              onChange={(sessionId) => {
+                onPicksByChange(sessionId);
+                // Choosing a client means "show me their picks", as in the editor's tray.
+                onViewChange({ ...view, filter: "picked" });
+              }}
+            />
             <label className="photo-toolbar__sort">
               {t("project.photos.sort")}{" "}
               <select

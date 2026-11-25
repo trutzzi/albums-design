@@ -255,7 +255,7 @@ export const ro: Record<string, string> = {
   "project.photos.filter.picked": "Alese de client ({count})",
   "project.photos.filter.processing": "În procesare ({count})",
   "project.photos.filter.failed": "Analiză eșuată ({count})",
-  "picks.from": "Selecția lui",
+  "picks.from": "Selecții afișate",
   "picks.allClients": "Toți clienții ({count})",
   "picks.oneClient": "{name} ({count})",
   "picks.unnamedClient": "Clientul {number}",
