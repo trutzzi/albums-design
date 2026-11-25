@@ -808,6 +808,9 @@ export const en: Record<string, string> = {
   "project.upload.title": "Uploading photos",
   "project.upload.progress": "{done} of {total} uploaded",
   "project.upload.failed": "{count} failed",
+  "project.upload.skipped": "{count} already in the shoot",
+  "project.upload.skippedNotice":
+    "Skipped {count} already in this shoot (same name and size), so no duplicates were made.",
   "project.upload.keepOpen": "Keep this page open until it finishes.",
   "project.upload.cancelling": "Stopping…",
   "project.upload.cancelledFile": "Cancelled",

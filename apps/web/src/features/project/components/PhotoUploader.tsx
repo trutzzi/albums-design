@@ -111,6 +111,11 @@ export function PhotoUploader({
             {t("project.uploading", { count: upload.inFlight.length, plural: upload.inFlight.length === 1 ? "" : "s" })}
           </p>
         )}
+        {upload.skipped.length > 0 && !upload.batch && (
+          <p className="notice" role="status">
+            {t("project.upload.skippedNotice", { count: upload.skipped.length })}
+          </p>
+        )}
         {upload.failed.length > 0 && (
           <ul className="error-list">
             {upload.failed.map((transfer) => (

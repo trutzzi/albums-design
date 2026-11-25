@@ -34,6 +34,7 @@ import { Skeleton } from "@/shared/ui/Loading";
 import { usePlans } from "@/shared/ui/usePlans";
 import { formatFullDate } from "@/shared/i18n/locale";
 import { shootTypeKey } from "@/features/project/lib/shoot-types";
+import { fileKey } from "@/features/project/lib/upload-queue";
 
 /** The guided tour points at the step tabs, since only the open step's content is on the page. */
 const STEP_TOUR_TARGETS: Record<ShootStep, string | undefined> = {
@@ -141,7 +142,16 @@ export function ProjectPage() {
   const failedAnalysis = (photos.data ?? []).filter((photo) => photo.status === "FAILED").length;
   const albumWorthy = (analyses.data ?? []).filter((analysis) => analysis.albumWorthy).length;
 
-  const upload = usePhotoUpload({ studioId, projectId, useAi, photoLimit, photoCount: uploadedCount });
+  const existingFiles = useMemo(
+    () =>
+      new Set(
+        (photos.data ?? [])
+          .filter((photo) => photo.status !== "PENDING_UPLOAD")
+          .map((photo) => fileKey(photo.fileName, photo.byteSize)),
+      ),
+    [photos.data],
+  );
+  const upload = usePhotoUpload({ studioId, projectId, useAi, photoLimit, photoCount: uploadedCount, existingFiles });
   const albumSize = useAlbumSize();
   const contact = useClientContact(project.data);
 

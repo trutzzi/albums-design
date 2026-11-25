@@ -10,6 +10,7 @@ export function UploadProgress({ batch, onCancel }: { batch: UploadBatch; onCanc
         <h2 id="upload-title">{batch.cancelling ? t("project.upload.cancelling") : t("project.upload.title")}</h2>
         <p className="muted">
           {t("project.upload.progress", { done: batch.done, total: batch.total })}
+          {batch.skipped > 0 && ` · ${t("project.upload.skipped", { count: batch.skipped })}`}
           {batch.failed > 0 && ` · ${t("project.upload.failed", { count: batch.failed })}`}
         </p>
         <div
@@ -17,11 +18,11 @@ export function UploadProgress({ batch, onCancel }: { batch: UploadBatch; onCanc
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={batch.total}
-          aria-valuenow={batch.done + batch.failed}
+          aria-valuenow={batch.done + batch.failed + batch.skipped}
         >
           <div
             className="upload-progress__bar"
-            style={{ width: `${Math.round(((batch.done + batch.failed) / batch.total) * 100)}%` }}
+            style={{ width: `${Math.round(((batch.done + batch.failed + batch.skipped) / batch.total) * 100)}%` }}
           />
         </div>
         <p className="muted">{t("project.upload.keepOpen")}</p>

@@ -14,6 +14,8 @@ export interface PhotoRepository {
   /** Many photos in one query; ids that match nothing are simply absent from the result. */
   findByIds(ids: UniqueEntityId[]): Promise<Photo[]>;
   findByProjectId(projectId: UniqueEntityId): Promise<Photo[]>;
+  /** Whether a finished upload in the shoot has this exact file name and size. */
+  hasUploadedDuplicate(projectId: UniqueEntityId, fileName: string, byteSize: number): Promise<boolean>;
   delete(id: UniqueEntityId): Promise<void>;
 
   /**
