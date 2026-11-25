@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { MAX_PHOTOS_PER_SPREAD, type AlbumDTO, type LayoutSuggestionDTO } from "@albumflow/contracts";
 import { editAlbum, suggestSpreadLayouts } from "@/shared/api";
+import { chooseLayout } from "@/features/album-editor/lib/layout-choice";
 
 type Spread = AlbumDTO["spreads"][number];
 
@@ -47,9 +48,10 @@ export function useSpreadLayouts(options: {
     [projectId],
   );
 
-  /** The best-ranked layout for a photo set, applied to one spread. */
+  /** The best layout for a photo set on one spread that its neighbours do not already use. */
   const fitBest = async (spreadIndex: number, photoIds: string[]) => {
-    const best = (await suggestionsFor(photoIds))[0];
+    const neighbours = [album?.spreads[spreadIndex - 1]?.templateId, album?.spreads[spreadIndex + 1]?.templateId];
+    const best = chooseLayout(await suggestionsFor(photoIds), neighbours);
     if (!best) throw new Error(`No layout holds ${photoIds.length} photos.`);
     return { type: "CHANGE_TEMPLATE" as const, spreadIndex, templateId: best.templateId, photoIds: best.photoIds };
   };
@@ -62,7 +64,8 @@ export function useSpreadLayouts(options: {
   const addAsSpread = useMutation({
     mutationFn: async (picked: string[]) => {
       const ranked = await suggestionsFor(picked);
-      const best = ranked[0];
+      // Added at the end, so the last spread is the one it must not copy.
+      const best = chooseLayout(ranked, [album?.spreads[(album?.spreads.length ?? 0) - 1]?.templateId]);
       if (!best) throw new Error("No layout fits that many photos.");
       return editAlbum(albumId, {
         type: "ADD_SPREAD",
