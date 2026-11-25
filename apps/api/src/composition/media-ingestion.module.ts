@@ -8,6 +8,7 @@ import { DeleteProjectUseCase } from "../modules/media-ingestion/application/use
 import { GenerateDerivativesUseCase } from "../modules/media-ingestion/application/use-cases/generate-derivatives/generate-derivatives.use-case";
 import { StoreOriginalUseCase } from "../modules/media-ingestion/application/use-cases/store-original/store-original.use-case";
 import { ReleaseStagedOriginalsUseCase } from "../modules/media-ingestion/application/use-cases/release-staged-originals/release-staged-originals.use-case";
+import { RequeueUnfinishedPhotosUseCase } from "../modules/media-ingestion/application/use-cases/requeue-unfinished/requeue-unfinished.use-case";
 import { StorePendingOriginalsUseCase } from "../modules/media-ingestion/application/use-cases/store-original/store-pending-originals.use-case";
 import { PromoteSelectedPhotosUseCase } from "../modules/media-ingestion/application/use-cases/promote-selected/promote-selected.use-case";
 import { PurgeExpiredOriginalsUseCase } from "../modules/media-ingestion/application/use-cases/purge-expired-originals/purge-expired-originals.use-case";
@@ -24,7 +25,7 @@ import type { ExportPrintModule } from "./export-print.module";
 
 /** Media ingestion: shoots, uploads, display copies, and the two-tier storage pipeline. */
 export function buildMediaIngestionModule(
-  { env, logger, storage, jobQueue, permanentStorage }: ModuleInfrastructure,
+  { env, logger, storage, jobQueue, queueBacklog, permanentStorage }: ModuleInfrastructure,
   repos: Repositories,
   { planFeatures, exportStorage }: Pick<IdentityModule, "planFeatures"> & Pick<ExportPrintModule, "exportStorage">,
 ) {
@@ -127,6 +128,10 @@ export function buildMediaIngestionModule(
     storeOriginal,
     storePending,
     releaseStaged,
+    // Only where jobs wait on a queue that can lose them; the demo runs them inline.
+    requeueUnfinished: queueBacklog
+      ? new RequeueUnfinishedPhotosUseCase(photos, jobQueue, queueBacklog, storageLog)
+      : undefined,
     purgeExpiredOriginals,
   };
 }

@@ -19,6 +19,12 @@ services:
 
   redis:
     image: redis:7-alpine
+    # The job queues live here. Without a disk copy, every restart of this container (a
+    # reboot, a deploy that recreates it) silently dropped every waiting job, and photos
+    # stayed "processing" forever. Append-only file, synced every second, on a volume.
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - redis-data:/data
     ports:
       - "6379:6379"
     healthcheck:
@@ -121,3 +127,4 @@ services:
 volumes:
   postgres-data:
   minio-data:
+  redis-data:

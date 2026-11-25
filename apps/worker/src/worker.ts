@@ -201,6 +201,10 @@ function maintenanceJobs(root: CompositionRoot): Record<string, JobHandler> {
   return {
     // Unconfirmed signups older than 48h; ones with shoots or teammates are kept.
     "purge-unconfirmed": handle(async () => ({ ...(await root.purgeUnconfirmedSignups.execute()) })),
+    // Photos stuck in processing because their jobs vanished (a Redis restart): queued again.
+    ...(root.requeueUnfinished
+      ? { "requeue-unfinished": handle(async () => ({ ...(await root.requeueUnfinished!.execute()) })) }
+      : {}),
     // Admin error log occurrences past ERROR_LOG_RETENTION_DAYS; the grouped issues stay.
     "purge-error-log": handle(async () => ({ ...(await root.errorInbox.purgeExpired()) })),
     // Sign-up attempts past SIGNUP_LOG_RETENTION_DAYS (90): the log is for spotting spam, not a record.
@@ -296,6 +300,15 @@ async function main() {
     { name: "purge-unconfirmed", data: {} },
   );
   await maintenanceQueue.add("purge-unconfirmed", {}, { removeOnComplete: 20, removeOnFail: 20 });
+  // Every 15 minutes, and once at startup: right after a restart is when jobs go missing.
+  if (root.requeueUnfinished) {
+    await maintenanceQueue.upsertJobScheduler(
+      "requeue-unfinished-photos",
+      { pattern: "*/15 * * * *" },
+      { name: "requeue-unfinished", data: {} },
+    );
+    await maintenanceQueue.add("requeue-unfinished", {}, { removeOnComplete: 20, removeOnFail: 20 });
+  }
   await maintenanceQueue.upsertJobScheduler(
     "purge-signup-log",
     { pattern: "50 4 * * *" },

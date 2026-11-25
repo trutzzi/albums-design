@@ -170,6 +170,20 @@ export class InMemoryPhotoRepository implements PhotoRepository {
       .slice(0, limit)
       .map(clonePhoto);
   }
+  async findUnfinishedProcessing(uploadedBefore: Date, limit: number) {
+    return [...this.items.values()]
+      .filter(
+        (photo) =>
+          photo.status !== "PENDING_UPLOAD" &&
+          photo.status !== "FAILED" &&
+          !photo.stagedOriginalPurgedAt &&
+          photo.createdAt <= uploadedBefore &&
+          (photo.status === "UPLOADED" || photo.status === "ANALYSIS_QUEUED" || !photo.hasDerivatives),
+      )
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .slice(0, limit)
+      .map(clonePhoto);
+  }
   async findAwaitingLongTermStorage(limit: number) {
     return [...this.items.values()]
       .filter((photo) => photo.status !== "PENDING_UPLOAD" && !photo.fullResStoredAt && !photo.stagedOriginalPurgedAt)
