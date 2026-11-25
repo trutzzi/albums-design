@@ -17,7 +17,7 @@ import { AlbumCompositionPlacementDirectory } from "../src/modules/media-ingesti
 import { ExportPrintDeliveryDirectory } from "../src/modules/media-ingestion/infrastructure/gateways/delivery-gateway";
 import { PromoteOnApprovalNotifier } from "../src/modules/review-collaboration/infrastructure/gateways/promote-on-approval-notifier";
 import { StoragePhotoPreviewResolver } from "../src/modules/review-collaboration/infrastructure/gateways/photo-preview-resolver";
-import { MediaUrlSigner } from "../src/infrastructure/storage/media-url-signer";
+import { MEDIA_URL_WINDOW_SECONDS, MediaUrlSigner } from "../src/infrastructure/storage/media-url-signer";
 import { TieredPhotoByteSource } from "../src/infrastructure/storage/tiered-photo-byte-source";
 import { registerMediaRoutes } from "../src/interface/media-routes";
 import { InMemoryStorageProvider } from "../src/dev/in-memory-storage-provider";
@@ -512,9 +512,11 @@ describe("GET /media/:token", () => {
     const { server, w, key } = await app();
     const good = (await w.permanent.getUrl(key, { expiresInSeconds: 60 })).split("/media/")[1]!;
     const forged = `${good.slice(0, -3)}abc`;
-    const expired = (
-      await new MediaUrlSigner("test-secret-test-secret-test-secret-123", "https://x").sign(key, -10)
-    ).split("/media/")[1]!;
+    // Signed two windows ago for one minute: long past its expiry.
+    const longAgo = Math.floor(Date.now() / 1000) - 2 * MEDIA_URL_WINDOW_SECONDS - 120;
+    const expired = new MediaUrlSigner("test-secret-test-secret-test-secret-123", "https://x", () => longAgo)
+      .sign(key, 60)
+      .split("/media/")[1]!;
     for (const token of [forged, expired, "not.a.token"]) {
       assert.equal((await server.inject({ method: "GET", url: `/media/${token}` })).statusCode, 403, token);
     }

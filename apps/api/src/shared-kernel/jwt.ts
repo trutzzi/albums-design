@@ -24,9 +24,15 @@ function sign(data: string, secret: string): string {
   return createHmac("sha256", secret).update(data).digest("base64url");
 }
 
-export function signJwt(payload: JwtPayload, secret: string, expiresInSeconds: number): string {
+export function signJwt(
+  payload: JwtPayload,
+  secret: string,
+  expiresInSeconds: number,
+  /** Issue time in seconds; a caller that wants the same token twice passes the same value. */
+  issuedAt: number = Math.floor(Date.now() / 1000),
+): string {
   const header = base64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const now = Math.floor(Date.now() / 1000);
+  const now = issuedAt;
   const body = base64url(JSON.stringify({ ...payload, iat: now, exp: now + expiresInSeconds }));
   const signature = sign(`${header}.${body}`, secret);
   return `${header}.${body}.${signature}`;
