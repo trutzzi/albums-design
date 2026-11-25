@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { runWithLimit, sortFilesByName } from "./upload-queue";
+import { runWithLimit, sortFilesByName, fileKey, splitDuplicates } from "./upload-queue";
 
 describe("sortFilesByName", () => {
   it("orders by the numbers in the name, ignoring case", () => {
@@ -74,5 +74,25 @@ describe("runWithLimit", () => {
       ran++;
     });
     assert.equal(ran, 2);
+  });
+});
+
+describe("splitDuplicates", () => {
+  const file = (name: string, size: number) => ({ name, size });
+
+  it("skips files already in the shoot and repeats within the drop, keeping the first", () => {
+    const existing = new Set([fileKey("a.jpg", 100)]);
+    const { fresh, duplicates } = splitDuplicates(
+      [file("a.jpg", 100), file("b.jpg", 200), file("b.jpg", 200), file("a.jpg", 999)],
+      existing,
+    );
+    assert.deepEqual(fresh, [file("b.jpg", 200), file("a.jpg", 999)]);
+    assert.deepEqual(duplicates, [file("a.jpg", 100), file("b.jpg", 200)]);
+  });
+
+  it("keeps everything when nothing is a duplicate", () => {
+    const { fresh, duplicates } = splitDuplicates([file("x.jpg", 1)], new Set());
+    assert.equal(fresh.length, 1);
+    assert.equal(duplicates.length, 0);
   });
 });

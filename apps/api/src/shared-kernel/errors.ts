@@ -26,6 +26,13 @@ export class ConflictError extends ApplicationError {
   }
 }
 
+/** The very same file (name and size) is already in the shoot; the uploader counts it as skipped. */
+export class AlreadyUploadedError extends ApplicationError {
+  constructor(fileName: string) {
+    super(`${fileName} is already in this shoot.`, "ALREADY_UPLOADED");
+  }
+}
+
 export class UnauthorizedError extends ApplicationError {
   constructor(message: string) {
     super(message, "UNAUTHORIZED");

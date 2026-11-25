@@ -112,7 +112,9 @@ export function PhotoUploader({
           </p>
         )}
         {upload.skipped.length > 0 && !upload.batch && (
-          <p className="notice">{t("project.upload.skippedNotice", { count: upload.skipped.length })}</p>
+          <p className="notice" role="status">
+            {t("project.upload.skippedNotice", { count: upload.skipped.length })}
+          </p>
         )}
         {upload.failed.length > 0 && (
           <ul className="error-list">

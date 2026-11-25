@@ -1,5 +1,5 @@
 import { Result, UniqueEntityId } from "@albumflow/domain-kernel";
-import { ApplicationError, ConflictError, NotFoundError } from "#src/shared-kernel/errors";
+import { AlreadyUploadedError, ConflictError, NotFoundError, type ApplicationError } from "#src/shared-kernel/errors";
 import type { PlanFeatureDirectory } from "#src/shared-kernel/plan-features";
 import type { ProjectRepository } from "#src/modules/media-ingestion/domain/project-repository";
 import type { PhotoRepository } from "#src/modules/media-ingestion/domain/photo-repository";
@@ -43,6 +43,16 @@ export class RequestUploadUseCase {
       return Result.failure(new NotFoundError("Project", command.projectId));
     }
 
+    // The same file dropped twice (a folder uploaded again, a second tab) would make a second
+    // copy of every photo, each analysed, stored and offered to the client. Same name and
+    // same size in the same shoot is the same file for any camera export. Checked before the
+    // plan limit, so a full shoot still answers "already there" for a file it has. Best effort:
+    // two requests for one file at the same instant can both pass; the browser drops repeats
+    // within a batch, and a database rule against it would be a schema change.
+    if (await this.photos.hasUploadedDuplicate(projectId, command.fileName, command.byteSize)) {
+      return Result.failure(new AlreadyUploadedError(command.fileName));
+    }
+
     const limit = (await this.planFeatures?.forProject(command.projectId))?.maxPhotosPerShoot ?? null;
     if (limit !== null) {
       // Uploads still in flight count too, or one large drop would slip past the limit
@@ -55,14 +65,6 @@ export class RequestUploadUseCase {
           ),
         );
       }
-    }
-
-    // The same file dropped twice (a folder uploaded again, a second tab) would make a second
-    // copy of every photo, each analysed, stored and offered to the client. Same name and
-    // same size in the same shoot is the same file for any camera export.
-    const duplicate = await this.photos.findUploadedDuplicate(projectId, command.fileName, command.byteSize);
-    if (duplicate) {
-      return Result.failure(new ApplicationError(`${command.fileName} is already in this shoot.`, "ALREADY_UPLOADED"));
     }
 
     const photo = Photo.requestUpload({

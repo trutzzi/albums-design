@@ -29,3 +29,31 @@ export async function runWithLimit<T>(
   };
   await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
 }
+
+/** How a file is recognised as one already in the shoot: name and size, as the server checks. */
+export function fileKey(name: string, byteSize: number): string {
+  return `${name}\u0000${byteSize}`;
+}
+
+/**
+ * Splits a drop into files to upload and files to skip: those already in the shoot, and
+ * repeats within the drop itself. Done before the plan limit trims the batch, so a folder
+ * of mostly existing photos does not use up the room meant for its few new ones.
+ */
+export function splitDuplicates<T extends { name: string; size: number }>(
+  files: readonly T[],
+  existing: ReadonlySet<string>,
+): { fresh: T[]; duplicates: T[] } {
+  const seen = new Set(existing);
+  const fresh: T[] = [];
+  const duplicates: T[] = [];
+  for (const file of files) {
+    const key = fileKey(file.name, file.size);
+    if (seen.has(key)) duplicates.push(file);
+    else {
+      seen.add(key);
+      fresh.push(file);
+    }
+  }
+  return { fresh, duplicates };
+}

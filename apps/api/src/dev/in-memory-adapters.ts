@@ -130,15 +130,14 @@ export class InMemoryPhotoRepository implements PhotoRepository {
   async markStagedOriginalPurged(id: UniqueEntityId, at: Date) {
     await this.mutate(id, (photo) => photo.markStagedOriginalPurged(at));
   }
-  async findUploadedDuplicate(projectId: UniqueEntityId, fileName: string, byteSize: number) {
-    const found = [...this.items.values()].find(
+  async hasUploadedDuplicate(projectId: UniqueEntityId, fileName: string, byteSize: number) {
+    return [...this.items.values()].some(
       (photo) =>
         photo.projectId.toString() === projectId.toString() &&
         photo.fileName === fileName &&
         photo.byteSize === byteSize &&
         photo.status !== "PENDING_UPLOAD",
     );
-    return found ? clonePhoto(found) : undefined;
   }
   async countByProjectIds(projectIds: UniqueEntityId[]) {
     const wanted = new Set(projectIds.map((id) => id.toString()));

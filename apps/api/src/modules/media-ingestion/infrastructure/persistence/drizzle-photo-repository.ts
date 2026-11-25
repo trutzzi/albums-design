@@ -119,14 +119,10 @@ export class DrizzlePhotoRepository implements PhotoRepository {
     return rows.map((row) => this.toDomain(row));
   }
 
-  async findUploadedDuplicate(
-    projectId: UniqueEntityId,
-    fileName: string,
-    byteSize: number,
-  ): Promise<Photo | undefined> {
+  async hasUploadedDuplicate(projectId: UniqueEntityId, fileName: string, byteSize: number): Promise<boolean> {
     // Served by photos_project_id_file_name_idx.
     const [row] = await this.db
-      .select()
+      .select({ id: photos.id })
       .from(photos)
       .where(
         and(
@@ -137,7 +133,7 @@ export class DrizzlePhotoRepository implements PhotoRepository {
         ),
       )
       .limit(1);
-    return row ? this.toDomain(row) : undefined;
+    return row !== undefined;
   }
 
   async countByProjectIds(projectIds: UniqueEntityId[]): Promise<Record<string, ShootPhotoCounts>> {

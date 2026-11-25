@@ -40,7 +40,7 @@ async function world() {
       mimeType: "image/jpeg",
       byteSize,
     });
-  return { photos, shoot, otherShoot, existing, request };
+  return { photos, projects, studioId, shoot, otherShoot, existing, request };
 }
 
 describe("RequestUploadUseCase: the same file dropped twice", () => {
@@ -67,6 +67,22 @@ describe("RequestUploadUseCase: the same file dropped twice", () => {
     const w = await world();
     await w.existing("cut-off.jpg", 4_000_000, { finished: false });
     assert.ok((await w.request("cut-off.jpg", 4_000_000)).isSuccess);
+  });
+
+  it("answers 'already there' even when the shoot is at its plan limit", async () => {
+    const w = await world();
+    await w.existing("full.jpg", 1234);
+    const full = new RequestUploadUseCase(w.projects, w.photos, new InMemoryObjectStorage(), {
+      forProject: async () => ({ maxPhotosPerShoot: 1 }),
+    } as never);
+    const result = await full.execute({
+      studioId: w.studioId.toString(),
+      projectId: w.shoot.id.toString(),
+      fileName: "full.jpg",
+      mimeType: "image/jpeg",
+      byteSize: 1234,
+    });
+    assert.equal(result.isFailure && result.getError().code, "ALREADY_UPLOADED");
   });
 
   it("accepts the same file in another shoot", async () => {

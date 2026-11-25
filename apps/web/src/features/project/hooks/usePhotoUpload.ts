@@ -4,7 +4,7 @@ import type { SUPPORTED_MIME_TYPES } from "@albumflow/contracts";
 import { abandonUpload, confirmUpload, putFileToStorage, requestUpload } from "@/shared/api";
 import { ApiError } from "@/shared/api/http";
 import { useLanguage } from "@/shared/i18n/LanguageContext";
-import { runWithLimit, sortFilesByName } from "@/features/project/lib/upload-queue";
+import { runWithLimit, sortFilesByName, splitDuplicates } from "@/features/project/lib/upload-queue";
 
 type SupportedMimeType = (typeof SUPPORTED_MIME_TYPES)[number];
 const ACCEPTED = new Set<string>(["image/jpeg", "image/png", "image/tiff", "image/webp"]);
@@ -40,8 +40,10 @@ export function usePhotoUpload(options: {
   /** Photos per shoot the plan allows; null when unlimited. */
   photoLimit: number | null;
   photoCount: number;
+  /** `fileKey`s of the photos already in the shoot, so repeats are skipped before uploading. */
+  existingFiles: ReadonlySet<string>;
 }) {
-  const { studioId, projectId, useAi, photoLimit, photoCount } = options;
+  const { studioId, projectId, useAi, photoLimit, photoCount, existingFiles } = options;
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -108,7 +110,18 @@ export function usePhotoUpload(options: {
       if (!fileList || fileList.length === 0) return;
       // In file-name order, a few at a time — not all at once — so the shoot fills up in
       // order and a thousand photos do not open a thousand connections.
-      let files = sortFilesByName(Array.from(fileList));
+      // Files already in the shoot, or picked twice, are skipped up front: they would only be
+      // refused by the server, and must not use up the plan's room for new photos.
+      const { fresh, duplicates } = splitDuplicates(sortFilesByName(Array.from(fileList)), existingFiles);
+      let files = fresh;
+      setTransfers((prev) => [
+        ...prev.filter((transfer) => transfer.state !== "skipped"),
+        ...duplicates.map((file) => ({
+          key: `${file.name}-${file.lastModified}-${file.size}-skipped`,
+          fileName: file.name,
+          state: "skipped" as const,
+        })),
+      ]);
       setLimitNotice(null);
       if (photoLimit !== null) {
         const room = Math.max(0, photoLimit - photoCount);
@@ -118,12 +131,12 @@ export function usePhotoUpload(options: {
         }
         if (files.length === 0) return;
       }
+      // Everything was already there: the skipped notice says so, and there is nothing to upload.
+      if (files.length === 0) return;
       const controller = new AbortController();
       abort.current = controller;
       unconfirmed.current = new Set();
       setBatch({ total: files.length, done: 0, failed: 0, skipped: 0, cancelling: false });
-      // A new batch reports only its own skipped files.
-      setTransfers((prev) => prev.filter((transfer) => transfer.state !== "skipped"));
 
       void runWithLimit(files, UPLOAD_PARALLELISM, (file) => uploadOne(file, controller.signal), controller.signal)
         .then(async () => {
@@ -142,7 +155,7 @@ export function usePhotoUpload(options: {
           void queryClient.invalidateQueries({ queryKey: ["photos", projectId] });
         });
     },
-    [uploadOne, queryClient, projectId, photoLimit, photoCount, t],
+    [uploadOne, queryClient, projectId, photoLimit, photoCount, existingFiles, t],
   );
 
   const cancel = useCallback(() => {
